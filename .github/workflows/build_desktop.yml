@@ -37,13 +37,13 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Windows-EXE
-        path: dist/MantPro_PC.exe
+        path: dist/MantPro_WIN.exe
 
     - name: Publicar EXE en Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: dist/MantPro_PC.exe
+        files: dist/MantPro_WIN.exe
 
   # ------------------------------------------------------------------
   # JOB 2: LINUX (Binario + AppImage)
