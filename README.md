@@ -99,7 +99,6 @@
 - **Flutter**: 3.0 o superior
 - **Dart SDK**: 2.17 o superior
 - **Android**: API Level 21+ (Android 5.0+)
-- **iOS**: iOS 11.0+ (no probado)
 
 ---
 
@@ -149,11 +148,6 @@
 4. **Compilar APK (Android)**:
    ```bash
    flutter build apk --release
-   ```
-
-5. **Compilar IPA (iOS)**: (no probado)
-   ```bash
-   flutter build ios --release
    ```
 
 ---

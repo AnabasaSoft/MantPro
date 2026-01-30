@@ -1,0 +1,114 @@
+name: Construir Desktop (Windows & Linux AppImage)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  # --- TRABAJO PARA WINDOWS ---
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configurar Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Instalar Dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install PyQt6 reportlab requests flask qrcode xlsxwriter
+
+    - name: Generar EXE
+      run: |
+        pyinstaller --noconsole --onefile --name=MantPro_PC --icon=icono.png main.py
+
+    - name: Subir EXE
+      uses: actions/upload-artifact@v4
+      with:
+        name: MantPro-Windows-EXE
+        path: dist/MantPro_PC.exe
+
+  # --- TRABAJO PARA LINUX (Binario + AppImage) ---
+  build-linux:
+    runs-on: ubuntu-latest # Usamos Ubuntu (glibc estándar) para máxima compatibilidad
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configurar Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Instalar librerías del sistema (Qt y FUSE)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libegl1 libxkbcommon-x11-0 libdbus-1-3 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils libfuse2 file
+
+    - name: Instalar Dependencias Python
+      run: |
+        pip install pyinstaller
+        pip install PyQt6 reportlab requests flask qrcode xlsxwriter
+
+    - name: Generar Binario (PyInstaller)
+      run: |
+        # --onefile crea un solo ejecutable binario de Linux
+        pyinstaller --noconsole --onefile --name=MantPro_Linux --icon=icono.png main.py
+
+    # --- FASE DE CREACIÓN DE APPIMAGE ---
+    - name: Crear Estructura AppImage
+      run: |
+        # 1. Crear carpeta AppDir
+        mkdir -p AppDir/usr/bin
+
+        # 2. Copiar el binario y el icono
+        cp dist/MantPro_Linux AppDir/usr/bin/mantpro
+        cp icono.png AppDir/mantpro.png
+
+        # 3. Crear el archivo .desktop necesario para AppImage
+        cat > AppDir/mantpro.desktop <<EOF
+        [Desktop Entry]
+        Type=Application
+        Name=MantPro
+        Exec=mantpro
+        Icon=mantpro
+        Categories=Utility;
+        EOF
+
+        # 4. Crear el AppRun (script de arranque)
+        cat > AppDir/AppRun <<EOF
+        #!/bin/sh
+        SELF=\$(readlink -f "\$0")
+        HERE=\${SELF%/*}
+        export PATH="\${HERE}/usr/bin:\${PATH}"
+        export LD_LIBRARY_PATH="\${HERE}/usr/lib:\${LD_LIBRARY_PATH}"
+        exec "\${HERE}/usr/bin/mantpro" "\$@"
+        EOF
+        chmod +x AppDir/AppRun
+
+    - name: Empaquetar AppImage
+      run: |
+        # Descargar herramienta oficial AppImageTool
+        wget https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+
+        # Generar el archivo final
+        # Usamos appimage-extract-and-run porque los runners de GitHub a veces no tienen FUSE montado
+        ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir MantPro-x86_64.AppImage
+
+    - name: Subir Binario Linux (Suelto)
+      uses: actions/upload-artifact@v4
+      with:
+        name: MantPro-Linux-Binario
+        path: dist/MantPro_Linux
+
+    - name: Subir AppImage (Universal)
+      uses: actions/upload-artifact@v4
+      with:
+        name: MantPro-Linux-AppImage
+        path: MantPro-x86_64.AppImage
