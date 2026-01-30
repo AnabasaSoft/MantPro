@@ -11,7 +11,7 @@ __pycache__/
 mantenimiento.db
 *.pdf
 *.sh
-logo.jpg
+Logo.jpg
 *.json
 
 # Carpetas de contenido generado por el uso
@@ -42,3 +42,4 @@ mantenimiento_app/macos
 # Archivos de sistema operativo
 .DS_Store
 Thumbs.db
+Logo.jpg
