@@ -37,17 +37,52 @@ from PyQt6.QtGui import (QAction, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel)
 
 # ==========================================
-# FUNCIÓN PARA RECURSOS (ICONOS EN PYINSTALLER)
+# GESTIÓN DE RUTAS (INTELIGENTE)
 # ==========================================
+
 def resource_path(relative_path):
-    """ Obtener ruta absoluta a recursos, funciona para dev y para PyInstaller """
+    """ Para recursos ESTÁTICOS (solo lectura) empaquetados (icono.png) """
     try:
-        # PyInstaller crea una carpeta temporal en _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
-
     return os.path.join(base_path, relative_path)
+
+def obtener_ruta_datos():
+    """
+    Determina dónde leer/escribir datos.
+    PRIORIDAD 1: Carpeta actual (Modo desarrollo/Portable). Si existe 'mantenimiento.db' aquí, se usa esta.
+    PRIORIDAD 2: Carpeta de sistema (Modo Instalación/AUR). ~/.local/share/MantPro
+    """
+    cwd = os.path.abspath(".")
+    db_local = os.path.join(cwd, "mantenimiento.db")
+
+    # Si ya existe la BD en la carpeta actual, nos quedamos aquí (tu caso actual)
+    if os.path.exists(db_local):
+        return cwd
+
+    # Si no, usamos la ruta estándar del sistema operativo
+    nombre_app = "MantPro"
+    if sys.platform == "win32":
+        base_dir = os.getenv("APPDATA")
+    else:
+        base_dir = os.getenv("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+
+    ruta_sistema = os.path.join(base_dir, nombre_app)
+
+    # Crear la carpeta de sistema si no existe
+    if not os.path.exists(ruta_sistema):
+        try:
+            os.makedirs(ruta_sistema)
+        except OSError as e:
+            print(f"Error creando directorio de datos: {e}")
+            return cwd # Si falla, volvemos a local
+
+    return ruta_sistema
+
+# Variable global que decide dónde se guarda TODO
+DATA_DIR = obtener_ruta_datos()
+
 
 # ==========================================
 # DATOS GLOBALES: PROVINCIAS
@@ -112,7 +147,7 @@ PROVINCIAS_ESPAÑA = {
 # ==========================================
 
 class GeneradorPDFThread(QThread):
-    resultado = pyqtSignal(bool, str) # Señal: (Exito/Fallo, Mensaje)
+    resultado = pyqtSignal(bool, str)
 
     def __init__(self, archivo, titulo_doc, datos, carpeta_fotos, incluir_fotos):
         super().__init__()
@@ -128,7 +163,7 @@ class GeneradorPDFThread(QThread):
             elements = []; styles = getSampleStyleSheet()
 
             # --- ZONA LOGO ---
-            ruta_logo = "Logo.jpg"
+            ruta_logo = os.path.join(DATA_DIR, "Logo.jpg")
             if os.path.exists(ruta_logo):
                 try:
                     logo = PDFImage(ruta_logo, width=4*cm, height=2*cm)
@@ -146,11 +181,10 @@ class GeneradorPDFThread(QThread):
             style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
             for fecha, desc, tags in self.datos:
-                # 1. Empezamos con la descripción original
                 desc_visual = desc
                 img_obj = "-"
 
-                # 2. Gestión de FOTO
+                # Gestión de FOTO
                 m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
                 if m:
                     nombre_foto = m.group(1).split("]")[0].strip()
@@ -168,7 +202,7 @@ class GeneradorPDFThread(QThread):
                         else: img_obj = "No File"
                     else: img_obj = "SÍ"
 
-                # 3. LIMPIEZA DE ETIQUETAS INTERNAS (FOTO y REF)
+                # LIMPIEZA DE ETIQUETAS
                 desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
                 desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual)
                 desc_visual = desc_visual.strip()
@@ -230,14 +264,13 @@ class VisorFoto(QDialog):
 class DialogoSelectorFoto(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("📸 VISOR MANUAL (DOBLE CLICK PARA ELEGIR)")
+        self.setWindowTitle("📸 VISOR MANUAL")
         self.resize(1100, 600)
         self.ruta_seleccionada = None
 
         layout = QHBoxLayout()
         self.setLayout(layout)
 
-        # --- 1. IZQUIERDA: ÁRBOL DE CARPETAS ---
         self.model = QFileSystemModel()
         ruta_inicial = QDir.homePath()
         self.model.setRootPath(ruta_inicial)
@@ -255,7 +288,6 @@ class DialogoSelectorFoto(QDialog):
         self.tree.clicked.connect(self.on_click)
         self.tree.doubleClicked.connect(self.on_double_click)
 
-        # --- 2. DERECHA: VISOR ---
         right_layout = QVBoxLayout()
         self.preview_lbl = QLabel("Selecciona un archivo...")
         self.preview_lbl.setFixedWidth(500)
@@ -366,16 +398,14 @@ class ServidorSincronizacion(QThread):
             try:
                 id_p = request.form.get('id')
                 titulo = request.form.get('titulo')
-                detalles_finales = request.form.get('detalles') # Detalles con posible tag de foto vieja
+                detalles_finales = request.form.get('detalles')
                 tags = request.form.get('tags', '')
-                filename, ruta_foto = self._procesar_foto(request) # Foto nueva (si la hay)
+                filename, ruta_foto = self._procesar_foto(request)
 
                 fecha = datetime.now().strftime("%Y-%m-%d")
 
-                # --- MEJORA: LIMPIEZA INTELIGENTE ---
                 if filename and detalles_finales:
                     detalles_finales = re.sub(r"\[FOTO:.*?\]", "", detalles_finales).strip()
-                # ------------------------------------
 
                 full_desc = titulo
                 if detalles_finales: full_desc += f"\n{detalles_finales}"
@@ -412,7 +442,6 @@ class ServidorSincronizacion(QThread):
                 conn.commit()
                 conn.close()
 
-                # Avisar a la interfaz del PC
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
@@ -427,8 +456,6 @@ class ServidorSincronizacion(QThread):
                 c.execute('DELETE FROM pendientes WHERE id=?', (id_p,))
                 conn.commit()
                 conn.close()
-
-                # Avisar a la interfaz del PC para que se quite de la lista visualmente
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
@@ -462,8 +489,10 @@ class ServidorSincronizacion(QThread):
 # ==========================================
 
 class GestorBaseDatos:
-    def __init__(self, db_name="mantenimiento.db"):
-        self.db_name = db_name
+    def __init__(self):
+        # USAMOS DATA_DIR PARA UBICAR LA DB
+        # La lógica de DATA_DIR se calcula arriba globalmente
+        self.db_name = os.path.join(DATA_DIR, "mantenimiento.db")
         self.inicializar_tablas()
 
     def conectar(self):
@@ -476,10 +505,8 @@ class GestorBaseDatos:
             c.execute('CREATE TABLE IF NOT EXISTS tareas (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT, descripcion TEXT, tags TEXT)')
             c.execute('CREATE TABLE IF NOT EXISTS dias_especiales (fecha TEXT PRIMARY KEY, tipo TEXT)')
             c.execute('CREATE TABLE IF NOT EXISTS pendientes (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo TEXT, detalles TEXT)')
-            # Tabla de configuración global (clave, valor)
             c.execute('CREATE TABLE IF NOT EXISTS config (clave TEXT PRIMARY KEY, valor TEXT)')
 
-            # Comprobación de tabla avisos antigua
             necesita_recrear = False
             try:
                 c.execute("PRAGMA table_info(avisos_recurrentes)")
@@ -488,7 +515,6 @@ class GestorBaseDatos:
             except: pass
 
             if necesita_recrear:
-                print("⚠️ Estructura antigua detectada. Reconstruyendo tabla de avisos...")
                 c.execute("DROP TABLE IF EXISTS avisos_recurrentes")
 
             c.execute('''CREATE TABLE IF NOT EXISTS avisos_recurrentes (
@@ -498,7 +524,6 @@ class GestorBaseDatos:
             conn.close()
         except Exception as e: print(f"Error crítico inicializando BD: {e}")
 
-    # --- NUEVAS FUNCIONES DE CONFIGURACIÓN ---
     def set_config(self, clave, valor):
         try:
             conn = self.conectar()
@@ -518,7 +543,6 @@ class GestorBaseDatos:
             conn.close()
             return res[0] if res else None
         except: return None
-    # -----------------------------------------
 
     def agregar_aviso(self, titulo, fecha_inicio, frecuencia, duracion):
         try:
@@ -612,13 +636,12 @@ class GestorBaseDatos:
 class GestorFestivos:
     def __init__(self, db_instance):
         self.db = db_instance
-        self.archivo_cache = "festivos_cache.json"
+        # USAMOS DATA_DIR PARA EL CACHÉ JSON
+        self.archivo_cache = os.path.join(DATA_DIR, "festivos_cache.json")
         self.year = datetime.now().year
         self.url_api = f"https://date.nager.at/api/v3/publicholidays/{self.year}/ES"
 
     def obtener_config_region(self):
-        # Devuelve tupla (provincia_iso, comunidad_iso)
-        # Default: Bizkaia (ES-BI) y País Vasco (ES-PV)
         iso_prov = self.db.get_config("region_iso") or "ES-BI"
         iso_com = self.db.get_config("parent_iso") or "ES-PV"
         return iso_prov, iso_com
@@ -633,9 +656,6 @@ class GestorFestivos:
         if datos:
             for i in datos:
                 counties = i.get('counties')
-                # 1. Festivo Nacional (counties is None)
-                # 2. Festivo Autonómico (iso_com está en la lista)
-                # 3. Festivo Provincial (iso_prov está en la lista)
                 if counties is None or iso_com in counties or iso_prov in counties:
                     l.append(QDate.fromString(i.get('date'),"yyyy-MM-dd"))
         return l
@@ -684,42 +704,30 @@ class LabelArrastrable(QLabel):
 # ==========================================
 # 3. DIÁLOGOS DE INTERFAZ
 # ==========================================
-
 class DialogoSeleccionRegion(QDialog):
     def __init__(self, db, parent=None):
         super().__init__(parent)
         self.db = db
         self.setWindowTitle("Seleccionar Provincia")
         self.resize(400, 150)
-
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Elige tu provincia para descargar los días festivos:"))
         layout.addWidget(QLabel("(Se descargarán festivos nacionales + comunidad + provincia)"))
-
         self.combo = QComboBox()
-
-        # Ordenar nombres alfabéticamente
         self.nombres_ordenados = sorted(PROVINCIAS_ESPAÑA.keys())
         self.combo.addItems(self.nombres_ordenados)
-
-        # Seleccionar la actual
         actual_iso = self.db.get_config("region_iso") or "ES-BI"
-
-        # Buscar el nombre correspondiente al ISO actual
-        nombre_actual = "Bizkaia" # Default
+        nombre_actual = "Bizkaia"
         for nombre, datos in PROVINCIAS_ESPAÑA.items():
             if datos["iso"] == actual_iso:
                 nombre_actual = nombre
                 break
-
         self.combo.setCurrentText(nombre_actual)
         layout.addWidget(self.combo)
-
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
-
         self.setLayout(layout)
 
     def get_selection(self):
@@ -732,23 +740,17 @@ class EditDialog(QDialog):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
-        self.ref_oculta = ""  # Variable para guardar la matrícula oculta
-
+        self.ref_oculta = ""
         self.setWindowTitle("Editar Registro")
         self.resize(600, 600)
         l = QVBoxLayout()
-
         self.de = QDateEdit(); self.de.setDate(QDate.fromString(fecha, "yyyy-MM-dd")); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd")
         l.addWidget(QLabel("Fecha:")); l.addWidget(self.de)
-
-        # Usamos la nueva función que separa Foto y REF
         texto_limpio, nombre_foto, ref_encontrada = self.separar_datos(desc)
         self.foto_filename = nombre_foto
         self.ref_oculta = ref_encontrada
-
         self.te = QTextEdit(); self.te.setText(texto_limpio)
         l.addWidget(QLabel("Descripción:")); l.addWidget(self.te)
-
         l.addWidget(QLabel("Foto Adjunta (Arrastra o Click):"))
         self.lbl_foto = LabelArrastrable()
         self.lbl_foto.setFixedHeight(200); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -756,11 +758,9 @@ class EditDialog(QDialog):
         self.lbl_foto.archivo_soltado.connect(self.procesar_nueva_foto)
         self.actualizar_vista_foto()
         l.addWidget(self.lbl_foto)
-
         btn_foto = QPushButton("📂 Seleccionar Foto (Botón)")
         btn_foto.clicked.connect(self.seleccionar_foto_boton)
         l.addWidget(btn_foto)
-
         l.addWidget(QLabel("Etiquetas:"))
         h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico")
@@ -778,32 +778,19 @@ class EditDialog(QDialog):
         h_tags.addWidget(self.chk_urgente); h_tags.addWidget(self.chk_electrico)
         h_tags.addWidget(self.chk_mecanico); h_tags.addWidget(self.chk_prev)
         l.addLayout(h_tags)
-
         texto_manual = ", ".join([x for x in tags.split(',') if x.strip().lower() in lista_actual])
         self.tag = QLineEdit(); self.tag.setText(texto_manual); self.tag.setPlaceholderText("Otros tags...")
         l.addWidget(self.tag)
-
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
         l.addWidget(b); self.setLayout(l)
 
     def separar_datos(self, texto):
-        # 1. Extraer REF (Matrícula interna)
-        ref = ""
-        m_ref = re.search(r"\[REF:\s*(\d+)\]", texto)
-        if m_ref:
-            ref = m_ref.group(0)
-            texto = re.sub(r"\[REF:.*?\]", "", texto)
-
-        # 2. Extraer FOTO
-        foto = None
-        m_foto = re.search(r"\[FOTO:\s*(.*?)\]", texto)
-        if m_foto:
-            foto = m_foto.group(1).strip().split("]")[0]
-            texto = re.sub(r"\[FOTO:.*?\]", "", texto)
-
+        ref = ""; m_ref = re.search(r"\[REF:\s*(\d+)\]", texto)
+        if m_ref: ref = m_ref.group(0); texto = re.sub(r"\[REF:.*?\]", "", texto)
+        foto = None; m_foto = re.search(r"\[FOTO:\s*(.*?)\]", texto)
+        if m_foto: foto = m_foto.group(1).strip().split("]")[0]; texto = re.sub(r"\[FOTO:.*?\]", "", texto)
         return texto.strip(), foto, ref
-
     def actualizar_vista_foto(self):
         if self.foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.foto_filename)
@@ -812,19 +799,15 @@ class EditDialog(QDialog):
                 self.lbl_foto.setPixmap(p.scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
             else: self.lbl_foto.setText(f"Error: Falta {self.foto_filename}")
-        else:
-            self.lbl_foto.setText("Arrastra una foto aquí\no haz clic para ampliar/buscar")
-            self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
+        else: self.lbl_foto.setText("Arrastra una foto aquí\no haz clic para ampliar/buscar"); self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
     def abrir_o_buscar(self, event):
         if self.foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.foto_filename)
             if os.path.exists(ruta): VisorFoto(ruta, self).exec()
         else: self.seleccionar_foto_boton()
     def seleccionar_foto_boton(self):
-        # USAMOS EL SELECTOR PROPIO AQUÍ TAMBIÉN
         dlg = DialogoSelectorFoto(self)
-        if dlg.exec() and dlg.selectedFiles():
-            self.procesar_nueva_foto(dlg.selectedFiles()[0])
+        if dlg.exec() and dlg.selectedFiles(): self.procesar_nueva_foto(dlg.selectedFiles()[0])
     def procesar_nueva_foto(self, ruta_origen):
         try:
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -837,11 +820,7 @@ class EditDialog(QDialog):
         except Exception as e: QMessageBox.critical(self, "Error", str(e))
     def get_data(self):
         d = self.te.toPlainText().strip()
-
-        # Restaurar la REF oculta para no romper la sincronización
-        if self.ref_oculta:
-            d += f" {self.ref_oculta}"
-
+        if self.ref_oculta: d += f" {self.ref_oculta}"
         if self.foto_filename: d += f"\n[FOTO: {self.foto_filename}]"
         final_tags = []
         if self.chk_urgente.isChecked(): final_tags.append("Urgente")
@@ -856,61 +835,20 @@ class DialogoEditarPendiente(QDialog):
     def __init__(self, parent=None, titulo="", detalles="", ruta_foto=""):
         super().__init__(parent)
         self.setWindowTitle("Editar Tarea Pendiente")
-        self.resize(550, 650) # Ventana más alta
+        self.resize(550, 650)
         self.ruta_foto_seleccionada = ruta_foto
-
         l = QVBoxLayout()
-
-        l.addWidget(QLabel("Título:"))
-        self.t = QLineEdit(titulo)
-        l.addWidget(self.t)
-
-        l.addWidget(QLabel("Detalles:"))
-        self.d = QTextEdit()
-        self.d.setText(detalles)
-        self.d.setMaximumHeight(100) # Texto más pequeño para dejar sitio a la foto
-        l.addWidget(self.d)
-
-        # --- ZONA VISUAL DE FOTO ---
+        l.addWidget(QLabel("Título:")); self.t = QLineEdit(titulo); l.addWidget(self.t)
+        l.addWidget(QLabel("Detalles:")); self.d = QTextEdit(); self.d.setText(detalles); self.d.setMaximumHeight(100); l.addWidget(self.d)
         l.addWidget(QLabel("📸 Foto Adjunta:"))
-
-        # Marco para la imagen
-        self.lbl_preview = QLabel("Sin foto")
-        self.lbl_preview.setFixedSize(400, 300)
-        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
-
-        # Centrar el marco
-        h_center = QHBoxLayout()
-        h_center.addStretch(); h_center.addWidget(self.lbl_preview); h_center.addStretch()
-        l.addLayout(h_center)
-
-        # Botones de foto
-        h_btns = QHBoxLayout()
-        self.lbl_nombre = QLabel("")
-        self.lbl_nombre.setStyleSheet("color: #777; font-size: 10px;")
-        h_btns.addWidget(self.lbl_nombre)
-        h_btns.addStretch()
-
-        btn_ver = QPushButton("🔍 Ver Grande")
-        btn_ver.clicked.connect(self.ver_grande)
-        h_btns.addWidget(btn_ver)
-
-        btn_cambiar = QPushButton("📂 Cambiar Foto")
-        btn_cambiar.clicked.connect(self.seleccionar_foto)
-        h_btns.addWidget(btn_cambiar)
-
-        l.addLayout(h_btns)
-
-        # Cargar imagen inicial
+        self.lbl_preview = QLabel("Sin foto"); self.lbl_preview.setFixedSize(400, 300)
+        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
+        h_center = QHBoxLayout(); h_center.addStretch(); h_center.addWidget(self.lbl_preview); h_center.addStretch(); l.addLayout(h_center)
+        h_btns = QHBoxLayout(); self.lbl_nombre = QLabel(""); self.lbl_nombre.setStyleSheet("color: #777; font-size: 10px;"); h_btns.addWidget(self.lbl_nombre); h_btns.addStretch()
+        btn_ver = QPushButton("🔍 Ver Grande"); btn_ver.clicked.connect(self.ver_grande); h_btns.addWidget(btn_ver)
+        btn_cambiar = QPushButton("📂 Cambiar Foto"); btn_cambiar.clicked.connect(self.seleccionar_foto); h_btns.addWidget(btn_cambiar); l.addLayout(h_btns)
         self.actualizar_vista_foto()
-
-        # Botones Aceptar/Cancelar
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
-        l.addWidget(b)
-        self.setLayout(l)
-
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def actualizar_vista_foto(self):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
             pix = QPixmap(self.ruta_foto_seleccionada)
@@ -918,24 +856,13 @@ class DialogoEditarPendiente(QDialog):
                 self.lbl_preview.setPixmap(pix.scaled(self.lbl_preview.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_preview.setStyleSheet("border: 2px solid #3daee9; background-color: #000;")
                 self.lbl_nombre.setText(os.path.basename(self.ruta_foto_seleccionada))
-            else:
-                self.lbl_preview.setText("❌ Error de imagen"); self.lbl_preview.setStyleSheet("border: 2px dashed red;")
-        else:
-            self.lbl_preview.setPixmap(QPixmap())
-            self.lbl_preview.setText("Sin Foto Asignada")
-            self.lbl_preview.setStyleSheet("border: 2px dashed #555; color: #777;")
-            self.lbl_nombre.setText("")
-
+            else: self.lbl_preview.setText("❌ Error de imagen"); self.lbl_preview.setStyleSheet("border: 2px dashed red;")
+        else: self.lbl_preview.setPixmap(QPixmap()); self.lbl_preview.setText("Sin Foto Asignada"); self.lbl_preview.setStyleSheet("border: 2px dashed #555; color: #777;"); self.lbl_nombre.setText("")
     def seleccionar_foto(self):
         dlg = DialogoSelectorFoto(self)
-        if dlg.exec() and dlg.selectedFiles():
-            self.ruta_foto_seleccionada = dlg.selectedFiles()[0]
-            self.actualizar_vista_foto()
-
+        if dlg.exec() and dlg.selectedFiles(): self.ruta_foto_seleccionada = dlg.selectedFiles()[0]; self.actualizar_vista_foto()
     def ver_grande(self):
-        if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
-            VisorFoto(self.ruta_foto_seleccionada, self).exec()
-
+        if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada): VisorFoto(self.ruta_foto_seleccionada, self).exec()
     def get_data(self): return self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada
 
 class CompleteDialog(QDialog):
@@ -943,100 +870,57 @@ class CompleteDialog(QDialog):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
-        self.setWindowTitle(f"Completar: {titulo}")
-        self.resize(500, 550)
-        l = QVBoxLayout()
-        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{detalles}</i>")
-        lbl_info.setWordWrap(True); lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;")
-        l.addWidget(lbl_info)
-        l.addWidget(QLabel("Fecha Finalización:"))
-        self.de = QDateEdit(); self.de.setDate(QDate.currentDate()); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd")
-        l.addWidget(self.de)
-
-        self.lbl_foto = LabelArrastrable()
-        self.lbl_foto.setFixedHeight(180); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.lbl_foto.mousePressEvent = self.click_foto
-        self.lbl_foto.archivo_soltado.connect(self.procesar_foto)
-        l.addWidget(self.lbl_foto)
-        btn = QPushButton("📸 Buscar Foto Manualmente")
-        btn.clicked.connect(self.buscar_foto)
-        l.addWidget(btn)
-
-        l.addWidget(QLabel("Etiquetas Rápidas:"))
-        h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico")
-        self.chk_mecanico = QCheckBox("Mecánico"); self.chk_prev = QCheckBox("Preventivo")
+        self.setWindowTitle(f"Completar: {titulo}"); self.resize(500, 550); l = QVBoxLayout()
+        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{detalles}</i>"); lbl_info.setWordWrap(True); lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;"); l.addWidget(lbl_info)
+        l.addWidget(QLabel("Fecha Finalización:")); self.de = QDateEdit(); self.de.setDate(QDate.currentDate()); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd"); l.addWidget(self.de)
+        self.lbl_foto = LabelArrastrable(); self.lbl_foto.setFixedHeight(180); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_foto.mousePressEvent = self.click_foto; self.lbl_foto.archivo_soltado.connect(self.procesar_foto); l.addWidget(self.lbl_foto)
+        btn = QPushButton("📸 Buscar Foto Manualmente"); btn.clicked.connect(self.buscar_foto); l.addWidget(btn)
+        l.addWidget(QLabel("Etiquetas Rápidas:")); h_tags = QHBoxLayout()
+        self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico"); self.chk_mecanico = QCheckBox("Mecánico"); self.chk_prev = QCheckBox("Preventivo")
         for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet("font-weight: bold; color: #bbb;"); h_tags.addWidget(c)
         l.addLayout(h_tags)
-
-        l.addWidget(QLabel("Otros Tags (Opcional):"))
-        self.tag = QLineEdit(); self.tag.setPlaceholderText("Ej: limpieza, rodamiento...")
-        l.addWidget(self.tag)
-
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
-        l.addWidget(b); self.setLayout(l)
-
+        l.addWidget(QLabel("Otros Tags (Opcional):")); self.tag = QLineEdit(); self.tag.setPlaceholderText("Ej: limpieza, rodamiento..."); l.addWidget(self.tag)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def click_foto(self, e):
         if self.foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.foto_filename)
             if os.path.exists(ruta): VisorFoto(ruta, self).exec()
         else: self.buscar_foto()
-
     def buscar_foto(self):
-        # USAMOS EL SELECTOR PROPIO AQUÍ TAMBIÉN
         dlg = DialogoSelectorFoto(self)
-        if dlg.exec() and dlg.selectedFiles():
-            self.procesar_foto(dlg.selectedFiles()[0])
-
+        if dlg.exec() and dlg.selectedFiles(): self.procesar_foto(dlg.selectedFiles()[0])
     def procesar_foto(self, ruta):
         try:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            ext = os.path.splitext(ruta)[1]
-            nuevo = f"pc_complete_{ts}{ext}"
-            dest = os.path.join(self.carpeta_fotos, nuevo)
-            shutil.copy2(ruta, dest)
-            self.foto_filename = nuevo
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S"); ext = os.path.splitext(ruta)[1]
+            nuevo = f"pc_complete_{ts}{ext}"; dest = os.path.join(self.carpeta_fotos, nuevo)
+            shutil.copy2(ruta, dest); self.foto_filename = nuevo
             self.lbl_foto.setPixmap(QPixmap(dest).scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
             self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
         except Exception as e: QMessageBox.critical(self, "Error", str(e))
-
     def get_data(self):
         lista_tags = []
         if self.chk_urgente.isChecked(): lista_tags.append("Urgente")
         if self.chk_electrico.isChecked(): lista_tags.append("Eléctrico")
         if self.chk_mecanico.isChecked(): lista_tags.append("Mecánico")
         if self.chk_prev.isChecked(): lista_tags.append("Preventivo")
-        manual = self.tag.text().strip()
-        if manual: lista_tags.append(manual)
+        manual = self.tag.text().strip(); (lista_tags.append(manual) if manual else None)
         return (self.de.date().toString("yyyy-MM-dd"), ", ".join(lista_tags), self.foto_filename)
 
 class AvisoEditDialog(QDialog):
     def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1):
         super().__init__(parent)
-        self.setWindowTitle("✏️ Editar Aviso Recurrente")
-        self.resize(500, 450)
-        l = QVBoxLayout()
-        l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20)
-        lbl_style = "font-weight: bold; font-size: 14px; color: #ccc;"
-
-        l.addWidget(QLabel("Título del Aviso:", styleSheet=lbl_style))
-        self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
-
-        l.addWidget(QLabel("Fecha de Inicio:", styleSheet=lbl_style))
-        self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
+        self.setWindowTitle("✏️ Editar Aviso Recurrente"); self.resize(500, 450)
+        l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = "font-weight: bold; font-size: 14px; color: #ccc;"
+        l.addWidget(QLabel("Título del Aviso:", styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
+        l.addWidget(QLabel("Fecha de Inicio:", styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
         if inicio: self.inicio.setDate(QDate.fromString(inicio, "yyyy-MM-dd"))
         else: self.inicio.setDate(QDate.currentDate())
         l.addWidget(self.inicio)
-
-        l.addWidget(QLabel("Frecuencia de Repetición:", styleSheet=lbl_style))
-        self.freq = QComboBox(); self.freq.addItems(["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diario"])
+        l.addWidget(QLabel("Frecuencia de Repetición:", styleSheet=lbl_style)); self.freq = QComboBox(); self.freq.addItems(["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diario"])
         self.freq.setCurrentText(freq if freq else "Anual"); self.freq.setMinimumHeight(35); l.addWidget(self.freq)
-
-        l.addWidget(QLabel("Días que permanece activo (margen):", styleSheet=lbl_style))
-        self.dur = QSpinBox(); self.dur.setRange(1, 365); self.dur.setValue(int(duracion)); self.dur.setMinimumHeight(35); l.addWidget(self.dur)
+        l.addWidget(QLabel("Días que permanece activo (margen):", styleSheet=lbl_style)); self.dur = QSpinBox(); self.dur.setRange(1, 365); self.dur.setValue(int(duracion)); self.dur.setMinimumHeight(35); l.addWidget(self.dur)
         l.addStretch()
-
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         for btn in b.buttons(): btn.setMinimumHeight(40); btn.setStyleSheet("font-size: 14px;")
         b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
@@ -1053,68 +937,14 @@ class DialogoExportarPDF(QDialog):
         h = QHBoxLayout()
         self.d_inicio = QDateEdit(QDate.currentDate().addMonths(-1)); self.d_inicio.setCalendarPopup(True); self.d_inicio.setDisplayFormat("yyyy-MM-dd"); self.d_inicio.setEnabled(False)
         self.d_fin = QDateEdit(QDate.currentDate()); self.d_fin.setCalendarPopup(True); self.d_fin.setDisplayFormat("yyyy-MM-dd"); self.d_fin.setEnabled(False)
-        h.addWidget(QLabel("De:")); h.addWidget(self.d_inicio); h.addWidget(QLabel("A:")); h.addWidget(self.d_fin); gl.addLayout(h)
-        gl.addSpacing(10)
-        self.chk_fotos = QCheckBox("📸 Incluir imágenes en el PDF"); self.chk_fotos.setChecked(False); gl.addWidget(self.chk_fotos)
-        g.setLayout(gl); l.addWidget(g)
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
-    def toggle_fechas(self):
-        estado = self.rb_rango.isChecked(); self.d_inicio.setEnabled(estado); self.d_fin.setEnabled(estado)
+        h.addWidget(QLabel("De:")); h.addWidget(self.d_inicio); h.addWidget(QLabel("A:")); h.addWidget(self.d_fin); gl.addLayout(h); gl.addSpacing(10)
+        self.chk_fotos = QCheckBox("📸 Incluir imágenes en el PDF"); self.chk_fotos.setChecked(False); gl.addWidget(self.chk_fotos); g.setLayout(gl); l.addWidget(g)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
+    def toggle_fechas(self): estado = self.rb_rango.isChecked(); self.d_inicio.setEnabled(estado); self.d_fin.setEnabled(estado)
     def get_data(self):
         con_fotos = self.chk_fotos.isChecked()
         if self.rb_todo.isChecked(): return None, None, con_fotos
         else: return self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd"), con_fotos
-
-class DialogoDiasEspeciales(QDialog):
-    def __init__(self, db, gestor_festivos, parent=None):
-        super().__init__(parent)
-        self.db = db; self.gestor_festivos = gestor_festivos
-        self.setWindowTitle("Planificador de Días"); self.resize(500, 550)
-        self.dias_guardados = self.db.obtener_dias_especiales()
-        l = QVBoxLayout()
-        self.calendar = QCalendarWidget(); self.calendar.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
-        self.calendar.clicked.connect(self.manejar_click_calendario); l.addWidget(self.calendar); self.pintar_dias_existentes()
-        g = QGroupBox("Configurar Rango"); fl = QVBoxLayout(); rl = QHBoxLayout()
-        self.di = QDateEdit(); self.di.setDate(QDate.currentDate()); self.di.setCalendarPopup(True); self.di.setDisplayFormat("yyyy-MM-dd"); self.di.dateChanged.connect(self.actualizar_vista)
-        rl.addWidget(QLabel("De:")); rl.addWidget(self.di)
-        self.df = QDateEdit(); self.df.setDate(QDate.currentDate()); self.df.setCalendarPopup(True); self.df.setDisplayFormat("yyyy-MM-dd"); self.df.dateChanged.connect(self.actualizar_vista)
-        rl.addWidget(QLabel("A:")); rl.addWidget(self.df); fl.addLayout(rl)
-        self.cb = QComboBox(); self.cb.addItems(["Vacaciones", "Puente", "Día Libre", "Festivo (Manual)"]); fl.addWidget(self.cb); g.setLayout(fl); l.addWidget(g)
-        bl = QHBoxLayout(); b1 = QPushButton("Guardar"); b1.clicked.connect(self.guardar); bl.addWidget(b1)
-        b2 = QPushButton("Borrar"); b2.clicked.connect(self.borrar); bl.addWidget(b2); l.addLayout(bl); self.setLayout(l)
-    def pintar_dias_existentes(self):
-        ff = QTextCharFormat(); ff.setBackground(QBrush(QColor("#502828"))); ff.setForeground(QBrush(QColor("#ddd")))
-        if self.gestor_festivos:
-            for f in self.gestor_festivos.obtener_festivos(): self.calendar.setDateTextFormat(f, ff)
-        c = {"Vacaciones": "#FFF59D", "Puente": "#1565C0", "Día Libre": "#F48FB1", "Festivo (Manual)": "#502828"}
-        tc = {"Vacaciones": "black", "Puente": "white", "Día Libre": "black", "Festivo (Manual)": "ddd"}
-        for s, t in self.dias_guardados.items():
-            fm = QTextCharFormat(); fm.setBackground(QBrush(QColor(c.get(t, "#555")))); fm.setForeground(QBrush(QColor(tc.get(t, "black"))))
-            self.calendar.setDateTextFormat(QDate.fromString(s, "yyyy-MM-dd"), fm)
-    def manejar_click_calendario(self, d):
-        if QApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier:
-            if d < self.di.date(): self.di.setDate(d)
-            else: self.df.setDate(d)
-        else: self.di.setDate(d); self.df.setDate(d)
-    def actualizar_vista(self):
-        self.calendar.setDateTextFormat(QDate(), QTextCharFormat()); self.pintar_dias_existentes()
-        i, f = self.di.date(), self.df.date()
-        if i <= f:
-            fm = QTextCharFormat(); fm.setBackground(QBrush(QColor(100, 100, 100, 150))); d = i
-            while d <= f:
-                if d != self.calendar.selectedDate(): self.calendar.setDateTextFormat(d, fm)
-                d = d.addDays(1)
-    def guardar(self):
-        if self.di.date() <= self.df.date() and QMessageBox.question(self, "?", "Guardar?") == QMessageBox.StandardButton.Yes:
-            d = self.di.date()
-            while d <= self.df.date(): self.db.marcar_dia_especial(d.toString("yyyy-MM-dd"), self.cb.currentText()); d = d.addDays(1)
-            self.dias_guardados = self.db.obtener_dias_especiales(); self.pintar_dias_existentes()
-    def borrar(self):
-        if QMessageBox.question(self, "?", "Borrar?") == QMessageBox.StandardButton.Yes:
-            d = self.di.date()
-            while d <= self.df.date(): self.db.borrar_dia_especial(d.toString("yyyy-MM-dd")); d = d.addDays(1)
-            self.dias_guardados = self.db.obtener_dias_especiales(); self.pintar_dias_existentes()
 
 # ==========================================
 # 4. APLICACIÓN PRINCIPAL
@@ -1126,31 +956,39 @@ class MaintenanceApp(QMainWindow):
         self.db = GestorBaseDatos()
         # GestorFestivos ahora necesita la BD para saber qué región usar
         self.gestor_festivos = GestorFestivos(self.db)
-        self.carpeta_fotos = os.path.join(os.path.dirname(__file__), "fotos_recibidas")
+
+        # --- USAR DATA_DIR PARA FOTOS Y BACKUPS ---
+        # Pero si existen localmente, usar la ruta local (Mantener compatibilidad)
+        cwd = os.path.abspath(".")
+
+        # Lógica para fotos:
+        local_fotos = os.path.join(cwd, "fotos_recibidas")
+        if os.path.exists(local_fotos):
+             self.carpeta_fotos = local_fotos
+        else:
+             self.carpeta_fotos = os.path.join(DATA_DIR, "fotos_recibidas")
+
         if not os.path.exists(self.carpeta_fotos): os.makedirs(self.carpeta_fotos)
 
-        # --- DICCIONARIO DE COMUNIDADES AUTÓNOMAS ---
-        self.comunidades_iso = {
-            "Andalucía": "ES-AN",
-            "Aragón": "ES-AR",
-            "Asturias": "ES-AS",
-            "Canarias": "ES-CN",
-            "Cantabria": "ES-CB",
-            "Castilla-La Mancha": "ES-CM",
-            "Castilla y León": "ES-CL",
-            "Cataluña": "ES-CT",
-            "Ceuta": "ES-CE",
-            "Comunidad de Madrid": "ES-MD",
-            "Comunidad Valenciana": "ES-VC",
-            "Extremadura": "ES-EX",
-            "Galicia": "ES-GA",
-            "Islas Baleares": "ES-IB",
-            "La Rioja": "ES-RI",
-            "Melilla": "ES-ML",
-            "Murcia": "ES-MC",
-            "Navarra": "ES-NC",
-            "País Vasco (Bizkaia/Gipuzkoa/Araba)": "ES-PV"
-        }
+        # Lógica para backups:
+        local_backups = os.path.join(cwd, "backups")
+        if os.path.exists(local_backups):
+             self.carpeta_backups = local_backups
+        else:
+             self.carpeta_backups = os.path.join(DATA_DIR, "backups")
+
+        if not os.path.exists(self.carpeta_backups): os.makedirs(self.carpeta_backups)
+
+        # Lógica para backups auto:
+        local_backups_auto = os.path.join(cwd, "backups_auto")
+        if os.path.exists(local_backups_auto):
+             self.carpeta_backups_auto = local_backups_auto
+        else:
+             self.carpeta_backups_auto = os.path.join(DATA_DIR, "backups_auto")
+
+        if not os.path.exists(self.carpeta_backups_auto): os.makedirs(self.carpeta_backups_auto)
+        # ------------------------------------------
+
         self.qr_dialog = None
         self.settings = QSettings("MyCompany", "MantenimientoApp")
         self.server_thread = ServidorSincronizacion(self.carpeta_fotos, self.db.db_name)
@@ -1161,7 +999,6 @@ class MaintenanceApp(QMainWindow):
         self.resize(1100, 750)
         g = self.settings.value("geometry")
         if g: self.restoreGeometry(g)
-        ri = os.path.join(os.path.dirname(__file__), "icono.png")
 
         # --- FIJAR EL ICONO DE LA APLICACIÓN (WAYLAND/LINUX FIX) ---
         icon_path = resource_path("icono.png")
@@ -1188,22 +1025,23 @@ class MaintenanceApp(QMainWindow):
         self.settings.setValue("geometry", self.saveGeometry())
         self.limpiar_fotos_huerfanas(silencioso=True)
         try:
-            folder = "backups_auto"
-            if not os.path.exists(folder): os.makedirs(folder)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             nombre_zip = f"auto_backup_full_{timestamp}.zip"
-            ruta_zip = os.path.join(folder, nombre_zip)
+            # Usar la nueva ruta de backups auto
+            ruta_zip = os.path.join(self.carpeta_backups_auto, nombre_zip)
+
             with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=self.db.db_name)
+                if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
                 if os.path.exists(self.carpeta_fotos):
                     for root, dirs, files in os.walk(self.carpeta_fotos):
                         for file in files:
                             ruta_archivo = os.path.join(root, file)
                             ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
                             zipf.write(ruta_archivo, arcname=ruta_en_zip)
+
             backups = []
-            for f in os.listdir(folder):
-                ruta_completa = os.path.join(folder, f)
+            for f in os.listdir(self.carpeta_backups_auto):
+                ruta_completa = os.path.join(self.carpeta_backups_auto, f)
                 if os.path.isfile(ruta_completa) and f.startswith("auto_backup_full_") and f.endswith(".zip"): backups.append(ruta_completa)
             backups.sort(key=os.path.getmtime)
             while len(backups) > 3: archivo_a_borrar = backups.pop(0); os.remove(archivo_a_borrar)
@@ -1792,10 +1630,11 @@ class MaintenanceApp(QMainWindow):
         if not os.path.exists(folder_backups): os.makedirs(folder_backups)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         nombre_zip = f"backup_completo_{timestamp}.zip"
-        ruta_zip = os.path.join(folder_backups, nombre_zip)
+        # Usamos self.carpeta_backups para seguir la lógica de directorios
+        ruta_zip = os.path.join(self.carpeta_backups, nombre_zip)
         try:
             with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=self.db.db_name)
+                if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
                 if os.path.exists(self.carpeta_fotos):
                     for root, dirs, files in os.walk(self.carpeta_fotos):
                         for file in files:
@@ -1814,7 +1653,9 @@ class MaintenanceApp(QMainWindow):
         archivo_zip, _ = QFileDialog.getOpenFileName(self, "Seleccionar Backup Completo", "backups", "Archivos ZIP (*.zip)", options=QFileDialog.Option.DontUseNativeDialog)
         if archivo_zip:
             try:
-                with zipfile.ZipFile(archivo_zip, 'r') as zipf: zipf.extractall(path=".")
+                # Restaurar en DATA_DIR o carpeta local según donde estemos
+                restore_path = os.path.dirname(self.db.db_name)
+                with zipfile.ZipFile(archivo_zip, 'r') as zipf: zipf.extractall(path=restore_path)
                 QMessageBox.information(self, "Restauración", "✅ Sistema restaurado correctamente."); self.refresh_all()
             except Exception as e: QMessageBox.critical(self, "Error Restauración", f"ZIP corrupto:\n{str(e)}")
 
@@ -1948,14 +1789,16 @@ class MaintenanceApp(QMainWindow):
         if archivo:
             try:
                 # Copiamos la imagen a la carpeta local con el nombre que busca el PDF
-                destino = "Logo.jpg"
+                # Use DATA_DIR path
+                destino = os.path.join(DATA_DIR, "Logo.jpg")
                 shutil.copy2(archivo, destino)
                 QMessageBox.information(self, "Logo Actualizado", "✅ Logo actualizado. Aparecerá en el próximo PDF.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
     def quitar_logo(self):
-        destino = "Logo.jpg"
+        # Use DATA_DIR path
+        destino = os.path.join(DATA_DIR, "Logo.jpg")
         if os.path.exists(destino):
             try:
                 os.remove(destino)
@@ -2115,26 +1958,23 @@ class MaintenanceApp(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # --- CORRECCIÓN PARA ICONOS EN LINUX/WAYLAND ---
-    # 1. Definir identidad de la App (Importante para Gnome/KDE)
+    # --- FIX PARA LINUX Y WAYLAND ---
+    # 1. Identidad de la App
     app.setDesktopFileName("MantPro")
     app.setApplicationName("MantPro")
     app.setOrganizationName("AnabasaSoft")
 
-    # 2. Cargar el icono en la aplicación GLOBAL antes de crear ventanas
-    # Usamos tu función resource_path para que lo encuentre compilado y sin compilar
-    ruta_icono = resource_path("icono.png")
+    # 2. Localizar el icono
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    ruta_icono = os.path.join(base_path, "icono.png")
 
+    # 3. Aplicar el icono a la Aplicación Global
     if os.path.exists(ruta_icono):
         app_icon = QIcon(ruta_icono)
-        app.setWindowIcon(app_icon) # Icono para la barra de tareas
+        app.setWindowIcon(app_icon)
     else:
-        print(f"Aviso: No se encontró el icono en {ruta_icono}")
-
-    # 3. En sistemas Wayland muy estrictos, a veces es necesario forzar xcb
-    # si el icono sigue sin verse, pero prueba primero sin descomentar la siguiente línea:
-    # os.environ["QT_QPA_PLATFORM"] = "xcb"
-    # -----------------------------------------------
+        print(f"AVISO: No se encuentra el icono en: {ruta_icono}")
+    # -------------------------------
 
     window = MaintenanceApp()
     window.show()
