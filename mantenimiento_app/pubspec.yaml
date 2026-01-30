@@ -1,0 +1,29 @@
+name: app_mantenimiento
+description: App offline para mantenimiento
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  image_picker: ^1.0.4    # Para la cámara
+  http: ^1.1.0            # Para enviar datos al PC
+  mobile_scanner: ^3.5.5  # Para leer el QR del PC
+  permission_handler: ^11.0.1
+  path_provider: ^2.1.1   # Para guardar archivos temporalmente
+  flutter_launcher_icons: ^0.13.1
+  shared_preferences: ^2.2.2
+  image_painter: ^0.7.0
+  path: ^1.8.3
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icono.png"
+  min_sdk_android: 21

@@ -1,0 +1,44 @@
+# --- PYTHON & ENTORNO ---
+# El entorno virtual (pesa muchísimo y es específico de tu PC)
+venv/
+# Archivos compilados de python
+__pycache__/
+*.pyc
+
+# --- DATOS SENSIBLES Y OPERATIVOS ---
+# La base de datos (contiene datos reales)
+*.db
+mantenimiento.db
+*.pdf
+*.sh
+*.jpg
+*.json
+
+# Carpetas de contenido generado por el uso
+fotos_recibidas/
+backups/
+backups_auto/
+
+# --- FLUTTER (DENTRO DE TU CARPETA MANTENIMIENTO_APP) ---
+# Compilados y temporales de Flutter
+mantenimiento_app/build/
+mantenimiento_app/.dart_tool/
+mantenimiento_app/.flutter-plugins
+mantenimiento_app/.flutter-plugins-dependencies
+
+# Configuración local de Android (tiene rutas de TU pc)
+mantenimiento_app/android/local.properties
+mantenimiento_app/android/.gradle/
+
+
+# Todo el FLUTTER menos android
+mantenimiento_app/ios
+mantenimiento_app/linux
+mantenimiento_app/windows
+mantenimiento_app/web
+mantenimiento_app/test
+mantenimiento_app/macos
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
