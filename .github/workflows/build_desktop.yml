@@ -1,16 +1,18 @@
-name: Construir Desktop (Windows & Linux AppImage)
+name: Construir Desktop (Windows, Linux Binario & AppImage)
 
 on:
   push:
-    branches: [ "main" ]
-    tags: [ "v*" ] # Se activa también al subir etiquetas como v1.0, v1.1...
+    #branches: [ "main" ]
+    tags: [ "v*" ]
   workflow_dispatch:
 
 permissions:
-  contents: write # Necesario para poder crear Releases
+  contents: write
 
 jobs:
-  # --- TRABAJO PARA WINDOWS ---
+  # ------------------------------------------------------------------
+  # JOB 1: WINDOWS (.exe)
+  # ------------------------------------------------------------------
   build-windows:
     runs-on: windows-latest
     steps:
@@ -31,21 +33,24 @@ jobs:
       run: |
         pyinstaller --noconsole --onefile --name=MantPro_PC --icon=icono.png main.py
 
-    - name: Subir EXE como Artefacto (Siempre)
+    - name: Subir EXE (Artefacto)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Windows-EXE
         path: dist/MantPro_PC.exe
 
-    - name: Publicar en Release (Solo si hay Tag)
+    - name: Publicar EXE en Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: dist/MantPro_PC.exe
 
-  # --- TRABAJO PARA LINUX ---
+  # ------------------------------------------------------------------
+  # JOB 2: LINUX (Binario + AppImage)
+  # ------------------------------------------------------------------
   build-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04 # Usamos una versión estable para maximizar compatibilidad glibc
+
     steps:
     - uses: actions/checkout@v4
 
@@ -54,27 +59,41 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Instalar librerías sistema
+    - name: Instalar librerías del sistema
       run: |
         sudo apt-get update
-        sudo apt-get install -y libfuse2 file
+        sudo apt-get install -y libfuse2 file build-essential
 
     - name: Instalar Dependencias Python
       run: |
         pip install pyinstaller
         pip install PyQt6 reportlab requests flask qrcode xlsxwriter
 
-    - name: Generar Binario
+    # --- PASO 1: GENERAR BINARIO STANDALONE ---
+    - name: Generar Binario Linux
       run: |
-        pyinstaller --noconsole --onefile --name=MantPro_Linux --icon=icono.png main.py
+        # Genera el archivo ejecutable en dist/MantPro_Linux
+        pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --add-data "Logo.jpg:." --name "MantProPC" main.py
 
+    # --- PASO 2: SUBIR BINARIO SUELTO ---
+    - name: Subir Binario Linux (Artefacto)
+      uses: actions/upload-artifact@v4
+      with:
+        name: MantPro-Linux-Binario
+        path: dist/MantPro_Linux
+
+    # --- PASO 3: PREPARAR APPIMAGE ---
     - name: Preparar AppDir
       run: |
         mkdir -p AppDir/usr/bin
         mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+        # Copiamos el binario que acabamos de generar
         cp dist/MantPro_Linux AppDir/usr/bin/mantpro
+
         cp icono.png AppDir/mantpro.png
         cp icono.png AppDir/.DirIcon
+
         cat > AppDir/mantpro.desktop <<EOF
         [Desktop Entry]
         Type=Application
@@ -84,6 +103,7 @@ jobs:
         Categories=Utility;
         Terminal=false
         EOF
+
         cat > AppDir/AppRun <<EOF
         #!/bin/sh
         SELF=\$(readlink -f "\$0")
@@ -94,21 +114,27 @@ jobs:
         EOF
         chmod +x AppDir/AppRun
 
+    # --- PASO 4: EMPAQUETAR APPIMAGE ---
     - name: Crear AppImage
       run: |
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
         ./appimagetool-x86_64.AppImage --appimage-extract
+
+        # Generar el AppImage final
         ./squashfs-root/AppRun AppDir MantPro-Linux-x86_64.AppImage
 
-    - name: Subir AppImage como Artefacto (Siempre)
+    - name: Subir AppImage (Artefacto)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Linux-AppImage
         path: MantPro-Linux-x86_64.AppImage
 
-    - name: Publicar en Release (Solo si hay Tag)
+    # --- PASO 5: PUBLICAR AMBOS EN RELEASE ---
+    - name: Publicar Linux en Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: MantPro-Linux-x86_64.AppImage
+        files: |
+          dist/MantPro_Linux
+          MantPro-Linux-x86_64.AppImage

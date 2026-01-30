@@ -37,6 +37,19 @@ from PyQt6.QtGui import (QAction, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel)
 
 # ==========================================
+# FUNCIÓN PARA RECURSOS (ICONOS EN PYINSTALLER)
+# ==========================================
+def resource_path(relative_path):
+    """ Obtener ruta absoluta a recursos, funciona para dev y para PyInstaller """
+    try:
+        # PyInstaller crea una carpeta temporal en _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+# ==========================================
 # DATOS GLOBALES: PROVINCIAS
 # ==========================================
 PROVINCIAS_ESPAÑA = {
@@ -1149,7 +1162,14 @@ class MaintenanceApp(QMainWindow):
         g = self.settings.value("geometry")
         if g: self.restoreGeometry(g)
         ri = os.path.join(os.path.dirname(__file__), "icono.png")
-        if os.path.exists(ri): self.setWindowIcon(QIcon(ri)); QApplication.instance().setWindowIcon(QIcon(ri))
+
+        # --- FIJAR EL ICONO DE LA APLICACIÓN (WAYLAND/LINUX FIX) ---
+        icon_path = resource_path("icono.png")
+        if os.path.exists(icon_path):
+             icon = QIcon(icon_path)
+             self.setWindowIcon(icon)
+             QApplication.instance().setWindowIcon(icon)
+
         self.crear_menu()
         self.aplicar_estilo_visual()
         cw = QWidget(); self.setCentralWidget(cw); ml = QVBoxLayout(); ml.setContentsMargins(10, 10, 10, 10); cw.setLayout(ml)
@@ -2094,6 +2114,28 @@ class MaintenanceApp(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # --- CORRECCIÓN PARA ICONOS EN LINUX/WAYLAND ---
+    # 1. Definir identidad de la App (Importante para Gnome/KDE)
+    app.setDesktopFileName("MantPro")
+    app.setApplicationName("MantPro")
+    app.setOrganizationName("AnabasaSoft")
+
+    # 2. Cargar el icono en la aplicación GLOBAL antes de crear ventanas
+    # Usamos tu función resource_path para que lo encuentre compilado y sin compilar
+    ruta_icono = resource_path("icono.png")
+
+    if os.path.exists(ruta_icono):
+        app_icon = QIcon(ruta_icono)
+        app.setWindowIcon(app_icon) # Icono para la barra de tareas
+    else:
+        print(f"Aviso: No se encontró el icono en {ruta_icono}")
+
+    # 3. En sistemas Wayland muy estrictos, a veces es necesario forzar xcb
+    # si el icono sigue sin verse, pero prueba primero sin descomentar la siguiente línea:
+    # os.environ["QT_QPA_PLATFORM"] = "xcb"
+    # -----------------------------------------------
+
     window = MaintenanceApp()
     window.show()
     sys.exit(app.exec())
