@@ -31,7 +31,7 @@ jobs:
 
     - name: Generar EXE
       run: |
-        pyinstaller --noconsole --onefile --name=MantPro_PC --icon=icono.png main.py
+        pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=icono.png main.py
 
     - name: Subir EXE (Artefacto)
       uses: actions/upload-artifact@v4
@@ -73,7 +73,7 @@ jobs:
     - name: Generar Binario Linux
       run: |
         # Genera el archivo ejecutable en dist/MantPro_Linux
-        pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --name "MantProPC" main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --name "MantPro_Linux" main.py
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
     - name: Subir Binario Linux (Artefacto)
