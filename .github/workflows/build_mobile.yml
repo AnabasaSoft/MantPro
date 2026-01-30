@@ -1,4 +1,4 @@
-name: Construir Móvil (Android APK)
+name: Compilar Móvil (Android APK)
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./mantenimiento_app
 
     steps:
     - uses: actions/checkout@v4
@@ -24,16 +28,14 @@ jobs:
         channel: 'stable'
 
     - name: Instalar Dependencias Flutter
-      # Si tu proyecto Flutter está en una subcarpeta (ej: 'movil'), añade: working-directory: ./movil
       run: flutter pub get
 
-    - name: Construir APK
-      # Si usas subcarpeta, añade: working-directory: ./movil
+    - name: Construir APK (Release)
       run: flutter build apk --release --no-tree-shake-icons
 
-    - name: Subir APK
+    - name: Subir Artefacto (APK)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Android-APK
-        # Ajusta la ruta si usas subcarpetas (ej: movil/build/...)
-        path: build/app/outputs/flutter-apk/app-release.apk
+        # La ruta de salida también cambia al estar dentro de la subcarpeta
+        path: mantenimiento_app/build/app/outputs/flutter-apk/app-release.apk
