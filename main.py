@@ -224,6 +224,7 @@ class DialogoSelectorFoto(QDialog):
         layout = QHBoxLayout()
         self.setLayout(layout)
 
+        # --- 1. IZQUIERDA: ÁRBOL DE CARPETAS ---
         self.model = QFileSystemModel()
         ruta_inicial = QDir.homePath()
         self.model.setRootPath(ruta_inicial)
@@ -241,6 +242,7 @@ class DialogoSelectorFoto(QDialog):
         self.tree.clicked.connect(self.on_click)
         self.tree.doubleClicked.connect(self.on_double_click)
 
+        # --- 2. DERECHA: VISOR ---
         right_layout = QVBoxLayout()
         self.preview_lbl = QLabel("Selecciona un archivo...")
         self.preview_lbl.setFixedWidth(500)
@@ -397,6 +399,7 @@ class ServidorSincronizacion(QThread):
                 conn.commit()
                 conn.close()
 
+                # Avisar a la interfaz del PC
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
@@ -412,6 +415,7 @@ class ServidorSincronizacion(QThread):
                 conn.commit()
                 conn.close()
 
+                # Avisar a la interfaz del PC para que se quite de la lista visualmente
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
@@ -1219,7 +1223,11 @@ class MaintenanceApp(QMainWindow):
         ts = self.db.obtener_tareas_por_fecha(sds)
         if not ts and self.task_list.count() == 0: self.task_list.addItem("--- Día no laborable ---" if ets else "--- Nada registrado ---")
         for t in ts:
-            texto_limpio = re.sub(r"\[FOTO:.*?\]", "", t[1]).strip()
+            # --- LIMPIEZA VISUAL COMPLETA ---
+            texto_limpio = re.sub(r"\[FOTO:.*?\]", "", t[1])
+            texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
+            # --------------------------------
+
             it = QListWidgetItem(f"{texto_limpio} | {t[2]}")
             if "[FOTO:" in t[1]: it.setIcon(QIcon.fromTheme("camera-photo")); it.setToolTip("Tiene foto adjunta")
             it.setData(Qt.ItemDataRole.UserRole, t[0])
@@ -1716,6 +1724,10 @@ class MaintenanceApp(QMainWindow):
                 self.refresh_all()
                 self.statusBar().showMessage(f"✅ Tarea '{titulo}' completada", 5000)
 
+    # =========================================================================
+    # FUNCIONES RESTAURADAS Y NUEVAS
+    # =========================================================================
+
     def realizar_backup(self):
         self.limpiar_fotos_huerfanas(silencioso=True)
         folder_backups = "backups"
@@ -1764,6 +1776,7 @@ class MaintenanceApp(QMainWindow):
                     writer.writerow([tarea[0], tarea[1], desc_limpia, tarea[3], nombre_foto])
             QMessageBox.information(self, "Exportado", "CSV guardado correctamente.")
         except Exception as e: QMessageBox.critical(self, "Error", str(e))
+
     def exportar_excel(self):
         try: import xlsxwriter
         except ImportError: QMessageBox.warning(self, "Falta librería", "Instala: pip install xlsxwriter"); return
@@ -1865,14 +1878,10 @@ class MaintenanceApp(QMainWindow):
         else:
             for b in [self.bar_elec, self.bar_mec, self.bar_prev, self.bar_urg]: b.setValue(0)
 
-    # ========================================================
-    #  NUEVAS FUNCIONES PARA GESTIÓN DE LOGO PDF
-    # ========================================================
     def cambiar_logo(self):
         archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Logo", "", "Imágenes (*.jpg *.png *.jpeg)")
         if archivo:
             try:
-                # Copiamos la imagen a la carpeta local con el nombre que busca el PDF
                 destino = "Logo.jpg"
                 shutil.copy2(archivo, destino)
                 QMessageBox.information(self, "Logo Actualizado", "✅ Logo actualizado. Aparecerá en el próximo PDF.")
@@ -1899,7 +1908,6 @@ class MaintenanceApp(QMainWindow):
         archivo = self.guardar_archivo_dialogo("Guardar PDF", nombre_defecto, "PDF (*.pdf)")
         if not archivo: return
 
-        # 1. Recuperar datos en el hilo principal (rápido)
         try:
             conn = self.db.conectar()
             c = conn.cursor()
@@ -1915,7 +1923,6 @@ class MaintenanceApp(QMainWindow):
             QMessageBox.critical(self, "Error DB", str(e))
             return
 
-        # 2. Configurar UI de progreso
         self.progreso_pdf = QDialog(self)
         self.progreso_pdf.setWindowTitle("Generando PDF...")
         self.progreso_pdf.setFixedSize(300, 100)
@@ -1923,21 +1930,19 @@ class MaintenanceApp(QMainWindow):
         l = QVBoxLayout()
         l.addWidget(QLabel("Procesando imágenes y generando documento...\nPor favor espera."))
         bar = QProgressBar()
-        bar.setRange(0, 0) # Barra infinita
+        bar.setRange(0, 0)
         l.addWidget(bar)
         self.progreso_pdf.setLayout(l)
-        # Quitar botón de cerrar para obligar a esperar
         self.progreso_pdf.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
 
-        # 3. Iniciar Hilo
         self.hilo_pdf = GeneradorPDFThread(archivo, titulo_doc, datos, self.carpeta_fotos, incluir_fotos)
         self.hilo_pdf.resultado.connect(self.pdf_finalizado)
         self.hilo_pdf.start()
 
-        self.progreso_pdf.exec() # Bloquea la UI hasta que se cierre con accept()
+        self.progreso_pdf.exec()
 
     def pdf_finalizado(self, exito, mensaje):
-        self.progreso_pdf.accept() # Cierra el diálogo de progreso
+        self.progreso_pdf.accept()
         if exito:
             QMessageBox.information(self, "Éxito", mensaje)
         else:
@@ -1983,13 +1988,11 @@ class MaintenanceApp(QMainWindow):
         titulo_actual = item.data(Qt.ItemDataRole.UserRole + 1)
         detalles_raw = item.data(Qt.ItemDataRole.UserRole + 2)
 
-        # --- LÓGICA DE LIMPIEZA VISUAL ---
         ruta_foto_actual = ""
         texto_limpio = detalles_raw
-        ref_oculta = "" # Aquí guardaremos la matrícula para no perderla
+        ref_oculta = ""
 
         if detalles_raw:
-            # 1. Detectar FOTO
             m = re.search(r"\[FOTO:\s*(.*?)\]", detalles_raw)
             if m:
                 nombre_fichero = m.group(1).split("]")[0].strip()
@@ -1997,16 +2000,13 @@ class MaintenanceApp(QMainWindow):
                 if os.path.exists(ruta_posible):
                     ruta_foto_actual = ruta_posible
 
-            # 2. Detectar y Guardar REF (Matrícula)
             m_ref = re.search(r"\[REF:\s*(\d+)\]", detalles_raw)
             if m_ref:
-                ref_oculta = m_ref.group(0) # Guardamos "[REF:12345]" entero
+                ref_oculta = m_ref.group(0)
 
-            # 3. Limpiar el texto para que tú lo veas bonito
             texto_limpio = re.sub(r"\[FOTO:.*?\]", "", detalles_raw)
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
 
-        # Abrimos el diálogo con el texto LIMPIO
         dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual)
 
         if dlg.exec():
@@ -2015,12 +2015,9 @@ class MaintenanceApp(QMainWindow):
             if nuevo_t:
                 desc_final = nuevo_d
 
-                # --- RECONSTRUCCIÓN INVISIBLE ---
-                # 1. Volvemos a pegar la REF oculta para que el móvil no pierda la foto
                 if ref_oculta:
                     desc_final += f" {ref_oculta}"
 
-                # 2. Gestionar Foto nueva
                 if nueva_foto:
                     nombre_final = os.path.basename(nueva_foto)
                     if nueva_foto != ruta_foto_actual:
@@ -2032,7 +2029,6 @@ class MaintenanceApp(QMainWindow):
 
                     desc_final += f"\n[FOTO: {nombre_final}]"
 
-                # Guardamos en BD (con la REF oculta de nuevo)
                 if self.db.actualizar_pendiente(pid, nuevo_t, desc_final):
                     self.refresh_todos()
                     self.statusBar().showMessage("✅ Pendiente actualizado", 3000)

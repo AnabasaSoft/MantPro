@@ -67,16 +67,15 @@
 ### Aplicación de Escritorio
 
 <p align="center">
-  <img src="screenshots/desktop-calendar.png" alt="Calendario" width="45%"/>
-  <img src="screenshots/desktop-equipment.png" alt="Equipos" width="45%"/>
+  <img src="screenshots/desktop-calendar.png" alt="Dashboard" width="45%"/>
+  <img src="screenshots/desktop-equipment.png" alt="Avisos" width="45%"/>
 </p>
 
 ### Aplicación Móvil
 
 <p align="center">
-  <img src="screenshots/mobile-home.png" alt="Inicio Móvil" width="30%"/>
-  <img src="screenshots/mobile-camera.png" alt="Cámara" width="30%"/>
-  <img src="screenshots/mobile-editor.png" alt="Editor" width="30%"/>
+  <img src="screenshots/mobile-home.png" alt="Inicio Móvil" width="45%"/>
+  <img src="screenshots/mobile-camera.png" alt="Trabajos Pendientes" width="45%"/>
 </p>
 
 ---
@@ -100,7 +99,7 @@
 - **Flutter**: 3.0 o superior
 - **Dart SDK**: 2.17 o superior
 - **Android**: API Level 21+ (Android 5.0+)
-- **iOS**: iOS 11.0+
+- **iOS**: iOS 11.0+ (no probado)
 
 ---
 
@@ -152,7 +151,7 @@
    flutter build apk --release
    ```
 
-5. **Compilar IPA (iOS)**:
+5. **Compilar IPA (iOS)**: (no probado)
    ```bash
    flutter build ios --release
    ```
