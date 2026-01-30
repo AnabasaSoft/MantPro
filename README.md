@@ -67,15 +67,15 @@
 ### Aplicación de Escritorio
 
 <p align="center">
-  <img src="capturas/Dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="capturas/Avisos.png" alt="Avisos" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
+  <img src="Capturas/Avisos.png" alt="Avisos" width="45%"/>
 </p>
 
 ### Aplicación Móvil
 
 <p align="center">
-  <img src="capturas/mobile-home.jpg" alt="Inicio Móvil" width="45%"/>
-  <img src="capturas/mobile-pendientes.jpg" alt="Trabajos Pendientes" width="45%"/>
+  <img src="Capturas/mobile-home.jpg" alt="Inicio Móvil" width="45%"/>
+  <img src="Capturas/mobile-pendientes.jpg" alt="Trabajos Pendientes" width="45%"/>
 </p>
 
 ---
