@@ -11,7 +11,7 @@ __pycache__/
 mantenimiento.db
 *.pdf
 *.sh
-*.jpg
+logo.jpg
 *.json
 
 # Carpetas de contenido generado por el uso
