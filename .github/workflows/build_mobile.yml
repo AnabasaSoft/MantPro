@@ -2,7 +2,7 @@ name: Compilar Móvil (Android APK)
 
 on:
   push:
-    branches: [ "main" ]
+    #branches: [ "main" ]
     tags: [ "v*" ]
   workflow_dispatch:
 
