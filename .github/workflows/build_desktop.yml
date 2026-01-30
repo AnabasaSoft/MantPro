@@ -3,10 +3,14 @@ name: Construir Desktop (Windows & Linux AppImage)
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ] # Se activa también al subir etiquetas como v1.0, v1.1...
   workflow_dispatch:
 
+permissions:
+  contents: write # Necesario para poder crear Releases
+
 jobs:
-  # --- TRABAJO PARA WINDOWS (Funciona bien) ---
+  # --- TRABAJO PARA WINDOWS ---
   build-windows:
     runs-on: windows-latest
     steps:
@@ -27,16 +31,21 @@ jobs:
       run: |
         pyinstaller --noconsole --onefile --name=MantPro_PC --icon=icono.png main.py
 
-    - name: Subir EXE
+    - name: Subir EXE como Artefacto (Siempre)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Windows-EXE
         path: dist/MantPro_PC.exe
 
-  # --- TRABAJO PARA LINUX (Corregido para CI sin FUSE) ---
-  build-linux:
-    runs-on: ubuntu-22.04 # Versión estable y compatible
+    - name: Publicar en Release (Solo si hay Tag)
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/MantPro_PC.exe
 
+  # --- TRABAJO PARA LINUX ---
+  build-linux:
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
 
@@ -45,8 +54,7 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Instalar librerías del sistema
-      # Instalamos libfuse2 por si acaso, aunque usaremos el método de extracción
+    - name: Instalar librerías sistema
       run: |
         sudo apt-get update
         sudo apt-get install -y libfuse2 file
@@ -56,22 +64,17 @@ jobs:
         pip install pyinstaller
         pip install PyQt6 reportlab requests flask qrcode xlsxwriter
 
-    - name: Generar Binario (PyInstaller)
+    - name: Generar Binario
       run: |
         pyinstaller --noconsole --onefile --name=MantPro_Linux --icon=icono.png main.py
 
     - name: Preparar AppDir
       run: |
-        # 1. Crear estructura
         mkdir -p AppDir/usr/bin
         mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-        # 2. Copiar binario e icono
         cp dist/MantPro_Linux AppDir/usr/bin/mantpro
         cp icono.png AppDir/mantpro.png
         cp icono.png AppDir/.DirIcon
-
-        # 3. Crear .desktop
         cat > AppDir/mantpro.desktop <<EOF
         [Desktop Entry]
         Type=Application
@@ -81,8 +84,6 @@ jobs:
         Categories=Utility;
         Terminal=false
         EOF
-
-        # 4. Crear AppRun (Script de arranque)
         cat > AppDir/AppRun <<EOF
         #!/bin/sh
         SELF=\$(readlink -f "\$0")
@@ -93,23 +94,21 @@ jobs:
         EOF
         chmod +x AppDir/AppRun
 
-    - name: Crear AppImage (Método seguro sin FUSE)
-      env:
-        ARCH: x86_64
+    - name: Crear AppImage
       run: |
-        # 1. Descargar la versión 'continuous' (más moderna)
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
-
-        # 2. EXTRAER la herramienta (El truco para que funcione en GitHub Actions)
         ./appimagetool-x86_64.AppImage --appimage-extract
-
-        # 3. Usar la herramienta extraída para crear NUESTRA AppImage
-        # Usamos squashfs-root/AppRun en lugar del binario AppImage directo
         ./squashfs-root/AppRun AppDir MantPro-Linux-x86_64.AppImage
 
-    - name: Subir AppImage
+    - name: Subir AppImage como Artefacto (Siempre)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Linux-AppImage
         path: MantPro-Linux-x86_64.AppImage
+
+    - name: Publicar en Release (Solo si hay Tag)
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: MantPro-Linux-x86_64.AppImage

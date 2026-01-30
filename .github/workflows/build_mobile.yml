@@ -3,7 +3,11 @@ name: Compilar Móvil (Android APK)
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-android:
@@ -33,9 +37,14 @@ jobs:
     - name: Construir APK (Release)
       run: flutter build apk --release --no-tree-shake-icons
 
-    - name: Subir Artefacto (APK)
+    - name: Subir Artefacto (Siempre)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Android-APK
-        # La ruta de salida también cambia al estar dentro de la subcarpeta
         path: mantenimiento_app/build/app/outputs/flutter-apk/app-release.apk
+
+    - name: Publicar en Release (Solo si hay Tag)
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: mantenimiento_app/build/app/outputs/flutter-apk/app-release.apk
