@@ -1,45 +1,366 @@
-<div align="center"><img src="icono.png" alt="MantPro Logo" width="200" height="200">MantPro: Sistema Integral de MantenimientoGestión de Mantenimiento Industrial | Sincronización PC-Móvil | Reportes PDF</div>📋 DescripciónMantPro es una solución de doble plataforma (Escritorio + Móvil) diseñada para optimizar la gestión del mantenimiento industrial. Permite llevar un control exhaustivo de tareas preventivas y correctivas, gestionar avisos recurrentes y generar documentación oficial.El sistema destaca por su capacidad de sincronización en red local: el PC actúa como servidor central, permitiendo a los operarios usar la app móvil para registrar incidencias, completar tareas y adjuntar evidencias fotográficas (incluso editadas/dibujadas) directamente desde la planta.🚀 Características Principales💻 Aplicación de Escritorio (Python/PyQt6)El centro de mando para el responsable de mantenimiento.Dashboard Interactivo: Estadísticas visuales de avisos, tareas pendientes y distribución por tipo (Eléctrico, Mecánico, etc.).Servidor de Sincronización: Servidor Flask integrado que recibe datos de la app móvil en tiempo real.Gestión de Calendario: * Integración automática de festivos nacionales, autonómicos y provinciales de España (Configurable).Visualización de tareas y avisos recurrentes.Reportes PDF Profesionales: Exportación de historiales con logotipos personalizados y fotos adjuntas.Sistema de Avisos: Configuración de mantenimientos recurrentes (Anual, Mensual, etc.) con alertas visuales.Base de Datos Robusta: SQLite local con sistema de Backup/Restore automático y manual (ZIP).📱 Aplicación Móvil (Flutter)La herramienta de campo para el operario.Modo Offline/Online: Permite crear registros sin conexión y sincronizarlos cuando se conecta a la red del PC.Escáner QR: Emparejamiento instantáneo con el PC mediante código QR.Gestión de Fotos: * Cámara integrada.Editor de imágenes: Dibuja o marca zonas sobre la foto antes de enviarla.Lista de Pendientes: Descarga las tareas asignadas desde el PC para completarlas in situ.Sincronización Inteligente: Cola de salida automática para asegurar que ningún dato se pierda.🛠️ Instalación y Requisitos1. Entorno de Escritorio (PC)Desarrollado y probado en Manjaro Linux, compatible con Windows y macOS.Requisitos:Python 3.xLibrerías listadas en requirements.txt# Clonar el repositorio
-git clone [https://github.com/TU_USUARIO/MantPro.git](https://github.com/TU_USUARIO/MantPro.git)
-cd MantPro
+# MantPro - Sistema de Mantenimiento Preventivo
 
-# (Opcional) Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # En Linux/Mac
+<p align="center">
+  <img src="logo.png" alt="MantPro Logo" width="200"/>
+</p>
 
-# Instalar dependencias
-pip install -r requirements.txt
+<p align="center">
+  <strong>Gestión profesional de mantenimiento preventivo y correctivo para equipos y flotas</strong>
+</p>
 
-# Ejecutar la aplicación
-python main.py
-2. Entorno Móvil (Android)Requisitos:Flutter SDK instalado.Dispositivo Android o Emulador.cd mobile_app  # (O la carpeta donde esté el código Flutter)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Android%20%7C%20iOS-lightgrey.svg" alt="Platform">
+</p>
 
-# Obtener dependencias
-flutter pub get
+---
 
-# Ejecutar en dispositivo conectado
-flutter run
+## 📋 Índice
 
-# Generar APK para instalación
-flutter build apk --release
-🔄 Flujo de Trabajo y SincronizaciónEl sistema utiliza una arquitectura donde el PC es la "Fuente de la Verdad".Iniciar Servidor: Al abrir la app de escritorio, se inicia automáticamente un servidor local en el puerto 5000.Emparejar: * En el PC: Menú Herramientas -> Sincronizar App (QR).En el Móvil: Botón QR en la barra superior -> Escanear pantalla del PC.Intercambio de Datos:Subida: El móvil envía nuevos registros con fotos y detalles.Bajada: El móvil descarga la lista de "Pendientes" creados en el PC.Completar: Al finalizar un trabajo en el móvil, este se marca como completado en el PC y pasa al historial automáticamente.Nota: Ambos dispositivos deben estar conectados a la misma red Wi-Fi (Red Local) para que la sincronización funcione.📂 Estructura del ProyectoMantPro/
-├── main.py                 # Código fuente Aplicación Escritorio
-├── main.dart               # Código fuente Aplicación Móvil
-├── icono.png               # Icono principal (1024px)
-├── mantenimiento.db        # Base de datos SQLite (Generada automáticamente)
-├── fotos_recibidas/        # Almacén local de imágenes sincronizadas
-├── backups/                # Copias de seguridad manuales
-├── backups_auto/           # Copias de seguridad automáticas al cerrar
-└── festivos_cache.json     # Caché de calendario laboral
-📸 Capturas de PantallaDashboard PCCalendario y FestivosApp Móvil - Edición[Inserta aquí captura del PC][Inserta aquí captura del calendario][Inserta aquí captura del móvil]📄 LicenciaEste proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más detalles.<div align="center"><sub>Desarrollado con ❤️ y mucho café para el mantenimiento industrial eficiente.</sub></div>
-### Consejos adicionales antes de subirlo:
+- [Características](#-características)
+- [Capturas de Pantalla](#-capturas-de-pantalla)
+- [Requisitos](#-requisitos)
+- [Instalación](#-instalación)
+- [Uso](#-uso)
+- [Sincronización PC-Móvil](#-sincronización-pc-móvil)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Contribuir](#-contribuir)
+- [Licencia](#-licencia)
+- [Contacto](#-contacto)
 
-1.  **Capturas:** Si puedes, saca un par de capturas de pantalla reales (una del dashboard del PC y una de la app móvil) y súbelas al repo (o a una carpeta `screenshots/`). Luego edita el README donde pone `[Inserta aquí captura...]` para enlazarlas. Queda muchísimo mejor.
-2.  **Requirements.txt:** Asegúrate de generar el archivo `requirements.txt` en la raíz del proyecto para que la gente sepa qué instalar. Dado tu código, debería contener al menos:
-    ```text
-    PyQt6
-    reportlab
-    flask
-    requests
-    qrcode
-    xlsxwriter
-    ```
+---
+
+## ✨ Características
+
+### 💻 Aplicación de Escritorio (PC)
+
+- **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color
+- **📊 Gestión de Equipos**: Base de datos completa con información de vehículos/equipos
+- **🏢 Gestión de Clientes**: Registro detallado de clientes con datos de contacto y localización
+- **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas
+- **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
+- **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones
+- **📱 Sincronización Móvil**: Servidor integrado para sincronización con la app móvil
+- **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
+- **📦 Backup/Restore**: Exportación e importación de base de datos completa
+- **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
+- **🔔 Tareas Pendientes**: Gestión de trabajos pendientes y planificación
+- **📊 Estadísticas**: Análisis de intervenciones por tipo y período
+
+### 📱 Aplicación Móvil (Android/iOS)
+
+- **📝 Registro Rápido**: Captura de intervenciones sobre el terreno
+- **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
+- **✏️ Editor de Imágenes**: Dibuja sobre las fotos para marcar áreas de interés
+- **🔄 Sincronización Automática**: Envío automático de datos al PC mediante código QR
+- **💾 Almacenamiento Local**: Guarda registros offline hasta sincronizar
+- **📋 Trabajos Pendientes**: Visualiza y gestiona tareas asignadas desde el PC
+- **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
+- **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
+
+---
+
+## 📸 Capturas de Pantalla
+
+### Aplicación de Escritorio
+
+<p align="center">
+  <img src="screenshots/desktop-calendar.png" alt="Calendario" width="45%"/>
+  <img src="screenshots/desktop-equipment.png" alt="Equipos" width="45%"/>
+</p>
+
+### Aplicación Móvil
+
+<p align="center">
+  <img src="screenshots/mobile-home.png" alt="Inicio Móvil" width="30%"/>
+  <img src="screenshots/mobile-camera.png" alt="Cámara" width="30%"/>
+  <img src="screenshots/mobile-editor.png" alt="Editor" width="30%"/>
+</p>
+
+---
+
+## 🔧 Requisitos
+
+### Aplicación de Escritorio
+
+- **Python**: 3.8 o superior
+- **Sistema Operativo**: Windows, Linux o macOS
+- **Dependencias Python**:
+  - PyQt6
+  - Flask
+  - ReportLab
+  - qrcode
+  - requests
+  - sqlite3 (incluido en Python)
+
+### Aplicación Móvil
+
+- **Flutter**: 3.0 o superior
+- **Dart SDK**: 2.17 o superior
+- **Android**: API Level 21+ (Android 5.0+)
+- **iOS**: iOS 11.0+
+
+---
+
+## 📥 Instalación
+
+### Aplicación de Escritorio
+
+1. **Clonar el repositorio**:
+   ```bash
+   git clone https://github.com/AnabasaSoft/MantPro.git
+   cd MantPro
+   ```
+
+2. **Crear entorno virtual** (recomendado):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # En Windows: venv\Scripts\activate
+   ```
+
+3. **Instalar dependencias**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Ejecutar la aplicación**:
+   ```bash
+   python main.py
+   ```
+
+### Aplicación Móvil
+
+1. **Navegar al directorio móvil**:
+   ```bash
+   cd mobile_app
+   ```
+
+2. **Instalar dependencias**:
+   ```bash
+   flutter pub get
+   ```
+
+3. **Ejecutar en dispositivo/emulador**:
+   ```bash
+   flutter run
+   ```
+
+4. **Compilar APK (Android)**:
+   ```bash
+   flutter build apk --release
+   ```
+
+5. **Compilar IPA (iOS)**:
+   ```bash
+   flutter build ios --release
+   ```
+
+---
+
+## 🚀 Uso
+
+### Primera Configuración
+
+#### Aplicación de Escritorio
+
+1. **Iniciar la aplicación**: Ejecuta `python main.py`
+2. **Configurar logo** (opcional): Menú > Configuración > Cambiar Logo
+3. **Añadir equipos**: Pestaña "Equipos" > Botón "Añadir Equipo"
+4. **Añadir clientes**: Pestaña "Clientes" > Botón "Añadir Cliente"
+5. **Iniciar servidor**: Menú > Servidor > Iniciar Servidor (para sincronización móvil)
+
+#### Aplicación Móvil
+
+1. **Instalar la app** en tu dispositivo móvil
+2. **Conectar con PC**: 
+   - Asegúrate de que el PC y el móvil están en la misma red WiFi
+   - En el PC: Menú > Servidor > Mostrar QR de Conexión
+   - En el móvil: Tap en el icono QR y escanea el código
+3. **Listo**: Ya puedes registrar intervenciones desde el móvil
+
+### Flujo de Trabajo Típico
+
+#### Desde el PC
+
+1. **Crear tarea pendiente**:
+   - Pestaña "Pendientes" > Botón "Añadir Pendiente"
+   - Asociar a un equipo/cliente
+   - Generar QR para el técnico
+
+2. **Revisar trabajos completados**:
+   - Los trabajos sincronizados desde móvil aparecen automáticamente
+   - Revisa fotos y detalles en el calendario
+   - Genera PDF de informe si es necesario
+
+3. **Generar reportes**:
+   - Menú > Exportar > Exportar PDF
+   - Selecciona rango de fechas
+   - Elige si incluir fotos en el informe
+
+#### Desde el Móvil
+
+1. **Escanear trabajo pendiente** (opcional):
+   - Si el PC te asignó un trabajo, escanea el QR
+   - Se cargará automáticamente la información
+
+2. **Registrar intervención**:
+   - Tap en "Nuevo" o selecciona trabajo pendiente
+   - Completa título y detalles
+   - Toma foto con la cámara
+   - Dibuja/anota sobre la foto si es necesario
+   - Selecciona tags apropiados
+   - Guarda
+
+3. **Sincronizar**:
+   - Tap en el icono de sincronización
+   - Los registros se envían automáticamente al PC
+   - Se eliminan del móvil al confirmar envío exitoso
+
+---
+
+## 🔄 Sincronización PC-Móvil
+
+### Cómo Funciona
+
+MantPro utiliza un sistema de sincronización basado en:
+
+1. **Servidor Flask** integrado en la app de escritorio
+2. **Códigos QR** para conexión rápida y segura
+3. **API REST** para comunicación entre dispositivos
+4. **WiFi local** - sin necesidad de internet
+
+### Configuración de Red
+
+Para que la sincronización funcione:
+
+- ✅ PC y móvil deben estar en la **misma red WiFi**
+- ✅ El **firewall** debe permitir conexiones en el puerto 5000 (o el configurado)
+- ✅ Si usas Windows, puede que necesites crear una excepción de firewall
+
+### Solución de Problemas
+
+**El móvil no conecta con el PC:**
+- Verifica que ambos dispositivos están en la misma red
+- Comprueba que el servidor está activo en el PC (icono verde)
+- Prueba a desactivar temporalmente el firewall del PC
+- Regenera el código QR y vuelve a escanearlo
+
+**Las fotos no se sincronizan:**
+- Verifica que hay espacio suficiente en el disco del PC
+- Comprueba los permisos de la carpeta `fotos_mantenimiento`
+- Asegúrate de que la foto se guardó correctamente en el móvil
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+MantPro/
+├── main.py                      # Aplicación principal de escritorio
+├── requirements.txt             # Dependencias Python
+├── logo.png                     # Logo de la aplicación
+├── README.md                    # Este archivo
+├── fotos_mantenimiento/         # Carpeta de imágenes
+├── mantenimiento.db             # Base de datos SQLite
+├── mobile_app/                  # Aplicación móvil Flutter
+│   ├── main.dart               # Código principal móvil
+│   ├── pubspec.yaml            # Dependencias Flutter
+│   └── android/                # Configuración Android
+│   └── ios/                    # Configuración iOS
+├── backups/                     # Backups de base de datos
+└── docs/                        # Documentación adicional
+```
+
+### Base de Datos
+
+La aplicación utiliza SQLite con las siguientes tablas:
+
+- **`tareas`**: Registro de intervenciones realizadas
+- **`equipos`**: Catálogo de equipos/vehículos
+- **`clientes`**: Base de datos de clientes
+- **`pendientes`**: Tareas pendientes de realizar
+
+---
+
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas! Si quieres mejorar MantPro:
+
+1. **Fork** el proyecto
+2. Crea una **rama** para tu feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un **Pull Request**
+
+### Ideas de Mejora
+
+- [ ] Implementar notificaciones push para recordatorios
+- [ ] Añadir gráficas de estadísticas más detalladas
+- [ ] Integración con calendario de Google
+- [ ] Modo oscuro
+- [ ] Multi-idioma
+- [ ] Exportación a Excel
+- [ ] API para integración con otros sistemas
+- [ ] Firma digital de trabajos completados
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+```
+MIT License
+
+Copyright (c) 2026 AnabasaSoft
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+## 📧 Contacto
+
+**AnabasaSoft**
+
+- 📧 Email: [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com)
+- 🌐 GitHub: [github.com/AnabasaSoft](https://github.com/AnabasaSoft)
+- 💼 Proyecto: [github.com/AnabasaSoft/MantPro](https://github.com/AnabasaSoft/MantPro)
+
+---
+
+## 🙏 Agradecimientos
+
+- **PyQt6** - Framework GUI multiplataforma
+- **Flutter** - SDK para desarrollo móvil
+- **ReportLab** - Generación de PDFs
+- **SQLite** - Base de datos embebida
+- **Flask** - Microframework web para el servidor de sincronización
+
+---
+
+<p align="center">
+  Hecho con ❤️ por AnabasaSoft
+</p>
+
+<p align="center">
+  <sub>Si este proyecto te ha sido útil, ¡dale una ⭐️!</sub>
+</p>
