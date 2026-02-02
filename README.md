@@ -12,13 +12,14 @@
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Android%20%7C%20iOS-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
 </p>
 
 ---
 
 ## 📋 Índice
 
+- [Descargas](#-descargas)
 - [Características](#-características)
 - [Capturas de Pantalla](#-capturas-de-pantalla)
 - [Requisitos](#-requisitos)
@@ -29,6 +30,19 @@
 - [Contribuir](#-contribuir)
 - [Licencia](#-licencia)
 - [Contacto](#-contacto)
+
+---
+
+## 📦 Descargas
+
+Puedes descargar las versiones precompiladas desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
+
+- **Windows**: Ejecutable `.exe` para Windows
+- **Linux**: 
+  - Binario ejecutable de Linux
+  - AppImage portable
+  - También disponible en **AUR** (Arch User Repository)
+- **Android**: Archivo `.apk` para instalación directa
 
 ---
 
@@ -49,7 +63,7 @@
 - **🔔 Tareas Pendientes**: Gestión de trabajos pendientes y planificación
 - **📊 Estadísticas**: Análisis de intervenciones por tipo y período
 
-### 📱 Aplicación Móvil (Android/iOS)
+### 📱 Aplicación Móvil (Android)
 
 - **📝 Registro Rápido**: Captura de intervenciones sobre el terreno
 - **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
@@ -85,7 +99,7 @@
 ### Aplicación de Escritorio
 
 - **Python**: 3.8 o superior
-- **Sistema Operativo**: Windows, Linux o macOS
+- **Sistema Operativo**: Windows o Linux
 - **Dependencias Python**:
   - PyQt6
   - Flask
@@ -105,6 +119,18 @@
 ## 📥 Instalación
 
 ### Aplicación de Escritorio
+
+#### Opción 1: Descarga Precompilada (Recomendado)
+
+Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
+
+- **Windows**: Descarga y ejecuta el `.exe`
+- **Linux**: 
+  - Descarga el binario ejecutable y dale permisos de ejecución: `chmod +x mantpro`
+  - O usa el **AppImage** (sin instalación): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
+  - **Arch Linux**: Disponible en AUR: `yay -S mantpro` o `paru -S mantpro`
+
+#### Opción 2: Instalación desde Código Fuente
 
 1. **Clonar el repositorio**:
    ```bash
@@ -129,6 +155,14 @@
    ```
 
 ### Aplicación Móvil
+
+#### Opción 1: Descarga Directa (Recomendado)
+
+Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) e instálalo en tu dispositivo Android.
+
+**Nota**: Es posible que necesites habilitar "Orígenes desconocidos" en la configuración de seguridad de tu dispositivo.
+
+#### Opción 2: Compilar desde Código Fuente
 
 1. **Navegar al directorio móvil**:
    ```bash
@@ -261,7 +295,6 @@ MantPro/
 │   ├── main.dart               # Código principal móvil
 │   ├── pubspec.yaml            # Dependencias Flutter
 │   └── android/                # Configuración Android
-│   └── ios/                    # Configuración iOS
 ├── backups/                     # Backups de base de datos
 └── docs/                        # Documentación adicional
 ```
