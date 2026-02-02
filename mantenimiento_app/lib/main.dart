@@ -10,18 +10,66 @@ import 'package:image_painter/image_painter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
-// --- MAIN: Configuración de Tema ---
-void main() => runApp(MaterialApp(
-  home: const MainScreen(),
-  debugShowCheckedModeBanner: false,
-  title: "MantPro Móvil",
-  themeMode: ThemeMode.dark,
-  theme: ThemeData.dark().copyWith(
-    // Personalizamos un poco el tema oscuro para que sea más gris que negro
-    scaffoldBackgroundColor: Colors.grey[900],
-    appBarTheme: AppBarTheme(backgroundColor: Colors.grey[850]),
-  ),
-));
+// --- GESTOR DE TEMA GLOBAL ---
+// Usamos un Notifier global para poder acceder desde cualquier sitio
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Cargar preferencia de tema guardada
+  final prefs = await SharedPreferences.getInstance();
+  final bool isDark = prefs.getBool('is_dark_mode') ?? true; // Por defecto oscuro
+  themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (_, mode, __) {
+        return MaterialApp(
+          home: const MainScreen(),
+          debugShowCheckedModeBanner: false,
+          title: "MantPro Móvil",
+          themeMode: mode,
+
+          // --- TEMA CLARO ---
+          theme: ThemeData.light().copyWith(
+            scaffoldBackgroundColor: Colors.grey[100],
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.blueGrey,
+              foregroundColor: Colors.white,
+            ),
+            cardColor: Colors.white,
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Colors.blueGrey,
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Colors.white60,
+            ),
+          ),
+
+          // --- TEMA OSCURO (El que te gusta) ---
+          darkTheme: ThemeData.dark().copyWith(
+            scaffoldBackgroundColor: Colors.grey[900],
+            appBarTheme: AppBarTheme(backgroundColor: Colors.grey[850]),
+            cardColor: Colors.grey[800],
+            bottomNavigationBarTheme: BottomNavigationBarThemeData(
+              backgroundColor: Colors.grey[850],
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Colors.white54,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 
 // ==========================================
 // 1. MODELOS DE DATOS
@@ -73,16 +121,40 @@ class _MainScreenState extends State<MainScreen> {
     const TabPendientesPC()
   ];
 
+  // Función para alternar tema
+  void _toggleTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (themeNotifier.value == ThemeMode.dark) {
+      themeNotifier.value = ThemeMode.light;
+      await prefs.setBool('is_dark_mode', false);
+    } else {
+      themeNotifier.value = ThemeMode.dark;
+      await prefs.setBool('is_dark_mode', true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      // AppBar Común para tener el botón de tema siempre visible
+      appBar: AppBar(
+        title: Text(_indiceActual == 0 ? "Mis Registros" : "Trabajos Pendientes"),
+        actions: [
+          // BOTÓN DE TEMA (SOL/LUNA)
+          IconButton(
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            tooltip: "Cambiar Tema",
+            onPressed: _toggleTheme,
+          ),
+        ],
+      ),
       body: IndexedStack(index: _indiceActual, children: _pantallas),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _indiceActual,
         onTap: (index) => setState(() => _indiceActual = index),
-        backgroundColor: Colors.blueGrey[800], // Gris azulado para el menú
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
+        // Los colores ahora se cogen del Theme definido en MyApp
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.folder), label: "Mis Registros"),
@@ -210,62 +282,72 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
 
   @override
   Widget build(BuildContext context) {
+    // IMPORTANTE: Quitamos el AppBar de aquí porque ahora está en MainScreen
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Registros'),
-        backgroundColor: Colors.blueGrey,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code),
-            tooltip: "Cambiar PC",
-            onPressed: () async {
-              final ip = await Navigator.push(context,
-                                              MaterialPageRoute(builder: (_) => const QRScanScreen()));
-              if (ip != null) _sincronizar(ip);
-            }),
-            if (_urlPC != null)
-              IconButton(
-                icon: _cargando
-                ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(color: Colors.white))
-                : const Icon(Icons.sync),
-                onPressed: () => _sincronizar())
-        ],
-      ),
-      body: _pendientes.isEmpty
-      ? const Center(
-        child: Text("Sin registros locales",
-                    style: TextStyle(color: Colors.grey)))
-      : ListView.builder(
-        itemCount: _pendientes.length,
-        itemBuilder: (ctx, i) {
-          final item = _pendientes[i];
-          File? f =
-          item.imagePath != null ? File(item.imagePath!) : null;
-          return Card(
-            color: Colors.grey[800], // Fondo de tarjeta más claro que el fondo
-            child: ListTile(
-              leading: f != null && f.existsSync()
-              ? Image.file(f,
-                           width: 40, height: 40, fit: BoxFit.cover)
-              : const Icon(Icons.build),
-              title: Text(item.titulo,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(item.detalles, maxLines: 1),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.redAccent),
-                            onPressed: () => _confirmarBorrado(i)),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FormScreen(
-                                  onSave: (r) => _editarRegistro(i, r),
-                                  registroExistente: item))),
+      body: Column(
+        children: [
+          // Barra de herramientas superior personalizada para esta pestaña
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.1),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (_urlPC != null)
+                  TextButton.icon(
+                    icon: _cargando
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.sync),
+                    label: const Text("Sincronizar"),
+                    onPressed: () => _sincronizar(),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.qr_code),
+                    tooltip: "Cambiar PC",
+                    onPressed: () async {
+                      final ip = await Navigator.push(context,
+                                                      MaterialPageRoute(builder: (_) => const QRScanScreen()));
+                      if (ip != null) _sincronizar(ip);
+                    }),
+              ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: _pendientes.isEmpty
+            ? const Center(
+              child: Text("Sin registros locales",
+                          style: TextStyle(color: Colors.grey)))
+            : ListView.builder(
+              itemCount: _pendientes.length,
+              itemBuilder: (ctx, i) {
+                final item = _pendientes[i];
+                File? f =
+                item.imagePath != null ? File(item.imagePath!) : null;
+                return Card(
+                  // Eliminamos color hardcoded para usar el del tema
+                  child: ListTile(
+                    leading: f != null && f.existsSync()
+                    ? Image.file(f,
+                                 width: 40, height: 40, fit: BoxFit.cover)
+                    : const Icon(Icons.build),
+                    title: Text(item.titulo,
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text(item.detalles, maxLines: 1),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () => _confirmarBorrado(i)),
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => FormScreen(
+                                        onSave: (r) => _editarRegistro(i, r),
+                                        registroExistente: item))),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
@@ -563,81 +645,88 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       _colaEdicion.length;
 
       return Scaffold(
-        appBar: AppBar(
-          title: Text(_urlPC == null
-          ? "Offline"
-          : "Trab. Pend. (${cola > 0 ? '⬆$cola' : 'OK'})"),
-          backgroundColor: cola > 0 ? Colors.orange[800] : Colors.blueGrey,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.qr_code),
-              tooltip: "Cambiar PC",
-              onPressed: _escanearQR),
-              IconButton(
-                icon: _cargando
-                ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(color: Colors.white))
-                : const Icon(Icons.sync),
-                onPressed: () => _sincronizarTodo())
+        // Quitamos el AppBar porque ahora usamos el de MainScreen
+        body: Column(
+          children: [
+            // Barra de estado de conexión personalizada
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: _urlPC == null ? Colors.red.withOpacity(0.2) : Theme.of(context).primaryColor.withOpacity(0.1),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(_urlPC == null ? Icons.cloud_off : Icons.cloud_done,
+                           color: _urlPC == null ? Colors.red : Colors.green),
+                      const SizedBox(width: 8),
+                      Text(_urlPC == null ? "Offline" : "Conectado", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  Text(cola > 0 ? "Pendientes de subir: $cola" : "Sincronizado", style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: _urlPC == null
+              ? Center(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text("Vincular PC"),
+                  onPressed: _escanearQR))
+              : _listaPC.isEmpty
+              ? const Center(child: Text("No hay tareas asignadas"))
+              : ListView.builder(
+                itemCount: _listaPC.length,
+                itemBuilder: (ctx, i) {
+                  final item = _listaPC[i];
+
+                  String? refID = _extraerRef(item.detalles);
+                  bool tieneFoto = false;
+                  String? pathFoto;
+
+                  if (refID != null && _fotosLocales.containsKey(refID)) {
+                    pathFoto = _fotosLocales[refID];
+                  } else if (_fotosLocales
+                    .containsKey(item.id.toString())) {
+                    pathFoto = _fotosLocales[item.id.toString()];
+                    }
+
+                    if (pathFoto != null && File(pathFoto).existsSync()) {
+                      tieneFoto = true;
+                    }
+
+                    String limpio = item.detalles
+                    .replaceAll(RegExp(r"\[FOTO:.*?\]"), "")
+                    .replaceAll(RegExp(r"\[REF:.*?\]"), "")
+                    .trim();
+
+                    return Card(
+                      // Sin color hardcoded
+                      child: ListTile(
+                        leading: tieneFoto
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: Image.file(File(pathFoto!),
+                          width: 50, height: 50, fit: BoxFit.cover))
+                        : const CircleAvatar(
+                          backgroundColor: Colors.orange,
+                          child: Icon(Icons.warning_amber,
+                                      color: Colors.white)),
+                                      title: Text(item.titulo,
+                                                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  subtitle: Text(limpio, maxLines: 2),
+                                                  onTap: () => _abrirGestionar(item),
+                                                  trailing: IconButton(
+                                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                                    onPressed: () => _borrar(item.id)),
+                      ),
+                    );
+                },
+              ),
+            ),
           ],
-        ),
-        body: _urlPC == null
-        ? Center(
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.qr_code),
-            label: const Text("Vincular PC"),
-            onPressed: _escanearQR))
-        : _listaPC.isEmpty
-        ? const Center(child: Text("No hay tareas"))
-        : ListView.builder(
-          itemCount: _listaPC.length,
-          itemBuilder: (ctx, i) {
-            final item = _listaPC[i];
-
-            String? refID = _extraerRef(item.detalles);
-            bool tieneFoto = false;
-            String? pathFoto;
-
-            if (refID != null && _fotosLocales.containsKey(refID)) {
-              pathFoto = _fotosLocales[refID];
-            } else if (_fotosLocales
-              .containsKey(item.id.toString())) {
-              pathFoto = _fotosLocales[item.id.toString()];
-              }
-
-              if (pathFoto != null && File(pathFoto).existsSync()) {
-                tieneFoto = true;
-              }
-
-              String limpio = item.detalles
-              .replaceAll(RegExp(r"\[FOTO:.*?\]"), "")
-              .replaceAll(RegExp(r"\[REF:.*?\]"), "")
-              .trim();
-
-              return Card(
-                color: Colors.grey[800],
-                child: ListTile(
-                  leading: tieneFoto
-                  ? ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.file(File(pathFoto!),
-                    width: 50, height: 50, fit: BoxFit.cover))
-                  : const CircleAvatar(
-                    backgroundColor: Colors.orange,
-                    child: Icon(Icons.warning_amber,
-                                color: Colors.white)),
-                                title: Text(item.titulo,
-                                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                                            subtitle: Text(limpio, maxLines: 2),
-                                            onTap: () => _abrirGestionar(item),
-                                            trailing: IconButton(
-                                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                              onPressed: () => _borrar(item.id)),
-                ),
-              );
-          },
         ),
         floatingActionButton: FloatingActionButton.extended(
           backgroundColor: Colors.orange[800],
@@ -717,7 +806,6 @@ class _FormScreenState extends State<FormScreen> {
   @override
   void initState() {
     super.initState();
-    // Recuperar datos si es edición
     if (widget.pendientePC != null) {
       _titleCtrl.text = widget.pendientePC!.titulo;
       _descCtrl.text = widget.pendientePC!.detalles

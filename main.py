@@ -66,17 +66,19 @@ def obtener_ruta_datos():
     if sys.platform == "win32":
         base_dir = os.getenv("APPDATA")
     else:
+        # Linux estándar (XDG_DATA_HOME)
         base_dir = os.getenv("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
 
     ruta_sistema = os.path.join(base_dir, nombre_app)
 
-    # Crear la carpeta de sistema si no existe
+    # Crear la carpeta de sistema si no existe (importante para la primera ejecución)
     if not os.path.exists(ruta_sistema):
         try:
             os.makedirs(ruta_sistema)
         except OSError as e:
             print(f"Error creando directorio de datos: {e}")
-            return cwd # Si falla, volvemos a local
+            # Fallback al directorio local si falla (ej. portable)
+            return os.path.abspath(".")
 
     return ruta_sistema
 
@@ -1023,7 +1025,13 @@ class MaintenanceApp(QMainWindow):
 
     def closeEvent(self, e):
         self.settings.setValue("geometry", self.saveGeometry())
+
+        # 1. Limpieza de fotos antes del backup
+        print("Iniciando limpieza de fotos...")
         self.limpiar_fotos_huerfanas(silencioso=True)
+
+        # 2. Backup automático
+        print("Iniciando Auto-Backup...")
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             nombre_zip = f"auto_backup_full_{timestamp}.zip"

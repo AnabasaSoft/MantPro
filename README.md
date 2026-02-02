@@ -325,9 +325,9 @@ La aplicación utiliza SQLite con las siguientes tablas:
 - [ ] Implementar notificaciones push para recordatorios
 - [ ] Añadir gráficas de estadísticas más detalladas
 - [ ] Integración con calendario de Google
-- [ ] Modo oscuro
+- [X] Modo oscuro
 - [ ] Multi-idioma
-- [ ] Exportación a Excel
+- [X] Exportación a Excel
 - [ ] API para integración con otros sistemas
 - [ ] Firma digital de trabajos completados
 
