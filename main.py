@@ -8,8 +8,8 @@ import socket
 import threading
 import re
 import csv
-from datetime import datetime
-from flask import Flask, request, jsonify
+from datetime import datetime, timedelta
+from flask import Flask, request, jsonify, send_from_directory
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as PDFImage
 from reportlab.lib import colors
@@ -29,9 +29,10 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHeaderView, QDialog, QDialogButtonBox, QAbstractItemView,
                              QListWidgetItem, QStyleFactory, QComboBox, QGroupBox, QCheckBox,
                              QCompleter, QFileDialog, QScrollArea, QSizePolicy, QGridLayout,
-                             QSpinBox, QRadioButton, QProgressBar, QTreeView, QMenu)
+                             QSpinBox, QRadioButton, QProgressBar, QTreeView, QMenu, QSplashScreen)
 
-from PyQt6.QtCore import QDate, Qt, pyqtSignal, QThread, QSettings, QDir
+from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
+                          QPropertyAnimation, QEasingCurve, QTimer)
 
 from PyQt6.QtGui import (QAction, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel)
@@ -373,6 +374,7 @@ class ServidorSincronizacion(QThread):
         self.app = Flask(__name__)
         self.server_port = 5000
 
+        # --- RUTAS EXISTENTES ---
         @self.app.route('/api/upload', methods=['POST'])
         def api_upload():
             try:
@@ -434,13 +436,229 @@ class ServidorSincronizacion(QThread):
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
                 filename, ruta_foto = self._procesar_foto(request)
-
-                if filename:
-                    detalles += f"\n[FOTO: {filename}]"
-
+                if filename: detalles += f"\n[FOTO: {filename}]"
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
                 c.execute('INSERT INTO pendientes (titulo, detalles) VALUES (?,?)', (titulo, detalles))
+                conn.commit()
+                conn.close()
+                self.pendiente_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/eliminar_pendiente', methods=['POST'])
+        def api_eliminar_pendiente():
+            # (Mantener código original)
+            try:
+                id_p = request.form.get('id')
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                c.execute('DELETE FROM pendientes WHERE id=?', (id_p,))
+                conn.commit()
+                conn.close()
+                self.pendiente_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+
+        # ==========================================
+        # --- NUEVAS RUTAS PARA EL MÓVIL ---
+        # ==========================================
+
+        @self.app.route('/api/dashboard', methods=['GET'])
+        def api_dashboard():
+            try:
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                # 1. Contar pendientes
+                c.execute("SELECT COUNT(*) FROM pendientes")
+                n_pendientes = c.fetchone()[0]
+
+                # 2. Contar registros del mes actual
+                mes_actual = datetime.now().strftime("%Y-%m")
+                c.execute("SELECT COUNT(*) FROM tareas WHERE fecha LIKE ?", (f"{mes_actual}%",))
+                n_mes = c.fetchone()[0]
+
+                # 3. Contar avisos activos (lógica simplificada para SQL)
+                c.execute("SELECT titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada FROM avisos_recurrentes")
+                avisos = c.fetchall()
+                n_avisos = 0
+                hoy = datetime.now().date() # Usamos objeto date de Python para calcular rápido aquí
+
+                # (Nota: Replicar lógica exacta de recurrencia en SQL puro es complejo,
+                # enviamos el total de avisos configurados como dato simple o hacemos un cálculo aproximado)
+                n_avisos_total = len(avisos)
+
+                conn.close()
+                return jsonify({
+                    "pendientes": n_pendientes,
+                    "registros_mes": n_mes,
+                    "avisos_total": n_avisos_total
+                })
+            except Exception as e: return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/historial', methods=['GET'])
+        def api_historial():
+            try:
+                query = request.args.get('q', '').lower()
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+
+                sql = "SELECT id, fecha, descripcion, tags FROM tareas ORDER BY fecha DESC LIMIT 50"
+                params = []
+
+                if query:
+                    sql = "SELECT id, fecha, descripcion, tags FROM tareas WHERE descripcion LIKE ? OR tags LIKE ? ORDER BY fecha DESC LIMIT 50"
+                    p_query = f"%{query}%"
+                    params = [p_query, p_query]
+
+                c.execute(sql, params)
+                # Procesamos para extraer nombre de foto si existe
+                resultados = []
+                for r in c.fetchall():
+                    desc = r[2]
+                    foto = None
+                    m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
+                    if m:
+                        foto = m.group(1).split("]")[0].strip()
+
+                    # Limpieza visual para el móvil
+                    desc_limpia = re.sub(r"\[FOTO:.*?\]", "", desc)
+                    desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
+
+                    resultados.append({
+                        "id": r[0],
+                        "fecha": r[1],
+                        "descripcion": desc_limpia,
+                        "tags": r[3],
+                        "foto": foto,
+                        "raw_desc": desc # Necesario para editar
+                    })
+                conn.close()
+                return jsonify(resultados)
+            except Exception as e: return jsonify({"error": str(e)}), 500
+
+        # ---------------------------------------------------------
+        # 1. API AVISOS (Lógica corregida: Acepta retrasos)
+        # ---------------------------------------------------------
+        @self.app.route('/api/avisos', methods=['GET'])
+        def api_avisos():
+            try:
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada FROM avisos_recurrentes")
+                raw_avisos = c.fetchall()
+                conn.close()
+
+                lista_procesada = []
+                hoy = datetime.now().date()
+
+                for aid, tit, finicio, freq, dur, ult in raw_avisos:
+                    if not finicio: continue
+                    try:
+                        fi = datetime.strptime(finicio, "%Y-%m-%d").date()
+                    except: continue
+
+                    if not freq: freq = "Anual"
+
+                    # Calcular cuándo toca (Misma lógica matemática de antes)
+                    ocurrencia = fi
+                    while (ocurrencia + timedelta(days=dur)) < hoy:
+                        if freq == "Diario": ocurrencia += timedelta(days=1)
+                        elif freq == "Semanal": ocurrencia += timedelta(days=7)
+                        elif freq == "Mensual":
+                            ny = ocurrencia.year + (ocurrencia.month // 12)
+                            nm = (ocurrencia.month % 12) + 1
+                            try: ocurrencia = ocurrencia.replace(year=ny, month=nm)
+                            except: ocurrencia = ocurrencia.replace(year=ny, month=nm, day=28)
+                        elif freq == "Trimestral":
+                             m_add = ocurrencia.month + 3
+                             ny = ocurrencia.year + (m_add - 1) // 12
+                             nm = (m_add - 1) % 12 + 1
+                             try: ocurrencia = ocurrencia.replace(year=ny, month=nm)
+                             except: ocurrencia = ocurrencia.replace(year=ny, month=nm, day=28)
+                        elif freq == "Semestral":
+                             m_add = ocurrencia.month + 6
+                             ny = ocurrencia.year + (m_add - 1) // 12
+                             nm = (m_add - 1) % 12 + 1
+                             try: ocurrencia = ocurrencia.replace(year=ny, month=nm)
+                             except: ocurrencia = ocurrencia.replace(year=ny, month=nm, day=28)
+                        elif freq == "Anual": ocurrencia = ocurrencia.replace(year=ocurrencia.year + 1)
+                        else: break
+
+                    fin_ocurrencia = ocurrencia + timedelta(days=dur)
+
+                    # --- CORRECCIÓN DE ESTADO ---
+                    estado = "FUTURO"
+                    color_code = "blue"
+
+                    es_activo = (ocurrencia <= hoy <= fin_ocurrencia)
+
+                    # Lógica corregida: Si la última completada (ult) es posterior o igual a la fecha de ocurrencia, está OK.
+                    # Antes solo miraba si era EXACTAMENTE igual.
+                    es_completado = False
+                    if ult:
+                        fecha_ult = datetime.strptime(ult, "%Y-%m-%d").date()
+                        if fecha_ult >= ocurrencia:
+                            es_completado = True
+
+                    if es_activo:
+                        if es_completado:
+                            estado = "OK"
+                            color_code = "green"
+                        else:
+                            estado = "PENDIENTE"
+                            color_code = "red"
+                    elif hoy < ocurrencia:
+                        estado = "FUTURO"
+                        color_code = "blue"
+
+                    # Caso especial: Si ya lo completé hoy (aunque fuera futuro), que salga verde
+                    if ult == hoy.strftime("%Y-%m-%d"):
+                         estado = "OK"
+                         color_code = "green"
+
+                    lista_procesada.append({
+                        "id": aid,
+                        "titulo": tit,
+                        "frecuencia": freq,
+                        "rango": f"{ocurrencia.strftime('%d/%m')} - {fin_ocurrencia.strftime('%d/%m')}",
+                        "estado": estado,
+                        "color": color_code
+                    })
+
+                return jsonify(lista_procesada)
+            except Exception as e: return jsonify({"error": str(e)}), 500
+
+        # ---------------------------------------------------------
+        # 2. API COMPLETAR (Anti-Duplicados)
+        # ---------------------------------------------------------
+        @self.app.route('/api/completar_aviso', methods=['POST'])
+        def api_completar_aviso():
+            try:
+                id_aviso = request.form.get('id')
+                titulo = request.form.get('titulo')
+                fecha_custom = request.form.get('fecha_custom')
+
+                fecha_final = fecha_custom if fecha_custom else datetime.now().strftime("%Y-%m-%d")
+
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+
+                # 1. Actualizar aviso
+                c.execute('UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?', (fecha_final, id_aviso))
+
+                # 2. Insertar en historial SOLO SI NO EXISTE YA HOY
+                desc_historial = f"Mantenimiento Preventivo: {titulo}"
+                tags_historial = "Preventivo, Aviso Recurrente"
+
+                # Check anti-duplicados
+                c.execute("SELECT id FROM tareas WHERE fecha=? AND descripcion=?", (fecha_final, desc_historial))
+                existe = c.fetchone()
+
+                if not existe:
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
+                              (fecha_final, desc_historial, tags_historial))
+
                 conn.commit()
                 conn.close()
 
@@ -449,15 +667,69 @@ class ServidorSincronizacion(QThread):
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 
-        @self.app.route('/api/eliminar_pendiente', methods=['POST'])
-        def api_eliminar_pendiente():
+        @self.app.route('/api/foto/<path:filename>')
+        def serve_foto(filename):
             try:
-                id_p = request.form.get('id')
+                return send_from_directory(self.carpeta_destino, filename)
+            except Exception as e:
+                return str(e), 404
+
+        @self.app.route('/api/editar_historial', methods=['POST'])
+        def api_editar_historial():
+            try:
+                id_t = request.form.get('id')
+                desc_final = request.form.get('detalles') # Ya viene formateada desde el móvil
+                tags = request.form.get('tags')
+
+                # Si envían foto nueva, procesarla
+                filename, ruta = self._procesar_foto(request)
+                if filename:
+                    # Si hay foto nueva, la añadimos a la descripción
+                    desc_final += f"\n[FOTO: {filename}]"
+
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
-                c.execute('DELETE FROM pendientes WHERE id=?', (id_p,))
+                c.execute("UPDATE tareas SET descripcion=?, tags=? WHERE id=?", (desc_final, tags, id_t))
                 conn.commit()
                 conn.close()
+
+                self.pendiente_actualizado.emit() # Para refrescar la UI de escritorio
+                return jsonify({"status": "ok"})
+            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/descompletar_aviso', methods=['POST'])
+        def api_descompletar_aviso():
+            try:
+                id_aviso = request.form.get('id')
+
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+
+                # 1. Obtener datos actuales del aviso
+                c.execute("SELECT titulo, ultima_completada FROM avisos_recurrentes WHERE id=?", (id_aviso,))
+                row = c.fetchone()
+
+                if row:
+                    titulo, ult_fecha = row
+
+                    # 2. Intentar borrar del historial la entrada generada para esa fecha
+                    # La descripción debe coincidir con la que generamos automáticamente
+                    desc = f"Mantenimiento Preventivo: {titulo}"
+                    if ult_fecha:
+                        c.execute("DELETE FROM tareas WHERE descripcion=? AND fecha=?", (desc, ult_fecha))
+
+                    # 3. Buscar cuál es la NUEVA última fecha real (la anterior a la borrada)
+                    # Esto evita que se quede en NULL si ya se había hecho el mes pasado
+                    c.execute("SELECT MAX(fecha) FROM tareas WHERE descripcion=?", (desc,))
+                    resultado = c.fetchone()
+                    prev_fecha = resultado[0] if resultado else None # Puede ser None si nunca se hizo antes
+
+                    # 4. Actualizar el aviso con la fecha histórica correcta
+                    c.execute("UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?", (prev_fecha, id_aviso))
+
+                conn.commit()
+                conn.close()
+
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
@@ -1508,11 +1780,11 @@ class MaintenanceApp(QMainWindow):
             i = t.item(r, 0).data(Qt.ItemDataRole.UserRole)
             d = self.db.obtener_tarea_por_id(i)
             if d:
-                # --- DIÁLOGO ESPAÑOL FORZADO ---
+                # --- DIÁLOGO ESPAÑOL ---
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Question)
                 msg.setWindowTitle("Confirmar Eliminación")
-                msg.setText("¿Borrar registro permanentemente?\nSi tiene foto adjunta, se eliminará del disco.")
+                msg.setText("¿Borrar registro permanentemente?\nSi tiene foto adjunta, se eliminará del disco.\n\nSi es un preventivo reciente, volverá a marcarse como PENDIENTE.")
 
                 # Botones manuales
                 btn_si = msg.addButton("SÍ", QMessageBox.ButtonRole.YesRole)
@@ -1521,20 +1793,55 @@ class MaintenanceApp(QMainWindow):
                 msg.exec()
 
                 if msg.clickedButton() == btn_si:
-                    # Lógica de borrado de foto
+                    # -------------------------------------------------------
+                    # 1. LÓGICA DE RESTAURACIÓN DE AVISO (NUEVO)
+                    # -------------------------------------------------------
+                    try:
+                        desc_tarea = d[2]  # Descripción
+                        fecha_tarea = d[1] # Fecha (YYYY-MM-DD)
+
+                        prefijo = "Mantenimiento Preventivo: "
+                        if desc_tarea.startswith(prefijo):
+                            titulo_aviso = desc_tarea.replace(prefijo, "").strip()
+
+                            # Abrimos conexión manual segura usando el método de tu clase DB
+                            conn = self.db.conectar()
+                            c = conn.cursor()
+
+                            # Buscamos si hay un aviso con ese título Y esa fecha de 'ultima_completada'
+                            c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
+                            aviso = c.fetchone()
+
+                            if aviso:
+                                # Lo "descompletamos" poniendo NULL
+                                c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
+                                conn.commit()
+                                print(f"Aviso '{titulo_aviso}' restaurado a pendiente.")
+
+                            conn.close()
+                    except Exception as e:
+                        print(f"Error intentando restaurar aviso: {e}")
+
+                    # -------------------------------------------------------
+                    # 2. BORRADO DE FOTO (Lógica original que ya tenías)
+                    # -------------------------------------------------------
                     m = re.search(r"\[FOTO:\s*(.*?)\]", d[2])
                     if m:
                         nombre = m.group(1).split("]")[0].strip()
                         ruta = os.path.join(self.carpeta_fotos, nombre)
                         if os.path.exists(ruta):
-                            try:
-                                os.remove(ruta)
-                            except:
-                                pass
+                            try: os.remove(ruta)
+                            except: pass
 
-                    # Borrar de BD
+                    # -------------------------------------------------------
+                    # 3. BORRADO DE BASE DE DATOS
+                    # -------------------------------------------------------
                     self.db.borrar_tarea(i)
                     self.refresh_all()
+
+                    # Avisar al móvil (Servidor) si está activo
+                    if hasattr(self, 'servidor') and self.servidor:
+                        self.servidor.pendiente_actualizado.emit()
 
     def add_todo(self):
         t, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
@@ -1964,26 +2271,54 @@ class MaintenanceApp(QMainWindow):
                     self.statusBar().showMessage("✅ Pendiente actualizado", 3000)
 
 if __name__ == "__main__":
+    # YA NO forzamos "xcb", dejamos que Wayland gestione la ventana nativamente
+
     app = QApplication(sys.argv)
 
-    # --- FIX PARA LINUX Y WAYLAND ---
-    # 1. Identidad de la App
+    # --- 1. CONFIGURACIÓN DE IDENTIDAD ---
     app.setDesktopFileName("MantPro")
     app.setApplicationName("MantPro")
     app.setOrganizationName("AnabasaSoft")
 
-    # 2. Localizar el icono
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     ruta_icono = os.path.join(base_path, "icono.png")
+    ruta_logo = os.path.join(base_path, "AnabasaSoft.png")
 
-    # 3. Aplicar el icono a la Aplicación Global
     if os.path.exists(ruta_icono):
         app_icon = QIcon(ruta_icono)
         app.setWindowIcon(app_icon)
-    else:
-        print(f"AVISO: No se encuentra el icono en: {ruta_icono}")
-    # -------------------------------
 
-    window = MaintenanceApp()
-    window.show()
+    # --- 2. INSTANCIAR VENTANA PRINCIPAL ---
+    # Recuerda usar el nombre real de tu clase (VentanaPrincipal o MainWindow)
+    try:
+        ventana = MaintenanceApp()
+    except NameError:
+        # Fallback por si tu clase tiene otro nombre
+        # ventana = VentanaPrincipal()
+        print("Error: Revisa el nombre de la clase de la ventana principal.")
+
+    # --- 3. SPLASH SCREEN ESTÁTICO (Compatible con Wayland) ---
+    if os.path.exists(ruta_logo):
+        pixmap = QPixmap(ruta_logo)
+
+        # Escalado suave si es muy grande
+        if pixmap.width() > 600:
+            pixmap = pixmap.scaledToWidth(600, Qt.TransformationMode.SmoothTransformation)
+
+        # Creamos el Splash normal
+        splash = QSplashScreen(pixmap, Qt.WindowType.WindowStaysOnTopHint)
+        splash.show() # Se muestra de golpe (sin fade-in, sin errores)
+
+        # Función para cerrar splash y abrir app
+        def iniciar_programa():
+            splash.close()
+            ventana.show()
+
+        # Esperamos 2 segundos (2000 ms) y cambiamos
+        QTimer.singleShot(2000, iniciar_programa)
+
+    else:
+        # Si no hay logo, arranca normal
+        ventana.show()
+
     sys.exit(app.exec())

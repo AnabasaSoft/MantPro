@@ -13,6 +13,7 @@ mantenimiento.db
 *.sh
 Logo.jpg
 *.json
+*.bak
 
 # Carpetas de contenido generado por el uso
 fotos_recibidas/
