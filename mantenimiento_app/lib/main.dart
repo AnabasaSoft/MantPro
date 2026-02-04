@@ -276,14 +276,23 @@ class _TabDashboardState extends State<TabDashboard> {
     }
   }
 
-  Widget _buildCard(String title, String count, IconData icon, Color color, int targetTabIndex) {
+  // --- FUNCIÓN MODIFICADA: Ahora acepta 'customAction' ---
+  Widget _buildCard(String title, String count, IconData icon, Color color, {int? targetTabIndex, VoidCallback? customAction}) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      // Usamos InkWell para detectar el toque y hacer el efecto visual
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => widget.onNavigate(targetTabIndex), // NAVEGACIÓN AQUÍ
+        onTap: () {
+          // Si hay una acción personalizada (como abrir cámara), la ejecutamos
+          if (customAction != null) {
+            customAction();
+          }
+          // Si no, navegamos a la pestaña correspondiente
+          else if (targetTabIndex != null) {
+            widget.onNavigate(targetTabIndex);
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -353,14 +362,28 @@ class _TabDashboardState extends State<TabDashboard> {
             mainAxisSpacing: 10,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              // Mapeo de Índices:
-              // 2 = Pendientes
-              // 4 = Historial
-              // 3 = Avisos
-              _buildCard("Pendientes", "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, 2),
-              _buildCard("Registros Mes", "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, 4),
-              _buildCard("Avisos Config.", "${_stats['avisos_total']}", Icons.alarm, Colors.purple, 3),
-              _buildCard("Conexión", _cargando ? "..." : (_urlPC != null ? "OK" : "No"), Icons.wifi, Colors.green, 0), // Este se queda en dashboard (0)
+              _buildCard("Pendientes", "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, targetTabIndex: 2),
+              _buildCard("Registros Mes", "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, targetTabIndex: 4),
+              _buildCard("Avisos Config.", "${_stats['avisos_total']}", Icons.alarm, Colors.purple, targetTabIndex: 3),
+
+              // --- CARTA DE CONEXIÓN CON ACCIÓN QR ---
+              _buildCard(
+                "Conexión",
+                _cargando ? "..." : (_urlPC != null ? "OK" : "No"),
+                Icons.wifi,
+                Colors.green,
+                customAction: () async {
+                  // Abrir escáner QR
+                  final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+                  if (ip != null) {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('pc_ip_url', ip);
+                    // Recargamos dashboard con la nueva IP
+                    _inicializarDatos();
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ Conectado a $ip")));
+                  }
+                }
+              ),
             ],
           ),
         ],
