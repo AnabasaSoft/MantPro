@@ -380,6 +380,11 @@ class TabHistorial extends StatefulWidget {
 
 class _TabHistorialState extends State<TabHistorial> {
   List<Registro> _registros = [];
+
+  // COLA OFFLINE PARA HISTORIAL
+  // Guardamos: { "id": "1", "detalles": "Texto...", "tags": "...", "fotoPath": "/ruta/local/foto.jpg" }
+  List<Map<String, dynamic>> _colaEdiciones = [];
+
   bool _cargando = false;
   String? _urlPC;
   final TextEditingController _searchCtrl = TextEditingController();
@@ -394,21 +399,95 @@ class _TabHistorialState extends State<TabHistorial> {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
 
-    // 1. Cargar caché offline primero
+    // 1. Cargar cola de ediciones pendientes
+    String? colaJson = prefs.getString('historial_cola_ediciones');
+    if (colaJson != null) {
+      _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(colaJson));
+    }
+
+    // 2. Cargar caché visual
     String? cache = prefs.getString('historial_cache');
     if (cache != null) {
       final List<dynamic> data = json.decode(cache);
       setState(() {
         _registros = data.map((item) => Registro.fromJson(item)).toList();
       });
+      // APLICAR CAMBIOS PENDIENTES SOBRE LA VISTA (Optimistic UI)
+      _aplicarCambiosVisuales();
     }
 
-    // 2. Si hay conexión, buscar online
-    if (_urlPC != null) _buscar("");
+    // 3. Si hay red, sincronizar y buscar
+    if (_urlPC != null) {
+      await _sincronizarEdiciones(); // Primero subimos lo pendiente
+      _buscar(""); // Luego bajamos lo nuevo
+    }
+  }
+
+  Future<void> _guardarCola() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('historial_cola_ediciones', json.encode(_colaEdiciones));
+  }
+
+  // Aplica visualmente las ediciones pendientes sobre la lista cargada
+  void _aplicarCambiosVisuales() {
+    for (var edicion in _colaEdiciones) {
+      int index = _registros.indexWhere((r) => r.id.toString() == edicion['id']);
+      if (index != -1) {
+        // Actualizamos el objeto en memoria para que el usuario lo vea "guardado"
+        Registro original = _registros[index];
+        _registros[index] = Registro(
+          id: original.id,
+          titulo: original.titulo, // Mantenemos fecha
+          detalles: edicion['detalles'],
+          tags: edicion['tags'],
+          serverImageName: original.serverImageName, // Mantenemos ref antigua hasta sincronizar
+          imagePath: edicion['fotoPath'] ?? original.imagePath // Usamos la foto nueva local si hay
+        );
+      }
+    }
+  }
+
+  Future<void> _sincronizarEdiciones() async {
+    if (_urlPC == null || _colaEdiciones.isEmpty) return;
+
+    List<Map<String, dynamic>> subidosOk = [];
+
+    for (var edicion in _colaEdiciones) {
+      try {
+        var uri = Uri.parse("http://$_urlPC/api/editar_historial");
+        var req = http.MultipartRequest('POST', uri);
+        req.fields['id'] = edicion['id'];
+        req.fields['detalles'] = edicion['detalles'];
+        req.fields['tags'] = edicion['tags'];
+
+        String? fotoPath = edicion['fotoPath'];
+        if (fotoPath != null && File(fotoPath).existsSync()) {
+          req.files.add(await http.MultipartFile.fromPath('foto', fotoPath));
+        }
+
+        var res = await req.send();
+        if (res.statusCode == 200) {
+          subidosOk.add(edicion);
+        }
+      } catch (e) {
+        print("Error subiendo edición historial: $e");
+      }
+    }
+
+    if (subidosOk.isNotEmpty) {
+      setState(() {
+        for (var s in subidosOk) _colaEdiciones.remove(s);
+      });
+        await _guardarCola();
+    }
   }
 
   Future<void> _buscar(String query) async {
-    if (_urlPC == null) return;
+    // Si no hay URL, solo filtramos localmente lo que ya tenemos en caché
+    if (_urlPC == null) {
+      // Podríamos implementar filtrado local aquí, pero por ahora mostramos lo cacheado
+      return;
+    }
 
     setState(() => _cargando = true);
     try {
@@ -416,71 +495,72 @@ class _TabHistorialState extends State<TabHistorial> {
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
 
-        // Convertimos datos del server a nuestra estructura
         List<Registro> nuevosRegistros = data.map((item) => Registro(
           id: item['id'],
           titulo: "${item['fecha']}",
           detalles: item['descripcion'],
           tags: item['tags'],
           serverImageName: item['foto'],
-          // Truco: usamos imagePath para guardar el RAW description,
-          // pero si descargamos la foto, luego actualizaremos esto
           imagePath: item['raw_desc']
         )).toList();
 
-        // 3. CACHEAR FOTOS DE LOS RESULTADOS (Magia offline)
+        // Cachear fotos nuevas (Lógica Offline de Historial que ya tenías)
         final directory = await getApplicationDocumentsDirectory();
-
         for (var r in nuevosRegistros) {
           if (r.serverImageName != null) {
             final String filePath = path.join(directory.path, r.serverImageName!);
-
-            // Si no existe, descargar
             if (!File(filePath).existsSync()) {
               try {
                 var imgRes = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}"));
-                if (imgRes.statusCode == 200) {
-                  await File(filePath).writeAsBytes(imgRes.bodyBytes);
-                }
-              } catch (e) {
-                print("No se pudo descargar foto historial: ${r.serverImageName}");
-              }
+                if (imgRes.statusCode == 200) await File(filePath).writeAsBytes(imgRes.bodyBytes);
+              } catch (e) {}
             }
           }
         }
 
         setState(() => _registros = nuevosRegistros);
 
-        // Guardar lista en caché
+        // Re-aplicar cambios pendientes que aun no se han subido (para no machacarlos con la versión vieja del server)
+        _aplicarCambiosVisuales();
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('historial_cache', json.encode(nuevosRegistros.map((r) => r.toJson()).toList()));
-
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Modo Offline: Mostrando últimos datos guardados")));
+      // Error silencioso, mantenemos caché
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
   }
 
   void _editarHistorial(Registro reg) async {
-
-    // --- LÓGICA DE EDICIÓN RESUMIDA PARA COPIAR ---
-    String rawDesc = reg.imagePath ?? reg.detalles; // Recuperamos raw
+    // Recuperar descripción RAW y Foto Local
+    String rawDesc = reg.imagePath ?? reg.detalles;
     String? localPhotoForEdit;
 
-    // Intentar buscar en local primero (ya que lo cacheamos en _buscar)
-    if (reg.serverImageName != null) {
+    // 1. Buscar foto localmente (Prioridad: Edición pendiente > Caché descargado)
+
+    // A) ¿Tiene una edición pendiente con foto nueva?
+    var edicionPendiente = _colaEdiciones.firstWhere(
+      (e) => e['id'] == reg.id.toString(),
+      orElse: () => {}
+    );
+
+    if (edicionPendiente.isNotEmpty && edicionPendiente['fotoPath'] != null) {
+      localPhotoForEdit = edicionPendiente['fotoPath'];
+    }
+    // B) Si no, ¿tiene foto del servidor cacheada?
+    else if (reg.serverImageName != null) {
       final directory = await getApplicationDocumentsDirectory();
       final String filePath = path.join(directory.path, reg.serverImageName!);
       if (File(filePath).existsSync()) {
         localPhotoForEdit = filePath;
       } else if (_urlPC != null) {
-        // Fallback descarga
+        // Intento de descarga al vuelo si hay red
         try {
           var response = await http.get(Uri.parse("http://$_urlPC/api/foto/${reg.serverImageName}"));
           if (response.statusCode == 200) {
-            File(filePath).writeAsBytesSync(response.bodyBytes);
+            await File(filePath).writeAsBytes(response.bodyBytes);
             localPhotoForEdit = filePath;
           }
         } catch (e) {}
@@ -495,137 +575,141 @@ class _TabHistorialState extends State<TabHistorial> {
       imagePath: localPhotoForEdit
     );
 
-    Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       registroExistente: regParaForm,
       esHistorial: true,
       onSave: (registroEditado) async {
-        if (_urlPC == null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("❌ Necesitas conexión para guardar ediciones históricas")));
-          return;
-        }
-        var uri = Uri.parse("http://$_urlPC/api/editar_historial");
-        var req = http.MultipartRequest('POST', uri);
-        req.fields['id'] = reg.id.toString();
-        req.fields['detalles'] = registroEditado.detalles;
-        req.fields['tags'] = registroEditado.tags;
+        // --- LÓGICA DE GUARDADO OFFLINE ---
 
-        if (registroEditado.imagePath != null && File(registroEditado.imagePath!).existsSync()) {
-          req.files.add(await http.MultipartFile.fromPath('foto', registroEditado.imagePath!));
+        // 1. Guardar en Cola Local
+        Map<String, dynamic> nuevaEdicion = {
+          'id': reg.id.toString(),
+          'detalles': registroEditado.detalles,
+          'tags': registroEditado.tags,
+          'fotoPath': registroEditado.imagePath // Guardamos la ruta de la nueva foto
+        };
+
+        // Si ya había una edición para este ID, la reemplazamos
+        int idx = _colaEdiciones.indexWhere((e) => e['id'] == reg.id.toString());
+        if (idx != -1) {
+          _colaEdiciones[idx] = nuevaEdicion;
+        } else {
+          _colaEdiciones.add(nuevaEdicion);
         }
 
-        try {
-          var res = await req.send();
-          if (res.statusCode == 200) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Registro Actualizado")));
-            _buscar(_searchCtrl.text);
-          }
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("❌ Error de conexión")));
-        }
+        await _guardarCola();
+
+        // 2. Actualizar UI inmediatamente
+        setState(() {
+          _aplicarCambiosVisuales();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado (Sincronizará al conectar)")));
+
+        // 3. Intentar subir si hay red
+        _sincronizarEdiciones();
       }
     )));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Modificamos el build para que muestre datos aunque no haya URL si hay caché
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: _searchCtrl,
-            decoration: InputDecoration(
-              hintText: "Buscar...",
-              suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)),
-              border: const OutlineInputBorder(),
-              // Indicador visual offline en la barra de búsqueda
-              fillColor: _urlPC == null ? Colors.red.withOpacity(0.1) : null,
-              filled: _urlPC == null,
-            ),
-            onSubmitted: _buscar,
-          ),
-        ),
-        Expanded(
-          child: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _registros.isEmpty
-          ? const Center(child: Text("Sin historial (conecta al PC para descargar)"))
-          : ListView.builder(
-            itemCount: _registros.length,
-            itemBuilder: (ctx, i) {
-              final r = _registros[i];
-
-              Widget imageWidget;
-
-              if (r.serverImageName != null) {
-                // CASO A: El registro TIENE foto asociada
-                imageWidget = FutureBuilder<String>(
-                  future: getLocalPath(r.serverImageName!),
-                  builder: (context, snapshot) {
-                    // 1. Si está pensando... mostramos un spinner pequeñito
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(
-                        width: 20, height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2)
-                      );
-                    }
-
-                    // 2. Si existe el archivo local (Caché Offline OK)
-                    if (snapshot.hasData && File(snapshot.data!).existsSync()) {
-                      return Image.file(File(snapshot.data!), width: 50, height: 50, fit: BoxFit.cover);
-                    }
-
-                    // 3. Si no está local, intentamos red (Online)
-                    else if (_urlPC != null) {
-                      return Image.network(
-                        "http://$_urlPC/api/foto/${r.serverImageName}",
-                        width: 50, height: 50, fit: BoxFit.cover,
-                        // Si falla la descarga de red:
-                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.redAccent),
-                      );
-                    }
-
-                    // 4. Si no está local ni tenemos conexión (Cámara tachada)
-                    else {
-                      return const Icon(Icons.no_photography, color: Colors.grey);
-                    }
-                  }
-                );
-              } else {
-                // CASO B: Es un registro de SOLO TEXTO
-                // Cambiamos el reloj (history) por un documento (article) para evitar confusión
-                imageWidget = const Icon(Icons.article, color: Colors.blueGrey);
-              }
-
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: ListTile(
-                  // Envolvemos en ClipRRect para que si es foto tenga bordes redondeados
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: SizedBox(width: 50, height: 50, child: Center(child: imageWidget))
-                  ),
-                  title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(
-                    "${r.titulo} | ${r.tags}",
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[700])
-                  ),
-                  onTap: () => _editarHistorial(r),
-                  trailing: const Icon(Icons.edit, size: 20, color: Colors.blueGrey),
-                ),
-              );
-            },
-          )
-        )
-      ],
-    );
   }
 
   Future<String> getLocalPath(String filename) async {
     final directory = await getApplicationDocumentsDirectory();
     return path.join(directory.path, filename);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Barra de estado de cola
+        if (_colaEdiciones.isNotEmpty)
+          Container(
+            width: double.infinity,
+            color: Colors.orangeAccent,
+            padding: const EdgeInsets.all(8),
+            child: Text(
+              "${_colaEdiciones.length} ediciones pendientes de subir",
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: "Buscar en historial...",
+                suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)),
+                border: const OutlineInputBorder(),
+                filled: _urlPC == null,
+                fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null,
+              ),
+              onSubmitted: _buscar,
+            ),
+          ),
+          Expanded(
+            child: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : _registros.isEmpty
+            ? const Center(child: Text("Sin historial visible"))
+            : ListView.builder(
+              itemCount: _registros.length,
+              itemBuilder: (ctx, i) {
+                final r = _registros[i];
+
+                // LÓGICA DE ICONO:
+                // Prioridad: Foto Local (recién editada) > Foto Servidor (cacheada) > Icono Texto
+                Widget imageWidget;
+
+                if (r.imagePath != null && File(r.imagePath!).existsSync() && !r.imagePath!.contains("[")) {
+                  // Caso: Acabamos de editar y poner foto local (y aun no se sube)
+                  // Nota: comprobamos !contains("[") porque a veces usamos imagePath para guardar el raw_desc
+                  imageWidget = Image.file(File(r.imagePath!), width: 50, height: 50, fit: BoxFit.cover);
+                }
+                else if (r.serverImageName != null) {
+                  // Caso: Foto del servidor
+                  imageWidget = FutureBuilder<String>(
+                    future: getLocalPath(r.serverImageName!),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && File(snapshot.data!).existsSync()) {
+                        return Image.file(File(snapshot.data!), width: 50, height: 50, fit: BoxFit.cover);
+                      } else if (_urlPC != null) {
+                        return Image.network("http://$_urlPC/api/foto/${r.serverImageName}",
+                                             width: 50, height: 50, fit: BoxFit.cover,
+                                             errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.redAccent));
+                      } else {
+                        return const Icon(Icons.no_photography, color: Colors.grey);
+                      }
+                    }
+                  );
+                } else {
+                  imageWidget = const Icon(Icons.article, color: Colors.blueGrey);
+                }
+
+                // ¿Está este registro pendiente de subida?
+                bool pendiente = _colaEdiciones.any((e) => e['id'] == r.id.toString());
+
+                return Card(
+                  color: pendiente ? Colors.orange.withOpacity(0.1) : null, // Fondo naranjita si está pendiente
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: ListTile(
+                    leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: imageWidget))),
+                    title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    subtitle: Text("${r.titulo} | ${r.tags}"),
+                    trailing: Icon(
+                      pendiente ? Icons.cloud_upload : Icons.edit,
+                      size: 20,
+                      color: pendiente ? Colors.orange : Colors.blueGrey
+                    ),
+                    onTap: () => _editarHistorial(r),
+                  ),
+                );
+              },
+            )
+          )
+      ],
+    );
   }
 }
 
@@ -804,13 +888,13 @@ class TabPendientesPC extends StatefulWidget {
 class _TabPendientesPCState extends State<TabPendientesPC> {
   List<PendientePC> _listaPC = [];
 
-  // Colas de sincronización
-  List<Map<String, dynamic>> _colaSalida = [];
-  List<Map<String, dynamic>> _colaNuevos = [];
-  List<Map<String, dynamic>> _colaEdicion = [];
-  List<int> _colaBorrados = [];
+  // --- COLAS DE SINCRONIZACIÓN ---
+  List<Map<String, dynamic>> _colaSalida = [];   // Completar
+  List<Map<String, dynamic>> _colaNuevos = [];   // Crear nuevos
+  List<Map<String, dynamic>> _colaEdiciones = []; // Editar existentes (NUEVA MEJORA)
+  List<int> _colaBorrados = [];                  // Borrar
 
-  // Mapa para vincular ID de tarea -> Ruta local del archivo de imagen
+  // Mapa de fotos locales (ID o REF -> Ruta Archivo)
   Map<String, String> _fotosLocales = {};
 
   bool _cargando = false;
@@ -821,8 +905,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     super.initState();
     _cargarCache();
   }
-
-  // --- PERSISTENCIA DE DATOS (OFFLINE) ---
 
   Future<void> _cargarCache() async {
     final prefs = await SharedPreferences.getInstance();
@@ -840,8 +922,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       String? n = prefs.getString('cola_nuevos');
       if (n != null) _colaNuevos = List<Map<String, dynamic>>.from(json.decode(n));
 
-      String? e = prefs.getString('cola_edicion');
-      if (e != null) _colaEdicion = List<Map<String, dynamic>>.from(json.decode(e));
+      String? e = prefs.getString('cola_ediciones'); // Nombre corregido a plural para consistencia
+      if (e != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(e));
 
       String? b = prefs.getString('cola_borrados');
       if (b != null) _colaBorrados = List<int>.from(json.decode(b));
@@ -850,7 +932,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (f != null) _fotosLocales = Map<String, String>.from(json.decode(f));
     });
 
-      // Si tenemos IP guardada, intentamos sincronizar silenciosamente al arrancar
+      // IMPORTANTE: Aplicar visualmente las ediciones pendientes (Optimistic UI)
+      _aplicarEdicionesVisuales();
+
       if (_urlPC != null) _sincronizarTodo(silencioso: true);
   }
 
@@ -859,23 +943,31 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     await prefs.setString('trabajos_pc', json.encode(_listaPC.map((p) => {'id': p.id, 'titulo': p.titulo, 'detalles': p.detalles}).toList()));
     await prefs.setString('cola_salida', json.encode(_colaSalida));
     await prefs.setString('cola_nuevos', json.encode(_colaNuevos));
-    await prefs.setString('cola_edicion', json.encode(_colaEdicion));
+    await prefs.setString('cola_ediciones', json.encode(_colaEdiciones));
     await prefs.setString('cola_borrados', json.encode(_colaBorrados));
     await prefs.setString('fotos_locales_map', json.encode(_fotosLocales));
   }
 
-  // --- LÓGICA DE SINCRONIZACIÓN Y FOTOS ---
+  // Truco de Magia: Modificamos la lista en memoria con los cambios pendientes
+  void _aplicarEdicionesVisuales() {
+    for (var edicion in _colaEdiciones) {
+      int index = _listaPC.indexWhere((p) => p.id.toString() == edicion['id']);
+      if (index != -1) {
+        _listaPC[index] = PendientePC(
+          id: _listaPC[index].id,
+          titulo: edicion['titulo'],
+          detalles: edicion['detalles'] // Aquí ya vendrá con la nueva [REF] o [FOTO] si se añadió
+        );
+      }
+    }
+  }
 
-  // Ayudante: Descarga foto del server si no la tenemos localmente
   Future<String?> _descargarYCachearFoto(String nombreFoto) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final String filePath = path.join(directory.path, nombreFoto);
-
-      // Si ya existe en disco, devolvemos la ruta (Modo Offline listo)
       if (File(filePath).existsSync()) return filePath;
 
-      // Si no existe y tenemos conexión, descargamos
       if (_urlPC != null) {
         final response = await http.get(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
@@ -884,9 +976,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           return filePath;
         }
       }
-    } catch (e) {
-      debugPrint("Error descargando foto: $e");
-    }
+    } catch (e) { print(e); }
     return null;
   }
 
@@ -894,7 +984,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (_urlPC == null) return;
     if (!silencioso) setState(() => _cargando = true);
 
-    // 1. PROCESAR COLAS DE SUBIDA (Móvil -> PC)
+    // 1. SUBIDAS
     List<int> borradosOk = [];
     for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()})) borradosOk.add(id); }
     if (borradosOk.isNotEmpty) { setState(() { for (var id in borradosOk) _colaBorrados.remove(id); }); }
@@ -904,53 +994,44 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (nuevosOk.isNotEmpty) { setState(() { for (var t in nuevosOk) _colaNuevos.remove(t); }); }
 
     List<Map<String, dynamic>> edicionOk = [];
-    for (var t in _colaEdicion) { if (await _apiMultipart('editar_pendiente', t)) edicionOk.add(t); }
-    if (edicionOk.isNotEmpty) { setState(() { for (var t in edicionOk) _colaEdicion.remove(t); }); }
+    for (var t in _colaEdiciones) { if (await _apiMultipart('editar_pendiente', t)) edicionOk.add(t); }
+    if (edicionOk.isNotEmpty) { setState(() { for (var t in edicionOk) _colaEdiciones.remove(t); }); }
 
     List<Map<String, dynamic>> salidaOk = [];
     for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) salidaOk.add(t); }
     if (salidaOk.isNotEmpty) { setState(() { for (var t in salidaOk) _colaSalida.remove(t); }); }
 
-    // Guardamos estado de colas limpias
     await _guardarCache();
 
-    // 2. DESCARGAR DATOS ACTUALIZADOS (PC -> Móvil)
+    // 2. DESCARGAS
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> datos = json.decode(res.body);
-
-        // Convertimos a objetos
         List<PendientePC> nuevosPendientes = datos.map((item) => PendientePC.fromJson(item)).toList();
 
-        // 3. DESCARGA AUTOMÁTICA DE FOTOS (Magia Offline)
-        // Recorremos la lista nueva. Si hay foto en servidor, la bajamos.
+        // Descarga de fotos
         for (var p in nuevosPendientes) {
           String? fotoServer = _obtenerFotoServer(p);
           if (fotoServer != null) {
-            // Intentamos descargar
             String? rutaLocal = await _descargarYCachearFoto(fotoServer);
             if (rutaLocal != null) {
-              // Vinculamos el ID de la tarea con la ruta local
-              setState(() {
-                _fotosLocales[p.id.toString()] = rutaLocal;
-              });
+              setState(() => _fotosLocales[p.id.toString()] = rutaLocal);
             }
           }
         }
 
         setState(() => _listaPC = nuevosPendientes);
-        await _guardarCache(); // Guardamos lista y mapa de fotos actualizado
+
+        // RE-APLICAR EDICIONES PENDIENTES (Por si falló la subida pero la descarga funcionó)
+        _aplicarEdicionesVisuales();
+
+        await _guardarCache();
       }
-    } catch (e) {
-      // Si falla la red, no pasa nada, seguimos mostrando lo que había en caché
-      if (!silencioso) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sin conexión con PC")));
-    }
+    } catch (e) { /* Error red */ }
 
     if (!silencioso && mounted) setState(() => _cargando = false);
   }
-
-  // --- API HELPERS ---
 
   Future<bool> _apiPost(String endpoint, Map<String, String> body) async {
     try { return (await http.post(Uri.parse("http://$_urlPC/api/$endpoint"), body: body)).statusCode == 200; } catch (e) { return false; }
@@ -962,6 +1043,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (datos.containsKey('id')) req.fields['id'] = datos['id'].toString();
       req.fields['titulo'] = datos['titulo'];
       req.fields['detalles'] = datos['detalles'];
+      // Nota: Pendientes no usa tags en edición normalmente, pero lo enviamos por si acaso
       if (datos.containsKey('tags')) req.fields['tags'] = datos['tags'];
       if (datos['imagePath'] != null && File(datos['imagePath']).existsSync()) {
         req.files.add(await http.MultipartFile.fromPath('foto', datos['imagePath']));
@@ -969,8 +1051,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       return (await req.send()).statusCode == 200;
     } catch (e) { return false; }
   }
-
-  // --- PARSERS DE TEXTO ---
 
   String? _extraerRef(String texto) { final match = RegExp(r"\[REF:(\d+)\]").firstMatch(texto); return match?.group(1); }
 
@@ -980,7 +1060,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     return null;
   }
 
-  // Busca la ruta local de la foto: 1. Por REF única, 2. Por ID de tarea
   String? _obtenerRutaFoto(PendientePC p) {
     String? refID = _extraerRef(p.detalles);
     if (refID != null && _fotosLocales.containsKey(refID)) return _fotosLocales[refID];
@@ -988,68 +1067,83 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     return null;
   }
 
-  // --- ACCIONES DE USUARIO ---
-
   void _abrirGestionar(PendientePC p) async {
     String? fotoLocal = _obtenerRutaFoto(p);
     String? fotoServer = _obtenerFotoServer(p);
-
-    // Validación extra: si la ruta guardada en el mapa no existe (archivo borrado), la anulamos
     if (fotoLocal != null && !File(fotoLocal).existsSync()) fotoLocal = null;
 
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       pendientePC: p,
-      fotoInicialPath: fotoLocal, // Pasamos la ruta local (descargada o creada aquí)
-    serverImageName: fotoServer, // Pasamos nombre server por si hace falta redescargar
-    urlPC: _urlPC,
-    onSave: (registro) {
-      // COMPLETAR TAREA
-      String? refID = _extraerRef(p.detalles);
-      Map<String, dynamic> t = {
-        'id': p.id,
-        'titulo': registro.titulo,
-        'detalles': registro.detalles,
-        'tags': registro.tags,
-        'imagePath': registro.imagePath
-      };
-      setState(() {
-        _colaSalida.add(t);
-        _listaPC.removeWhere((i) => i.id == p.id);
-        // Limpieza de referencias
-        if (refID != null) _fotosLocales.remove(refID);
-        _fotosLocales.remove(p.id.toString());
-      });
-      _guardarCache();
-      _sincronizarTodo(silencioso: true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada y en cola")));
-    },
-    onUpdate: (registro) {
-      // EDITAR TAREA
-      String? refID = _extraerRef(p.detalles);
-      String clave = refID ?? p.id.toString();
+      fotoInicialPath: fotoLocal,
+      serverImageName: fotoServer,
+      urlPC: _urlPC,
+      onSave: (registro) {
+        // COMPLETAR TAREA
+        String? refID = _extraerRef(p.detalles);
+        Map<String, dynamic> t = {
+          'id': p.id,
+          'titulo': registro.titulo,
+          'detalles': registro.detalles,
+          'tags': registro.tags,
+          'imagePath': registro.imagePath
+        };
+        setState(() {
+          _colaSalida.add(t);
+          _listaPC.removeWhere((i) => i.id == p.id);
+          if (refID != null) _fotosLocales.remove(refID);
+          _fotosLocales.remove(p.id.toString());
+        });
+        _guardarCache();
+        _sincronizarTodo(silencioso: true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada")));
+      },
+      onUpdate: (registro) {
+        // EDITAR TAREA (Offline Friendly)
+        String? refID = _extraerRef(p.detalles);
+        String clave = refID ?? p.id.toString();
 
-      // Si hay foto nueva/editada, actualizamos el mapa local
-      if (registro.imagePath != null) setState(() => _fotosLocales[clave] = registro.imagePath!);
+        // 1. Guardar foto nueva localmente
+        if (registro.imagePath != null) {
+          setState(() => _fotosLocales[clave] = registro.imagePath!);
+        }
 
-      Map<String, dynamic> t = {
-        'id': p.id,
-        'titulo': registro.titulo,
-        'detalles': registro.detalles,
-        'tags': registro.tags,
-        'imagePath': registro.imagePath
-      };
-      setState(() => _colaEdicion.add(t));
-      _guardarCache();
-      _sincronizarTodo(silencioso: true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Edición guardada")));
-      Navigator.pop(context);
-    })));
+        // 2. Cola de subida
+        Map<String, dynamic> t = {
+          'id': p.id,
+          'titulo': registro.titulo,
+          'detalles': registro.detalles,
+          'tags': registro.tags,
+          'imagePath': registro.imagePath
+        };
+
+        // 3. ACTUALIZAR LISTA LOCAL INMEDIATAMENTE (Optimistic UI)
+        setState(() {
+          // Si ya había una edición pendiente para este ID, la reemplazamos
+          _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
+          _colaEdiciones.add(t);
+
+          // Refrescar objeto visual
+          int idx = _listaPC.indexWhere((i) => i.id == p.id);
+          if (idx != -1) {
+            _listaPC[idx] = PendientePC(
+              id: p.id,
+              titulo: registro.titulo,
+              detalles: registro.detalles
+            );
+          }
+        });
+
+        _guardarCache();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado")));
+        _sincronizarTodo(silencioso: true); // Intentar subir
+        Navigator.pop(context); // Volver
+      })));
   }
 
   void _borrar(int id) async {
     if (await showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text("¿Borrar?"),
-      content: const Text("Se eliminará de la lista de pendientes del PC."),
+      content: const Text("Se eliminará del PC."),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")),
         TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("SÍ", style: TextStyle(color: Colors.redAccent)))
@@ -1073,30 +1167,24 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     }
   }
 
-  // --- INTERFAZ GRÁFICA ---
-
   @override
   Widget build(BuildContext context) {
-    int cola = _colaSalida.length + _colaNuevos.length + _colaBorrados.length + _colaEdicion.length;
+    int cola = _colaSalida.length + _colaNuevos.length + _colaBorrados.length + _colaEdiciones.length;
     bool offlineMode = _urlPC == null;
 
     return Scaffold(
       body: Column(
         children: [
-          // BARRA DE ESTADO DE SINCRONIZACIÓN
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            // Usamos colores del tema o semánticos
             color: offlineMode ? Colors.red.withOpacity(0.15) : Colors.green.withOpacity(0.15),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(children: [
-                  Icon(offlineMode ? Icons.cloud_off : Icons.cloud_done,
-                       color: offlineMode ? Colors.red : Colors.green, size: 20),
-                    const SizedBox(width: 8),
-                    Text(offlineMode ? "Sin Vinculación" : (_cargando ? "Sincronizando..." : "Conectado"),
-                    style: const TextStyle(fontWeight: FontWeight.bold))
+                  Icon(offlineMode ? Icons.cloud_off : Icons.cloud_done, color: offlineMode ? Colors.red : Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Text(offlineMode ? "Sin Vinculación" : (_cargando ? "Sincronizando..." : "Conectado"), style: const TextStyle(fontWeight: FontWeight.bold))
                 ]),
                 if (cola > 0)
                   Container(
@@ -1104,58 +1192,38 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                     decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(10)),
                     child: Text("Cola: $cola", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   )
-                  else
-                    const Text("Todo al día", style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
-
-          // LISTA PRINCIPAL
           Expanded(
             child: _listaPC.isEmpty
-            ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey),
-                  const SizedBox(height: 10),
-                  const Text("No hay tareas pendientes"),
-                  if (offlineMode)
-                    TextButton.icon(icon: const Icon(Icons.qr_code), label: const Text("Vincular PC"), onPressed: _escanearQR)
-                ],
-              ))
+            ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey),
+              const SizedBox(height: 10),
+              const Text("No hay tareas pendientes"),
+              if (offlineMode) TextButton.icon(icon: const Icon(Icons.qr_code), label: const Text("Vincular PC"), onPressed: _escanearQR)
+            ]))
             : ListView.builder(
               itemCount: _listaPC.length,
               itemBuilder: (ctx, i) {
                 final item = _listaPC[i];
-
-                // Determinamos qué foto mostrar
                 String? fotoLocal = _obtenerRutaFoto(item);
                 String? fotoServer = _obtenerFotoServer(item);
-
-                // Limpiamos el texto para la UI
                 String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
-                if (limpio.isEmpty) limpio = "Sin detalles adicionales";
+                if (limpio.isEmpty) limpio = "Sin detalles";
 
+                // Icono
                 Widget leadingIcon;
-
                 if (fotoLocal != null) {
-                  // CASO 1: Tenemos la foto descargada (OFFLINE OK)
                   leadingIcon = Image.file(File(fotoLocal), width: 50, height: 50, fit: BoxFit.cover);
                 } else if (fotoServer != null) {
-                  // CASO 2: Está en server pero no bajó aún (quizás fallo de red)
-                  // Mostramos icono de nube para indicar que hay foto disponible online
-                  leadingIcon = Container(
-                    width: 50, height: 50, color: Colors.blue.withOpacity(0.1),
-                    child: const Icon(Icons.cloud_download, color: Colors.blue)
-                  );
+                  leadingIcon = Container(width: 50, height: 50, color: Colors.blue.withOpacity(0.1), child: const Icon(Icons.cloud_download, color: Colors.blue));
                 } else {
-                  // CASO 3: No hay foto
-                  leadingIcon = CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
-                    child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary)
-                  );
+                  leadingIcon = CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2), child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary));
                 }
+
+                // Check si está editado y pendiente de subir
+                bool isEdited = _colaEdiciones.any((e) => e['id'] == item.id.toString());
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1164,7 +1232,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                     title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
                     onTap: () => _abrirGestionar(item),
-                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id)),
+                    trailing: isEdited
+                    ? const Icon(Icons.cloud_upload, color: Colors.orange) // Icono si está pendiente de subir
+                    : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id)),
                   ),
                 );
               },
@@ -1174,27 +1244,20 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Theme.of(context).colorScheme.secondary,
-        foregroundColor: Colors.white, // Asegura contraste en modo oscuro
+        foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task),
           label: const Text("AÑADIR"),
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
-            // Lógica de creación offline
             String refUnica = DateTime.now().millisecondsSinceEpoch.toString();
-
             if (r.imagePath != null) setState(() => _fotosLocales[refUnica] = r.imagePath!);
-
             String detallesConRef = "${r.detalles} [REF:$refUnica]";
             Map<String, dynamic> t = {'titulo': r.titulo, 'detalles': detallesConRef, 'tags': r.tags, 'imagePath': r.imagePath};
-
             setState(() => _colaNuevos.add(t));
-
-            // Añadimos a la lista visualmente con ID negativo temporal
             PendientePC temp = PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: detallesConRef);
             setState(() => _listaPC.insert(0, temp));
-
             _guardarCache();
             _sincronizarTodo(silencioso: true);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Pendiente creado (en cola)")));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Pendiente creado")));
           }))),
       ),
     );

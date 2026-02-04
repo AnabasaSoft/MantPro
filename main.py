@@ -446,6 +446,29 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "ok"})
             except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
+        @self.app.route('/api/editar_pendiente', methods=['POST'])
+        def api_editar_pendiente():
+            try:
+                id_p = request.form.get('id')
+                titulo = request.form.get('titulo')
+                detalles = request.form.get('detalles')
+
+                # Gestión de foto nueva si la hubiera
+                filename, ruta = self._procesar_foto(request)
+                if filename:
+                    detalles += f"\n[FOTO: {filename}]"
+
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                # Actualizamos título y detalles
+                c.execute('UPDATE pendientes SET titulo=?, detalles=? WHERE id=?', (titulo, detalles, id_p))
+                conn.commit()
+                conn.close()
+
+                self.pendiente_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+
         @self.app.route('/api/eliminar_pendiente', methods=['POST'])
         def api_eliminar_pendiente():
             # (Mantener código original)
