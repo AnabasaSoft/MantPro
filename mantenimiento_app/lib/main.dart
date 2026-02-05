@@ -159,25 +159,23 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _indiceActual = 0;
 
-  // Función para cambiar pestaña programáticamente
   void _irAPestana(int index) {
     setState(() {
       _indiceActual = index;
     });
   }
 
-  // Lista dinámica para poder pasar la función
   late final List<Widget> _pantallas;
 
   @override
   void initState() {
     super.initState();
     _pantallas = [
-      TabDashboard(onNavigate: _irAPestana), // Pasamos la función al dashboard
+      TabDashboard(onNavigate: _irAPestana),
       const TabMisRegistros(),
       const TabPendientesPC(),
-      const TabAvisos(),     // NUEVA PESTAÑA (Índice 3)
-      const TabHistorial(),  // Historial pasa al índice 4
+      const TabAvisos(),
+      const TabHistorial(),
     ];
   }
 
@@ -206,35 +204,58 @@ class _MainScreenState extends State<MainScreen> {
       case 4: titulo = "Historial Completo"; break;
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titulo),
-        actions: [
-          IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
-        ],
-      ),
-      body: IndexedStack(index: _indiceActual, children: _pantallas),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indiceActual,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) => setState(() => _indiceActual = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Inicio"),
-          BottomNavigationBarItem(icon: Icon(Icons.edit_note), label: "Local"),
-          BottomNavigationBarItem(icon: Icon(Icons.checklist), label: "Pendientes"),
-          BottomNavigationBarItem(icon: Icon(Icons.warning_amber), label: "Avisos"), // Nueva Icono
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: "Historial"),
-        ],
+    // --- GESTO ATRÁS ---
+    return PopScope(
+      // canPop: ¿Permitimos al sistema cerrar la app?
+      // SÍ (true) solo si estamos en el Dashboard (índice 0).
+      // NO (false) si estamos en cualquier otra pestaña.
+      canPop: _indiceActual == 0,
+
+      // onPopInvoked: Qué hacemos cuando el usuario intenta salir
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          // Si didPop es true, significa que el sistema ya ha cerrado la app (estábamos en el índice 0).
+          // No hacemos nada.
+          return;
+        }
+
+        // Si didPop es false (porque canPop era false), el sistema ha bloqueado la salida.
+        // Entonces nosotros manualmente volvemos al Dashboard.
+        _irAPestana(0);
+      },
+
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(titulo),
+          actions: [
+            IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
+          ],
+        ),
+        body: IndexedStack(index: _indiceActual, children: _pantallas),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _indiceActual,
+          type: BottomNavigationBarType.fixed,
+          onTap: (index) => setState(() => _indiceActual = index),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Inicio"),
+            BottomNavigationBarItem(icon: Icon(Icons.edit_note), label: "Local"),
+            BottomNavigationBarItem(icon: Icon(Icons.checklist), label: "Pendientes"),
+            BottomNavigationBarItem(icon: Icon(Icons.warning_amber), label: "Avisos"),
+            BottomNavigationBarItem(icon: Icon(Icons.history), label: "Historial"),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ==========================================
-// PESTAÑA 0: DASHBOARD (NUEVA)
+// PESTAÑA 0: DASHBOARD
 // ==========================================
 class TabDashboard extends StatefulWidget {
-  final Function(int) onNavigate; // Recibimos la función
+  // 1. Definimos la función AQUÍ, en el Widget
+  final Function(int) onNavigate;
+
   const TabDashboard({super.key, required this.onNavigate});
 
   @override
@@ -242,9 +263,13 @@ class TabDashboard extends StatefulWidget {
 }
 
 class _TabDashboardState extends State<TabDashboard> {
+  // Datos
   Map<String, dynamic> _stats = {"pendientes": 0, "registros_mes": 0, "avisos_total": 0};
+
+  // Estados
   bool _cargando = false;
   String? _urlPC;
+  bool _conexionActiva = false;
 
   @override
   void initState() {
@@ -258,25 +283,91 @@ class _TabDashboardState extends State<TabDashboard> {
 
     String? cache = prefs.getString('dashboard_cache');
     if (cache != null) setState(() => _stats = json.decode(cache));
+
     if (_urlPC != null) _cargarStatsOnline();
   }
 
   Future<void> _cargarStatsOnline() async {
     if (!mounted) return;
-    setState(() => _cargando = true);
+    setState(() {
+      _cargando = true;
+      _conexionActiva = false;
+    });
+
     try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard"))
+      .timeout(const Duration(seconds: 3));
+
       if (res.statusCode == 200) {
-        setState(() => _stats = json.decode(res.body));
+        setState(() {
+          _stats = json.decode(res.body);
+          _conexionActiva = true;
+        });
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('dashboard_cache', res.body);
+      } else {
+        setState(() => _conexionActiva = false);
       }
-    } catch (e) { } finally {
+    } catch (e) {
+      setState(() => _conexionActiva = false);
+    } finally {
       if (mounted) setState(() => _cargando = false);
     }
   }
 
-  // --- FUNCIÓN MODIFICADA: Ahora acepta 'customAction' ---
+  // --- NUEVA LÓGICA INTELIGENTE ---
+  Future<void> _intentarReconexion() async {
+    if (_urlPC == null) {
+      // Si no hay IP, vamos directo al QR
+      _abrirQR();
+      return;
+    }
+
+    setState(() => _cargando = true);
+
+    try {
+      // 1. Intentamos ping rapido al dashboard
+      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard"))
+      .timeout(const Duration(seconds: 3));
+
+      if (res.statusCode == 200) {
+        // 2. ÉXITO: Actualizamos datos y lanzamos sync global
+        setState(() {
+          _stats = json.decode(res.body);
+          _conexionActiva = true;
+          _cargando = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("✅ Conexión recuperada. Sincronizando datos..."),
+          duration: Duration(seconds: 2),
+        ));
+
+        // Aquí podríamos llamar a funciones de sync de otros providers si usaramos Provider/Riverpod,
+        // pero como es una app simple, al menos hemos confirmado que el PC responde.
+        // El usuario al entrar en cada pestaña verá los datos frescos.
+
+      } else {
+        throw Exception("Error servidor");
+      }
+    } catch (e) {
+      // 3. FALLO: Abrimos cámara
+      setState(() => _cargando = false); // Quitamos loading antes de cambiar pantalla
+      _abrirQR();
+    }
+  }
+
+  Future<void> _abrirQR() async {
+    final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    if (ip != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pc_ip_url', ip);
+      // Al volver del QR con éxito, recargamos
+      _inicializarDatos();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ Vinculado a $ip")));
+    }
+  }
+
   Widget _buildCard(String title, String count, IconData icon, Color color, {int? targetTabIndex, VoidCallback? customAction}) {
     return Card(
       elevation: 4,
@@ -284,12 +375,9 @@ class _TabDashboardState extends State<TabDashboard> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // Si hay una acción personalizada (como abrir cámara), la ejecutamos
           if (customAction != null) {
             customAction();
-          }
-          // Si no, navegamos a la pestaña correspondiente
-          else if (targetTabIndex != null) {
+          } else if (targetTabIndex != null) {
             widget.onNavigate(targetTabIndex);
           }
         },
@@ -326,18 +414,28 @@ class _TabDashboardState extends State<TabDashboard> {
             const SizedBox(height: 16),
             const Text("PC No Vinculado"),
             TextButton(
-              onPressed: () async {
-                final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
-                if (ip != null) {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('pc_ip_url', ip);
-                  _inicializarDatos();
-                }
-              },
+              onPressed: _abrirQR,
               child: const Text("Vincular Ahora"))
           ],
         ),
       );
+    }
+
+    String textoConexion;
+    Color colorConexion;
+
+    if (_cargando) {
+      textoConexion = "...";
+      colorConexion = Colors.orange;
+    } else if (_urlPC == null) {
+      textoConexion = "Sin IP";
+      colorConexion = Colors.grey;
+    } else if (_conexionActiva) {
+      textoConexion = "Online";
+      colorConexion = Colors.green;
+    } else {
+      textoConexion = "Reconectar"; // Texto más descriptivo
+      colorConexion = Colors.red;
     }
 
     return RefreshIndicator(
@@ -349,9 +447,11 @@ class _TabDashboardState extends State<TabDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Estado Planta", style: Theme.of(context).textTheme.headlineSmall),
-              _cargando
-              ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.cloud_done, size: 18, color: Colors.green)
+              Icon(
+                _conexionActiva ? Icons.cloud_done : Icons.cloud_off,
+                size: 18,
+                color: _conexionActiva ? Colors.green : Colors.red
+              )
             ],
           ),
           const SizedBox(height: 20),
@@ -366,23 +466,13 @@ class _TabDashboardState extends State<TabDashboard> {
               _buildCard("Registros Mes", "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, targetTabIndex: 4),
               _buildCard("Avisos Config.", "${_stats['avisos_total']}", Icons.alarm, Colors.purple, targetTabIndex: 3),
 
-              // --- CARTA DE CONEXIÓN CON ACCIÓN QR ---
+              // --- CARTA INTELIGENTE ---
               _buildCard(
                 "Conexión",
-                _cargando ? "..." : (_urlPC != null ? "OK" : "No"),
+                textoConexion,
                 Icons.wifi,
-                Colors.green,
-                customAction: () async {
-                  // Abrir escáner QR
-                  final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
-                  if (ip != null) {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('pc_ip_url', ip);
-                    // Recargamos dashboard con la nueva IP
-                    _inicializarDatos();
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ Conectado a $ip")));
-                  }
-                }
+                colorConexion,
+                customAction: _intentarReconexion // Llama a la nueva lógica
               ),
             ],
           ),
@@ -403,9 +493,6 @@ class TabHistorial extends StatefulWidget {
 
 class _TabHistorialState extends State<TabHistorial> {
   List<Registro> _registros = [];
-
-  // COLA OFFLINE PARA HISTORIAL
-  // Guardamos: { "id": "1", "detalles": "Texto...", "tags": "...", "fotoPath": "/ruta/local/foto.jpg" }
   List<Map<String, dynamic>> _colaEdiciones = [];
 
   bool _cargando = false;
@@ -422,27 +509,19 @@ class _TabHistorialState extends State<TabHistorial> {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
 
-    // 1. Cargar cola de ediciones pendientes
     String? colaJson = prefs.getString('historial_cola_ediciones');
-    if (colaJson != null) {
-      _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(colaJson));
-    }
+    if (colaJson != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(colaJson));
 
-    // 2. Cargar caché visual
     String? cache = prefs.getString('historial_cache');
     if (cache != null) {
       final List<dynamic> data = json.decode(cache);
-      setState(() {
-        _registros = data.map((item) => Registro.fromJson(item)).toList();
-      });
-      // APLICAR CAMBIOS PENDIENTES SOBRE LA VISTA (Optimistic UI)
+      setState(() => _registros = data.map((item) => Registro.fromJson(item)).toList());
       _aplicarCambiosVisuales();
     }
 
-    // 3. Si hay red, sincronizar y buscar
     if (_urlPC != null) {
-      await _sincronizarEdiciones(); // Primero subimos lo pendiente
-      _buscar(""); // Luego bajamos lo nuevo
+      await _sincronizarEdiciones();
+      _buscar("");
     }
   }
 
@@ -451,20 +530,18 @@ class _TabHistorialState extends State<TabHistorial> {
     await prefs.setString('historial_cola_ediciones', json.encode(_colaEdiciones));
   }
 
-  // Aplica visualmente las ediciones pendientes sobre la lista cargada
   void _aplicarCambiosVisuales() {
     for (var edicion in _colaEdiciones) {
       int index = _registros.indexWhere((r) => r.id.toString() == edicion['id']);
       if (index != -1) {
-        // Actualizamos el objeto en memoria para que el usuario lo vea "guardado"
         Registro original = _registros[index];
         _registros[index] = Registro(
           id: original.id,
-          titulo: original.titulo, // Mantenemos fecha
+          titulo: original.titulo,
           detalles: edicion['detalles'],
           tags: edicion['tags'],
-          serverImageName: original.serverImageName, // Mantenemos ref antigua hasta sincronizar
-          imagePath: edicion['fotoPath'] ?? original.imagePath // Usamos la foto nueva local si hay
+          serverImageName: original.serverImageName,
+          imagePath: edicion['fotoPath'] ?? original.imagePath
         );
       }
     }
@@ -472,7 +549,6 @@ class _TabHistorialState extends State<TabHistorial> {
 
   Future<void> _sincronizarEdiciones() async {
     if (_urlPC == null || _colaEdiciones.isEmpty) return;
-
     List<Map<String, dynamic>> subidosOk = [];
 
     for (var edicion in _colaEdiciones) {
@@ -482,42 +558,25 @@ class _TabHistorialState extends State<TabHistorial> {
         req.fields['id'] = edicion['id'];
         req.fields['detalles'] = edicion['detalles'];
         req.fields['tags'] = edicion['tags'];
-
         String? fotoPath = edicion['fotoPath'];
-        if (fotoPath != null && File(fotoPath).existsSync()) {
-          req.files.add(await http.MultipartFile.fromPath('foto', fotoPath));
-        }
-
-        var res = await req.send();
-        if (res.statusCode == 200) {
-          subidosOk.add(edicion);
-        }
-      } catch (e) {
-        print("Error subiendo edición historial: $e");
-      }
+        if (fotoPath != null && File(fotoPath).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', fotoPath));
+        if ((await req.send()).statusCode == 200) subidosOk.add(edicion);
+      } catch (e) {}
     }
 
     if (subidosOk.isNotEmpty) {
-      setState(() {
-        for (var s in subidosOk) _colaEdiciones.remove(s);
-      });
-        await _guardarCola();
+      setState(() { for (var s in subidosOk) _colaEdiciones.remove(s); });
+      await _guardarCola();
     }
   }
 
   Future<void> _buscar(String query) async {
-    // Si no hay URL, solo filtramos localmente lo que ya tenemos en caché
-    if (_urlPC == null) {
-      // Podríamos implementar filtrado local aquí, pero por ahora mostramos lo cacheado
-      return;
-    }
-
+    if (_urlPC == null) return;
     setState(() => _cargando = true);
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$query")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> data = json.decode(res.body);
-
         List<Registro> nuevosRegistros = data.map((item) => Registro(
           id: item['id'],
           titulo: "${item['fecha']}",
@@ -527,7 +586,6 @@ class _TabHistorialState extends State<TabHistorial> {
           imagePath: item['raw_desc']
         )).toList();
 
-        // Cachear fotos nuevas (Lógica Offline de Historial que ya tenías)
         final directory = await getApplicationDocumentsDirectory();
         for (var r in nuevosRegistros) {
           if (r.serverImageName != null) {
@@ -540,96 +598,47 @@ class _TabHistorialState extends State<TabHistorial> {
             }
           }
         }
-
         setState(() => _registros = nuevosRegistros);
-
-        // Re-aplicar cambios pendientes que aun no se han subido (para no machacarlos con la versión vieja del server)
         _aplicarCambiosVisuales();
-
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('historial_cache', json.encode(nuevosRegistros.map((r) => r.toJson()).toList()));
       }
-    } catch (e) {
-      // Error silencioso, mantenemos caché
-    } finally {
+    } catch (e) {} finally {
       if (mounted) setState(() => _cargando = false);
     }
   }
 
   void _editarHistorial(Registro reg) async {
-    // Recuperar descripción RAW y Foto Local
     String rawDesc = reg.imagePath ?? reg.detalles;
     String? localPhotoForEdit;
-
-    // 1. Buscar foto localmente (Prioridad: Edición pendiente > Caché descargado)
-
-    // A) ¿Tiene una edición pendiente con foto nueva?
-    var edicionPendiente = _colaEdiciones.firstWhere(
-      (e) => e['id'] == reg.id.toString(),
-      orElse: () => {}
-    );
+    var edicionPendiente = _colaEdiciones.firstWhere((e) => e['id'] == reg.id.toString(), orElse: () => {});
 
     if (edicionPendiente.isNotEmpty && edicionPendiente['fotoPath'] != null) {
       localPhotoForEdit = edicionPendiente['fotoPath'];
-    }
-    // B) Si no, ¿tiene foto del servidor cacheada?
-    else if (reg.serverImageName != null) {
+    } else if (reg.serverImageName != null) {
       final directory = await getApplicationDocumentsDirectory();
       final String filePath = path.join(directory.path, reg.serverImageName!);
-      if (File(filePath).existsSync()) {
-        localPhotoForEdit = filePath;
-      } else if (_urlPC != null) {
-        // Intento de descarga al vuelo si hay red
-        try {
-          var response = await http.get(Uri.parse("http://$_urlPC/api/foto/${reg.serverImageName}"));
-          if (response.statusCode == 200) {
-            await File(filePath).writeAsBytes(response.bodyBytes);
-            localPhotoForEdit = filePath;
-          }
-        } catch (e) {}
-      }
+      if (File(filePath).existsSync()) localPhotoForEdit = filePath;
     }
 
-    Registro regParaForm = Registro(
-      id: reg.id,
-      titulo: "",
-      detalles: rawDesc,
-      tags: reg.tags,
-      imagePath: localPhotoForEdit
-    );
+    Registro regParaForm = Registro(id: reg.id, titulo: "", detalles: rawDesc, tags: reg.tags, imagePath: localPhotoForEdit);
 
     await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       registroExistente: regParaForm,
       esHistorial: true,
       onSave: (registroEditado) async {
-        // --- LÓGICA DE GUARDADO OFFLINE ---
-
-        // 1. Guardar en Cola Local
         Map<String, dynamic> nuevaEdicion = {
           'id': reg.id.toString(),
           'detalles': registroEditado.detalles,
           'tags': registroEditado.tags,
-          'fotoPath': registroEditado.imagePath // Guardamos la ruta de la nueva foto
+          'fotoPath': registroEditado.imagePath
         };
-
-        // Si ya había una edición para este ID, la reemplazamos
         int idx = _colaEdiciones.indexWhere((e) => e['id'] == reg.id.toString());
-        if (idx != -1) {
-          _colaEdiciones[idx] = nuevaEdicion;
-        } else {
-          _colaEdiciones.add(nuevaEdicion);
-        }
+        if (idx != -1) { _colaEdiciones[idx] = nuevaEdicion; } else { _colaEdiciones.add(nuevaEdicion); }
 
         await _guardarCola();
-
-        // 2. Actualizar UI inmediatamente
-        setState(() {
-          _aplicarCambiosVisuales();
-        });
-
+        setState(() => _aplicarCambiosVisuales());
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado (Sincronizará al conectar)")));
-
-        // 3. Intentar subir si hay red
         _sincronizarEdiciones();
       }
     )));
@@ -644,19 +653,13 @@ class _TabHistorialState extends State<TabHistorial> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Barra de estado de cola
         if (_colaEdiciones.isNotEmpty)
           Container(
             width: double.infinity,
             color: Colors.orangeAccent,
             padding: const EdgeInsets.all(8),
-            child: Text(
-              "${_colaEdiciones.length} ediciones pendientes de subir",
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
+            child: Text("${_colaEdiciones.length} ediciones pendientes de subir", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
-
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
@@ -680,27 +683,18 @@ class _TabHistorialState extends State<TabHistorial> {
               itemCount: _registros.length,
               itemBuilder: (ctx, i) {
                 final r = _registros[i];
-
-                // LÓGICA DE ICONO:
-                // Prioridad: Foto Local (recién editada) > Foto Servidor (cacheada) > Icono Texto
                 Widget imageWidget;
 
                 if (r.imagePath != null && File(r.imagePath!).existsSync() && !r.imagePath!.contains("[")) {
-                  // Caso: Acabamos de editar y poner foto local (y aun no se sube)
-                  // Nota: comprobamos !contains("[") porque a veces usamos imagePath para guardar el raw_desc
                   imageWidget = Image.file(File(r.imagePath!), width: 50, height: 50, fit: BoxFit.cover);
-                }
-                else if (r.serverImageName != null) {
-                  // Caso: Foto del servidor
+                } else if (r.serverImageName != null) {
                   imageWidget = FutureBuilder<String>(
                     future: getLocalPath(r.serverImageName!),
                     builder: (context, snapshot) {
                       if (snapshot.hasData && File(snapshot.data!).existsSync()) {
                         return Image.file(File(snapshot.data!), width: 50, height: 50, fit: BoxFit.cover);
                       } else if (_urlPC != null) {
-                        return Image.network("http://$_urlPC/api/foto/${r.serverImageName}",
-                                             width: 50, height: 50, fit: BoxFit.cover,
-                                             errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.redAccent));
+                        return Image.network("http://$_urlPC/api/foto/${r.serverImageName}", width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.redAccent));
                       } else {
                         return const Icon(Icons.no_photography, color: Colors.grey);
                       }
@@ -710,21 +704,16 @@ class _TabHistorialState extends State<TabHistorial> {
                   imageWidget = const Icon(Icons.article, color: Colors.blueGrey);
                 }
 
-                // ¿Está este registro pendiente de subida?
                 bool pendiente = _colaEdiciones.any((e) => e['id'] == r.id.toString());
 
                 return Card(
-                  color: pendiente ? Colors.orange.withOpacity(0.1) : null, // Fondo naranjita si está pendiente
+                  color: pendiente ? Colors.orange.withOpacity(0.1) : null,
                   margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: ListTile(
                     leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: imageWidget))),
                     title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis),
                     subtitle: Text("${r.titulo} | ${r.tags}"),
-                    trailing: Icon(
-                      pendiente ? Icons.cloud_upload : Icons.edit,
-                      size: 20,
-                      color: pendiente ? Colors.orange : Colors.blueGrey
-                    ),
+                    trailing: Icon(pendiente ? Icons.cloud_upload : Icons.edit, size: 20, color: pendiente ? Colors.orange : Colors.blueGrey),
                     onTap: () => _editarHistorial(r),
                   ),
                 );
@@ -911,13 +900,10 @@ class TabPendientesPC extends StatefulWidget {
 class _TabPendientesPCState extends State<TabPendientesPC> {
   List<PendientePC> _listaPC = [];
 
-  // --- COLAS DE SINCRONIZACIÓN ---
-  List<Map<String, dynamic>> _colaSalida = [];   // Completar
-  List<Map<String, dynamic>> _colaNuevos = [];   // Crear nuevos
-  List<Map<String, dynamic>> _colaEdiciones = []; // Editar existentes (NUEVA MEJORA)
-  List<int> _colaBorrados = [];                  // Borrar
-
-  // Mapa de fotos locales (ID o REF -> Ruta Archivo)
+  List<Map<String, dynamic>> _colaSalida = [];
+  List<Map<String, dynamic>> _colaNuevos = [];
+  List<Map<String, dynamic>> _colaEdiciones = [];
+  List<int> _colaBorrados = [];
   Map<String, String> _fotosLocales = {};
 
   bool _cargando = false;
@@ -933,31 +919,20 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _urlPC = prefs.getString('pc_ip_url');
-
       String? l = prefs.getString('trabajos_pc');
-      if (l != null) {
-        _listaPC = (json.decode(l) as List).map((i) => PendientePC.fromJson(i)).toList();
-      }
-
+      if (l != null) _listaPC = (json.decode(l) as List).map((i) => PendientePC.fromJson(i)).toList();
       String? c = prefs.getString('cola_salida');
       if (c != null) _colaSalida = List<Map<String, dynamic>>.from(json.decode(c));
-
       String? n = prefs.getString('cola_nuevos');
       if (n != null) _colaNuevos = List<Map<String, dynamic>>.from(json.decode(n));
-
-      String? e = prefs.getString('cola_ediciones'); // Nombre corregido a plural para consistencia
+      String? e = prefs.getString('cola_ediciones');
       if (e != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(e));
-
       String? b = prefs.getString('cola_borrados');
       if (b != null) _colaBorrados = List<int>.from(json.decode(b));
-
       String? f = prefs.getString('fotos_locales_map');
       if (f != null) _fotosLocales = Map<String, String>.from(json.decode(f));
     });
-
-      // IMPORTANTE: Aplicar visualmente las ediciones pendientes (Optimistic UI)
       _aplicarEdicionesVisuales();
-
       if (_urlPC != null) _sincronizarTodo(silencioso: true);
   }
 
@@ -971,7 +946,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     await prefs.setString('fotos_locales_map', json.encode(_fotosLocales));
   }
 
-  // Truco de Magia: Modificamos la lista en memoria con los cambios pendientes
   void _aplicarEdicionesVisuales() {
     for (var edicion in _colaEdiciones) {
       int index = _listaPC.indexWhere((p) => p.id.toString() == edicion['id']);
@@ -979,7 +953,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         _listaPC[index] = PendientePC(
           id: _listaPC[index].id,
           titulo: edicion['titulo'],
-          detalles: edicion['detalles'] // Aquí ya vendrá con la nueva [REF] o [FOTO] si se añadió
+          detalles: edicion['detalles']
         );
       }
     }
@@ -990,7 +964,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       final directory = await getApplicationDocumentsDirectory();
       final String filePath = path.join(directory.path, nombreFoto);
       if (File(filePath).existsSync()) return filePath;
-
       if (_urlPC != null) {
         final response = await http.get(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
@@ -999,7 +972,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           return filePath;
         }
       }
-    } catch (e) { print(e); }
+    } catch (e) { }
     return null;
   }
 
@@ -1007,7 +980,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (_urlPC == null) return;
     if (!silencioso) setState(() => _cargando = true);
 
-    // 1. SUBIDAS
     List<int> borradosOk = [];
     for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()})) borradosOk.add(id); }
     if (borradosOk.isNotEmpty) { setState(() { for (var id in borradosOk) _colaBorrados.remove(id); }); }
@@ -1026,33 +998,24 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 
     await _guardarCache();
 
-    // 2. DESCARGAS
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> datos = json.decode(res.body);
         List<PendientePC> nuevosPendientes = datos.map((item) => PendientePC.fromJson(item)).toList();
 
-        // Descarga de fotos
         for (var p in nuevosPendientes) {
           String? fotoServer = _obtenerFotoServer(p);
           if (fotoServer != null) {
             String? rutaLocal = await _descargarYCachearFoto(fotoServer);
-            if (rutaLocal != null) {
-              setState(() => _fotosLocales[p.id.toString()] = rutaLocal);
-            }
+            if (rutaLocal != null) setState(() => _fotosLocales[p.id.toString()] = rutaLocal);
           }
         }
-
         setState(() => _listaPC = nuevosPendientes);
-
-        // RE-APLICAR EDICIONES PENDIENTES (Por si falló la subida pero la descarga funcionó)
         _aplicarEdicionesVisuales();
-
         await _guardarCache();
       }
-    } catch (e) { /* Error red */ }
-
+    } catch (e) { }
     if (!silencioso && mounted) setState(() => _cargando = false);
   }
 
@@ -1066,7 +1029,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (datos.containsKey('id')) req.fields['id'] = datos['id'].toString();
       req.fields['titulo'] = datos['titulo'];
       req.fields['detalles'] = datos['detalles'];
-      // Nota: Pendientes no usa tags en edición normalmente, pero lo enviamos por si acaso
       if (datos.containsKey('tags')) req.fields['tags'] = datos['tags'];
       if (datos['imagePath'] != null && File(datos['imagePath']).existsSync()) {
         req.files.add(await http.MultipartFile.fromPath('foto', datos['imagePath']));
@@ -1101,7 +1063,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       serverImageName: fotoServer,
       urlPC: _urlPC,
       onSave: (registro) {
-        // COMPLETAR TAREA
         String? refID = _extraerRef(p.detalles);
         Map<String, dynamic> t = {
           'id': p.id,
@@ -1121,16 +1082,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada")));
       },
       onUpdate: (registro) {
-        // EDITAR TAREA (Offline Friendly)
         String? refID = _extraerRef(p.detalles);
         String clave = refID ?? p.id.toString();
-
-        // 1. Guardar foto nueva localmente
-        if (registro.imagePath != null) {
-          setState(() => _fotosLocales[clave] = registro.imagePath!);
-        }
-
-        // 2. Cola de subida
+        if (registro.imagePath != null) setState(() => _fotosLocales[clave] = registro.imagePath!);
         Map<String, dynamic> t = {
           'id': p.id,
           'titulo': registro.titulo,
@@ -1138,28 +1092,16 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'tags': registro.tags,
           'imagePath': registro.imagePath
         };
-
-        // 3. ACTUALIZAR LISTA LOCAL INMEDIATAMENTE (Optimistic UI)
         setState(() {
-          // Si ya había una edición pendiente para este ID, la reemplazamos
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
           _colaEdiciones.add(t);
-
-          // Refrescar objeto visual
           int idx = _listaPC.indexWhere((i) => i.id == p.id);
-          if (idx != -1) {
-            _listaPC[idx] = PendientePC(
-              id: p.id,
-              titulo: registro.titulo,
-              detalles: registro.detalles
-            );
-          }
+          if (idx != -1) _listaPC[idx] = PendientePC(id: p.id, titulo: registro.titulo, detalles: registro.detalles);
         });
-
-        _guardarCache();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado")));
-        _sincronizarTodo(silencioso: true); // Intentar subir
-        Navigator.pop(context); // Volver
+          _guardarCache();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado")));
+          _sincronizarTodo(silencioso: true);
+          Navigator.pop(context);
       })));
   }
 
@@ -1171,10 +1113,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")),
         TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("SÍ", style: TextStyle(color: Colors.redAccent)))
       ])) == true) {
-      setState(() {
-        _listaPC.removeWhere((p) => p.id == id);
-        _colaBorrados.add(id);
-      });
+      setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); });
     _guardarCache();
     _sincronizarTodo(silencioso: true);
       }
@@ -1192,32 +1131,10 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 
   @override
   Widget build(BuildContext context) {
-    int cola = _colaSalida.length + _colaNuevos.length + _colaBorrados.length + _colaEdiciones.length;
     bool offlineMode = _urlPC == null;
-
     return Scaffold(
       body: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: offlineMode ? Colors.red.withOpacity(0.15) : Colors.green.withOpacity(0.15),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(children: [
-                  Icon(offlineMode ? Icons.cloud_off : Icons.cloud_done, color: offlineMode ? Colors.red : Colors.green, size: 20),
-                  const SizedBox(width: 8),
-                  Text(offlineMode ? "Sin Vinculación" : (_cargando ? "Sincronizando..." : "Conectado"), style: const TextStyle(fontWeight: FontWeight.bold))
-                ]),
-                if (cola > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(10)),
-                    child: Text("Cola: $cola", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                  )
-              ],
-            ),
-          ),
           Expanded(
             child: _listaPC.isEmpty
             ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -1235,7 +1152,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                 String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
                 if (limpio.isEmpty) limpio = "Sin detalles";
 
-                // Icono
                 Widget leadingIcon;
                 if (fotoLocal != null) {
                   leadingIcon = Image.file(File(fotoLocal), width: 50, height: 50, fit: BoxFit.cover);
@@ -1244,8 +1160,6 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                 } else {
                   leadingIcon = CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2), child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary));
                 }
-
-                // Check si está editado y pendiente de subir
                 bool isEdited = _colaEdiciones.any((e) => e['id'] == item.id.toString());
 
                 return Card(
@@ -1256,7 +1170,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                     subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
                     onTap: () => _abrirGestionar(item),
                     trailing: isEdited
-                    ? const Icon(Icons.cloud_upload, color: Colors.orange) // Icono si está pendiente de subir
+                    ? const Icon(Icons.cloud_upload, color: Colors.orange)
                     : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id)),
                   ),
                 );
