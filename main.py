@@ -432,19 +432,26 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/agregar_pendiente', methods=['POST'])
         def api_agregar_pendiente():
+            print(">>> PETICIÓN: AGREGAR PENDIENTE")
             try:
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
                 filename, ruta_foto = self._procesar_foto(request)
                 if filename: detalles += f"\n[FOTO: {filename}]"
-                conn = sqlite3.connect(self.db_path)
+
+                # Timeout de 10s para esperar si la BD está ocupada
+                conn = sqlite3.connect(self.db_path, timeout=10)
                 c = conn.cursor()
                 c.execute('INSERT INTO pendientes (titulo, detalles) VALUES (?,?)', (titulo, detalles))
                 conn.commit()
                 conn.close()
+
+                print("✅ Pendiente guardado OK")
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
-            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+            except Exception as e:
+                print(f"!!! ERROR AGREGAR PENDIENTE: {e}")
+                return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/editar_pendiente', methods=['POST'])
         def api_editar_pendiente():
@@ -657,37 +664,78 @@ class ServidorSincronizacion(QThread):
         # ---------------------------------------------------------
         @self.app.route('/api/completar_aviso', methods=['POST'])
         def api_completar_aviso():
+            print("\n" + "="*40)
+            print(">>> RECIBIDA PETICIÓN: COMPLETAR AVISO")
+
             try:
-                id_aviso = request.form.get('id')
-                titulo = request.form.get('titulo')
+                # 1. IMPRIMIR QUÉ NOS LLEGA EXACTAMENTE
+                print(f"Datos recibidos (RAW): {request.form}")
+
+                id_aviso_str = request.form.get('id')
+                titulo = request.form.get('titulo') or "Sin Título"
                 fecha_custom = request.form.get('fecha_custom')
 
-                fecha_final = fecha_custom if fecha_custom else datetime.now().strftime("%Y-%m-%d")
+                # 2. VALIDACIÓN DE ID
+                if not id_aviso_str:
+                    print("!!! ERROR: No ha llegado el ID")
+                    return jsonify({"status": "error", "message": "Falta ID"}), 400
 
-                conn = sqlite3.connect(self.db_path)
+                try:
+                    id_aviso = int(id_aviso_str)
+                    print(f"ID convertido a entero: {id_aviso}")
+                except ValueError:
+                    print(f"!!! ERROR: El ID '{id_aviso_str}' no es un número")
+                    return jsonify({"status": "error", "message": "ID no numérico"}), 400
+
+                # 3. FECHA
+                fecha_final = fecha_custom if fecha_custom else datetime.now().strftime("%Y-%m-%d")
+                print(f"Fecha a guardar: {fecha_final}")
+
+                # 4. CONEXIÓN BASE DE DATOS
+                print("Intentando conectar a BD...")
+                conn = sqlite3.connect(self.db_path, timeout=10) # Timeout alto para evitar bloqueos
                 c = conn.cursor()
 
-                # 1. Actualizar aviso
+                # 5. ACTUALIZAR AVISO
+                print("Ejecutando UPDATE en avisos_recurrentes...")
                 c.execute('UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?', (fecha_final, id_aviso))
+                if c.rowcount == 0:
+                    print("⚠️ AVISO: No se actualizó ninguna fila. ¿Existe el ID?")
+                else:
+                    print("✅ UPDATE correcto.")
 
-                # 2. Insertar en historial SOLO SI NO EXISTE YA HOY
+                # 6. INSERTAR HISTORIAL
+                print("Verificando historial para evitar duplicados...")
                 desc_historial = f"Mantenimiento Preventivo: {titulo}"
                 tags_historial = "Preventivo, Aviso Recurrente"
 
-                # Check anti-duplicados
                 c.execute("SELECT id FROM tareas WHERE fecha=? AND descripcion=?", (fecha_final, desc_historial))
                 existe = c.fetchone()
 
                 if not existe:
+                    print("Insertando nueva tarea en historial...")
                     c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
                               (fecha_final, desc_historial, tags_historial))
+                else:
+                    print("La tarea ya existe en el historial. Saltando insert.")
 
                 conn.commit()
                 conn.close()
+                print("✅ BD CERRADA Y COMMIT REALIZADO")
 
+                # 7. AVISAR INTERFAZ PC
                 self.pendiente_actualizado.emit()
+
+                print(">>> PROCESO TERMINADO CON ÉXITO")
+                print("="*40 + "\n")
                 return jsonify({"status": "ok"})
+
             except Exception as e:
+                print("\n!!! EXCEPCIÓN CRÍTICA EN EL SERVIDOR !!!")
+                print(f"Error: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                print("="*40 + "\n")
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/foto/<path:filename>')
@@ -1671,12 +1719,19 @@ class MaintenanceApp(QMainWindow):
                 new_t, new_i, new_f, new_d = dlg.get_data()
                 self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d); self.refresh_avisos(); self.update_calendar_list()
     def refresh_avisos(self):
-        self.table_avisos.setRowCount(0); avisos = self.db.obtener_avisos(); hoy = QDate.currentDate()
+        self.table_avisos.setRowCount(0)
+        avisos = self.db.obtener_avisos()
+        hoy = QDate.currentDate()
         self.table_avisos.setRowCount(len(avisos))
+
         for r, (aid, tit, finicio, freq, dur, ult) in enumerate(avisos):
             if not finicio: finicio = f"{hoy.year()}-01-01"
             if not freq: freq = "Anual"
-            fi = QDate.fromString(finicio, "yyyy-MM-dd"); ocurrencia = fi # Changed variable name from ocurrencia_actual to ocurrencia
+
+            fi = QDate.fromString(finicio, "yyyy-MM-dd")
+            ocurrencia = fi
+
+            # Avanzamos la fecha hasta el ciclo actual
             while ocurrencia.addDays(dur) < hoy:
                 if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
                 elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
@@ -1685,26 +1740,90 @@ class MaintenanceApp(QMainWindow):
                 elif freq == "Semestral": ocurrencia = ocurrencia.addMonths(6)
                 elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
                 else: break
+
             fin_ocurrencia = ocurrencia.addDays(dur)
-            es_activo = (ocurrencia <= hoy <= fin_ocurrencia); completado = (ult == ocurrencia.toString("yyyy-MM-dd"))
-            cw = QWidget(); cl = QHBoxLayout(cw); cl.setContentsMargins(0,0,0,0); cl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            chk = QCheckBox(); chk.setChecked(completado); fecha_ocu_str = ocurrencia.toString("yyyy-MM-dd") # Updated usage
-            chk.toggled.connect(lambda k, x=aid, d=fecha_ocu_str, t=tit: self.tog_aviso(x, d, k, t))
-            chk.setEnabled(es_activo or completado); cl.addWidget(chk); self.table_avisos.setCellWidget(r, 0, cw)
-            color = QColor("#555"); estado_txt = "Futuro"
+
+            # --- CORRECCIÓN CLAVE: RANGO FLEXIBLE ---
+            s_inicio = ocurrencia.toString("yyyy-MM-dd")
+            s_fin = fin_ocurrencia.toString("yyyy-MM-dd")
+
+            es_activo = (ocurrencia <= hoy <= fin_ocurrencia)
+            completado = False
+
+            # Si hay fecha de última completada (ult), comprobamos si cae DENTRO del rango
+            # Antes comprobábamos si era EXACTAMENTE igual al inicio (ult == s_inicio)
+            if ult:
+                if ult >= s_inicio and ult <= s_fin:
+                    completado = True
+
+            # Configurar celda
+            cw = QWidget()
+            cl = QHBoxLayout(cw); cl.setContentsMargins(0,0,0,0); cl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            chk = QCheckBox()
+            chk.setChecked(completado)
+            # Al marcar manual en PC, seguimos usando el inicio para mantener el orden
+            chk.toggled.connect(lambda k, x=aid, d=s_inicio, t=tit: self.tog_aviso(x, d, k, t))
+            chk.setEnabled(es_activo or completado)
+            cl.addWidget(chk)
+            self.table_avisos.setCellWidget(r, 0, cw)
+
+            # Colores
+            color = QColor("#555")
+            estado_txt = "Futuro"
+
             if es_activo:
-                if completado: color = QColor("#27ae60"); estado_txt = "OK"
-                else: color = QColor("#e74c3c"); estado_txt = "PENDIENTE"
-            item_t = QTableWidgetItem(tit); item_t.setData(Qt.ItemDataRole.UserRole, aid); item_t.setBackground(color)
-            self.table_avisos.setItem(r, 1, item_t); self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
-            rango = f"{ocurrencia.toString('dd/MM')} - {fin_ocurrencia.toString('dd/MM')}" # Updated usage
-            self.table_avisos.setItem(r, 3, QTableWidgetItem(rango)); self.table_avisos.setItem(r, 4, QTableWidgetItem(estado_txt))
+                if completado:
+                    color = QColor("#27ae60") # Verde
+                    estado_txt = "OK"
+                else:
+                    color = QColor("#e74c3c") # Rojo
+                    estado_txt = "PENDIENTE"
+            elif completado:
+                 color = QColor("#27ae60")
+                 estado_txt = "OK"
+
+            # Rellenar fila
+            item_t = QTableWidgetItem(tit)
+            item_t.setData(Qt.ItemDataRole.UserRole, aid)
+            item_t.setBackground(color)
+
+            self.table_avisos.setItem(r, 1, item_t)
+            self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
+
+            rango = f"{ocurrencia.toString('dd/MM')} - {fin_ocurrencia.toString('dd/MM')}"
+            self.table_avisos.setItem(r, 3, QTableWidgetItem(rango))
+            self.table_avisos.setItem(r, 4, QTableWidgetItem(estado_txt))
     def tog_aviso(self, id_aviso, fecha_ocurrencia, estado, titulo):
+        # 1. Actualizar el estado del aviso (fecha de última completada)
         self.db.marcar_aviso_completado(id_aviso, fecha_ocurrencia, estado)
+
+        desc_historial = f"Mantenimiento Preventivo: {titulo}"
+
         if estado:
-            desc = f"Mantenimiento Preventivo: {titulo}"; tags = "Preventivo, Aviso Recurrente"; hoy = QDate.currentDate().toString("yyyy-MM-dd")
-            self.db.agregar_tarea(hoy, desc, tags); self.statusBar().showMessage(f"✅ Guardado en historial: {titulo}", 3000)
-        self.refresh_avisos(); self.update_calendar_list(); self.refresh_history()
+            # --- CASO 1: MARCADO (Hecho) -> AÑADIR AL HISTORIAL ---
+            tags = "Preventivo, Aviso Recurrente"
+            # Usamos fecha_ocurrencia para que coincida exactamente con la casilla pulsada
+            self.db.agregar_tarea(fecha_ocurrencia, desc_historial, tags)
+            self.statusBar().showMessage(f"✅ Guardado en historial: {titulo}", 3000)
+
+        else:
+            # --- CASO 2: DESMARCADO (Deshacer) -> BORRAR DEL HISTORIAL ---
+            try:
+                # Conectamos manualmente para borrar específico por fecha y nombre
+                conn = self.db.conectar()
+                c = conn.cursor()
+                c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_ocurrencia, desc_historial))
+                conn.commit()
+                conn.close()
+                self.statusBar().showMessage(f"🗑️ Eliminado del historial: {titulo}", 3000)
+            except Exception as e:
+                print(f"Error borrando del historial: {e}")
+
+        # Refrescamos todas las vistas para que desaparezca la línea del historial al instante
+        self.refresh_avisos()
+        self.update_calendar_list()
+        self.refresh_history()
+        self.refresh_dashboard()
     def del_aviso(self):
         r = self.table_avisos.currentRow()
         if r >= 0:

@@ -34,48 +34,20 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: "MantPro Móvil",
           themeMode: mode,
-
-          // --- TEMA CLARO ---
           theme: ThemeData.light().copyWith(
-            scaffoldBackgroundColor: const Color(0xFFF5F5F5), // Gris muy claro
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF37474F), // BlueGrey 800
-              foregroundColor: Colors.white,
-            ),
+            scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+            appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF37474F), foregroundColor: Colors.white),
             cardColor: Colors.white,
-            // Definimos un esquema de color para que los botones se vean bien
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF37474F),
-              secondary: Colors.orangeAccent,
-            ),
-            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-              backgroundColor: Color(0xFF37474F),
-              selectedItemColor: Colors.white,
-              unselectedItemColor: Colors.white60,
-            ),
+            colorScheme: const ColorScheme.light(primary: Color(0xFF37474F), secondary: Colors.orangeAccent),
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF37474F), selectedItemColor: Colors.white, unselectedItemColor: Colors.white60),
           ),
-
-          // --- TEMA OSCURO CORREGIDO ---
           darkTheme: ThemeData.dark().copyWith(
-            // Fondo casi negro (Estándar Material)
             scaffoldBackgroundColor: const Color(0xFF121212),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1F1F1F),
-              foregroundColor: Colors.white
-            ),
-            // Tarjetas más claras que el fondo para destacar (Surface color)
+            appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF1F1F1F), foregroundColor: Colors.white),
             cardColor: const Color(0xFF2C2C2C),
             dividerColor: Colors.grey[700],
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF90CAF9), // Azul claro para acentos
-              secondary: Colors.orangeAccent,
-              surface: Color(0xFF2C2C2C),
-            ),
-            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-              backgroundColor: Color(0xFF1F1F1F),
-              selectedItemColor: Color(0xFF90CAF9),
-              unselectedItemColor: Colors.grey,
-            ),
+            colorScheme: const ColorScheme.dark(primary: Color(0xFF90CAF9), secondary: Colors.orangeAccent, surface: Color(0xFF2C2C2C)),
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF1F1F1F), selectedItemColor: Color(0xFF90CAF9), unselectedItemColor: Colors.grey),
           ),
         );
       },
@@ -87,64 +59,29 @@ class MyApp extends StatelessWidget {
 // 1. MODELOS DE DATOS
 // ==========================================
 class Registro {
-  int? id; // Añadido ID para edición histórica
+  int? id;
   String titulo, detalles, tags;
-  String? imagePath; // Ruta local
-  String? serverImageName; // Nombre fichero en servidor (para descarga)
+  String? imagePath;
+  String? serverImageName;
 
-  Registro({
-    this.id,
-    required this.titulo,
-    required this.detalles,
-    required this.tags,
-    this.imagePath,
-    this.serverImageName
-  });
+  Registro({this.id, required this.titulo, required this.detalles, required this.tags, this.imagePath, this.serverImageName});
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'titulo': titulo,
-    'detalles': detalles,
-    'tags': tags,
-    'imagePath': imagePath,
-    'serverImageName': serverImageName
-  };
-
-  factory Registro.fromJson(Map<String, dynamic> json) => Registro(
-    id: json['id'],
-    titulo: json['titulo'],
-    detalles: json['detalles'],
-    tags: json['tags'],
-    imagePath: json['imagePath'],
-    serverImageName: json['serverImageName']
-  );
+  Map<String, dynamic> toJson() => {'id': id, 'titulo': titulo, 'detalles': detalles, 'tags': tags, 'imagePath': imagePath, 'serverImageName': serverImageName};
+  factory Registro.fromJson(Map<String, dynamic> json) => Registro(id: json['id'], titulo: json['titulo'], detalles: json['detalles'], tags: json['tags'], imagePath: json['imagePath'], serverImageName: json['serverImageName']);
 }
 
 class PendientePC {
   int id;
   String titulo, detalles;
   PendientePC({required this.id, required this.titulo, required this.detalles});
-  factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
-    id: json['id'], titulo: json['titulo'], detalles: json['detalles']);
+  factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(id: json['id'], titulo: json['titulo'], detalles: json['detalles']);
 }
 
 class AvisoPC {
   int id;
   String titulo, frecuencia, rango, estado, color;
-
-  AvisoPC({
-    required this.id, required this.titulo, required this.frecuencia,
-    required this.rango, required this.estado, required this.color
-  });
-
-  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(
-    id: json['id'],
-    titulo: json['titulo'],
-    frecuencia: json['frecuencia'],
-    rango: json['rango'],
-    estado: json['estado'],
-    color: json['color']
-  );
+  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color});
+  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color']);
 }
 
 // ==========================================
@@ -158,13 +95,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _indiceActual = 0;
-
-  void _irAPestana(int index) {
-    setState(() {
-      _indiceActual = index;
-    });
-  }
-
+  void _irAPestana(int index) => setState(() => _indiceActual = index);
   late final List<Widget> _pantallas;
 
   @override
@@ -181,56 +112,20 @@ class _MainScreenState extends State<MainScreen> {
 
   void _toggleTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    if (themeNotifier.value == ThemeMode.dark) {
-      themeNotifier.value = ThemeMode.light;
-      await prefs.setBool('is_dark_mode', false);
-    } else {
-      themeNotifier.value = ThemeMode.dark;
-      await prefs.setBool('is_dark_mode', true);
-    }
+    bool nuevoModo = themeNotifier.value != ThemeMode.dark;
+    themeNotifier.value = nuevoModo ? ThemeMode.dark : ThemeMode.light;
+    await prefs.setBool('is_dark_mode', nuevoModo);
   }
 
   @override
   Widget build(BuildContext context) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Títulos dinámicos
-    String titulo = "MantPro";
-    switch(_indiceActual) {
-      case 0: titulo = "Dashboard"; break;
-      case 1: titulo = "Mis Registros Locales"; break;
-      case 2: titulo = "Pendientes"; break;
-      case 3: titulo = "Avisos Recurrentes"; break;
-      case 4: titulo = "Historial Completo"; break;
-    }
-
-    // --- GESTO ATRÁS ---
+    String titulo = ["Dashboard", "Mis Registros Locales", "Pendientes", "Avisos Recurrentes", "Historial Completo"][_indiceActual];
     return PopScope(
-      // canPop: ¿Permitimos al sistema cerrar la app?
-      // SÍ (true) solo si estamos en el Dashboard (índice 0).
-      // NO (false) si estamos en cualquier otra pestaña.
       canPop: _indiceActual == 0,
-
-      // onPopInvoked: Qué hacemos cuando el usuario intenta salir
-      onPopInvoked: (didPop) {
-        if (didPop) {
-          // Si didPop es true, significa que el sistema ya ha cerrado la app (estábamos en el índice 0).
-          // No hacemos nada.
-          return;
-        }
-
-        // Si didPop es false (porque canPop era false), el sistema ha bloqueado la salida.
-        // Entonces nosotros manualmente volvemos al Dashboard.
-        _irAPestana(0);
-      },
-
+      onPopInvoked: (didPop) { if (!didPop) _irAPestana(0); },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(titulo),
-          actions: [
-            IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
-          ],
-        ),
+        appBar: AppBar(title: Text(titulo), actions: [IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme)]),
         body: IndexedStack(index: _indiceActual, children: _pantallas),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _indiceActual,
@@ -253,20 +148,14 @@ class _MainScreenState extends State<MainScreen> {
 // PESTAÑA 0: DASHBOARD
 // ==========================================
 class TabDashboard extends StatefulWidget {
-  // 1. Definimos la función AQUÍ, en el Widget
   final Function(int) onNavigate;
-
   const TabDashboard({super.key, required this.onNavigate});
-
   @override
   State<TabDashboard> createState() => _TabDashboardState();
 }
 
 class _TabDashboardState extends State<TabDashboard> {
-  // Datos
   Map<String, dynamic> _stats = {"pendientes": 0, "registros_mes": 0, "avisos_total": 0};
-
-  // Estados
   bool _cargando = false;
   String? _urlPC;
   bool _conexionActiva = false;
@@ -280,79 +169,36 @@ class _TabDashboardState extends State<TabDashboard> {
   Future<void> _inicializarDatos() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
-
     String? cache = prefs.getString('dashboard_cache');
     if (cache != null) setState(() => _stats = json.decode(cache));
-
     if (_urlPC != null) _cargarStatsOnline();
   }
 
   Future<void> _cargarStatsOnline() async {
     if (!mounted) return;
-    setState(() {
-      _cargando = true;
-      _conexionActiva = false;
-    });
-
+    setState(() { _cargando = true; _conexionActiva = false; });
     try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard"))
-      .timeout(const Duration(seconds: 3));
-
+      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
-        setState(() {
-          _stats = json.decode(res.body);
-          _conexionActiva = true;
-        });
+        setState(() { _stats = json.decode(res.body); _conexionActiva = true; });
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('dashboard_cache', res.body);
-      } else {
-        setState(() => _conexionActiva = false);
       }
-    } catch (e) {
-      setState(() => _conexionActiva = false);
-    } finally {
-      if (mounted) setState(() => _cargando = false);
-    }
+    } catch (e) { setState(() => _conexionActiva = false); }
+    finally { if (mounted) setState(() => _cargando = false); }
   }
 
-  // --- NUEVA LÓGICA INTELIGENTE ---
   Future<void> _intentarReconexion() async {
-    if (_urlPC == null) {
-      // Si no hay IP, vamos directo al QR
-      _abrirQR();
-      return;
-    }
-
+    if (_urlPC == null) { _abrirQR(); return; }
     setState(() => _cargando = true);
-
     try {
-      // 1. Intentamos ping rapido al dashboard
-      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard"))
-      .timeout(const Duration(seconds: 3));
-
+      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
-        // 2. ÉXITO: Actualizamos datos y lanzamos sync global
-        setState(() {
-          _stats = json.decode(res.body);
-          _conexionActiva = true;
-          _cargando = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("✅ Conexión recuperada. Sincronizando datos..."),
-          duration: Duration(seconds: 2),
-        ));
-
-        // Aquí podríamos llamar a funciones de sync de otros providers si usaramos Provider/Riverpod,
-        // pero como es una app simple, al menos hemos confirmado que el PC responde.
-        // El usuario al entrar en cada pestaña verá los datos frescos.
-
-      } else {
-        throw Exception("Error servidor");
-      }
+        setState(() { _stats = json.decode(res.body); _conexionActiva = true; _cargando = false; });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Conexión recuperada."), duration: Duration(seconds: 2)));
+      } else { throw Exception("Err"); }
     } catch (e) {
-      // 3. FALLO: Abrimos cámara
-      setState(() => _cargando = false); // Quitamos loading antes de cambiar pantalla
+      setState(() => _cargando = false);
       _abrirQR();
     }
   }
@@ -362,7 +208,6 @@ class _TabDashboardState extends State<TabDashboard> {
     if (ip != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pc_ip_url', ip);
-      // Al volver del QR con éxito, recargamos
       _inicializarDatos();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ Vinculado a $ip")));
     }
@@ -370,35 +215,15 @@ class _TabDashboardState extends State<TabDashboard> {
 
   Widget _buildCard(String title, String count, IconData icon, Color color, {int? targetTabIndex, VoidCallback? customAction}) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          if (customAction != null) {
-            customAction();
-          } else if (targetTabIndex != null) {
-            widget.onNavigate(targetTabIndex);
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 40, color: color),
-              const SizedBox(height: 10),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
-            ],
-          ),
-        ),
+        onTap: () { if (customAction != null) customAction(); else if (targetTabIndex != null) widget.onNavigate(targetTabIndex); },
+        child: Padding(padding: const EdgeInsets.all(16.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 40, color: color), const SizedBox(height: 10),
+          Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)))),
+          const SizedBox(height: 5), Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+        ])),
       ),
     );
   }
@@ -406,345 +231,38 @@ class _TabDashboardState extends State<TabDashboard> {
   @override
   Widget build(BuildContext context) {
     if (_urlPC == null && _stats['pendientes'] == 0) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.link_off, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text("PC No Vinculado"),
-            TextButton(
-              onPressed: _abrirQR,
-              child: const Text("Vincular Ahora"))
-          ],
-        ),
-      );
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.link_off, size: 64, color: Colors.grey), const SizedBox(height: 16),
+        const Text("PC No Vinculado"), TextButton(onPressed: _abrirQR, child: const Text("Vincular Ahora"))
+      ]));
     }
-
-    String textoConexion;
-    Color colorConexion;
-
-    if (_cargando) {
-      textoConexion = "...";
-      colorConexion = Colors.orange;
-    } else if (_urlPC == null) {
-      textoConexion = "Sin IP";
-      colorConexion = Colors.grey;
-    } else if (_conexionActiva) {
-      textoConexion = "Online";
-      colorConexion = Colors.green;
-    } else {
-      textoConexion = "Reconectar"; // Texto más descriptivo
-      colorConexion = Colors.red;
-    }
-
+    String txt = _cargando ? "..." : (_urlPC == null ? "Sin IP" : (_conexionActiva ? "Online" : "Reconectar"));
+    Color col = _cargando ? Colors.orange : (_urlPC == null ? Colors.grey : (_conexionActiva ? Colors.green : Colors.red));
     return RefreshIndicator(
       onRefresh: _cargarStatsOnline,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Estado Planta", style: Theme.of(context).textTheme.headlineSmall),
-              Icon(
-                _conexionActiva ? Icons.cloud_done : Icons.cloud_off,
-                size: 18,
-                color: _conexionActiva ? Colors.green : Colors.red
-              )
-            ],
-          ),
-          const SizedBox(height: 20),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _buildCard("Pendientes", "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, targetTabIndex: 2),
-              _buildCard("Registros Mes", "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, targetTabIndex: 4),
-              _buildCard("Avisos Config.", "${_stats['avisos_total']}", Icons.alarm, Colors.purple, targetTabIndex: 3),
-
-              // --- CARTA INTELIGENTE ---
-              _buildCard(
-                "Conexión",
-                textoConexion,
-                Icons.wifi,
-                colorConexion,
-                customAction: _intentarReconexion // Llama a la nueva lógica
-              ),
-            ],
-          ),
-        ],
-      ),
+      child: ListView(padding: const EdgeInsets.all(16), children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text("Estado Planta", style: Theme.of(context).textTheme.headlineSmall),
+          Icon(_conexionActiva ? Icons.cloud_done : Icons.cloud_off, size: 18, color: _conexionActiva ? Colors.green : Colors.red)
+        ]), const SizedBox(height: 20),
+        GridView.count(crossAxisCount: 2, shrinkWrap: true, crossAxisSpacing: 10, mainAxisSpacing: 10, physics: const NeverScrollableScrollPhysics(), children: [
+          _buildCard("Pendientes", "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, targetTabIndex: 2),
+          _buildCard("Registros Mes", "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, targetTabIndex: 4),
+          _buildCard("Avisos Config.", "${_stats['avisos_total']}", Icons.alarm, Colors.purple, targetTabIndex: 3),
+          _buildCard("Conexión", txt, Icons.wifi, col, customAction: _intentarReconexion),
+        ]),
+      ]),
     );
   }
 }
 
 // ==========================================
-// PESTAÑA 3: HISTORIAL (NUEVA)
+// PESTAÑA 1: MIS REGISTROS
 // ==========================================
-class TabHistorial extends StatefulWidget {
-  const TabHistorial({super.key});
-  @override
-  State<TabHistorial> createState() => _TabHistorialState();
-}
-
-class _TabHistorialState extends State<TabHistorial> {
-  List<Registro> _registros = [];
-  List<Map<String, dynamic>> _colaEdiciones = [];
-
-  bool _cargando = false;
-  String? _urlPC;
-  final TextEditingController _searchCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _inicializarHistorial();
-  }
-
-  Future<void> _inicializarHistorial() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() => _urlPC = prefs.getString('pc_ip_url'));
-
-    String? colaJson = prefs.getString('historial_cola_ediciones');
-    if (colaJson != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(colaJson));
-
-    String? cache = prefs.getString('historial_cache');
-    if (cache != null) {
-      final List<dynamic> data = json.decode(cache);
-      setState(() => _registros = data.map((item) => Registro.fromJson(item)).toList());
-      _aplicarCambiosVisuales();
-    }
-
-    if (_urlPC != null) {
-      await _sincronizarEdiciones();
-      _buscar("");
-    }
-  }
-
-  Future<void> _guardarCola() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('historial_cola_ediciones', json.encode(_colaEdiciones));
-  }
-
-  void _aplicarCambiosVisuales() {
-    for (var edicion in _colaEdiciones) {
-      int index = _registros.indexWhere((r) => r.id.toString() == edicion['id']);
-      if (index != -1) {
-        Registro original = _registros[index];
-        _registros[index] = Registro(
-          id: original.id,
-          titulo: original.titulo,
-          detalles: edicion['detalles'],
-          tags: edicion['tags'],
-          serverImageName: original.serverImageName,
-          imagePath: edicion['fotoPath'] ?? original.imagePath
-        );
-      }
-    }
-  }
-
-  Future<void> _sincronizarEdiciones() async {
-    if (_urlPC == null || _colaEdiciones.isEmpty) return;
-    List<Map<String, dynamic>> subidosOk = [];
-
-    for (var edicion in _colaEdiciones) {
-      try {
-        var uri = Uri.parse("http://$_urlPC/api/editar_historial");
-        var req = http.MultipartRequest('POST', uri);
-        req.fields['id'] = edicion['id'];
-        req.fields['detalles'] = edicion['detalles'];
-        req.fields['tags'] = edicion['tags'];
-        String? fotoPath = edicion['fotoPath'];
-        if (fotoPath != null && File(fotoPath).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', fotoPath));
-        if ((await req.send()).statusCode == 200) subidosOk.add(edicion);
-      } catch (e) {}
-    }
-
-    if (subidosOk.isNotEmpty) {
-      setState(() { for (var s in subidosOk) _colaEdiciones.remove(s); });
-      await _guardarCola();
-    }
-  }
-
-  Future<void> _buscar(String query) async {
-    if (_urlPC == null) return;
-    setState(() => _cargando = true);
-    try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$query")).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body);
-        List<Registro> nuevosRegistros = data.map((item) => Registro(
-          id: item['id'],
-          titulo: "${item['fecha']}",
-          detalles: item['descripcion'],
-          tags: item['tags'],
-          serverImageName: item['foto'],
-          imagePath: item['raw_desc']
-        )).toList();
-
-        final directory = await getApplicationDocumentsDirectory();
-        for (var r in nuevosRegistros) {
-          if (r.serverImageName != null) {
-            final String filePath = path.join(directory.path, r.serverImageName!);
-            if (!File(filePath).existsSync()) {
-              try {
-                var imgRes = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}"));
-                if (imgRes.statusCode == 200) await File(filePath).writeAsBytes(imgRes.bodyBytes);
-              } catch (e) {}
-            }
-          }
-        }
-        setState(() => _registros = nuevosRegistros);
-        _aplicarCambiosVisuales();
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('historial_cache', json.encode(nuevosRegistros.map((r) => r.toJson()).toList()));
-      }
-    } catch (e) {} finally {
-      if (mounted) setState(() => _cargando = false);
-    }
-  }
-
-  void _editarHistorial(Registro reg) async {
-    String rawDesc = reg.imagePath ?? reg.detalles;
-    String? localPhotoForEdit;
-    var edicionPendiente = _colaEdiciones.firstWhere((e) => e['id'] == reg.id.toString(), orElse: () => {});
-
-    if (edicionPendiente.isNotEmpty && edicionPendiente['fotoPath'] != null) {
-      localPhotoForEdit = edicionPendiente['fotoPath'];
-    } else if (reg.serverImageName != null) {
-      final directory = await getApplicationDocumentsDirectory();
-      final String filePath = path.join(directory.path, reg.serverImageName!);
-      if (File(filePath).existsSync()) localPhotoForEdit = filePath;
-    }
-
-    Registro regParaForm = Registro(id: reg.id, titulo: "", detalles: rawDesc, tags: reg.tags, imagePath: localPhotoForEdit);
-
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
-      registroExistente: regParaForm,
-      esHistorial: true,
-      onSave: (registroEditado) async {
-        Map<String, dynamic> nuevaEdicion = {
-          'id': reg.id.toString(),
-          'detalles': registroEditado.detalles,
-          'tags': registroEditado.tags,
-          'fotoPath': registroEditado.imagePath
-        };
-        int idx = _colaEdiciones.indexWhere((e) => e['id'] == reg.id.toString());
-        if (idx != -1) { _colaEdiciones[idx] = nuevaEdicion; } else { _colaEdiciones.add(nuevaEdicion); }
-
-        await _guardarCola();
-        setState(() => _aplicarCambiosVisuales());
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado (Sincronizará al conectar)")));
-        _sincronizarEdiciones();
-      }
-    )));
-  }
-
-  Future<String> getLocalPath(String filename) async {
-    final directory = await getApplicationDocumentsDirectory();
-    return path.join(directory.path, filename);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (_colaEdiciones.isNotEmpty)
-          Container(
-            width: double.infinity,
-            color: Colors.orangeAccent,
-            padding: const EdgeInsets.all(8),
-            child: Text("${_colaEdiciones.length} ediciones pendientes de subir", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: "Buscar en historial...",
-                suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)),
-                border: const OutlineInputBorder(),
-                filled: _urlPC == null,
-                fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null,
-              ),
-              onSubmitted: _buscar,
-            ),
-          ),
-          Expanded(
-            child: _cargando
-            ? const Center(child: CircularProgressIndicator())
-            : _registros.isEmpty
-            ? const Center(child: Text("Sin historial visible"))
-            : ListView.builder(
-              itemCount: _registros.length,
-              itemBuilder: (ctx, i) {
-                final r = _registros[i];
-                Widget imageWidget;
-
-                if (r.imagePath != null && File(r.imagePath!).existsSync() && !r.imagePath!.contains("[")) {
-                  imageWidget = Image.file(File(r.imagePath!), width: 50, height: 50, fit: BoxFit.cover);
-                } else if (r.serverImageName != null) {
-                  imageWidget = FutureBuilder<String>(
-                    future: getLocalPath(r.serverImageName!),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData && File(snapshot.data!).existsSync()) {
-                        return Image.file(File(snapshot.data!), width: 50, height: 50, fit: BoxFit.cover);
-                      } else if (_urlPC != null) {
-                        return Image.network("http://$_urlPC/api/foto/${r.serverImageName}", width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.redAccent));
-                      } else {
-                        return const Icon(Icons.no_photography, color: Colors.grey);
-                      }
-                    }
-                  );
-                } else {
-                  imageWidget = const Icon(Icons.article, color: Colors.blueGrey);
-                }
-
-                bool pendiente = _colaEdiciones.any((e) => e['id'] == r.id.toString());
-
-                return Card(
-                  color: pendiente ? Colors.orange.withOpacity(0.1) : null,
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: ListTile(
-                    leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: imageWidget))),
-                    title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    subtitle: Text("${r.titulo} | ${r.tags}"),
-                    trailing: Icon(pendiente ? Icons.cloud_upload : Icons.edit, size: 20, color: pendiente ? Colors.orange : Colors.blueGrey),
-                    onTap: () => _editarHistorial(r),
-                  ),
-                );
-              },
-            )
-          )
-      ],
-    );
-  }
-}
-
-// ==========================================
-// PESTAÑA 1: MIS REGISTROS (LOCALES)
-// ==========================================
-class TabMisRegistros extends StatefulWidget {
-  const TabMisRegistros({super.key});
-  @override
-  State<TabMisRegistros> createState() => _TabMisRegistrosState();
-}
-
+class TabMisRegistros extends StatefulWidget { const TabMisRegistros({super.key}); @override State<TabMisRegistros> createState() => _TabMisRegistrosState(); }
 class _TabMisRegistrosState extends State<TabMisRegistros> {
-  List<Registro> _pendientes = [];
-  bool _cargando = false;
-  String? _urlPC;
-
-  @override
-  void initState() {
-    super.initState();
-    _inicializar();
-  }
-
+  List<Registro> _pendientes = []; bool _cargando = false; String? _urlPC;
+  @override void initState() { super.initState(); _inicializar(); }
   Future<void> _inicializar() async {
     final prefs = await SharedPreferences.getInstance();
     final String? datosJson = prefs.getString('registros_pendientes');
@@ -755,187 +273,94 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
     if (_pendientes.isNotEmpty && _urlPC != null) _sincronizar();
   }
-
   Future<void> _guardarDatos() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('registros_pendientes', json.encode(_pendientes.map((r) => r.toJson()).toList()));
   }
-
-  void _addRegistro(Registro r) {
-    setState(() => _pendientes.add(r));
-    _guardarDatos();
-  }
-
-  void _borrarRegistro(int i) {
-    setState(() => _pendientes.removeAt(i));
-    _guardarDatos();
-  }
-
-  void _editarRegistro(int index, Registro r) {
-    setState(() => _pendientes[index] = r);
-    _guardarDatos();
-  }
-
-  Future<void> _confirmarBorrado(int index) async {
-    final bool? confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("¿Borrar?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCELAR")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("BORRAR", style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-    if (confirmar == true) _borrarRegistro(index);
-  }
-
+  void _addRegistro(Registro r) { setState(() => _pendientes.add(r)); _guardarDatos(); }
+  void _editarRegistro(int index, Registro r) { setState(() => _pendientes[index] = r); _guardarDatos(); }
   Future<void> _sincronizar([String? nuevaUrl]) async {
     final prefs = await SharedPreferences.getInstance();
-    String? urlUsar = nuevaUrl ?? _urlPC;
+    String? urlUsar = nuevaUrl ?? prefs.getString('pc_ip_url'); // Leer IP fresca
     if (urlUsar == null) return;
-    if (nuevaUrl != null) {
-      await prefs.setString('pc_ip_url', nuevaUrl);
-      setState(() => _urlPC = nuevaUrl);
-    }
-
     setState(() => _cargando = true);
     final uri = Uri.parse("http://$urlUsar/api/upload");
     List<Registro> enviados = [];
-
     for (var item in _pendientes) {
       try {
         var req = http.MultipartRequest('POST', uri);
-        req.fields['titulo'] = item.titulo;
-        req.fields['detalles'] = item.detalles;
-        req.fields['tags'] = item.tags;
-        if (item.imagePath != null && File(item.imagePath!).existsSync()) {
-          req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
-        }
-        var res = await req.send();
-        if (res.statusCode == 200) enviados.add(item);
+        req.fields['titulo'] = item.titulo; req.fields['detalles'] = item.detalles; req.fields['tags'] = item.tags;
+        if (item.imagePath != null && File(item.imagePath!).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
+        if ((await req.send()).statusCode == 200) enviados.add(item);
       } catch (e) { /* Error */ }
     }
-
     if (mounted) {
-      setState(() => _cargando = false);
-      if (enviados.isNotEmpty) {
-        setState(() {
-          for (var e in enviados) _pendientes.remove(e);
-        });
-          _guardarDatos();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ ${enviados.length} enviados")));
-      }
+      setState(() { _cargando = false; for (var e in enviados) _pendientes.remove(e); });
+      _guardarDatos();
+      if (enviados.isNotEmpty) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ ${enviados.length} enviados")));
     }
   }
-
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.1),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (_urlPC != null)
-                  TextButton.icon(
-                    icon: _cargando ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync),
-                    label: const Text("Sincronizar"),
-                    onPressed: () => _sincronizar(),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.qr_code),
-                    tooltip: "Cambiar PC",
-                    onPressed: () async {
-                      final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
-                      if (ip != null) _sincronizar(ip);
-                    }),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _pendientes.isEmpty
-            ? const Center(child: Text("Sin registros locales", style: TextStyle(color: Colors.grey)))
-            : ListView.builder(
-              itemCount: _pendientes.length,
-              itemBuilder: (ctx, i) {
-                final item = _pendientes[i];
-                File? f = item.imagePath != null ? File(item.imagePath!) : null;
-                return Card(
-                  child: ListTile(
-                    leading: f != null && f.existsSync()
-                    ? Image.file(f, width: 40, height: 40, fit: BoxFit.cover)
-                    : const Icon(Icons.build),
-                    title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(item.detalles, maxLines: 1),
-                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () => _confirmarBorrado(i)),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(onSave: (r) => _editarRegistro(i, r), registroExistente: item))),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(onSave: _addRegistro)))),
+      body: Column(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.1),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            if (_urlPC != null) TextButton.icon(icon: _cargando ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.sync), label: const Text("Sincronizar"), onPressed: () => _sincronizar()),
+              IconButton(icon: const Icon(Icons.qr_code), onPressed: () async {
+                final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+                if (ip != null) {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('pc_ip_url', ip);
+                  setState(() => _urlPC = ip);
+                  _sincronizar(ip);
+                }
+              })
+          ]),
+        ),
+        Expanded(child: _pendientes.isEmpty ? const Center(child: Text("Sin registros locales", style: TextStyle(color: Colors.grey))) : ListView.builder(itemCount: _pendientes.length, itemBuilder: (ctx, i) {
+          final item = _pendientes[i]; File? f = item.imagePath != null ? File(item.imagePath!) : null;
+          return Card(child: ListTile(
+            leading: f != null && f.existsSync() ? Image.file(f, width: 40, height: 40, fit: BoxFit.cover) : const Icon(Icons.build),
+            title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(item.detalles, maxLines: 1),
+            trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () { setState(() => _pendientes.removeAt(i)); _guardarDatos(); }),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(onSave: (r) => _editarRegistro(i, r), registroExistente: item))),
+          ));
+        })),
+      ]),
+      floatingActionButton: FloatingActionButton(child: const Icon(Icons.add), backgroundColor: Colors.blueAccent, onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(onSave: _addRegistro)))),
     );
   }
 }
 
 // ==========================================
-// PESTAÑA 2: TRABAJOS PENDIENTES PC
+// PESTAÑA 2: PENDIENTES PC
 // ==========================================
-class TabPendientesPC extends StatefulWidget {
-  const TabPendientesPC({super.key});
-  @override
-  State<TabPendientesPC> createState() => _TabPendientesPCState();
-}
-
+class TabPendientesPC extends StatefulWidget { const TabPendientesPC({super.key}); @override State<TabPendientesPC> createState() => _TabPendientesPCState(); }
 class _TabPendientesPCState extends State<TabPendientesPC> {
   List<PendientePC> _listaPC = [];
-
   List<Map<String, dynamic>> _colaSalida = [];
   List<Map<String, dynamic>> _colaNuevos = [];
   List<Map<String, dynamic>> _colaEdiciones = [];
   List<int> _colaBorrados = [];
   Map<String, String> _fotosLocales = {};
+  bool _cargando = false; String? _urlPC;
 
-  bool _cargando = false;
-  String? _urlPC;
-
-  @override
-  void initState() {
-    super.initState();
-    _cargarCache();
-  }
-
+  @override void initState() { super.initState(); _cargarCache(); }
   Future<void> _cargarCache() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _urlPC = prefs.getString('pc_ip_url');
-      String? l = prefs.getString('trabajos_pc');
-      if (l != null) _listaPC = (json.decode(l) as List).map((i) => PendientePC.fromJson(i)).toList();
-      String? c = prefs.getString('cola_salida');
-      if (c != null) _colaSalida = List<Map<String, dynamic>>.from(json.decode(c));
-      String? n = prefs.getString('cola_nuevos');
-      if (n != null) _colaNuevos = List<Map<String, dynamic>>.from(json.decode(n));
-      String? e = prefs.getString('cola_ediciones');
-      if (e != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(e));
-      String? b = prefs.getString('cola_borrados');
-      if (b != null) _colaBorrados = List<int>.from(json.decode(b));
-      String? f = prefs.getString('fotos_locales_map');
-      if (f != null) _fotosLocales = Map<String, String>.from(json.decode(f));
+      if (prefs.getString('trabajos_pc') != null) _listaPC = (json.decode(prefs.getString('trabajos_pc')!) as List).map((i) => PendientePC.fromJson(i)).toList();
+      if (prefs.getString('cola_salida') != null) _colaSalida = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_salida')!));
+      if (prefs.getString('cola_nuevos') != null) _colaNuevos = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_nuevos')!));
+      if (prefs.getString('cola_ediciones') != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_ediciones')!));
+      if (prefs.getString('cola_borrados') != null) _colaBorrados = List<int>.from(json.decode(prefs.getString('cola_borrados')!));
+      if (prefs.getString('fotos_locales_map') != null) _fotosLocales = Map<String, String>.from(json.decode(prefs.getString('fotos_locales_map')!));
     });
       _aplicarEdicionesVisuales();
       if (_urlPC != null) _sincronizarTodo(silencioso: true);
   }
-
   Future<void> _guardarCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('trabajos_pc', json.encode(_listaPC.map((p) => {'id': p.id, 'titulo': p.titulo, 'detalles': p.detalles}).toList()));
@@ -945,915 +370,340 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     await prefs.setString('cola_borrados', json.encode(_colaBorrados));
     await prefs.setString('fotos_locales_map', json.encode(_fotosLocales));
   }
-
   void _aplicarEdicionesVisuales() {
     for (var edicion in _colaEdiciones) {
       int index = _listaPC.indexWhere((p) => p.id.toString() == edicion['id']);
-      if (index != -1) {
-        _listaPC[index] = PendientePC(
-          id: _listaPC[index].id,
-          titulo: edicion['titulo'],
-          detalles: edicion['detalles']
-        );
-      }
+      if (index != -1) _listaPC[index] = PendientePC(id: _listaPC[index].id, titulo: edicion['titulo'], detalles: edicion['detalles']);
     }
   }
-
   Future<String?> _descargarYCachearFoto(String nombreFoto) async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final String filePath = path.join(directory.path, nombreFoto);
-      if (File(filePath).existsSync()) return filePath;
+      final dir = await getApplicationDocumentsDirectory(); final fp = path.join(dir.path, nombreFoto);
+      if (File(fp).existsSync()) return fp;
       if (_urlPC != null) {
-        final response = await http.get(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
-        if (response.statusCode == 200) {
-          final file = File(filePath);
-          await file.writeAsBytes(response.bodyBytes);
-          return filePath;
-        }
+        final res = await http.get(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
+        if (res.statusCode == 200) { await File(fp).writeAsBytes(res.bodyBytes); return fp; }
       }
-    } catch (e) { }
-    return null;
+    } catch (e) { /* */ } return null;
   }
-
   Future<void> _sincronizarTodo({bool silencioso = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? ip = prefs.getString('pc_ip_url'); // Leer IP fresca
+    if (ip != null) _urlPC = ip;
     if (_urlPC == null) return;
     if (!silencioso) setState(() => _cargando = true);
 
-    List<int> borradosOk = [];
-    for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()})) borradosOk.add(id); }
-    if (borradosOk.isNotEmpty) { setState(() { for (var id in borradosOk) _colaBorrados.remove(id); }); }
+    List<int> bo = []; for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()})) bo.add(id); }
+    if (bo.isNotEmpty) setState(() { for (var id in bo) _colaBorrados.remove(id); });
 
-    List<Map<String, dynamic>> nuevosOk = [];
-    for (var t in _colaNuevos) { if (await _apiMultipart('agregar_pendiente', t)) nuevosOk.add(t); }
-    if (nuevosOk.isNotEmpty) { setState(() { for (var t in nuevosOk) _colaNuevos.remove(t); }); }
+    List<Map<String, dynamic>> no = []; for (var t in _colaNuevos) { if (await _apiMultipart('agregar_pendiente', t)) no.add(t); }
+    if (no.isNotEmpty) setState(() { for (var t in no) _colaNuevos.remove(t); });
 
-    List<Map<String, dynamic>> edicionOk = [];
-    for (var t in _colaEdiciones) { if (await _apiMultipart('editar_pendiente', t)) edicionOk.add(t); }
-    if (edicionOk.isNotEmpty) { setState(() { for (var t in edicionOk) _colaEdiciones.remove(t); }); }
+    List<Map<String, dynamic>> eo = []; for (var t in _colaEdiciones) { if (await _apiMultipart('editar_pendiente', t)) eo.add(t); }
+    if (eo.isNotEmpty) setState(() { for (var t in eo) _colaEdiciones.remove(t); });
 
-    List<Map<String, dynamic>> salidaOk = [];
-    for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) salidaOk.add(t); }
-    if (salidaOk.isNotEmpty) { setState(() { for (var t in salidaOk) _colaSalida.remove(t); }); }
+    List<Map<String, dynamic>> so = []; for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) so.add(t); }
+    if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
 
     await _guardarCache();
-
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
-        final List<dynamic> datos = json.decode(res.body);
-        List<PendientePC> nuevosPendientes = datos.map((item) => PendientePC.fromJson(item)).toList();
-
-        for (var p in nuevosPendientes) {
-          String? fotoServer = _obtenerFotoServer(p);
-          if (fotoServer != null) {
-            String? rutaLocal = await _descargarYCachearFoto(fotoServer);
-            if (rutaLocal != null) setState(() => _fotosLocales[p.id.toString()] = rutaLocal);
-          }
+        final List<dynamic> d = json.decode(res.body);
+        List<PendientePC> nuevos = d.map((i) => PendientePC.fromJson(i)).toList();
+        for (var p in nuevos) {
+          String? fs = _obtenerFotoServer(p);
+          if (fs != null) { String? rl = await _descargarYCachearFoto(fs); if (rl != null) setState(() => _fotosLocales[p.id.toString()] = rl); }
         }
-        setState(() => _listaPC = nuevosPendientes);
+        setState(() => _listaPC = nuevos);
         _aplicarEdicionesVisuales();
         await _guardarCache();
       }
-    } catch (e) { }
+    } catch (e) { /* */ }
     if (!silencioso && mounted) setState(() => _cargando = false);
   }
-
-  Future<bool> _apiPost(String endpoint, Map<String, String> body) async {
-    try { return (await http.post(Uri.parse("http://$_urlPC/api/$endpoint"), body: body)).statusCode == 200; } catch (e) { return false; }
-  }
-
-  Future<bool> _apiMultipart(String endpoint, Map<String, dynamic> datos) async {
+  Future<bool> _apiPost(String ep, Map<String, String> b) async { try { return (await http.post(Uri.parse("http://$_urlPC/api/$ep"), body: b)).statusCode == 200; } catch (e) { return false; } }
+  Future<bool> _apiMultipart(String ep, Map<String, dynamic> d) async {
     try {
-      var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/$endpoint"));
-      if (datos.containsKey('id')) req.fields['id'] = datos['id'].toString();
-      req.fields['titulo'] = datos['titulo'];
-      req.fields['detalles'] = datos['detalles'];
-      if (datos.containsKey('tags')) req.fields['tags'] = datos['tags'];
-      if (datos['imagePath'] != null && File(datos['imagePath']).existsSync()) {
-        req.files.add(await http.MultipartFile.fromPath('foto', datos['imagePath']));
-      }
-      return (await req.send()).statusCode == 200;
+      var r = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/$ep"));
+      if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
+      r.fields['titulo'] = d['titulo']; r.fields['detalles'] = d['detalles'];
+      if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
+      if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
+      return (await r.send()).statusCode == 200;
     } catch (e) { return false; }
   }
-
-  String? _extraerRef(String texto) { final match = RegExp(r"\[REF:(\d+)\]").firstMatch(texto); return match?.group(1); }
-
-  String? _obtenerFotoServer(PendientePC p) {
-    final match = RegExp(r"\[FOTO:\s*(.*?)\]").firstMatch(p.detalles);
-    if (match != null) return match.group(1)!.trim();
-    return null;
-  }
-
+  String? _obtenerFotoServer(PendientePC p) { final m = RegExp(r"\[FOTO:\s*(.*?)\]").firstMatch(p.detalles); return m?.group(1)?.trim(); }
   String? _obtenerRutaFoto(PendientePC p) {
-    String? refID = _extraerRef(p.detalles);
-    if (refID != null && _fotosLocales.containsKey(refID)) return _fotosLocales[refID];
+    String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
+    if (ref != null && _fotosLocales.containsKey(ref)) return _fotosLocales[ref];
     if (_fotosLocales.containsKey(p.id.toString())) return _fotosLocales[p.id.toString()];
     return null;
   }
-
   void _abrirGestionar(PendientePC p) async {
-    String? fotoLocal = _obtenerRutaFoto(p);
-    String? fotoServer = _obtenerFotoServer(p);
-    if (fotoLocal != null && !File(fotoLocal).existsSync()) fotoLocal = null;
-
+    String? fl = _obtenerRutaFoto(p); String? fs = _obtenerFotoServer(p);
+    if (fl != null && !File(fl).existsSync()) fl = null;
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
-      pendientePC: p,
-      fotoInicialPath: fotoLocal,
-      serverImageName: fotoServer,
-      urlPC: _urlPC,
-      onSave: (registro) {
-        String? refID = _extraerRef(p.detalles);
-        Map<String, dynamic> t = {
-          'id': p.id,
-          'titulo': registro.titulo,
-          'detalles': registro.detalles,
-          'tags': registro.tags,
-          'imagePath': registro.imagePath
-        };
-        setState(() {
-          _colaSalida.add(t);
-          _listaPC.removeWhere((i) => i.id == p.id);
-          if (refID != null) _fotosLocales.remove(refID);
-          _fotosLocales.remove(p.id.toString());
-        });
-        _guardarCache();
-        _sincronizarTodo(silencioso: true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada")));
+      pendientePC: p, fotoInicialPath: fl, serverImageName: fs, urlPC: _urlPC,
+      onSave: (r) {
+        String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
+        Map<String, dynamic> t = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath};
+        setState(() { _colaSalida.add(t); _listaPC.removeWhere((i) => i.id == p.id); if (ref != null) _fotosLocales.remove(ref); _fotosLocales.remove(p.id.toString()); });
+        _guardarCache(); _sincronizarTodo(silencioso: true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada")));
       },
-      onUpdate: (registro) {
-        String? refID = _extraerRef(p.detalles);
-        String clave = refID ?? p.id.toString();
-        if (registro.imagePath != null) setState(() => _fotosLocales[clave] = registro.imagePath!);
-        Map<String, dynamic> t = {
-          'id': p.id,
-          'titulo': registro.titulo,
-          'detalles': registro.detalles,
-          'tags': registro.tags,
-          'imagePath': registro.imagePath
-        };
-        setState(() {
-          _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
-          _colaEdiciones.add(t);
-          int idx = _listaPC.indexWhere((i) => i.id == p.id);
-          if (idx != -1) _listaPC[idx] = PendientePC(id: p.id, titulo: registro.titulo, detalles: registro.detalles);
-        });
-          _guardarCache();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado")));
-          _sincronizarTodo(silencioso: true);
-          Navigator.pop(context);
+      onUpdate: (r) {
+        String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
+        if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
+        Map<String, dynamic> t = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath};
+        setState(() { _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString()); _colaEdiciones.add(t); int i = _listaPC.indexWhere((x) => x.id == p.id); if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles); });
+        _guardarCache(); _sincronizarTodo(silencioso: true); Navigator.pop(context);
       })));
   }
-
-  void _borrar(int id) async {
-    if (await showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text("¿Borrar?"),
-      content: const Text("Se eliminará del PC."),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("SÍ", style: TextStyle(color: Colors.redAccent)))
-      ])) == true) {
-      setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); });
-    _guardarCache();
-    _sincronizarTodo(silencioso: true);
-      }
-  }
-
-  Future<void> _escanearQR() async {
-    final codigo = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
-    if (codigo != null && codigo is String) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('pc_ip_url', codigo);
-      setState(() => _urlPC = codigo);
-      _sincronizarTodo();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    bool offlineMode = _urlPC == null;
+  @override Widget build(BuildContext context) {
+    bool off = _urlPC == null;
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: _listaPC.isEmpty
-            ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey),
-              const SizedBox(height: 10),
-              const Text("No hay tareas pendientes"),
-              if (offlineMode) TextButton.icon(icon: const Icon(Icons.qr_code), label: const Text("Vincular PC"), onPressed: _escanearQR)
-            ]))
-            : ListView.builder(
-              itemCount: _listaPC.length,
-              itemBuilder: (ctx, i) {
-                final item = _listaPC[i];
-                String? fotoLocal = _obtenerRutaFoto(item);
-                String? fotoServer = _obtenerFotoServer(item);
-                String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
-                if (limpio.isEmpty) limpio = "Sin detalles";
-
-                Widget leadingIcon;
-                if (fotoLocal != null) {
-                  leadingIcon = Image.file(File(fotoLocal), width: 50, height: 50, fit: BoxFit.cover);
-                } else if (fotoServer != null) {
-                  leadingIcon = Container(width: 50, height: 50, color: Colors.blue.withOpacity(0.1), child: const Icon(Icons.cloud_download, color: Colors.blue));
-                } else {
-                  leadingIcon = CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2), child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary));
-                }
-                bool isEdited = _colaEdiciones.any((e) => e['id'] == item.id.toString());
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: ListTile(
-                    leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: leadingIcon),
-                    title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    onTap: () => _abrirGestionar(item),
-                    trailing: isEdited
-                    ? const Icon(Icons.cloud_upload, color: Colors.orange)
-                    : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id)),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        foregroundColor: Colors.white,
-          icon: const Icon(Icons.add_task),
-          label: const Text("AÑADIR"),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
-            String refUnica = DateTime.now().millisecondsSinceEpoch.toString();
-            if (r.imagePath != null) setState(() => _fotosLocales[refUnica] = r.imagePath!);
-            String detallesConRef = "${r.detalles} [REF:$refUnica]";
-            Map<String, dynamic> t = {'titulo': r.titulo, 'detalles': detallesConRef, 'tags': r.tags, 'imagePath': r.imagePath};
-            setState(() => _colaNuevos.add(t));
-            PendientePC temp = PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: detallesConRef);
-            setState(() => _listaPC.insert(0, temp));
-            _guardarCache();
-            _sincronizarTodo(silencioso: true);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Pendiente creado")));
-          }))),
-      ),
+      body: Column(children: [
+        Expanded(child: _listaPC.isEmpty
+        ? RefreshIndicator(onRefresh: _sincronizarTodo, child: ListView(children: [SizedBox(height:MediaQuery.of(context).size.height*0.3), Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey), const SizedBox(height: 10), const Text("No hay tareas pendientes"), if (off) TextButton.icon(icon: const Icon(Icons.qr_code), label: const Text("Vincular PC"), onPressed: _escanearQR)]))]))
+        : RefreshIndicator(onRefresh: _sincronizarTodo, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), itemCount: _listaPC.length, itemBuilder: (ctx, i) {
+          final item = _listaPC[i]; String? fl = _obtenerRutaFoto(item); String? fs = _obtenerFotoServer(item);
+          String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (limpio.isEmpty) limpio = "Sin detalles";
+          Widget ico; if (fl != null) ico = Image.file(File(fl), width: 50, height: 50, fit: BoxFit.cover); else if (fs != null) ico = Container(width:50,height:50,color:Colors.blue.withOpacity(0.1),child:const Icon(Icons.cloud_download,color:Colors.blue)); else ico = CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2), child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary));
+          bool ed = _colaEdiciones.any((e) => e['id'] == item.id.toString());
+          return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: ico), title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis), onTap: () => _abrirGestionar(item), trailing: ed ? const Icon(Icons.cloud_upload, color: Colors.orange) : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id))));
+        }))),
+      ]),
+      floatingActionButton: FloatingActionButton.extended(backgroundColor: Theme.of(context).colorScheme.secondary, foregroundColor: Colors.white, icon: const Icon(Icons.add_task), label: const Text("AÑADIR"), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
+        String ru = DateTime.now().millisecondsSinceEpoch.toString(); if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
+        String d = "${r.detalles} [REF:$ru]"; Map<String, dynamic> t = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath};
+        setState(() => _colaNuevos.add(t)); setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d)));
+        _guardarCache(); _sincronizarTodo(silencioso: true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Pendiente creado")));
+      })))),
     );
   }
+  void _borrar(int id) async { if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("¿Borrar?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("SÍ", style: TextStyle(color: Colors.red)))])) == true) { setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); }); _guardarCache(); _sincronizarTodo(silencioso: true); } }
+  Future<void> _escanearQR() async { final c = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen())); if (c != null) { final prefs = await SharedPreferences.getInstance(); await prefs.setString('pc_ip_url', c); setState(() => _urlPC = c); _sincronizarTodo(); } }
 }
 
 // ==========================================
-// 5. FORMULARIO UNIFICADO
+// PESTAÑA 3: AVISOS
 // ==========================================
-class FormScreen extends StatefulWidget {
-  final Function(Registro) onSave;
-  final Function(Registro)? onUpdate;
-  final PendientePC? pendientePC;
-  final Registro? registroExistente;
-  final bool esCrearPendiente;
-  final bool esHistorial; // NUEVO
-  final String? fotoInicialPath;
-  final String? serverImageName; // NUEVO
-  final String? urlPC; // NUEVO
-
-  const FormScreen({
-    super.key,
-    required this.onSave,
-    this.onUpdate,
-    this.pendientePC,
-    this.registroExistente,
-    this.esCrearPendiente = false,
-    this.esHistorial = false,
-    this.fotoInicialPath,
-    this.serverImageName,
-    this.urlPC,
-  });
-
-  @override
-  State<FormScreen> createState() => _FormScreenState();
-}
-
-class _FormScreenState extends State<FormScreen> {
-  final _titleCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _tagCtrl = TextEditingController();
-  String? _imagePath;
-
-  bool _isUrgente = false;
-  bool _isElectrico = false;
-  bool _isMecanico = false;
-  bool _isPreventivo = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // 1. CARGA DESDE PENDIENTE PC
-    if (widget.pendientePC != null) {
-      _titleCtrl.text = widget.pendientePC!.titulo;
-      _descCtrl.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
-      if (widget.fotoInicialPath != null) _imagePath = widget.fotoInicialPath;
-    }
-    // 2. CARGA DESDE REGISTRO LOCAL O HISTORIAL
-    if (widget.registroExistente != null) {
-      final r = widget.registroExistente!;
-      if (r.titulo.isNotEmpty) _titleCtrl.text = r.titulo;
-
-      // Limpieza adicional por si acaso viene sucio del historial
-      String d = r.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
-      _descCtrl.text = d;
-
-      if (r.imagePath != null && File(r.imagePath!).existsSync()) {
-        _imagePath = r.imagePath;
-      }
-
-      _isUrgente = r.tags.contains("Urgente");
-      _isElectrico = r.tags.contains("Eléctrico");
-      _isMecanico = r.tags.contains("Mecánico");
-      _isPreventivo = r.tags.contains("Preventivo");
-
-      List<String> tagsManuales = r.tags.split(', ').where((t) => !['Urgente', 'Eléctrico', 'Mecánico', 'Preventivo'].contains(t)).toList();
-      if (tagsManuales.isNotEmpty) _tagCtrl.text = tagsManuales.join(', ');
-    }
-  }
-
-  Future<void> _takePhoto() async {
-    try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.camera, imageQuality: 60);
-      if (pickedFile != null) {
-        final directory = await getApplicationDocumentsDirectory();
-        final String fileName = 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final String nuevoPath = path.join(directory.path, fileName);
-        await File(pickedFile.path).copy(nuevoPath);
-        setState(() => _imagePath = nuevoPath);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
-    }
-  }
-
-  // Función para descargar y ver la foto del servidor si no tenemos local
-  Future<void> _descargarParaVer() async {
-    if (widget.serverImageName != null && widget.urlPC != null) {
-      try {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Descargando imagen...")));
-        final directory = await getApplicationDocumentsDirectory();
-        final String filePath = path.join(directory.path, widget.serverImageName!);
-        var response = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/${widget.serverImageName}"));
-        if (response.statusCode == 200) {
-          File file = File(filePath);
-          await file.writeAsBytes(response.bodyBytes);
-          setState(() => _imagePath = filePath);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error descargando imagen")));
-        }
-      } catch (e) {
-        print(e);
-      }
-    }
-  }
-
-  Future<void> _openEditor() async {
-    if (_imagePath == null) return;
-    final bool? ok = await Navigator.push(context, MaterialPageRoute(builder: (_) => ImageEditorScreen(imageFile: File(_imagePath!))));
-    if (ok == true) {
-      setState(() { PaintingBinding.instance.imageCache.clear(); PaintingBinding.instance.imageCache.clearLiveImages(); });
-    }
-  }
-
-  void _borrarFoto() => setState(() => _imagePath = null);
-
-  void _guardarLocal(bool esTerminar) {
-    if (_titleCtrl.text.isEmpty && !widget.esHistorial) return; // En historial el título puede estar vacío o ser fecha
-    List<String> l = [];
-    if (_isUrgente) l.add("Urgente");
-    if (_isElectrico) l.add("Eléctrico");
-    if (_isMecanico) l.add("Mecánico");
-    if (_isPreventivo) l.add("Preventivo");
-    if (_tagCtrl.text.isNotEmpty) l.add(_tagCtrl.text.trim());
-
-    String detallesFinales = _descCtrl.text;
-
-    // Si estamos editando un Pendiente PC, mantenemos la REF si existía
-    if (widget.pendientePC != null) {
-      final match = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles);
-      if (match != null) detallesFinales += " ${match.group(0)}";
-    }
-
-    Registro r = Registro(
-      id: widget.registroExistente?.id,
-      titulo: _titleCtrl.text,
-      detalles: detallesFinales,
-      tags: l.join(", "),
-      imagePath: _imagePath);
-
-    if (esTerminar) { widget.onSave(r); } else if (widget.onUpdate != null) { widget.onUpdate!(r); } else { widget.onSave(r); }
-    if (widget.onUpdate == null || esTerminar) Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    bool esTrabajoPC = widget.pendientePC != null;
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.esHistorial ? "Editar Histórico" : (esTrabajoPC ? "Gestionar Trabajo" : "Nuevo")), backgroundColor: Colors.blueGrey),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          if (!widget.esHistorial) // Ocultar título en historial si se desea, o dejarlo
-            TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: "Título")),
-            const SizedBox(height: 15),
-            TextField(controller: _descCtrl, maxLines: 5, decoration: const InputDecoration(labelText: "Detalles")),
-            const SizedBox(height: 15),
-            const Align(alignment: Alignment.centerLeft, child: Text("Etiquetas:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-            Wrap(
-              spacing: 8.0,
-              children: [
-                FilterChip(label: const Text('🚨 Urgente'), selected: _isUrgente, selectedColor: Colors.red.withOpacity(0.3), onSelected: (v) => setState(() => _isUrgente = v)),
-                FilterChip(label: const Text('⚡ Eléctrico'), selected: _isElectrico, selectedColor: Colors.blue.withOpacity(0.3), onSelected: (v) => setState(() => _isElectrico = v)),
-                FilterChip(label: const Text('⚙️ Mecánico'), selected: _isMecanico, selectedColor: Colors.orange.withOpacity(0.3), onSelected: (v) => setState(() => _isMecanico = v)),
-                FilterChip(label: const Text('🛡️ Preventivo'), selected: _isPreventivo, selectedColor: Colors.green.withOpacity(0.3), onSelected: (v) => setState(() => _isPreventivo = v)),
-              ],
-            ),
-            TextField(controller: _tagCtrl, decoration: const InputDecoration(labelText: "Otras etiquetas (opcional)", hintText: "Ej: Rodamiento, Limpieza...", isDense: true)),
-            const SizedBox(height: 15),
-            const Divider(),
-
-            if (_imagePath != null) ...[
-              SizedBox(height: 300, child: Image.file(File(_imagePath!), fit: BoxFit.contain)),
-              const SizedBox(height: 10),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                ElevatedButton.icon(icon: const Icon(Icons.edit), label: const Text("DIBUJAR"), onPressed: _openEditor),
-                const SizedBox(width: 10),
-                ElevatedButton.icon(icon: const Icon(Icons.delete), label: const Text("BORRAR"), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: _borrarFoto),
-              ])
-            ] else ...[
-              // Si no hay foto local, pero hay en server (Pendiente PC)
-              if (widget.serverImageName != null && _imagePath == null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.cloud_download),
-                    label: const Text("DESCARGAR FOTO ORIGINAL PARA EDITAR"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                    onPressed: _descargarParaVer,
-                  ),
-                ),
-
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text("AÑADIR FOTO NUEVA"),
-                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                  onPressed: _takePhoto),
-            ],
-
-            const SizedBox(height: 20),
-
-            if (esTrabajoPC) ...[
-              Row(children: [
-                Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, padding: const EdgeInsets.symmetric(vertical: 15)), onPressed: () => _guardarLocal(false), child: const Text("ACTUALIZAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-                const SizedBox(width: 10),
-                Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 15)), onPressed: () => _guardarLocal(true), child: const Text("TERMINAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-              ])
-            ] else if (widget.esHistorial)
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, minimumSize: const Size.fromHeight(50)),
-              onPressed: () => _guardarLocal(true),
-              child: const Text("GUARDAR CAMBIOS EN HISTÓRICO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-            )
-            else
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, minimumSize: const Size.fromHeight(50)),
-                onPressed: () => _guardarLocal(true),
-                child: Text(widget.esCrearPendiente ? "GUARDAR PENDIENTE" : "GUARDAR", style: const TextStyle(fontWeight: FontWeight.bold)),
-              )
-        ]),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// 6. UTILIDADES Y HERRAMIENTAS
-// ==========================================
-class QRScanScreen extends StatefulWidget {
-  const QRScanScreen({super.key});
-  @override
-  State<QRScanScreen> createState() => _QRScanScreenState();
-}
-
-class _QRScanScreenState extends State<QRScanScreen> {
-  bool _scanned = false;
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Escanear QR del PC")),
-      body: MobileScanner(
-        onDetect: (capture) {
-          if (_scanned) return;
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            if (barcode.rawValue != null) {
-              setState(() => _scanned = true);
-              String raw = barcode.rawValue!;
-              String ip = raw.replaceAll("http://", "").replaceAll("/", "");
-              Navigator.pop(context, ip);
-              break;
-            }
-          }
-        },
-      ),
-    );
-  }
-}
-
-class ImageEditorScreen extends StatefulWidget {
-  final File imageFile;
-  const ImageEditorScreen({super.key, required this.imageFile});
-  @override
-  State<ImageEditorScreen> createState() => _ImageEditorScreenState();
-}
-
-class _ImageEditorScreenState extends State<ImageEditorScreen> {
-  final _controller = ImagePainterController(color: Colors.red, strokeWidth: 4.0, mode: PaintMode.freeStyle);
-  bool _guardando = false;
-  @override
-  void initState() { super.initState(); SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
-  @override
-  void dispose() { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]); super.dispose(); }
-  Future<void> _guardarImagen() async {
-    if (_guardando) return;
-    setState(() => _guardando = true);
-    try {
-      final bytes = await _controller.exportImage();
-      if (bytes != null) { await widget.imageFile.writeAsBytes(bytes); if (mounted) Navigator.pop(context, true); }
-    } catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error al guardar: $e"), backgroundColor: Colors.red)); } finally { if (mounted) setState(() => _guardando = false); }
-  }
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => !_guardando,
-      child: Scaffold(
-        backgroundColor: Colors.grey[900],
-        appBar: AppBar(
-          backgroundColor: Colors.grey[900],
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(_guardando ? "Guardando..." : "Dibujar / Marcar", style: const TextStyle(color: Colors.white)),
-          actions: [
-            if (_guardando) const Padding(padding: EdgeInsets.all(16.0), child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.greenAccent)))
-              else IconButton(icon: const Icon(Icons.check, color: Colors.greenAccent, size: 30), onPressed: _guardarImagen)
-          ],
-        ),
-        body: _guardando ? const Center(child: CircularProgressIndicator(color: Colors.greenAccent)) : ImagePainter.file(widget.imageFile, controller: _controller, scalable: true),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// 7. PESTAÑA AVISOS
-// ==========================================
-class TabAvisos extends StatefulWidget {
-  const TabAvisos({super.key});
-  @override
-  State<TabAvisos> createState() => _TabAvisosState();
-}
-
+class TabAvisos extends StatefulWidget { const TabAvisos({super.key}); @override State<TabAvisos> createState() => _TabAvisosState(); }
 class _TabAvisosState extends State<TabAvisos> {
   List<AvisoPC> _avisos = [];
+  List<Map<String, String>> _colaCompletados = [];
+  List<String> _colaRestaurar = [];
+  bool _cargando = false; String? _urlPC;
 
-  // --- COLAS OFFLINE ---
-  List<Map<String, String>> _colaCompletados = []; // Para poner en verde
-  List<String> _colaRestaurar = [];                // Para poner en rojo (descompletar)
-
-  bool _cargando = false;
-  String? _urlPC;
-
-  @override
-  void initState() {
-    super.initState();
-    _inicializar();
-  }
-
+  @override void initState() { super.initState(); _inicializar(); }
   Future<void> _inicializar() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
 
-    // 1. Cargar Colas Offline
-    String? colaComp = prefs.getString('avisos_cola_completados');
-    if (colaComp != null) _colaCompletados = List<Map<String, String>>.from(json.decode(colaComp));
-
-    String? colaRest = prefs.getString('avisos_cola_restaurar');
-    if (colaRest != null) _colaRestaurar = List<String>.from(json.decode(colaRest));
-
-    // 2. Cargar Datos Cacheados (Visualización inmediata)
-    String? cache = prefs.getString('avisos_cache');
-    if (cache != null) {
-      try {
-        final List<dynamic> data = json.decode(cache);
-        setState(() => _avisos = data.map((x) => AvisoPC.fromJson(x)).toList());
-      } catch (e) {}
+    // CORRECCIÓN CRÍTICA DE TIPOS
+    String? cc = prefs.getString('avisos_cola_completados');
+    if (cc != null) {
+      List<dynamic> dec = json.decode(cc);
+      _colaCompletados = dec.map((e) => Map<String, String>.from(e)).toList();
     }
 
-    // 3. Si hay red, sincronizamos
+    String? cr = prefs.getString('avisos_cola_restaurar');
+    if (cr != null) _colaRestaurar = List<String>.from(json.decode(cr));
+
+    if (prefs.getString('avisos_cache') != null) {
+      try {
+        final List<dynamic> d = json.decode(prefs.getString('avisos_cache')!);
+        setState(() => _avisos = d.map((x) => AvisoPC.fromJson(x)).toList());
+      } catch (e) { /* */ }
+    }
     if (_urlPC != null) _sincronizar();
   }
-
   Future<void> _guardarColas() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('avisos_cola_completados', json.encode(_colaCompletados));
     await prefs.setString('avisos_cola_restaurar', json.encode(_colaRestaurar));
   }
-
   Future<void> _sincronizar() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? ip = prefs.getString('pc_ip_url'); // Leer IP fresca
+    if (ip != null) _urlPC = ip;
     if (_urlPC == null) return;
     if (!mounted) return;
     setState(() => _cargando = true);
 
-    // PASO A: Procesar RESTAURACIONES (Desmarcar en servidor)
-    List<String> restauradosOk = [];
-    for (var id in _colaRestaurar) {
-      try {
-        final res = await http.post(
-          Uri.parse("http://$_urlPC/api/descompletar_aviso"),
-          body: {'id': id}
-        ).timeout(const Duration(seconds: 5));
+    List<String> ro = []; for (var id in _colaRestaurar) { try { if ((await http.post(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { if ((await http.post(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
-        if (res.statusCode == 200) restauradosOk.add(id);
-      } catch (e) {
-        print("Error restaurando: $e");
-      }
-    }
-
-    // PASO B: Procesar COMPLETADOS (Marcar en servidor)
-    List<Map<String, String>> completadosOk = [];
-    for (var item in _colaCompletados) {
-      try {
-        final res = await http.post(
-          Uri.parse("http://$_urlPC/api/completar_aviso"),
-          body: {
-            'id': item['id'],
-            'titulo': item['titulo'],
-            'fecha_custom': item['fecha']
-          }
-        ).timeout(const Duration(seconds: 5));
-
-        if (res.statusCode == 200) completadosOk.add(item);
-      } catch (e) {
-        print("Error completando: $e");
-      }
-    }
-
-    // Limpieza de colas locales
-    if (restauradosOk.isNotEmpty || completadosOk.isNotEmpty) {
-      setState(() {
-        for (var id in restauradosOk) _colaRestaurar.remove(id);
-        for (var item in completadosOk) _colaCompletados.remove(item);
-      });
-        await _guardarColas();
-    }
-
-    // PASO C: Descargar estado actualizado
+    if (ro.isNotEmpty || co.isNotEmpty) { setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); }); await _guardarColas(); }
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
-        final List<dynamic> data = json.decode(res.body);
-        setState(() => _avisos = data.map((x) => AvisoPC.fromJson(x)).toList());
-
-        // Actualizar caché
-        final prefs = await SharedPreferences.getInstance();
+        final List<dynamic> d = json.decode(res.body);
+        setState(() => _avisos = d.map((x) => AvisoPC.fromJson(x)).toList());
         await prefs.setString('avisos_cache', res.body);
       }
-    } catch (e) {
-      // Si falla, seguimos con lo local
-    } finally {
-      if (mounted) setState(() => _cargando = false);
-    }
+    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
   }
-
-  // --- ACCIÓN: COMPLETAR (Botón Verde) ---
-  Future<void> _completarAviso(AvisoPC aviso) async {
-    // Si el usuario le dio a "Desmarcar" offline y ahora se arrepiente,
-    // simplemente quitamos la orden de desmarcar.
-    if (_colaRestaurar.contains(aviso.id.toString())) {
-      setState(() => _colaRestaurar.remove(aviso.id.toString()));
-      await _guardarColas();
-      return; // No hace falta sincronizar urgente, visualmente ya vuelve a ser verde
-    }
-
-    bool? confirmar = await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Confirmar"),
-        content: Text("¿Marcar '${aviso.titulo}' como completado?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("SÍ", style: TextStyle(color: Colors.white))
-          ),
-        ],
-      )
-    );
-
-    if (confirmar != true) return;
-
-    final fechaHoy = DateTime.now().toString().split(' ')[0];
-
-    // Añadir a cola de subida
-    setState(() => _colaCompletados.add({
-      'id': aviso.id.toString(),
-      'titulo': aviso.titulo,
-      'fecha': fechaHoy
-    }));
-
-    await _guardarColas();
-    _sincronizar(); // Intentar subir ya
+  Future<void> _completar(AvisoPC a) async {
+    if (_colaRestaurar.contains(a.id.toString())) { setState(() => _colaRestaurar.remove(a.id.toString())); await _guardarColas(); return; }
+    if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Confirmar"), content: Text("¿Marcar '${a.titulo}'?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, true), child: const Text("SÍ", style: TextStyle(color: Colors.white)))])) != true) return;
+    setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0]})); await _guardarColas(); _sincronizar();
   }
-
-  // --- ACCIÓN: DESMARCAR/DESHACER (Botón Rojo/Naranja) ---
-  Future<void> _descompletarAviso(AvisoPC aviso) async {
-    // Si estaba pendiente de subir (verde local), lo quitamos de la cola (Deshacer)
-    if (_colaCompletados.any((item) => item['id'] == aviso.id.toString())) {
-      setState(() {
-        _colaCompletados.removeWhere((item) => item['id'] == aviso.id.toString());
-      });
-      await _guardarColas();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("↩️ Acción deshecha")));
-      return;
-    }
-
-    // Si ya era verde desde el servidor, pedimos confirmación para restaurar
-    bool? confirmar = await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Desmarcar"),
-        content: const Text("¿Volver a poner como PENDIENTE?\nSe borrará del historial."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCELAR")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("DESMARCAR", style: TextStyle(color: Colors.white))
-          ),
-        ],
-      )
-    );
-
-    if (confirmar != true) return;
-
-    // Añadir a cola de restaurar
-    setState(() => _colaRestaurar.add(aviso.id.toString()));
-    await _guardarColas();
-    _sincronizar(); // Intentar subir ya
+  Future<void> _descompletar(AvisoPC a) async {
+    if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("↩️ Deshecho"))); return; }
+    if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("Desmarcar"), content: const Text("¿Volver a pendiente?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCELAR")), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(ctx, true), child: const Text("DESMARCAR", style: TextStyle(color: Colors.white)))])) != true) return;
+    setState(() => _colaRestaurar.add(a.id.toString())); await _guardarColas(); _sincronizar();
   }
-
-  Color _getColor(String code) {
-    switch (code) {
-      case 'red': return Colors.redAccent;
-      case 'green': return Colors.green;
-      case 'blue': return Colors.blue;
-      default: return Colors.grey;
-    }
-  }
-
-  IconData _getIcon(String code) {
-    switch (code) {
-      case 'red': return Icons.warning_amber_rounded;
-      case 'green': return Icons.check_circle_outline;
-      case 'blue': return Icons.calendar_month; // Icono para futuros
-      default: return Icons.info_outline;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     if (_urlPC == null && _avisos.isEmpty) return const Center(child: Text("Conecta el PC para sincronizar"));
-
-    int totalPendientes = _colaCompletados.length + _colaRestaurar.length;
-
+    int p = _colaCompletados.length + _colaRestaurar.length;
     return Scaffold(
-      body: Column(
-        children: [
-          // Barra Naranja de "Pendiente de Subir"
-          if (totalPendientes > 0)
-            Container(
-              width: double.infinity,
-              color: Colors.orangeAccent,
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.cloud_upload, color: Colors.white, size: 16),
-                  const SizedBox(width: 8),
-                  Text("$totalPendientes cambios pendientes", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: _avisos.isEmpty
-              ? const Center(child: Text("No hay avisos"))
-              : RefreshIndicator(
-                onRefresh: _sincronizar,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  itemCount: _avisos.length,
-                  itemBuilder: (ctx, i) {
-                    final a = _avisos[i];
-                    String idStr = a.id.toString();
-
-                    // --- CALCULAR ESTADO VISUAL (Offline First) ---
-                    bool enColaCompletar = _colaCompletados.any((item) => item['id'] == idStr);
-                    bool enColaRestaurar = _colaRestaurar.contains(idStr);
-
-                    String estadoVisual = a.estado;
-                    String colorVisual = a.color;
-
-                    if (enColaCompletar) {
-                      estadoVisual = "LISTO (Subir)";
-                      colorVisual = "green";
-                    } else if (enColaRestaurar) {
-                      estadoVisual = "PENDIENTE (Subir)";
-                      colorVisual = "red";
-                    }
-
-                    // --- SELECCIÓN DE BOTÓN SEGÚN COLOR ---
-                    Widget actionWidget;
-
-                    if (colorVisual == 'green') {
-                      // CASO 1: VERDE (Completado) -> Opción Desmarcar
-                      actionWidget = ActionChip(
-                        avatar: enColaCompletar
-                        ? const Icon(Icons.undo, size: 14, color: Colors.white)
-                        : const Icon(Icons.close, size: 14, color: Colors.white),
-                        label: Text(enColaCompletar ? "Deshacer" : "Desmarcar",
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                    backgroundColor: _getColor(colorVisual),
-                                    onPressed: () => _descompletarAviso(a),
-                                    padding: EdgeInsets.zero,
-                                    visualDensity: VisualDensity.compact,
-                      );
-                    }
-                    else if (colorVisual == 'red') {
-                      // CASO 2: ROJO (Pendiente y Vencido) -> Opción Completar
-                      actionWidget = ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            visualDensity: VisualDensity.compact
-                        ),
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text("Completar"),
-                        onPressed: () => _completarAviso(a),
-                      );
-                    }
-                    else {
-                      // CASO 3: AZUL (Futuro) -> Solo Información (Sin botón)
-                      actionWidget = Chip(
-                        label: Text(estadoVisual,
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                    backgroundColor: _getColor(colorVisual),
-                                    visualDensity: VisualDensity.compact,
-                                    padding: EdgeInsets.zero,
-                      );
-                    }
-
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      shape: RoundedRectangleBorder(
-                        side: BorderSide(color: _getColor(colorVisual).withOpacity(0.3), width: 1),
-                        borderRadius: BorderRadius.circular(8)
-                      ),
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: _getColor(colorVisual).withOpacity(0.1),
-                            shape: BoxShape.circle
-                          ),
-                          child: Icon(_getIcon(colorVisual), color: _getColor(colorVisual), size: 24)
-                        ),
-                        title: Text(a.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("Próxima: ${a.rango}", style: const TextStyle(fontSize: 12)),
-                        trailing: actionWidget,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        mini: true,
-        child: _cargando
-        ? const Padding(padding: EdgeInsets.all(10), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-        : Icon(Icons.sync, color: totalPendientes > 0 ? Colors.orange : Colors.white),
-        backgroundColor: totalPendientes > 0 ? Colors.white : Colors.blue,
-        onPressed: _sincronizar,
-      ),
+      body: Column(children: [
+        if (p > 0) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.cloud_upload, color: Colors.white, size: 16), const SizedBox(width: 8), Text("$p cambios pendientes", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
+          Expanded(child: _avisos.isEmpty
+          ? RefreshIndicator(onRefresh: _sincronizar, child: ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), const Center(child:Text("No hay avisos"))]))
+          : RefreshIndicator(onRefresh: _sincronizar, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(10), itemCount: _avisos.length, itemBuilder: (ctx, i) {
+            final a = _avisos[i]; String id = a.id.toString(); bool ec = _colaCompletados.any((x) => x['id'] == id); bool er = _colaRestaurar.contains(id);
+            String st = a.estado; String cl = a.color; if (ec) { st = "LISTO (Subir)"; cl = "green"; } else if (er) { st = "PENDIENTE (Subir)"; cl = "red"; }
+            Color c = cl == 'red' ? Colors.redAccent : (cl == 'green' ? Colors.green : Colors.blue);
+            Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?"Deshacer":"Desmarcar",style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: const Text("Completar"), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
+            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon(cl=='red'?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text(a.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("Próxima: ${a.rango}", style: const TextStyle(fontSize: 12)), trailing: w));
+          }))),
+      ]),
+      floatingActionButton: FloatingActionButton(mini: true, backgroundColor: p>0?Colors.white:Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : Icon(Icons.sync, color: p>0?Colors.orange:Colors.white), onPressed: _sincronizar),
     );
   }
+}
+
+// ==========================================
+// PESTAÑA 4: HISTORIAL
+// ==========================================
+class TabHistorial extends StatefulWidget { const TabHistorial({super.key}); @override State<TabHistorial> createState() => _TabHistorialState(); }
+class _TabHistorialState extends State<TabHistorial> {
+  List<Registro> _registros = []; List<Map<String, dynamic>> _colaEdiciones = [];
+  bool _cargando = false; String? _urlPC; final _searchCtrl = TextEditingController();
+  @override void initState() { super.initState(); _inicializarHistorial(); }
+  Future<void> _inicializarHistorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _urlPC = prefs.getString('pc_ip_url'));
+    if (prefs.getString('historial_cola_ediciones') != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cola_ediciones')!));
+    if (prefs.getString('historial_cache') != null) { try { final List<dynamic> d = json.decode(prefs.getString('historial_cache')!); setState(() => _registros = d.map((i) => Registro.fromJson(i)).toList()); _aplicarCambiosVisuales(); } catch (e) { /* */ } }
+    if (_urlPC != null) { _sincronizarCompleto(); }
+  }
+  Future<void> _sincronizarCompleto() async {
+    final prefs = await SharedPreferences.getInstance(); String? ip = prefs.getString('pc_ip_url'); if (ip != null) _urlPC = ip;
+    if (_urlPC == null) return;
+    await _sincronizarEdiciones(); await _buscar("");
+  }
+  Future<void> _guardarCola() async { final p = await SharedPreferences.getInstance(); await p.setString('historial_cola_ediciones', json.encode(_colaEdiciones)); }
+  void _aplicarCambiosVisuales() {
+    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, imagePath: e['fotoPath'] ?? _registros[i].imagePath); }
+  }
+  Future<void> _sincronizarEdiciones() async {
+    if (_urlPC == null || _colaEdiciones.isEmpty) return;
+    List<Map<String, dynamic>> ok = [];
+    for (var e in _colaEdiciones) {
+      try {
+        var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/editar_historial"));
+        req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
+        if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
+        if ((await req.send()).statusCode == 200) ok.add(e);
+      } catch (e) { /* */ }
+    }
+    if (ok.isNotEmpty) { setState(() { for (var s in ok) _colaEdiciones.remove(s); }); await _guardarCola(); }
+  }
+  Future<void> _buscar(String q) async {
+    final prefs = await SharedPreferences.getInstance(); String? ip = prefs.getString('pc_ip_url'); if (ip != null) _urlPC = ip;
+    if (_urlPC == null) return;
+    setState(() => _cargando = true);
+    try {
+      final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q")).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final List<dynamic> d = json.decode(res.body);
+        List<Registro> news = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], imagePath: i['raw_desc'])).toList();
+        final dir = await getApplicationDocumentsDirectory();
+        for (var r in news) {
+          if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
+        }
+        setState(() => _registros = news); _aplicarCambiosVisuales(); await prefs.setString('historial_cache', json.encode(news.map((r) => r.toJson()).toList()));
+      }
+    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
+  }
+  Future<String> _localPath(String f) async { final d = await getApplicationDocumentsDirectory(); return path.join(d.path, f); }
+  void _edit(Registro r) async {
+    String? lp; var ep = _colaEdiciones.firstWhere((e) => e['id'] == r.id.toString(), orElse: () => {});
+    if (ep.isNotEmpty && ep['fotoPath'] != null) lp = ep['fotoPath']; else if (r.serverImageName != null) { final fp = await _localPath(r.serverImageName!); if (File(fp).existsSync()) lp = fp; }
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp), esHistorial: true, onSave: (re) async {
+      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath};
+      int i = _colaEdiciones.indexWhere((e) => e['id'] == r.id.toString()); if (i != -1) _colaEdiciones[i] = ne; else _colaEdiciones.add(ne);
+      await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado")));
+    })));
+  }
+  @override Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(children: [
+        if (_colaEdiciones.isNotEmpty) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Text("${_colaEdiciones.length} pendientes de subir", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+          Padding(padding: const EdgeInsets.all(8.0), child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: "Buscar historial...", suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)), border: const OutlineInputBorder(), filled: _urlPC == null, fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null), onSubmitted: _buscar)),
+          Expanded(child: RefreshIndicator(onRefresh: _sincronizarCompleto, child: _registros.isEmpty
+          ? ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), const Center(child:Text("Sin historial visible"))])
+          : ListView.builder(itemCount: _registros.length, itemBuilder: (ctx, i) {
+            final r = _registros[i]; Widget w;
+            if (r.imagePath != null && File(r.imagePath!).existsSync() && !r.imagePath!.contains("[")) w = Image.file(File(r.imagePath!), width: 50, height: 50, fit: BoxFit.cover);
+            else if (r.serverImageName != null) w = FutureBuilder<String>(future: _localPath(r.serverImageName!), builder: (c, s) { if (s.hasData && File(s.data!).existsSync()) return Image.file(File(s.data!), width: 50, height: 50, fit: BoxFit.cover); else if (_urlPC != null) return Image.network("http://$_urlPC/api/foto/${r.serverImageName}", width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.red)); else return const Icon(Icons.no_photography, color: Colors.grey); });
+              else w = const Icon(Icons.article, color: Colors.blueGrey);
+              bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
+            return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Text("${r.titulo} | ${r.tags}"), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r)));
+          })))
+      ]),
+      floatingActionButton: FloatingActionButton(mini: true, backgroundColor: Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : const Icon(Icons.sync, color: Colors.white), onPressed: _sincronizarCompleto),
+    );
+  }
+}
+
+// ==========================================
+// FORMULARIO Y QR (COMPACTOS)
+// ==========================================
+class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC}); @override State<FormScreen> createState() => _FormScreenState(); }
+class _FormScreenState extends State<FormScreen> {
+  final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img;
+  bool _u=false, _e=false, _m=false, _p=false;
+  @override void initState() { super.initState();
+    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); }
+  }
+  void _save(bool end) {
+    if (_t.text.isEmpty && !widget.esHistorial) return;
+    List<String> l=[]; if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo"); if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
+    String df = _d.text; if (widget.pendientePC != null) { final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles); if (m != null) df += " ${m.group(0)}"; }
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img);
+    if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
+    if (widget.onUpdate == null || end) Navigator.pop(context);
+  }
+  Future<void> _cam() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _img = n); } }
+  Future<void> _down() async { if (widget.serverImageName!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, widget.serverImageName!); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/${widget.serverImageName}")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
+  @override Widget build(BuildContext context) {
+    return Scaffold(appBar: AppBar(title: Text(widget.esHistorial?"Editar": "Nuevo")), body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
+      if(!widget.esHistorial) TextField(controller: _t, decoration: const InputDecoration(labelText: "Título")), const SizedBox(height: 15),
+        TextField(controller: _d, maxLines: 5, decoration: const InputDecoration(labelText: "Detalles")), const SizedBox(height: 15),
+        Wrap(spacing: 8, children: [FilterChip(label: const Text('🚨 Urgente'), selected: _u, onSelected: (v)=>setState(()=>_u=v)), FilterChip(label: const Text('⚡ Eléctrico'), selected: _e, onSelected: (v)=>setState(()=>_e=v)), FilterChip(label: const Text('⚙️ Mecánico'), selected: _m, onSelected: (v)=>setState(()=>_m=v)), FilterChip(label: const Text('🛡️ Preventivo'), selected: _p, onSelected: (v)=>setState(()=>_p=v))]),
+        TextField(controller: _tag, decoration: const InputDecoration(labelText: "Tags extra")), const SizedBox(height: 15), const Divider(),
+        if (_img != null) ...[SizedBox(height: 300, child: Image.file(File(_img!))), ElevatedButton.icon(icon: const Icon(Icons.delete), label: const Text("BORRAR"), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => setState(() => _img = null))]
+          else ...[if (widget.serverImageName!=null) ElevatedButton.icon(icon: const Icon(Icons.cloud_download), label: const Text("DESCARGAR FOTO"), onPressed: _down), ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _cam)],
+            const SizedBox(height: 20),
+            if (widget.pendientePC != null) Row(children: [Expanded(child: ElevatedButton(onPressed: ()=>_save(false), child: const Text("ACTUALIZAR"))), const SizedBox(width: 10), Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: ()=>_save(true), child: const Text("TERMINAR")))])
+              else ElevatedButton(style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)), onPressed: ()=>_save(true), child: const Text("GUARDAR"))
+    ])));
+  }
+}
+class QRScanScreen extends StatefulWidget { const QRScanScreen({super.key}); @override State<QRScanScreen> createState() => _QRScanScreenState(); }
+class _QRScanScreenState extends State<QRScanScreen> {
+  bool _s = false;
+  @override Widget build(BuildContext context) { return Scaffold(appBar: AppBar(title: const Text("QR")), body: MobileScanner(onDetect: (c) { if (!_s && c.barcodes.isNotEmpty && c.barcodes.first.rawValue!=null) { setState(()=>_s=true); Navigator.pop(context, c.barcodes.first.rawValue!.replaceAll("http://", "").replaceAll("/", "")); } })); }
+}
+class ImageEditorScreen extends StatefulWidget { final File imageFile; const ImageEditorScreen({super.key, required this.imageFile}); @override State<ImageEditorScreen> createState() => _ImageEditorScreenState(); }
+class _ImageEditorScreenState extends State<ImageEditorScreen> {
+  final _c = ImagePainterController(color: Colors.red, strokeWidth: 4.0, mode: PaintMode.freeStyle); bool _g = false;
+  @override void initState() { super.initState(); SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
+  @override void dispose() { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]); super.dispose(); }
+  @override Widget build(BuildContext context) { return WillPopScope(onWillPop: () async => !_g, child: Scaffold(backgroundColor: Colors.black, appBar: AppBar(actions: [IconButton(icon: const Icon(Icons.check), onPressed: () async { setState(()=>_g=true); final b = await _c.exportImage(); if (b!=null) { await widget.imageFile.writeAsBytes(b); if (mounted) Navigator.pop(context, true); } setState(()=>_g=false); })]), body: ImagePainter.file(widget.imageFile, controller: _c, scalable: true))); }
 }
