@@ -63,11 +63,37 @@ class Registro {
   String titulo, detalles, tags;
   String? imagePath;
   String? serverImageName;
+  String? fecha; // <--- NUEVO CAMPO
 
-  Registro({this.id, required this.titulo, required this.detalles, required this.tags, this.imagePath, this.serverImageName});
+  Registro({
+    this.id,
+    required this.titulo,
+    required this.detalles,
+    required this.tags,
+    this.imagePath,
+    this.serverImageName,
+    this.fecha // <--- AÑADIR AL CONSTRUCTOR
+  });
 
-  Map<String, dynamic> toJson() => {'id': id, 'titulo': titulo, 'detalles': detalles, 'tags': tags, 'imagePath': imagePath, 'serverImageName': serverImageName};
-  factory Registro.fromJson(Map<String, dynamic> json) => Registro(id: json['id'], titulo: json['titulo'], detalles: json['detalles'], tags: json['tags'], imagePath: json['imagePath'], serverImageName: json['serverImageName']);
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'titulo': titulo,
+    'detalles': detalles,
+    'tags': tags,
+    'imagePath': imagePath,
+    'serverImageName': serverImageName,
+    'fecha': fecha // <--- AÑADIR A JSON
+  };
+
+  factory Registro.fromJson(Map<String, dynamic> json) => Registro(
+    id: json['id'],
+    titulo: json['titulo'],
+    detalles: json['detalles'],
+    tags: json['tags'],
+    imagePath: json['imagePath'],
+    serverImageName: json['serverImageName'],
+    fecha: json['fecha'] // <--- LEER DE JSON
+  );
 }
 
 class PendientePC {
@@ -289,8 +315,17 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     for (var item in _pendientes) {
       try {
         var req = http.MultipartRequest('POST', uri);
-        req.fields['titulo'] = item.titulo; req.fields['detalles'] = item.detalles; req.fields['tags'] = item.tags;
-        if (item.imagePath != null && File(item.imagePath!).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
+        req.fields['titulo'] = item.titulo;
+        req.fields['detalles'] = item.detalles;
+        req.fields['tags'] = item.tags;
+
+        // --- AÑADIR ESTO ---
+        if (item.fecha != null) req.fields['fecha'] = item.fecha!;
+        // -------------------
+
+        if (item.imagePath != null && File(item.imagePath!).existsSync()) {
+          req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
+        }
         if ((await req.send()).statusCode == 200) enviados.add(item);
       } catch (e) { /* Error */ }
     }
@@ -427,8 +462,14 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     try {
       var r = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/$ep"));
       if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
-      r.fields['titulo'] = d['titulo']; r.fields['detalles'] = d['detalles'];
+      r.fields['titulo'] = d['titulo'];
+      r.fields['detalles'] = d['detalles'];
       if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
+
+      // --- AÑADIR ESTO ---
+      if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
+      // -------------------
+
       if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
       return (await r.send()).statusCode == 200;
     } catch (e) { return false; }
@@ -447,9 +488,27 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       pendientePC: p, fotoInicialPath: fl, serverImageName: fs, urlPC: _urlPC,
       onSave: (r) {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
-        Map<String, dynamic> t = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath};
-        setState(() { _colaSalida.add(t); _listaPC.removeWhere((i) => i.id == p.id); if (ref != null) _fotosLocales.remove(ref); _fotosLocales.remove(p.id.toString()); });
-        _guardarCache(); _sincronizarTodo(silencioso: true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada")));
+
+        // --- AÑADIMOS LA FECHA AL MAPA ---
+        Map<String, dynamic> t = {
+          'id': p.id,
+          'titulo': r.titulo,
+          'detalles': r.detalles,
+          'tags': r.tags,
+          'imagePath': r.imagePath,
+          'fecha': r.fecha // <--- NUEVO
+        };
+        // ---------------------------------
+
+        setState(() {
+          _colaSalida.add(t);
+          _listaPC.removeWhere((i) => i.id == p.id);
+          if (ref != null) _fotosLocales.remove(ref);
+          _fotosLocales.remove(p.id.toString());
+        });
+        _guardarCache();
+        _sincronizarTodo(silencioso: true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Tarea completada")));
       },
       onUpdate: (r) {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
@@ -673,9 +732,37 @@ class _FormScreenState extends State<FormScreen> {
   }
   void _save(bool end) {
     if (_t.text.isEmpty && !widget.esHistorial) return;
-    List<String> l=[]; if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo"); if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
-    String df = _d.text; if (widget.pendientePC != null) { final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles); if (m != null) df += " ${m.group(0)}"; }
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img);
+
+    List<String> l=[];
+    if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo");
+    if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
+
+    String df = _d.text;
+    if (widget.pendientePC != null) {
+      final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles);
+      if (m != null) df += " ${m.group(0)}";
+    }
+
+    // --- CAMBIO AQUÍ: GUARDAR FECHA SI TERMINAMOS ---
+    String? fechaFinal;
+    if (widget.registroExistente?.fecha != null) {
+      fechaFinal = widget.registroExistente!.fecha; // Mantener original si ya existía
+    }
+    if (end) {
+      // Si terminamos ahora, guardamos YYYY-MM-DD
+      fechaFinal = DateTime.now().toString().substring(0, 10);
+    }
+    // -----------------------------------------------
+
+    Registro r = Registro(
+      id: widget.registroExistente?.id,
+      titulo: _t.text,
+      detalles: df,
+      tags: l.join(", "),
+      imagePath: _img,
+      fecha: fechaFinal // <--- PASAR LA FECHA
+    );
+
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }

@@ -380,11 +380,28 @@ class ServidorSincronizacion(QThread):
             try:
                 titulo = request.form.get('titulo', 'Sin Título')
                 detalles = request.form.get('detalles', '')
-                tags = request.form.get('tags', '')
-                filename, ruta = self._procesar_foto(request)
-                self.registro_recibido.emit(titulo, detalles, tags, filename, ruta)
+                tags = request.form.get('tags', 'General')
+
+                # --- LEER FECHA DEL MÓVIL ---
+                fecha_movil = request.form.get('fecha')
+                if fecha_movil:
+                    fecha_final = fecha_movil
+                else:
+                    fecha_final = datetime.now().strftime("%Y-%m-%d")
+                # -----------------------------
+
+                filename, ruta_local = self._procesar_foto(request)
+
+                # Guardar en raw_desc para referencia
+                raw_desc = ruta_local if ruta_local else detalles
+
+                # Insertar en base de datos USANDO fecha_final
+                self.db.agregar_tarea(fecha_final, detalles, tags, raw_desc, filename)
+
+                self.registro_recibido.emit(fecha_final, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
                 return jsonify({"status": "ok"})
-            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/pendientes', methods=['GET'])
         def api_get_pendientes():
@@ -398,29 +415,31 @@ class ServidorSincronizacion(QThread):
             except Exception as e: return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/completar_pendiente', methods=['POST'])
-        def api_completar():
+        def api_completar_pendiente():
             try:
-                id_p = request.form.get('id')
+                id_pend = request.form.get('id')
                 titulo = request.form.get('titulo')
-                detalles_finales = request.form.get('detalles')
+                detalles = request.form.get('detalles')
                 tags = request.form.get('tags', '')
-                filename, ruta_foto = self._procesar_foto(request)
 
-                fecha = datetime.now().strftime("%Y-%m-%d")
+                # --- LEER FECHA DEL MÓVIL ---
+                fecha_movil = request.form.get('fecha')
+                fecha_final = fecha_movil if fecha_movil else datetime.now().strftime("%Y-%m-%d")
+                # ----------------------------
 
-                if filename and detalles_finales:
-                    detalles_finales = re.sub(r"\[FOTO:.*?\]", "", detalles_finales).strip()
-
-                full_desc = titulo
-                if detalles_finales: full_desc += f"\n{detalles_finales}"
-                if filename: full_desc += f"\n[FOTO: {filename}]"
+                filename, ruta_local = self._procesar_foto(request)
+                if filename:
+                    detalles += f"\n[FOTO: {filename}]"
 
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
-                c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)', (fecha, full_desc, tags))
 
-                if id_p:
-                    c.execute('DELETE FROM pendientes WHERE id=?', (id_p,))
+                # Borrar de pendientes
+                c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
+
+                # Insertar en historial con LA FECHA DEL MÓVIL
+                c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
+                          (fecha_final, detalles, tags))
 
                 conn.commit()
                 conn.close()
