@@ -37,6 +37,38 @@ from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
 from PyQt6.QtGui import (QAction, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel)
 
+# Función auxiliar para conectar de forma SEGURA
+def get_db_connection(db_path):
+    conn = sqlite3.connect(db_path, timeout=20) # 20 segundos de espera antes de dar error
+    conn.row_factory = sqlite3.Row
+    # ACTIVAR MODO WAL: Esto es vital para evitar lo que te ha pasado
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
+
+# --- FUNCIÓN PARA REPARAR LA BASE DE DATOS AUTOMÁTICAMENTE ---
+def reparar_base_datos(db_path):
+    print(f"Verificando estructura de BD en: {db_path}")
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # 1. Intentar añadir columna 'raw_desc' si falta
+    try:
+        c.execute("ALTER TABLE tareas ADD COLUMN raw_desc TEXT")
+        print("🔧 REPARACIÓN: Columna 'raw_desc' añadida con éxito.")
+    except sqlite3.OperationalError:
+        pass # La columna ya existe, no hacemos nada
+
+    # 2. Intentar añadir columna 'foto' si falta (por seguridad)
+    try:
+        c.execute("ALTER TABLE tareas ADD COLUMN foto TEXT")
+        print("🔧 REPARACIÓN: Columna 'foto' añadida con éxito.")
+    except sqlite3.OperationalError:
+        pass
+
+    conn.commit()
+    conn.close()
+
 # ==========================================
 # GESTIÓN DE RUTAS (INTELIGENTE)
 # ==========================================
@@ -391,16 +423,21 @@ class ServidorSincronizacion(QThread):
                 # -----------------------------
 
                 filename, ruta_local = self._procesar_foto(request)
-
-                # Guardar en raw_desc para referencia
                 raw_desc = ruta_local if ruta_local else detalles
 
-                # Insertar en base de datos USANDO fecha_final
-                self.db.agregar_tarea(fecha_final, detalles, tags, raw_desc, filename)
+                # Usamos el bloque with para asegurar el guardado
+                with get_db_connection(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    # Nota: Asegúrate de que tu método agregar_tarea en BaseDatos use también commit,
+                    # o haz el insert directamente aquí:
+                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto) VALUES (?,?,?,?,?)',
+                                   (fecha_final, detalles, tags, raw_desc, filename))
+                    conn.commit()
 
                 self.registro_recibido.emit(fecha_final, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
                 return jsonify({"status": "ok"})
             except Exception as e:
+                print(f"Error api_upload: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/pendientes', methods=['GET'])
@@ -431,22 +468,17 @@ class ServidorSincronizacion(QThread):
                 if filename:
                     detalles += f"\n[FOTO: {filename}]"
 
-                conn = sqlite3.connect(self.db_path)
-                c = conn.cursor()
-
-                # Borrar de pendientes
-                c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
-
-                # Insertar en historial con LA FECHA DEL MÓVIL
-                c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
-                          (fecha_final, detalles, tags))
-
-                conn.commit()
-                conn.close()
+                with get_db_connection(self.db_path) as conn:
+                    c = conn.cursor()
+                    c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
+                              (fecha_final, detalles, tags))
+                    conn.commit()
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
+                print(f"Error completar_pendiente: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/agregar_pendiente', methods=['POST'])
@@ -1812,37 +1844,34 @@ class MaintenanceApp(QMainWindow):
             rango = f"{ocurrencia.toString('dd/MM')} - {fin_ocurrencia.toString('dd/MM')}"
             self.table_avisos.setItem(r, 3, QTableWidgetItem(rango))
             self.table_avisos.setItem(r, 4, QTableWidgetItem(estado_txt))
+
     def tog_aviso(self, id_aviso, fecha_ocurrencia, estado, titulo):
-        # 1. Actualizar el estado del aviso (fecha de última completada)
+        # Actualizar fecha última completada
         self.db.marcar_aviso_completado(id_aviso, fecha_ocurrencia, estado)
 
         desc_historial = f"Mantenimiento Preventivo: {titulo}"
 
         if estado:
-            # --- CASO 1: MARCADO (Hecho) -> AÑADIR AL HISTORIAL ---
+            # MARCADO -> Añadir al historial
             tags = "Preventivo, Aviso Recurrente"
-            # Usamos fecha_ocurrencia para que coincida exactamente con la casilla pulsada
             self.db.agregar_tarea(fecha_ocurrencia, desc_historial, tags)
             self.statusBar().showMessage(f"✅ Guardado en historial: {titulo}", 3000)
-
         else:
-            # --- CASO 2: DESMARCADO (Deshacer) -> BORRAR DEL HISTORIAL ---
+            # DESMARCADO -> Borrar del historial
             try:
-                # Conectamos manualmente para borrar específico por fecha y nombre
-                conn = self.db.conectar()
-                c = conn.cursor()
-                c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_ocurrencia, desc_historial))
-                conn.commit()
-                conn.close()
+                with get_db_connection(self.db.db_name) as conn:
+                    c = conn.cursor()
+                    c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_ocurrencia, desc_historial))
+                    conn.commit()
                 self.statusBar().showMessage(f"🗑️ Eliminado del historial: {titulo}", 3000)
             except Exception as e:
-                print(f"Error borrando del historial: {e}")
+                print(f"Error borrando historial: {e}")
 
-        # Refrescamos todas las vistas para que desaparezca la línea del historial al instante
         self.refresh_avisos()
         self.update_calendar_list()
         self.refresh_history()
         self.refresh_dashboard()
+
     def del_aviso(self):
         r = self.table_avisos.currentRow()
         if r >= 0:
@@ -2449,16 +2478,22 @@ if __name__ == "__main__":
         app_icon = QIcon(ruta_icono)
         app.setWindowIcon(app_icon)
 
-    # --- 2. INSTANCIAR VENTANA PRINCIPAL ---
-    # Recuerda usar el nombre real de tu clase (VentanaPrincipal o MainWindow)
+    # --- 2. REPARACIÓN DE BASE DE DATOS (CRÍTICO) ---
+    # Esto es lo que faltaba. Sin esto, no se crea la columna 'raw_desc' y falla el sync.
+    try:
+        ruta_db = os.path.join(DATA_DIR, "mantenimiento.db")
+        reparar_base_datos(ruta_db)
+        print(f"✅ Base de datos verificada en: {ruta_db}")
+    except Exception as e:
+        print(f"❌ Error verificando BD: {e}")
+
+    # --- 3. INSTANCIAR VENTANA PRINCIPAL ---
     try:
         ventana = MaintenanceApp()
     except NameError:
-        # Fallback por si tu clase tiene otro nombre
-        # ventana = VentanaPrincipal()
         print("Error: Revisa el nombre de la clase de la ventana principal.")
 
-    # --- 3. SPLASH SCREEN ESTÁTICO (Compatible con Wayland) ---
+    # --- 4. SPLASH SCREEN ESTÁTICO (Compatible con Wayland) ---
     if os.path.exists(ruta_logo):
         pixmap = QPixmap(ruta_logo)
 
@@ -2468,7 +2503,7 @@ if __name__ == "__main__":
 
         # Creamos el Splash normal
         splash = QSplashScreen(pixmap, Qt.WindowType.WindowStaysOnTopHint)
-        splash.show() # Se muestra de golpe (sin fade-in, sin errores)
+        splash.show()
 
         # Función para cerrar splash y abrir app
         def iniciar_programa():

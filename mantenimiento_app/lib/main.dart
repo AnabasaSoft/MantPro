@@ -63,7 +63,7 @@ class Registro {
   String titulo, detalles, tags;
   String? imagePath;
   String? serverImageName;
-  String? fecha; // <--- NUEVO CAMPO
+  String? fecha; // Nuevo campo fecha
 
   Registro({
     this.id,
@@ -72,7 +72,7 @@ class Registro {
     required this.tags,
     this.imagePath,
     this.serverImageName,
-    this.fecha // <--- AÑADIR AL CONSTRUCTOR
+    this.fecha
   });
 
   Map<String, dynamic> toJson() => {
@@ -82,7 +82,7 @@ class Registro {
     'tags': tags,
     'imagePath': imagePath,
     'serverImageName': serverImageName,
-    'fecha': fecha // <--- AÑADIR A JSON
+    'fecha': fecha
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -92,7 +92,7 @@ class Registro {
     tags: json['tags'],
     imagePath: json['imagePath'],
     serverImageName: json['serverImageName'],
-    fecha: json['fecha'] // <--- LEER DE JSON
+    fecha: json['fecha']
   );
 }
 
@@ -307,7 +307,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
   void _editarRegistro(int index, Registro r) { setState(() => _pendientes[index] = r); _guardarDatos(); }
   Future<void> _sincronizar([String? nuevaUrl]) async {
     final prefs = await SharedPreferences.getInstance();
-    String? urlUsar = nuevaUrl ?? prefs.getString('pc_ip_url'); // Leer IP fresca
+    String? urlUsar = nuevaUrl ?? prefs.getString('pc_ip_url');
     if (urlUsar == null) return;
     setState(() => _cargando = true);
     final uri = Uri.parse("http://$urlUsar/api/upload");
@@ -319,9 +319,9 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         req.fields['detalles'] = item.detalles;
         req.fields['tags'] = item.tags;
 
-        // --- AÑADIR ESTO ---
+        // --- ENVÍO FECHA ---
         if (item.fecha != null) req.fields['fecha'] = item.fecha!;
-        // -------------------
+        // ------------------
 
         if (item.imagePath != null && File(item.imagePath!).existsSync()) {
           req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
@@ -466,11 +466,13 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       r.fields['detalles'] = d['detalles'];
       if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
 
-      // --- AÑADIR ESTO ---
+      // --- ENVÍO DE FECHA ---
       if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
-      // -------------------
+      // ---------------------
 
-      if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
+      if (d['imagePath'] != null && File(d['imagePath']).existsSync()) {
+        r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
+      }
       return (await r.send()).statusCode == 200;
     } catch (e) { return false; }
   }
@@ -489,16 +491,16 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       onSave: (r) {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
 
-        // --- AÑADIMOS LA FECHA AL MAPA ---
+        // --- AÑADIMOS FECHA ---
         Map<String, dynamic> t = {
           'id': p.id,
           'titulo': r.titulo,
           'detalles': r.detalles,
           'tags': r.tags,
           'imagePath': r.imagePath,
-          'fecha': r.fecha // <--- NUEVO
+          'fecha': r.fecha
         };
-        // ---------------------------------
+        // ---------------------
 
         setState(() {
           _colaSalida.add(t);
@@ -514,30 +516,86 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
         if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
         Map<String, dynamic> t = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath};
-        setState(() { _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString()); _colaEdiciones.add(t); int i = _listaPC.indexWhere((x) => x.id == p.id); if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles); });
-        _guardarCache(); _sincronizarTodo(silencioso: true); Navigator.pop(context);
+        setState(() {
+          _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
+          _colaEdiciones.add(t);
+          int i = _listaPC.indexWhere((x) => x.id == p.id);
+          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles);
+        });
+          _guardarCache();
+          _sincronizarTodo(silencioso: true);
+          Navigator.pop(context);
       })));
   }
   @override Widget build(BuildContext context) {
     bool off = _urlPC == null;
     return Scaffold(
-      body: Column(children: [
-        Expanded(child: _listaPC.isEmpty
-        ? RefreshIndicator(onRefresh: _sincronizarTodo, child: ListView(children: [SizedBox(height:MediaQuery.of(context).size.height*0.3), Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey), const SizedBox(height: 10), const Text("No hay tareas pendientes"), if (off) TextButton.icon(icon: const Icon(Icons.qr_code), label: const Text("Vincular PC"), onPressed: _escanearQR)]))]))
-        : RefreshIndicator(onRefresh: _sincronizarTodo, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), itemCount: _listaPC.length, itemBuilder: (ctx, i) {
-          final item = _listaPC[i]; String? fl = _obtenerRutaFoto(item); String? fs = _obtenerFotoServer(item);
-          String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (limpio.isEmpty) limpio = "Sin detalles";
-          Widget ico; if (fl != null) ico = Image.file(File(fl), width: 50, height: 50, fit: BoxFit.cover); else if (fs != null) ico = Container(width:50,height:50,color:Colors.blue.withOpacity(0.1),child:const Icon(Icons.cloud_download,color:Colors.blue)); else ico = CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2), child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary));
-          bool ed = _colaEdiciones.any((e) => e['id'] == item.id.toString());
-          return Card(margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: ico), title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis), onTap: () => _abrirGestionar(item), trailing: ed ? const Icon(Icons.cloud_upload, color: Colors.orange) : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id))));
-        }))),
-      ]),
-      floatingActionButton: FloatingActionButton.extended(backgroundColor: Theme.of(context).colorScheme.secondary, foregroundColor: Colors.white, icon: const Icon(Icons.add_task), label: const Text("AÑADIR"), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
-        String ru = DateTime.now().millisecondsSinceEpoch.toString(); if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
-        String d = "${r.detalles} [REF:$ru]"; Map<String, dynamic> t = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath};
-        setState(() => _colaNuevos.add(t)); setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d)));
-        _guardarCache(); _sincronizarTodo(silencioso: true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Pendiente creado")));
-      })))),
+      body: Column(
+        children: [
+          Expanded(
+            child: _listaPC.isEmpty
+            ? RefreshIndicator(
+              onRefresh: () => _sincronizarTodo(),
+              child: ListView(children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey),
+                  const SizedBox(height: 10),
+                  const Text("No hay tareas pendientes"),
+                  if (off) TextButton.icon(icon: const Icon(Icons.qr_code), label: const Text("Vincular PC"), onPressed: _escanearQR)
+                ]))
+              ]))
+            : RefreshIndicator(
+              onRefresh: () => _sincronizarTodo(),
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: _listaPC.length,
+                itemBuilder: (ctx, i) {
+                  final item = _listaPC[i];
+                  String? fl = _obtenerRutaFoto(item);
+                  String? fs = _obtenerFotoServer(item);
+                  String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
+                  if (limpio.isEmpty) limpio = "Sin detalles";
+
+                  Widget ico;
+                  if (fl != null) ico = Image.file(File(fl), width: 50, height: 50, fit: BoxFit.cover);
+                  else if (fs != null) ico = Container(width:50,height:50,color:Colors.blue.withOpacity(0.1),child:const Icon(Icons.cloud_download,color:Colors.blue));
+                  else ico = CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2), child: Icon(Icons.build, color: Theme.of(context).colorScheme.secondary));
+
+                  bool ed = _colaEdiciones.any((e) => e['id'] == item.id.toString());
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: ListTile(
+                      leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: ico),
+                      title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      onTap: () => _abrirGestionar(item),
+                      trailing: ed ? const Icon(Icons.cloud_upload, color: Colors.orange) : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id))
+                    )
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_task),
+          label: const Text("AÑADIR"),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
+            String ru = DateTime.now().millisecondsSinceEpoch.toString();
+            if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
+            String d = "${r.detalles} [REF:$ru]";
+            Map<String, dynamic> t = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath};
+            setState(() => _colaNuevos.add(t));
+            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d)));
+            _guardarCache();
+            _sincronizarTodo(silencioso: true);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Pendiente creado")));
+          }))),
+      ),
     );
   }
   void _borrar(int id) async { if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text("¿Borrar?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("NO")), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("SÍ", style: TextStyle(color: Colors.red)))])) == true) { setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); }); _guardarCache(); _sincronizarTodo(silencioso: true); } }
@@ -732,37 +790,20 @@ class _FormScreenState extends State<FormScreen> {
   }
   void _save(bool end) {
     if (_t.text.isEmpty && !widget.esHistorial) return;
+    List<String> l=[]; if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo"); if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
+    String df = _d.text; if (widget.pendientePC != null) { final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles); if (m != null) df += " ${m.group(0)}"; }
 
-    List<String> l=[];
-    if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo");
-    if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
-
-    String df = _d.text;
-    if (widget.pendientePC != null) {
-      final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles);
-      if (m != null) df += " ${m.group(0)}";
-    }
-
-    // --- CAMBIO AQUÍ: GUARDAR FECHA SI TERMINAMOS ---
+    // --- CAPTURAR FECHA REAL ---
     String? fechaFinal;
     if (widget.registroExistente?.fecha != null) {
-      fechaFinal = widget.registroExistente!.fecha; // Mantener original si ya existía
+      fechaFinal = widget.registroExistente!.fecha;
     }
     if (end) {
-      // Si terminamos ahora, guardamos YYYY-MM-DD
       fechaFinal = DateTime.now().toString().substring(0, 10);
     }
-    // -----------------------------------------------
+    // ---------------------------
 
-    Registro r = Registro(
-      id: widget.registroExistente?.id,
-      titulo: _t.text,
-      detalles: df,
-      tags: l.join(", "),
-      imagePath: _img,
-      fecha: fechaFinal // <--- PASAR LA FECHA
-    );
-
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, fecha: fechaFinal);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
