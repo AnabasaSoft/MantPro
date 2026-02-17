@@ -152,7 +152,7 @@ class _MainScreenState extends State<MainScreen> {
       onPopInvoked: (didPop) { if (!didPop) _irAPestana(0); },
       child: Scaffold(
         appBar: AppBar(title: Text(titulo), actions: [IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme)]),
-        body: IndexedStack(index: _indiceActual, children: _pantallas),
+        body: _pantallas[_indiceActual],
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _indiceActual,
           type: BottomNavigationBarType.fixed,
