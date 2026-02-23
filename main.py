@@ -425,16 +425,22 @@ class ServidorSincronizacion(QThread):
                 filename, ruta_local = self._procesar_foto(request)
                 raw_desc = ruta_local if ruta_local else detalles
 
+                # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
+                desc_final = titulo
+                if detalles:
+                    desc_final += f"\n{detalles}"
+                if filename:
+                    desc_final += f"\n[FOTO: {filename}]"
+
                 # Usamos el bloque with para asegurar el guardado
                 with get_db_connection(self.db_path) as conn:
                     cursor = conn.cursor()
-                    # Nota: Asegúrate de que tu método agregar_tarea en BaseDatos use también commit,
-                    # o haz el insert directamente aquí:
                     cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto) VALUES (?,?,?,?,?)',
-                                   (fecha_final, detalles, tags, raw_desc, filename))
+                                   (fecha_final, desc_final, tags, raw_desc, filename))
                     conn.commit()
 
-                self.registro_recibido.emit(fecha_final, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
+                # Emitimos la señal pasando el título correcto para la notificación
+                self.registro_recibido.emit(titulo, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
                 return jsonify({"status": "ok"})
             except Exception as e:
                 print(f"Error api_upload: {e}")
@@ -1452,11 +1458,9 @@ class MaintenanceApp(QMainWindow):
 
     def on_registro_recibido(self, titulo, detalles, tags, filename, ruta_foto):
         if self.qr_dialog: self.qr_dialog.accept(); self.qr_dialog = None
-        fecha = QDate.currentDate().toString("yyyy-MM-dd")
-        desc_final = titulo
-        if detalles: desc_final += f"\n{detalles}"
-        if filename: desc_final += f"\n[FOTO: {filename}]"
-        self.db.agregar_tarea(fecha, desc_final, tags)
+
+        # ELIMINADO EL GUARDADO DUPLICADO (self.db.agregar_tarea).
+        # La BD ya se actualizó en la API, así que solo refrescamos la vista:
         self.refresh_all()
         self.statusBar().showMessage(f"📲 Recibido: {titulo}", 4000)
 
