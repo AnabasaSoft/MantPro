@@ -461,8 +461,8 @@ class ServidorSincronizacion(QThread):
         def api_completar_pendiente():
             try:
                 id_pend = request.form.get('id')
-                titulo = request.form.get('titulo')
-                detalles = request.form.get('detalles')
+                titulo = request.form.get('titulo') or "Sin Título"
+                detalles = request.form.get('detalles', '')
                 tags = request.form.get('tags', '')
 
                 # --- LEER FECHA DEL MÓVIL ---
@@ -471,14 +471,21 @@ class ServidorSincronizacion(QThread):
                 # ----------------------------
 
                 filename, ruta_local = self._procesar_foto(request)
+                raw_desc = ruta_local if ruta_local else detalles
+
+                # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
+                desc_final = titulo
+                if detalles:
+                    desc_final += f"\n{detalles}"
                 if filename:
-                    detalles += f"\n[FOTO: {filename}]"
+                    desc_final += f"\n[FOTO: {filename}]"
 
                 with get_db_connection(self.db_path) as conn:
                     c = conn.cursor()
                     c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
-                              (fecha_final, detalles, tags))
+                    # Usamos el INSERT completo para alimentar todas las columnas
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto) VALUES (?,?,?,?,?)',
+                              (fecha_final, desc_final, tags, raw_desc, filename))
                     conn.commit()
 
                 self.pendiente_actualizado.emit()
