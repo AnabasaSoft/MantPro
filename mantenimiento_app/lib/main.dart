@@ -484,6 +484,35 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (_fotosLocales.containsKey(p.id.toString())) return _fotosLocales[p.id.toString()];
     return null;
   }
+  void _editarColaSalida(int index) {
+    var item = _colaSalida[index];
+    Registro reg = Registro(
+      titulo: item['titulo'],
+      detalles: item['detalles'],
+      tags: item['tags'] ?? "General",
+      imagePath: item['imagePath'],
+      fecha: item['fecha']
+    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
+      registroExistente: reg,
+      esHistorial: true,
+      onSave: (r) {
+        setState(() {
+          _colaSalida[index] = {
+            'id': item['id'],
+            'titulo': r.titulo,
+            'detalles': r.detalles,
+            'tags': r.tags,
+            'imagePath': r.imagePath,
+            'fecha': r.fecha
+          };
+        });
+        _guardarCache();
+        _sincronizarTodo(silencioso: true);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Foto añadida al completado")));
+      }
+    )));
+  }
   void _abrirGestionar(PendientePC p) async {
     String? fl = _obtenerRutaFoto(p); String? fs = _obtenerFotoServer(p);
     if (fl != null && !File(fl).existsSync()) fl = null;
@@ -550,9 +579,38 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
               onRefresh: () => _sincronizarTodo(),
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: _listaPC.length,
+                itemCount: _listaPC.length + _colaSalida.length,
                 itemBuilder: (ctx, i) {
-                  final item = _listaPC[i];
+                  if (i < _colaSalida.length) {
+                    final cItem = _colaSalida[i];
+                    Widget wIcon;
+                    if (cItem['imagePath'] != null && File(cItem['imagePath']).existsSync()) {
+                      wIcon = Image.file(File(cItem['imagePath']), width: 50, height: 50, fit: BoxFit.cover);
+                    } else {
+                      wIcon = const Icon(Icons.cloud_upload, color: Colors.green);
+                    }
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      color: Colors.green.withOpacity(0.1),
+                      child: ListTile(
+                        leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: wIcon))),
+                        title: Text(cItem['titulo'], style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
+                        subtitle: const Text("LISTO (Esperando cobertura para subir)", style: TextStyle(color: Colors.green)),
+                        onTap: () => _editarColaSalida(i),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.undo, color: Colors.orange),
+                          onPressed: () {
+                            setState(() {
+                              _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles']));
+                              _colaSalida.removeAt(i);
+                            });
+                            _guardarCache();
+                          }
+                        )
+                      )
+                    );
+                  }
+                  final item = _listaPC[i - _colaSalida.length];
                   String? fl = _obtenerRutaFoto(item);
                   String? fs = _obtenerFotoServer(item);
                   String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
