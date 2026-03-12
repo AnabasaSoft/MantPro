@@ -106,8 +106,9 @@ class PendientePC {
 class AvisoPC {
   int id;
   String titulo, frecuencia, rango, estado, color;
-  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color});
-  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color']);
+  String? rawInicio, rawFin;
+  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin});
+  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin']);
 }
 
 // ==========================================
@@ -630,7 +631,19 @@ class _TabAvisosState extends State<TabAvisos> {
     if (prefs.getString('avisos_cache') != null) {
       try {
         final List<dynamic> d = json.decode(prefs.getString('avisos_cache')!);
-        setState(() => _avisos = d.map((x) => AvisoPC.fromJson(x)).toList());
+        List<AvisoPC> cacheados = d.map((x) => AvisoPC.fromJson(x)).toList();
+
+        // Auto-actualizar estado a rojo si ha llegado la fecha y no hemos sincronizado
+        String hoyStr = DateTime.now().toString().substring(0, 10);
+        for (var a in cacheados) {
+          if (a.rawInicio != null && a.estado == "FUTURO") {
+            if (hoyStr.compareTo(a.rawInicio!) >= 0) {
+              a.estado = "PENDIENTE";
+              a.color = "red";
+            }
+          }
+        }
+        setState(() => _avisos = cacheados);
       } catch (e) { /* */ }
     }
     if (_urlPC != null) _sincronizar();

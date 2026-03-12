@@ -717,7 +717,9 @@ class ServidorSincronizacion(QThread):
                         "frecuencia": freq,
                         "rango": f"{ocurrencia.strftime('%d/%m')} - {fin_ocurrencia.strftime('%d/%m')}",
                         "estado": estado,
-                        "color": color_code
+                        "color": color_code,
+                        "raw_inicio": ocurrencia.strftime("%Y-%m-%d"),
+                        "raw_fin": fin_ocurrencia.strftime("%Y-%m-%d")
                     })
 
                 return jsonify(lista_procesada)
