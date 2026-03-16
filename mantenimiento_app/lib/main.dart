@@ -333,7 +333,23 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     if (mounted) {
       setState(() { _cargando = false; for (var e in enviados) _pendientes.remove(e); });
       _guardarDatos();
-      if (enviados.isNotEmpty) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ ${enviados.length} enviados")));
+      if (enviados.isNotEmpty) {
+        // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
+        try {
+          final resH = await http.get(Uri.parse("http://$urlUsar/api/historial?q=")).timeout(const Duration(seconds: 5));
+          if (resH.statusCode == 200) {
+            final List<dynamic> dH = json.decode(resH.body);
+            List<Map<String, dynamic>> cacheH = dH.map((i) => {
+              'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
+              'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
+            }).toList();
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('historial_cache', json.encode(cacheH));
+          }
+        } catch (_) {}
+        // --------------------------------------------------------------------------
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ ${enviados.length} enviados y registrados")));
+      }
     }
   }
   @override Widget build(BuildContext context) {
@@ -442,6 +458,22 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
 
     await _guardarCache();
+
+    // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
+    if (bo.isNotEmpty || no.isNotEmpty || eo.isNotEmpty || so.isNotEmpty) {
+      try {
+        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=")).timeout(const Duration(seconds: 5));
+        if (resH.statusCode == 200) {
+          final List<dynamic> dH = json.decode(resH.body);
+          List<Map<String, dynamic>> cacheH = dH.map((i) => {
+            'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
+            'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
+          }).toList();
+          await prefs.setString('historial_cache', json.encode(cacheH));
+        }
+      } catch (_) {}
+    }
+    // --------------------------------------------------------------------------
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
@@ -595,7 +627,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                       child: ListTile(
                         leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: wIcon))),
                         title: Text(cItem['titulo'], style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
-                        subtitle: const Text("LISTO (Esperando cobertura para subir)", style: TextStyle(color: Colors.green)),
+                        subtitle: const Text("LISTO (Esperando conexión para subir)", style: TextStyle(color: Colors.green)),
                         onTap: () => _editarColaSalida(i),
                         trailing: IconButton(
                           icon: const Icon(Icons.undo, color: Colors.orange),
@@ -722,7 +754,24 @@ class _TabAvisosState extends State<TabAvisos> {
     List<String> ro = []; for (var id in _colaRestaurar) { try { if ((await http.post(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) { /* */ } }
     List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { if ((await http.post(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
-    if (ro.isNotEmpty || co.isNotEmpty) { setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); }); await _guardarColas(); }
+    if (ro.isNotEmpty || co.isNotEmpty) {
+      setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
+      await _guardarColas();
+
+      // --- NUEVO: Descargar el nuevo historial en segundo plano al marcar avisos ---
+      try {
+        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=")).timeout(const Duration(seconds: 5));
+        if (resH.statusCode == 200) {
+          final List<dynamic> dH = json.decode(resH.body);
+          List<Map<String, dynamic>> cacheH = dH.map((i) => {
+            'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
+            'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
+          }).toList();
+          await prefs.setString('historial_cache', json.encode(cacheH));
+        }
+      } catch (_) {}
+      // -----------------------------------------------------------------------------
+    }
     try {
       final res = await http.get(Uri.parse("http://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
