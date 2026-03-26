@@ -138,3 +138,17 @@ jobs:
         files: |
           dist/MantPro_Linux
           MantPro-Linux-x86_64.AppImage
+
+    # Paso NUEVO 1: Compilar el instalador con Inno Setup
+      - name: Build Windows Installer (Inno Setup)
+        run: |
+          # iscc es el compilador por línea de comandos de Inno Setup
+          iscc mantpro.iss
+
+    # Paso NUEVO 2: Subir el instalador a la Release de GitHub
+      - name: Upload Installer to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: Output/MantPro_Setup_v2.0.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
