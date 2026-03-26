@@ -33,7 +33,6 @@ jobs:
       run: |
         pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=icono.png main.py
 
-    # --- NUEVO: COMPILAR INSTALADOR CON INNO SETUP ---
     - name: Build Windows Installer (Inno Setup)
       shell: bash
       run: |
@@ -63,7 +62,7 @@ jobs:
 
 
   # ------------------------------------------------------------------
-  # JOB 2: LINUX (Binario + AppImage)
+  # JOB 2: LINUX (Binario, AppImage, DEB y RPM)
   # ------------------------------------------------------------------
   build-linux:
     runs-on: ubuntu-22.04
@@ -76,10 +75,11 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Instalar librerías del sistema
+    - name: Instalar librerías del sistema y FPM
       run: |
         sudo apt-get update
-        sudo apt-get install -y libfuse2 file build-essential
+        sudo apt-get install -y libfuse2 file build-essential ruby ruby-dev rubygems rpm
+        sudo gem install fpm
 
     - name: Instalar Dependencias Python
       run: |
@@ -98,7 +98,7 @@ jobs:
         name: MantPro-Linux-Binario
         path: dist/MantPro_Linux
 
-    # --- PASO 3: PREPARAR APPIMAGE ---
+    # --- PASO 3: PREPARAR APPDIR ---
     - name: Preparar AppDir
       run: |
         mkdir -p AppDir/usr/bin
@@ -143,7 +143,38 @@ jobs:
         name: MantPro-Linux-AppImage
         path: MantPro-Linux-x86_64.AppImage
 
-    # --- PASO 5: PUBLICAR AMBOS EN RELEASE ---
+    # --- PASO 5: EMPAQUETAR DEB Y RPM ---
+    - name: Crear paquetes DEB y RPM
+      run: |
+        TAG_NAME=${GITHUB_REF_NAME}
+        CLEAN_VERSION=${TAG_NAME#v}
+        if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
+          CLEAN_VERSION="1.0"
+        fi
+
+        # 1. Preparar una carpeta limpia con la estructura de Linux
+        mkdir -p LinuxPkg/usr/bin
+        mkdir -p LinuxPkg/usr/share/pixmaps
+        mkdir -p LinuxPkg/usr/share/applications
+
+        # 2. Copiar los archivos en sus rutas correctas
+        cp dist/MantPro_Linux LinuxPkg/usr/bin/mantpro
+        cp icono.png LinuxPkg/usr/share/pixmaps/mantpro.png
+        cp AppDir/mantpro.desktop LinuxPkg/usr/share/applications/mantpro.desktop
+
+        # 3. Generar el paquete DEB
+        fpm -s dir -t deb -n mantpro -v "$CLEAN_VERSION" \
+          --maintainer "AnabasaSoft" \
+          --description "Sistema Integral de Mantenimiento Industrial" \
+          -C LinuxPkg .
+
+        # 4. Generar el paquete RPM
+        fpm -s dir -t rpm -n mantpro -v "$CLEAN_VERSION" \
+          --maintainer "AnabasaSoft" \
+          --description "Sistema Integral de Mantenimiento Industrial" \
+          -C LinuxPkg .
+
+    # --- PASO 6: PUBLICAR TODO EN RELEASE ---
     - name: Publicar Linux en Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
@@ -151,3 +182,5 @@ jobs:
         files: |
           dist/MantPro_Linux
           MantPro-Linux-x86_64.AppImage
+          *.deb
+          *.rpm
