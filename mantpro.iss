@@ -1,7 +1,7 @@
 [Setup]
 ; Información básica de la aplicación
 AppName=MantPro
-AppVersion=2.0
+AppVersion={#MyAppVersion}
 AppPublisher=AnabasaSoft
 AppPublisherURL=https://github.com/AnabasaSoft/MantPro
 
@@ -11,7 +11,7 @@ DefaultGroupName=MantPro
 
 ; Configuración del archivo de salida (El instalador)
 OutputDir=.\Output
-OutputBaseFilename=MantPro_Setup_v2.0
+OutputBaseFilename=MantPro_Setup_v{#MyAppVersion}
 SetupIconFile=icono.ico
 
 ; Compresión para que pese menos

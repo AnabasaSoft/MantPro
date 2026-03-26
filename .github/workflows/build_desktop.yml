@@ -35,8 +35,15 @@ jobs:
 
     # --- NUEVO: COMPILAR INSTALADOR CON INNO SETUP ---
     - name: Build Windows Installer (Inno Setup)
+      shell: bash
       run: |
-        iscc mantpro.iss
+        TAG_NAME=${GITHUB_REF_NAME}
+        CLEAN_VERSION=${TAG_NAME#v}
+        # Si ejecutamos manualmente sin tag, le ponemos 0.0 de rescate
+        if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
+          CLEAN_VERSION="0.0"
+        fi
+        iscc /DMyAppVersion="$CLEAN_VERSION" mantpro.iss
 
     - name: Subir EXE (Artefacto)
       uses: actions/upload-artifact@v4
@@ -50,7 +57,7 @@ jobs:
       with:
         files: |
           dist/MantPro_WIN.exe
-          Output/MantPro_Setup_v2.0.exe
+          Output/MantPro_Setup_v*.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
