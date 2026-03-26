@@ -1112,6 +1112,80 @@ class LabelArrastrable(QLabel):
             if ruta.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')): self.archivo_soltado.emit(ruta)
             else: self.setText("Formato no válido"); self.setStyleSheet("border: 2px dashed red; color: red;")
 
+class DialogoDiasEspeciales(QDialog):
+    def __init__(self, db, gestor_festivos, parent=None):
+        super().__init__(parent)
+        self.db = db
+        self.gestor_festivos = gestor_festivos
+        self.setWindowTitle("Gestión de Días Especiales")
+        self.resize(500, 400)
+        layout = QVBoxLayout()
+
+        # Selector de Fecha y Tipo
+        h_top = QHBoxLayout()
+        h_top.addWidget(QLabel("Fecha:"))
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDate(QDate.currentDate())
+        self.date_edit.setDisplayFormat("yyyy-MM-dd")
+        h_top.addWidget(self.date_edit)
+
+        h_top.addWidget(QLabel("Tipo:"))
+        self.combo_tipo = QComboBox()
+        self.combo_tipo.addItems(["Vacaciones", "Puente", "Día Libre", "Festivo (Manual)"])
+        h_top.addWidget(self.combo_tipo)
+
+        btn_add = QPushButton("Añadir")
+        btn_add.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold;")
+        btn_add.clicked.connect(self.add_dia)
+        h_top.addWidget(btn_add)
+
+        layout.addLayout(h_top)
+
+        # Lista de días configurados
+        self.lista = QListWidget()
+        self.lista.setAlternatingRowColors(True)
+        layout.addWidget(self.lista)
+
+        # Botones inferiores
+        h_bot = QHBoxLayout()
+        btn_del = QPushButton("🗑️ Borrar Seleccionado")
+        btn_del.setStyleSheet("background-color: #c0392b; color: white;")
+        btn_del.clicked.connect(self.del_dia)
+        h_bot.addWidget(btn_del)
+
+        btn_close = QPushButton("Cerrar")
+        btn_close.clicked.connect(self.accept)
+        h_bot.addWidget(btn_close)
+
+        layout.addLayout(h_bot)
+
+        self.setLayout(layout)
+        self.refresh_lista()
+
+    def refresh_lista(self):
+        self.lista.clear()
+        dias = self.db.obtener_dias_especiales()
+        # Ordenamos por fecha descendente
+        for fecha in sorted(dias.keys(), reverse=True):
+            tipo = dias[fecha]
+            item = QListWidgetItem(f"📅 {fecha}  ➔  {tipo}")
+            item.setData(Qt.ItemDataRole.UserRole, fecha)
+            self.lista.addItem(item)
+
+    def add_dia(self):
+        f = self.date_edit.date().toString("yyyy-MM-dd")
+        t = self.combo_tipo.currentText()
+        if self.db.marcar_dia_especial(f, t):
+            self.refresh_lista()
+
+    def del_dia(self):
+        row = self.lista.currentRow()
+        if row >= 0:
+            f = self.lista.item(row).data(Qt.ItemDataRole.UserRole)
+            if self.db.borrar_dia_especial(f):
+                self.refresh_lista()
+
 # ==========================================
 # 3. DIÁLOGOS DE INTERFAZ
 # ==========================================
@@ -2472,6 +2546,24 @@ class MaintenanceApp(QMainWindow):
                 if self.db.actualizar_pendiente(pid, nuevo_t, desc_final):
                     self.refresh_todos()
                     self.statusBar().showMessage("✅ Pendiente actualizado", 3000)
+
+import traceback
+
+def manejador_excepciones(exc_type, exc_value, exc_tb):
+    error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    print(error_msg) # Por si lo ejecutas en terminal
+    try:
+        # Intentamos mostrar el error en una ventanita antes de morir
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setWindowTitle("Error Fatal 💥")
+        msg.setText("El programa ha fallado. Dale a 'Show Details' para ver por qué:")
+        msg.setDetailedText(error_msg)
+        msg.exec()
+    except:
+        pass
+
+sys.excepthook = manejador_excepciones
 
 if __name__ == "__main__":
     # YA NO forzamos "xcb", dejamos que Wayland gestione la ventana nativamente
