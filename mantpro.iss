@@ -27,14 +27,14 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el escritorio"; Gr
 [Files]
 ; Aquí le decimos dónde está el .exe que generó PyInstaller
 ; OJO: Asegúrate de que la ruta coincida con donde PyInstaller deja tu ejecutable (suele ser 'dist')
-Source: "dist\MantPro.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\MantPro_WIN.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; Crea el acceso directo en el menú de inicio
-Name: "{group}\MantPro"; Filename: "{app}\MantPro.exe"
+Name: "{group}\MantPro"; Filename: "{app}\MantPro_WIN.exe"
 ; Crea el acceso directo en el escritorio
-Name: "{autodesktop}\MantPro"; Filename: "{app}\MantPro.exe"; Tasks: desktopicon
+Name: "{autodesktop}\MantPro"; Filename: "{app}\MantPro_WIN.exe"; Tasks: desktopicon
 
 [Run]
 ; Casilla opcional al final para "Ejecutar MantPro ahora"
-Filename: "{app}\MantPro.exe"; Description: "Abrir MantPro"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\MantPro_WIN.exe"; Description: "Abrir MantPro"; Flags: nowait postinstall skipifsilent
