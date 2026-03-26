@@ -43,7 +43,7 @@ jobs:
         if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
           CLEAN_VERSION="0.0"
         fi
-        iscc /DMyAppVersion="$CLEAN_VERSION" mantpro.iss
+        iscc //DMyAppVersion="$CLEAN_VERSION" mantpro.iss
 
     - name: Subir EXE (Artefacto)
       uses: actions/upload-artifact@v4
