@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   # ------------------------------------------------------------------
-  # JOB 1: WINDOWS (.exe)
+  # JOB 1: WINDOWS (.exe y Setup)
   # ------------------------------------------------------------------
   build-windows:
     runs-on: windows-latest
@@ -33,23 +33,33 @@ jobs:
       run: |
         pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=icono.png main.py
 
+    # --- NUEVO: COMPILAR INSTALADOR CON INNO SETUP ---
+    - name: Build Windows Installer (Inno Setup)
+      run: |
+        iscc mantpro.iss
+
     - name: Subir EXE (Artefacto)
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Windows-EXE
         path: dist/MantPro_WIN.exe
 
-    - name: Publicar EXE en Release
+    - name: Publicar EXEs en Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: dist/MantPro_WIN.exe
+        files: |
+          dist/MantPro_WIN.exe
+          Output/MantPro_Setup_v2.0.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
   # ------------------------------------------------------------------
   # JOB 2: LINUX (Binario + AppImage)
   # ------------------------------------------------------------------
   build-linux:
-    runs-on: ubuntu-22.04 # Usamos una versión estable para maximizar compatibilidad glibc
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -72,7 +82,6 @@ jobs:
     # --- PASO 1: GENERAR BINARIO STANDALONE ---
     - name: Generar Binario Linux
       run: |
-        # Genera el archivo ejecutable en dist/MantPro_Linux
         pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --name "MantPro_Linux" main.py
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
@@ -88,9 +97,7 @@ jobs:
         mkdir -p AppDir/usr/bin
         mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
-        # Copiamos el binario que acabamos de generar
         cp dist/MantPro_Linux AppDir/usr/bin/mantpro
-
         cp icono.png AppDir/mantpro.png
         cp icono.png AppDir/.DirIcon
 
@@ -121,7 +128,6 @@ jobs:
         chmod +x appimagetool-x86_64.AppImage
         ./appimagetool-x86_64.AppImage --appimage-extract
 
-        # Generar el AppImage final
         ./squashfs-root/AppRun AppDir MantPro-Linux-x86_64.AppImage
 
     - name: Subir AppImage (Artefacto)
@@ -138,18 +144,3 @@ jobs:
         files: |
           dist/MantPro_Linux
           MantPro-Linux-x86_64.AppImage
-
-
-    # Paso NUEVO 1: Compilar el instalador con Inno Setup
-    - name: Build Windows Installer (Inno Setup)
-      run: |
-      # iscc es el compilador por línea de comandos de Inno Setup
-      iscc mantpro.iss
-
-    # Paso NUEVO 2: Subir el instalador a la Release de GitHub
-    - name: Upload Installer to Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: Output/MantPro_Setup_v2.0.exe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
