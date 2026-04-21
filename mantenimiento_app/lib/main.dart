@@ -63,6 +63,8 @@ class Registro {
   String titulo, detalles, tags;
   String? imagePath;
   String? serverImageName;
+  String? imagePathDespues;
+  String? serverImageNameDespues;
   String? fecha; // Nuevo campo fecha
 
   Registro({
@@ -72,6 +74,8 @@ class Registro {
     required this.tags,
     this.imagePath,
     this.serverImageName,
+    this.imagePathDespues,
+    this.serverImageNameDespues,
     this.fecha
   });
 
@@ -82,6 +86,8 @@ class Registro {
     'tags': tags,
     'imagePath': imagePath,
     'serverImageName': serverImageName,
+    'imagePathDespues': imagePathDespues,
+    'serverImageNameDespues': serverImageNameDespues,
     'fecha': fecha
   };
 
@@ -92,6 +98,8 @@ class Registro {
     tags: json['tags'],
     imagePath: json['imagePath'],
     serverImageName: json['serverImageName'],
+    imagePathDespues: json['imagePathDespues'],
+    serverImageNameDespues: json['serverImageNameDespues'],
     fecha: json['fecha']
   );
 }
@@ -327,6 +335,9 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         if (item.imagePath != null && File(item.imagePath!).existsSync()) {
           req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
         }
+        if (item.imagePathDespues != null && File(item.imagePathDespues!).existsSync()) {
+          req.files.add(await http.MultipartFile.fromPath('foto_despues', item.imagePathDespues!));
+        }
         if ((await req.send()).statusCode == 200) enviados.add(item);
       } catch (e) { /* Error */ }
     }
@@ -341,7 +352,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = json.decode(resH.body);
             List<Map<String, dynamic>> cacheH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc']
             }).toList();
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('historial_cache', json.encode(cacheH));
@@ -857,10 +868,11 @@ class _TabHistorialState extends State<TabHistorial> {
       final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
-        List<Registro> news = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], imagePath: i['raw_desc'])).toList();
+        List<Registro> news = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'])).toList();
         final dir = await getApplicationDocumentsDirectory();
         for (var r in news) {
           if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
+            if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
         }
         setState(() => _registros = news); _aplicarCambiosVisuales(); await prefs.setString('historial_cache', json.encode(news.map((r) => r.toJson()).toList()));
       }
@@ -902,11 +914,11 @@ class _TabHistorialState extends State<TabHistorial> {
 // ==========================================
 class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC}); @override State<FormScreen> createState() => _FormScreenState(); }
 class _FormScreenState extends State<FormScreen> {
-  final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img;
+  final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
   @override void initState() { super.initState();
-    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
-    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); }
+    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); }
   }
   void _save(bool end) {
     if (_t.text.isEmpty && !widget.esHistorial) return;
@@ -923,20 +935,33 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, fecha: fechaFinal);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
   Future<void> _cam() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _img = n); } }
   Future<void> _down() async { if (widget.serverImageName!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, widget.serverImageName!); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/${widget.serverImageName}")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
+  Future<void> _camDespues() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_d_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _imgDespues = n); } }
   @override Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(title: Text(widget.esHistorial?"Editar": "Nuevo")), body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       if(!widget.esHistorial) TextField(controller: _t, decoration: const InputDecoration(labelText: "Título")), const SizedBox(height: 15),
         TextField(controller: _d, maxLines: 5, decoration: const InputDecoration(labelText: "Detalles")), const SizedBox(height: 15),
         Wrap(spacing: 8, children: [FilterChip(label: const Text('🚨 Urgente'), selected: _u, onSelected: (v)=>setState(()=>_u=v)), FilterChip(label: const Text('⚡ Eléctrico'), selected: _e, onSelected: (v)=>setState(()=>_e=v)), FilterChip(label: const Text('⚙️ Mecánico'), selected: _m, onSelected: (v)=>setState(()=>_m=v)), FilterChip(label: const Text('🛡️ Preventivo'), selected: _p, onSelected: (v)=>setState(()=>_p=v))]),
         TextField(controller: _tag, decoration: const InputDecoration(labelText: "Tags extra")), const SizedBox(height: 15), const Divider(),
-        if (_img != null) ...[SizedBox(height: 300, child: Image.file(File(_img!))), ElevatedButton.icon(icon: const Icon(Icons.delete), label: const Text("BORRAR"), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => setState(() => _img = null))]
-          else ...[if (widget.serverImageName!=null) ElevatedButton.icon(icon: const Icon(Icons.cloud_download), label: const Text("DESCARGAR FOTO"), onPressed: _down), ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _cam)],
+        Row(
+          children: [
+            Expanded(child: Column(children: [
+              const Text("ANTES", style: TextStyle(fontWeight: FontWeight.bold)),
+              if (_img != null) ...[SizedBox(height: 150, child: Image.file(File(_img!))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _img = null))]
+                else ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _cam)
+            ])),
+            Expanded(child: Column(children: [
+              const Text("DESPUÉS", style: TextStyle(fontWeight: FontWeight.bold)),
+              if (_imgDespues != null) ...[SizedBox(height: 150, child: Image.file(File(_imgDespues!))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _imgDespues = null))]
+                else ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _camDespues)
+            ])),
+          ],
+        ),
             const SizedBox(height: 20),
             if (widget.pendientePC != null) Row(children: [Expanded(child: ElevatedButton(onPressed: ()=>_save(false), child: const Text("ACTUALIZAR"))), const SizedBox(width: 10), Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: ()=>_save(true), child: const Text("TERMINAR")))])
               else ElevatedButton(style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)), onPressed: ()=>_save(true), child: const Text("GUARDAR"))

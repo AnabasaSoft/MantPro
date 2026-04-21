@@ -422,7 +422,8 @@ class ServidorSincronizacion(QThread):
                     fecha_final = datetime.now().strftime("%Y-%m-%d")
                 # -----------------------------
 
-                filename, ruta_local = self._procesar_foto(request)
+                filename, ruta_local = self._procesar_foto(request, 'foto')
+                filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 raw_desc = ruta_local if ruta_local else detalles
 
                 # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
@@ -431,6 +432,8 @@ class ServidorSincronizacion(QThread):
                     desc_final += f"\n{detalles}"
                 if filename:
                     desc_final += f"\n[FOTO: {filename}]"
+                if filename_d:
+                    desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
 
                 # Usamos el bloque with para asegurar el guardado
                 with get_db_connection(self.db_path) as conn:
@@ -470,7 +473,8 @@ class ServidorSincronizacion(QThread):
                 fecha_final = fecha_movil if fecha_movil else datetime.now().strftime("%Y-%m-%d")
                 # ----------------------------
 
-                filename, ruta_local = self._procesar_foto(request)
+                filename, ruta_local = self._procesar_foto(request, 'foto')
+                filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 raw_desc = ruta_local if ruta_local else detalles
 
                 # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
@@ -479,6 +483,8 @@ class ServidorSincronizacion(QThread):
                     desc_final += f"\n{detalles}"
                 if filename:
                     desc_final += f"\n[FOTO: {filename}]"
+                if filename_d:
+                    desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
 
                 with get_db_connection(self.db_path) as conn:
                     c = conn.cursor()
@@ -500,8 +506,10 @@ class ServidorSincronizacion(QThread):
             try:
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
-                filename, ruta_foto = self._procesar_foto(request)
+                filename, ruta_foto = self._procesar_foto(request, 'foto')
+                filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename: detalles += f"\n[FOTO: {filename}]"
+                if filename_d: detalles += f"\n[FOTO_DESPUES: {filename_d}]"
 
                 # Timeout de 10s para esperar si la BD está ocupada
                 conn = sqlite3.connect(self.db_path, timeout=10)
@@ -525,9 +533,12 @@ class ServidorSincronizacion(QThread):
                 detalles = request.form.get('detalles')
 
                 # Gestión de foto nueva si la hubiera
-                filename, ruta = self._procesar_foto(request)
+                filename, ruta = self._procesar_foto(request, 'foto')
+                filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename:
                     detalles += f"\n[FOTO: {filename}]"
+                if filename_d:
+                    detalles += f"\n[FOTO_DESPUES: {filename_d}]"
 
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
@@ -612,11 +623,14 @@ class ServidorSincronizacion(QThread):
                     desc = r[2]
                     foto = None
                     m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
-                    if m:
-                        foto = m.group(1).split("]")[0].strip()
+                    if m: foto = m.group(1).split("]")[0].strip()
+
+                    foto_d = None
+                    m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
+                    if m_d: foto_d = m_d.group(1).split("]")[0].strip()
 
                     # Limpieza visual para el móvil
-                    desc_limpia = re.sub(r"\[FOTO:.*?\]", "", desc)
+                    desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
                     desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
                     resultados.append({
@@ -625,6 +639,7 @@ class ServidorSincronizacion(QThread):
                         "descripcion": desc_limpia,
                         "tags": r[3],
                         "foto": foto,
+                        "foto_d": foto_d,
                         "raw_desc": desc # Necesario para editar
                     })
                 conn.close()
@@ -819,10 +834,13 @@ class ServidorSincronizacion(QThread):
                 tags = request.form.get('tags')
 
                 # Si envían foto nueva, procesarla
-                filename, ruta = self._procesar_foto(request)
+                filename, ruta = self._procesar_foto(request, 'foto')
+                filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename:
                     # Si hay foto nueva, la añadimos a la descripción
                     desc_final += f"\n[FOTO: {filename}]"
+                if filename_d:
+                    desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
 
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
@@ -872,9 +890,9 @@ class ServidorSincronizacion(QThread):
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 
-    def _procesar_foto(self, req):
-        if 'foto' in req.files:
-            file = req.files['foto']
+    def _procesar_foto(self, req, key='foto'):
+        if key in req.files:
+            file = req.files[key]
             if file and file.filename != '':
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 safe_name = re.sub(r'[^a-zA-Z0-9.]', '_', file.filename)
@@ -1231,21 +1249,31 @@ class EditDialog(QDialog):
         l = QVBoxLayout()
         self.de = QDateEdit(); self.de.setDate(QDate.fromString(fecha, "yyyy-MM-dd")); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd")
         l.addWidget(QLabel("Fecha:")); l.addWidget(self.de)
-        texto_limpio, nombre_foto, ref_encontrada = self.separar_datos(desc)
+        texto_limpio, nombre_foto, nombre_foto_d, ref_encontrada = self.separar_datos(desc)
         self.foto_filename = nombre_foto
+        self.foto_despues_filename = nombre_foto_d
         self.ref_oculta = ref_encontrada
         self.te = QTextEdit(); self.te.setText(texto_limpio)
         l.addWidget(QLabel("Descripción:")); l.addWidget(self.te)
-        l.addWidget(QLabel("Foto Adjunta (Arrastra o Click):"))
-        self.lbl_foto = LabelArrastrable()
-        self.lbl_foto.setFixedHeight(200); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.lbl_foto.mousePressEvent = self.abrir_o_buscar
-        self.lbl_foto.archivo_soltado.connect(self.procesar_nueva_foto)
+
+        l.addWidget(QLabel("📸 Fotos (ANTES y DESPUÉS):"))
+        h_fotos = QHBoxLayout()
+        v_antes = QVBoxLayout(); v_antes.addWidget(QLabel("ANTES:"))
+        self.lbl_foto = LabelArrastrable(); self.lbl_foto.setFixedHeight(150); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_foto.mousePressEvent = self.abrir_o_buscar; self.lbl_foto.archivo_soltado.connect(self.procesar_nueva_foto)
+        v_antes.addWidget(self.lbl_foto)
+        btn_foto = QPushButton("📂 Cambiar ANTES"); btn_foto.clicked.connect(self.seleccionar_foto_boton); v_antes.addWidget(btn_foto)
+        h_fotos.addLayout(v_antes)
+
+        v_despues = QVBoxLayout(); v_despues.addWidget(QLabel("DESPUÉS:"))
+        self.lbl_foto_d = LabelArrastrable(); self.lbl_foto_d.setFixedHeight(150); self.lbl_foto_d.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_foto_d.mousePressEvent = self.abrir_o_buscar_d; self.lbl_foto_d.archivo_soltado.connect(self.procesar_nueva_foto_d)
+        v_despues.addWidget(self.lbl_foto_d)
+        btn_foto_d = QPushButton("📂 Cambiar DESPUÉS"); btn_foto_d.clicked.connect(self.seleccionar_foto_boton_d); v_despues.addWidget(btn_foto_d)
+        h_fotos.addLayout(v_despues)
+
+        l.addLayout(h_fotos)
         self.actualizar_vista_foto()
-        l.addWidget(self.lbl_foto)
-        btn_foto = QPushButton("📂 Seleccionar Foto (Botón)")
-        btn_foto.clicked.connect(self.seleccionar_foto_boton)
-        l.addWidget(btn_foto)
         l.addWidget(QLabel("Etiquetas:"))
         h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico")
@@ -1275,38 +1303,54 @@ class EditDialog(QDialog):
         if m_ref: ref = m_ref.group(0); texto = re.sub(r"\[REF:.*?\]", "", texto)
         foto = None; m_foto = re.search(r"\[FOTO:\s*(.*?)\]", texto)
         if m_foto: foto = m_foto.group(1).strip().split("]")[0]; texto = re.sub(r"\[FOTO:.*?\]", "", texto)
-        return texto.strip(), foto, ref
+        foto_d = None; m_foto_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", texto)
+        if m_foto_d: foto_d = m_foto_d.group(1).strip().split("]")[0]; texto = re.sub(r"\[FOTO_DESPUES:.*?\]", "", texto)
+        return texto.strip(), foto, foto_d, ref
     def actualizar_vista_foto(self):
         if self.foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.foto_filename)
             if os.path.exists(ruta):
-                p = QPixmap(ruta)
-                self.lbl_foto.setPixmap(p.scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.lbl_foto.setPixmap(QPixmap(ruta).scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
-            else: self.lbl_foto.setText(f"Error: Falta {self.foto_filename}")
-        else: self.lbl_foto.setText("Arrastra una foto aquí\no haz clic para ampliar/buscar"); self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
+            else: self.lbl_foto.setText(f"Error: {self.foto_filename}")
+        else: self.lbl_foto.setText("Arrastra o click"); self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
+
+        if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename:
+            ruta_d = os.path.join(self.carpeta_fotos, self.foto_despues_filename)
+            if os.path.exists(ruta_d):
+                self.lbl_foto_d.setPixmap(QPixmap(ruta_d).scaled(self.lbl_foto_d.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.lbl_foto_d.setStyleSheet("border: 2px solid #2ecc71;")
+            else: self.lbl_foto_d.setText(f"Error: {self.foto_despues_filename}")
+        else: self.lbl_foto_d.setText("Arrastra o click"); self.lbl_foto_d.setStyleSheet("border: 2px dashed #666; color: #888;")
+
     def abrir_o_buscar(self, event):
-        if self.foto_filename:
-            ruta = os.path.join(self.carpeta_fotos, self.foto_filename)
-            if os.path.exists(ruta): VisorFoto(ruta, self).exec()
+        if self.foto_filename and os.path.exists(os.path.join(self.carpeta_fotos, self.foto_filename)): VisorFoto(os.path.join(self.carpeta_fotos, self.foto_filename), self).exec()
         else: self.seleccionar_foto_boton()
     def seleccionar_foto_boton(self):
         dlg = DialogoSelectorFoto(self)
         if dlg.exec() and dlg.selectedFiles(): self.procesar_nueva_foto(dlg.selectedFiles()[0])
     def procesar_nueva_foto(self, ruta_origen):
         try:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            ext = os.path.splitext(ruta_origen)[1]
-            nuevo = f"pc_drag_{ts}{ext}"
-            destino = os.path.join(self.carpeta_fotos, nuevo)
-            shutil.copy2(ruta_origen, destino)
-            self.foto_filename = nuevo
-            self.actualizar_vista_foto()
+            nuevo = f"pc_drag_{datetime.now().strftime('%Y%m%d_%H%M%S')}{os.path.splitext(ruta_origen)[1]}"; destino = os.path.join(self.carpeta_fotos, nuevo)
+            shutil.copy2(ruta_origen, destino); self.foto_filename = nuevo; self.actualizar_vista_foto()
+        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+
+    def abrir_o_buscar_d(self, event):
+        if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename and os.path.exists(os.path.join(self.carpeta_fotos, self.foto_despues_filename)): VisorFoto(os.path.join(self.carpeta_fotos, self.foto_despues_filename), self).exec()
+        else: self.seleccionar_foto_boton_d()
+    def seleccionar_foto_boton_d(self):
+        dlg = DialogoSelectorFoto(self)
+        if dlg.exec() and dlg.selectedFiles(): self.procesar_nueva_foto_d(dlg.selectedFiles()[0])
+    def procesar_nueva_foto_d(self, ruta_origen):
+        try:
+            nuevo = f"pc_drag_d_{datetime.now().strftime('%Y%m%d_%H%M%S')}{os.path.splitext(ruta_origen)[1]}"; destino = os.path.join(self.carpeta_fotos, nuevo)
+            shutil.copy2(ruta_origen, destino); self.foto_despues_filename = nuevo; self.actualizar_vista_foto()
         except Exception as e: QMessageBox.critical(self, "Error", str(e))
     def get_data(self):
         d = self.te.toPlainText().strip()
         if self.ref_oculta: d += f" {self.ref_oculta}"
         if self.foto_filename: d += f"\n[FOTO: {self.foto_filename}]"
+        if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename: d += f"\n[FOTO_DESPUES: {self.foto_despues_filename}]"
         final_tags = []
         if self.chk_urgente.isChecked(): final_tags.append("Urgente")
         if self.chk_electrico.isChecked(): final_tags.append("Eléctrico")
@@ -1754,6 +1798,7 @@ class MaintenanceApp(QMainWindow):
 
     def init_entry_tab(self):
         self.entry_foto_filename = None
+        self.entry_foto_despues_filename = None
         l = QVBoxLayout(); l.setSpacing(10)
         h_top = QHBoxLayout(); v_date = QVBoxLayout()
         self.ide = QDateEdit(); self.ide.setCalendarPopup(True); self.ide.setDate(QDate.currentDate()); self.ide.setDisplayFormat("yyyy-MM-dd")
@@ -1763,7 +1808,17 @@ class MaintenanceApp(QMainWindow):
         self.lbl_entry_foto.archivo_soltado.connect(self.procesar_foto_entry); self.lbl_entry_foto.mousePressEvent = self.buscar_foto_entry_click
         v_foto.addWidget(self.lbl_entry_foto)
         self.btn_del_foto = QPushButton("❌ Quitar Foto"); self.btn_del_foto.setStyleSheet("background-color: #c0392b; color: white; border-radius: 4px; padding: 2px;"); self.btn_del_foto.setFixedHeight(20); self.btn_del_foto.clicked.connect(self.borrar_foto_entry); self.btn_del_foto.hide()
-        v_foto.addWidget(self.btn_del_foto); h_top.addLayout(v_foto, 60); l.addLayout(h_top)
+        v_foto.addWidget(self.btn_del_foto)
+
+        self.lbl_entry_foto_d = LabelArrastrable(); self.lbl_entry_foto_d.setFixedHeight(100); self.lbl_entry_foto_d.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_entry_foto_d.setText("Arrastra foto DESPUÉS aquí")
+        self.lbl_entry_foto_d.archivo_soltado.connect(self.procesar_foto_entry_d); self.lbl_entry_foto_d.mousePressEvent = self.buscar_foto_entry_click_d
+        v_foto.addWidget(self.lbl_entry_foto_d)
+
+        self.btn_del_foto_d = QPushButton("❌ Quitar Foto Después"); self.btn_del_foto_d.setStyleSheet("background-color: #c0392b; color: white; border-radius: 4px; padding: 2px;"); self.btn_del_foto_d.setFixedHeight(20); self.btn_del_foto_d.clicked.connect(self.borrar_foto_entry_d); self.btn_del_foto_d.hide()
+        v_foto.addWidget(self.btn_del_foto_d)
+
+        h_top.addLayout(v_foto, 60); l.addLayout(h_top)
         self.ire = QLineEdit(); self.ire.setPlaceholderText("Resumen corto del trabajo..."); l.addWidget(QLabel("Resumen / Tarea:")); l.addWidget(self.ire)
         h_qr = QHBoxLayout(); h_qr.addWidget(QLabel("Detalles:")); h_qr.addStretch()
         b_qr = QPushButton("📲 Sincronizar App"); b_qr.setStyleSheet("background-color: #d35400; color: white; padding: 4px 8px;"); b_qr.clicked.connect(self.mostrar_dialogo_qr); h_qr.addWidget(b_qr); l.addLayout(h_qr)
@@ -1778,6 +1833,25 @@ class MaintenanceApp(QMainWindow):
         b_save = QPushButton("💾 GUARDAR REGISTRO"); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
     def borrar_foto_entry(self):
         self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText("Arrastra foto aquí\no click para buscar"); self.lbl_entry_foto.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto.hide()
+    def borrar_foto_entry_d(self):
+        self.entry_foto_despues_filename = None; self.lbl_entry_foto_d.setPixmap(QPixmap()); self.lbl_entry_foto_d.setText("Arrastra foto DESPUÉS aquí"); self.lbl_entry_foto_d.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto_d.hide()
+
+    def buscar_foto_entry_click_d(self, e):
+        if self.entry_foto_despues_filename:
+            ruta = os.path.join(self.carpeta_fotos, self.entry_foto_despues_filename)
+            if os.path.exists(ruta): VisorFoto(ruta, self).exec()
+        else:
+            dlg = DialogoSelectorFoto(self)
+            if dlg.exec() and dlg.selectedFiles(): self.procesar_foto_entry_d(dlg.selectedFiles()[0])
+
+    def procesar_foto_entry_d(self, ruta_origen):
+        try:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S"); ext = os.path.splitext(ruta_origen)[1]
+            nuevo = f"pc_entry_d_{ts}{ext}"; destino = os.path.join(self.carpeta_fotos, nuevo)
+            shutil.copy2(ruta_origen, destino); self.entry_foto_despues_filename = nuevo
+            pix = QPixmap(destino); self.lbl_entry_foto_d.setPixmap(pix.scaled(self.lbl_entry_foto_d.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            self.lbl_entry_foto_d.setStyleSheet("border: 2px solid #2ecc71;"); self.lbl_entry_foto_d.setText(""); self.btn_del_foto_d.show()
+        except Exception as e: QMessageBox.critical(self, "Error", str(e))
     def buscar_foto_entry_click(self, e):
         if self.entry_foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.entry_foto_filename)
@@ -1800,6 +1874,7 @@ class MaintenanceApp(QMainWindow):
         full_desc = r
         if de: full_desc += f"\n{de}"
         if self.entry_foto_filename: full_desc += f"\n[FOTO: {self.entry_foto_filename}]"
+        if self.entry_foto_despues_filename: full_desc += f"\n[FOTO_DESPUES: {self.entry_foto_despues_filename}]"
         lista_tags = []
         if self.chk_urgente.isChecked(): lista_tags.append("Urgente")
         if self.chk_electrico.isChecked(): lista_tags.append("Eléctrico")
@@ -1812,7 +1887,7 @@ class MaintenanceApp(QMainWindow):
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)
             self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False)
-            self.borrar_foto_entry(); self.refresh_all(); self.setup_autocompletado()
+            self.borrar_foto_entry(); self.borrar_foto_entry_d(); self.refresh_all(); self.setup_autocompletado()
     def setup_autocompletado(self):
         d = self.db.obtener_todas_las_descripciones()
         c = QCompleter(d, self); c.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive); c.setFilterMode(Qt.MatchFlag.MatchContains)
