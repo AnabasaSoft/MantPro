@@ -1338,14 +1338,20 @@ class EditDialog(QDialog):
         self.lbl_foto = LabelArrastrable(); self.lbl_foto.setFixedHeight(150); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_foto.mousePressEvent = self.abrir_o_buscar; self.lbl_foto.archivo_soltado.connect(self.procesar_nueva_foto)
         v_antes.addWidget(self.lbl_foto)
-        btn_foto = QPushButton("📂 Cambiar ANTES"); btn_foto.clicked.connect(self.seleccionar_foto_boton); v_antes.addWidget(btn_foto)
+        h_btns_a = QHBoxLayout()
+        btn_foto = QPushButton("📂 Cambiar"); btn_foto.clicked.connect(self.seleccionar_foto_boton); h_btns_a.addWidget(btn_foto)
+        btn_borrar_a = QPushButton("❌ Borrar"); btn_borrar_a.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar_a.clicked.connect(self.borrar_foto_antes); h_btns_a.addWidget(btn_borrar_a)
+        v_antes.addLayout(h_btns_a)
         h_fotos.addLayout(v_antes)
 
         v_despues = QVBoxLayout(); v_despues.addWidget(QLabel("DESPUÉS:"))
         self.lbl_foto_d = LabelArrastrable(); self.lbl_foto_d.setFixedHeight(150); self.lbl_foto_d.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_foto_d.mousePressEvent = self.abrir_o_buscar_d; self.lbl_foto_d.archivo_soltado.connect(self.procesar_nueva_foto_d)
         v_despues.addWidget(self.lbl_foto_d)
-        btn_foto_d = QPushButton("📂 Cambiar DESPUÉS"); btn_foto_d.clicked.connect(self.seleccionar_foto_boton_d); v_despues.addWidget(btn_foto_d)
+        h_btns_d = QHBoxLayout()
+        btn_foto_d = QPushButton("📂 Cambiar"); btn_foto_d.clicked.connect(self.seleccionar_foto_boton_d); h_btns_d.addWidget(btn_foto_d)
+        btn_borrar_d = QPushButton("❌ Borrar"); btn_borrar_d.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar_d.clicked.connect(self.borrar_foto_despues); h_btns_d.addWidget(btn_borrar_d)
+        v_despues.addLayout(h_btns_d)
         h_fotos.addLayout(v_despues)
 
         l.addLayout(h_fotos)
@@ -1422,6 +1428,10 @@ class EditDialog(QDialog):
             nuevo = f"pc_drag_d_{datetime.now().strftime('%Y%m%d_%H%M%S')}{os.path.splitext(ruta_origen)[1]}"; destino = os.path.join(self.carpeta_fotos, nuevo)
             shutil.copy2(ruta_origen, destino); self.foto_despues_filename = nuevo; self.actualizar_vista_foto()
         except Exception as e: QMessageBox.critical(self, "Error", str(e))
+    def borrar_foto_antes(self):
+        self.foto_filename = None; self.actualizar_vista_foto()
+    def borrar_foto_despues(self):
+        self.foto_despues_filename = None; self.actualizar_vista_foto()
     def get_data(self):
         d = self.te.toPlainText().strip()
         if self.ref_oculta: d += f" {self.ref_oculta}"
@@ -1451,7 +1461,9 @@ class DialogoEditarPendiente(QDialog):
         h_center = QHBoxLayout(); h_center.addStretch(); h_center.addWidget(self.lbl_preview); h_center.addStretch(); l.addLayout(h_center)
         h_btns = QHBoxLayout(); self.lbl_nombre = QLabel(""); self.lbl_nombre.setStyleSheet("color: #777; font-size: 10px;"); h_btns.addWidget(self.lbl_nombre); h_btns.addStretch()
         btn_ver = QPushButton("🔍 Ver Grande"); btn_ver.clicked.connect(self.ver_grande); h_btns.addWidget(btn_ver)
-        btn_cambiar = QPushButton("📂 Cambiar Foto"); btn_cambiar.clicked.connect(self.seleccionar_foto); h_btns.addWidget(btn_cambiar); l.addLayout(h_btns)
+        btn_cambiar = QPushButton("📂 Cambiar"); btn_cambiar.clicked.connect(self.seleccionar_foto); h_btns.addWidget(btn_cambiar)
+        btn_borrar = QPushButton("❌ Borrar"); btn_borrar.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar.clicked.connect(self.borrar_foto); h_btns.addWidget(btn_borrar)
+        l.addLayout(h_btns)
         self.actualizar_vista_foto()
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def actualizar_vista_foto(self):
@@ -1468,6 +1480,8 @@ class DialogoEditarPendiente(QDialog):
         if dlg.exec() and dlg.selectedFiles(): self.ruta_foto_seleccionada = dlg.selectedFiles()[0]; self.actualizar_vista_foto()
     def ver_grande(self):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada): VisorFoto(self.ruta_foto_seleccionada, self).exec()
+    def borrar_foto(self):
+        self.ruta_foto_seleccionada = ""; self.actualizar_vista_foto()
     def get_data(self): return self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada
 
 class CompleteDialog(QDialog):
