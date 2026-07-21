@@ -886,6 +886,62 @@ class _TabHistorialState extends State<TabHistorial> {
     } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
   }
   Future<String> _localPath(String f) async { final d = await getApplicationDocumentsDirectory(); return path.join(d.path, f); }
+  Widget? _widgetFoto(String? localPath, String? serverName) {
+    if (localPath != null && File(localPath).existsSync() && !localPath.contains("[")) {
+      return Image.file(File(localPath), width: 50, height: 50, fit: BoxFit.cover);
+    }
+    if (serverName != null) {
+      return FutureBuilder<String>(future: _localPath(serverName), builder: (c, s) {
+        if (s.hasData && File(s.data!).existsSync()) return Image.file(File(s.data!), width: 50, height: 50, fit: BoxFit.cover);
+        else if (_urlPC != null) return Image.network("http://$_urlPC/api/foto/$serverName", width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.red));
+        else return const Icon(Icons.no_photography, color: Colors.grey);
+      });
+    }
+    return null;
+  }
+  Future<bool> _faltaEnPC(String filename) async {
+    try {
+      final r = await http.head(Uri.parse("http://$_urlPC/api/foto/$filename")).timeout(const Duration(seconds: 5));
+      return r.statusCode != 200;
+    } catch (e) { return true; } // si no se puede comprobar, se intenta subir igualmente
+  }
+  Future<bool> _subirFotoRestaurar(String id, String tipo, String rutaLocal) async {
+    try {
+      var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/restaurar_foto"));
+      req.fields['id'] = id; req.fields['tipo'] = tipo;
+      req.files.add(await http.MultipartFile.fromPath(tipo == 'antes' ? 'foto' : 'foto_despues', rutaLocal));
+      final r = await req.send();
+      return r.statusCode == 200;
+    } catch (e) { return false; }
+  }
+  Future<void> _reenviarFotosAlPC() async {
+    if (_urlPC == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("❌ Sin conexión al PC"))); return; }
+    setState(() => _cargando = true);
+    int enviadas = 0, revisados = 0;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final res = await http.get(Uri.parse("http://$_urlPC/api/historial_todo")).timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final List<dynamic> d = json.decode(res.body);
+        for (var item in d) {
+          revisados++;
+          final id = item['id'].toString();
+          final String? fotoAntes = item['foto'];
+          final String? fotoDespues = item['foto_d'];
+          if (fotoAntes != null) {
+            final fp = path.join(dir.path, fotoAntes);
+            if (File(fp).existsSync() && await _faltaEnPC(fotoAntes)) { if (await _subirFotoRestaurar(id, 'antes', fp)) enviadas++; }
+          }
+          if (fotoDespues != null) {
+            final fpD = path.join(dir.path, fotoDespues);
+            if (File(fpD).existsSync() && await _faltaEnPC(fotoDespues)) { if (await _subirFotoRestaurar(id, 'despues', fpD)) enviadas++; }
+          }
+        }
+      }
+    } catch (e) { /* */ }
+    if (mounted) { setState(() => _cargando = false); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ $enviadas fotos reenviadas ($revisados trabajos revisados)"))); }
+    await _buscar(_searchCtrl.text);
+  }
   void _edit(Registro r) async {
     String? lp; String? lpD; var ep = _colaEdiciones.firstWhere((e) => e['id'] == r.id.toString(), orElse: () => {});
     if (ep.isNotEmpty && ep['fotoPath'] != null) lp = ep['fotoPath']; else if (r.serverImageName != null) { final fp = await _localPath(r.serverImageName!); if (File(fp).existsSync()) lp = fp; }
@@ -905,14 +961,16 @@ class _TabHistorialState extends State<TabHistorial> {
           ? ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), const Center(child:Text("Sin historial visible"))])
           : ListView.builder(itemCount: _registros.length, itemBuilder: (ctx, i) {
             final r = _registros[i]; Widget w;
-            if (r.imagePath != null && File(r.imagePath!).existsSync() && !r.imagePath!.contains("[")) w = Image.file(File(r.imagePath!), width: 50, height: 50, fit: BoxFit.cover);
-            else if (r.serverImageName != null) w = FutureBuilder<String>(future: _localPath(r.serverImageName!), builder: (c, s) { if (s.hasData && File(s.data!).existsSync()) return Image.file(File(s.data!), width: 50, height: 50, fit: BoxFit.cover); else if (_urlPC != null) return Image.network("http://$_urlPC/api/foto/${r.serverImageName}", width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.red)); else return const Icon(Icons.no_photography, color: Colors.grey); });
-              else w = const Icon(Icons.article, color: Colors.blueGrey);
+            w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues) ?? const Icon(Icons.article, color: Colors.blueGrey);
               bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
             return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Text("${r.titulo} | ${r.tags}"), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r)));
           })))
       ]),
-      floatingActionButton: FloatingActionButton(mini: true, backgroundColor: Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : const Icon(Icons.sync, color: Colors.white), onPressed: _sincronizarCompleto),
+      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
+        FloatingActionButton(mini: true, heroTag: 'btnRestaurarFotos', backgroundColor: Colors.deepOrange, tooltip: "Reenviar fotos locales al PC", child: const Icon(Icons.cloud_upload, color: Colors.white), onPressed: _cargando ? null : _reenviarFotosAlPC),
+        const SizedBox(height: 10),
+        FloatingActionButton(mini: true, heroTag: 'btnSincronizar', backgroundColor: Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : const Icon(Icons.sync, color: Colors.white), onPressed: _sincronizarCompleto),
+      ]),
     );
   }
 }

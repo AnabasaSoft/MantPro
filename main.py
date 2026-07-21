@@ -826,30 +826,106 @@ class ServidorSincronizacion(QThread):
             except Exception as e:
                 return str(e), 404
 
+        @self.app.route('/api/historial_todo', methods=['GET'])
+        def api_historial_todo():
+            # Versión ligera y SIN LIMIT, usada solo por la herramienta de "reenviar fotos"
+            # del móvil para poder revisar TODO el histórico, no solo los últimos 50.
+            try:
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                c.execute("SELECT id, descripcion FROM tareas ORDER BY fecha DESC")
+                resultados = []
+                for id_t, desc in c.fetchall():
+                    foto = None
+                    m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
+                    if m: foto = m.group(1).split("]")[0].strip()
+                    foto_d = None
+                    m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
+                    if m_d: foto_d = m_d.group(1).split("]")[0].strip()
+                    resultados.append({"id": id_t, "foto": foto, "foto_d": foto_d})
+                conn.close()
+                return jsonify(resultados)
+            except Exception as e: return jsonify({"error": str(e)}), 500
+
         @self.app.route('/api/editar_historial', methods=['POST'])
         def api_editar_historial():
             try:
                 id_t = request.form.get('id')
-                desc_final = request.form.get('detalles') # Ya viene formateada desde el móvil
+                desc_final = request.form.get('detalles') # Ya viene formateada desde el móvil (sin tags FOTO)
                 tags = request.form.get('tags')
-
-                # Si envían foto nueva, procesarla
-                filename, ruta = self._procesar_foto(request, 'foto')
-                filename_d, _ = self._procesar_foto(request, 'foto_despues')
-                if filename:
-                    # Si hay foto nueva, la añadimos a la descripción
-                    desc_final += f"\n[FOTO: {filename}]"
-                if filename_d:
-                    desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
 
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
+
+                # Recuperamos la descripción actual para no perder fotos que no se reenvían en esta edición
+                c.execute("SELECT descripcion FROM tareas WHERE id=?", (id_t,))
+                row = c.fetchone()
+                desc_actual = row[0] if row else ""
+
+                m_actual = re.search(r"\[FOTO:\s*(.*?)\]", desc_actual)
+                foto_actual = m_actual.group(1).strip() if m_actual else None
+                m_actual_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc_actual)
+                foto_actual_d = m_actual_d.group(1).strip() if m_actual_d else None
+
+                # Si envían foto nueva, procesarla; si no, mantenemos la que ya había en BD
+                filename, ruta = self._procesar_foto(request, 'foto')
+                filename_d, _ = self._procesar_foto(request, 'foto_despues')
+
+                foto_final = filename if filename else foto_actual
+                foto_final_d = filename_d if filename_d else foto_actual_d
+
+                if foto_final:
+                    desc_final += f"\n[FOTO: {foto_final}]"
+                if foto_final_d:
+                    desc_final += f"\n[FOTO_DESPUES: {foto_final_d}]"
+
                 c.execute("UPDATE tareas SET descripcion=?, tags=? WHERE id=?", (desc_final, tags, id_t))
                 conn.commit()
                 conn.close()
 
                 self.pendiente_actualizado.emit() # Para refrescar la UI de escritorio
                 return jsonify({"status": "ok"})
+            except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/restaurar_foto', methods=['POST'])
+        def api_restaurar_foto():
+            # Endpoint de reparación manual: sube una foto (antes o después) para un registro
+            # existente SIN tocar el resto de la descripción ni la otra foto.
+            try:
+                id_t = request.form.get('id')
+                tipo = request.form.get('tipo')  # 'antes' o 'despues'
+                key = 'foto' if tipo == 'antes' else 'foto_despues'
+
+                filename, ruta = self._procesar_foto(request, key)
+                if not filename:
+                    return jsonify({"status": "error", "message": "No se recibió ningún archivo"}), 400
+
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                c.execute("SELECT descripcion FROM tareas WHERE id=?", (id_t,))
+                row = c.fetchone()
+                if not row:
+                    conn.close()
+                    return jsonify({"status": "error", "message": "Registro no encontrado"}), 404
+                desc = row[0]
+
+                if tipo == 'antes':
+                    if re.search(r"\[FOTO:\s*.*?\]", desc):
+                        desc = re.sub(r"\[FOTO:\s*.*?\]", f"[FOTO: {filename}]", desc, count=1)
+                    else:
+                        desc += f"\n[FOTO: {filename}]"
+                else:
+                    if re.search(r"\[FOTO_DESPUES:\s*.*?\]", desc):
+                        desc = re.sub(r"\[FOTO_DESPUES:\s*.*?\]", f"[FOTO_DESPUES: {filename}]", desc, count=1)
+                    else:
+                        desc += f"\n[FOTO_DESPUES: {filename}]"
+
+                c.execute("UPDATE tareas SET descripcion=? WHERE id=?", (desc, id_t))
+                conn.commit()
+                conn.close()
+
+                self.pendiente_actualizado.emit()
+                return jsonify({"status": "ok", "filename": filename})
             except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/descompletar_aviso', methods=['POST'])
@@ -1642,9 +1718,23 @@ class MaintenanceApp(QMainWindow):
             # --------------------------------
 
             it = QListWidgetItem(f"{texto_limpio} | {t[2]}")
-            if "[FOTO:" in t[1]: it.setIcon(QIcon.fromTheme("camera-photo")); it.setToolTip("Tiene foto adjunta")
+            if self._hay_foto_disponible(t[1]): it.setIcon(QIcon.fromTheme("camera-photo")); it.setToolTip("Tiene foto adjunta")
             it.setData(Qt.ItemDataRole.UserRole, t[0])
             self.task_list.addItem(it)
+
+    def _hay_foto_disponible(self, desc):
+        # Busca primero la foto de ANTES; si no existe físicamente, prueba la de DESPUÉS.
+        m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
+        if m:
+            nombre = m.group(1).split("]")[0].strip()
+            if nombre and os.path.exists(os.path.join(self.carpeta_fotos, nombre)):
+                return True
+        m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
+        if m_d:
+            nombre_d = m_d.group(1).split("]")[0].strip()
+            if nombre_d and os.path.exists(os.path.join(self.carpeta_fotos, nombre_d)):
+                return True
+        return False
 
     def fill_t(self, table, data):
         table.setRowCount(len(data))
@@ -1667,7 +1757,7 @@ class MaintenanceApp(QMainWindow):
             item_f = QTableWidgetItem(fecha); item_f.setData(Qt.ItemDataRole.UserRole, id_t)
             item_d = QTableWidgetItem(desc_visual); item_d.setToolTip(desc_limpia)
 
-            if "[FOTO:" in desc or "[FOTO_DESPUES:" in desc:
+            if self._hay_foto_disponible(desc):
                 item_d.setIcon(icon_foto)
                 item_d.setToolTip(f"📸 CON FOTO(S) ADJUNTA(S)\n\n{desc_limpia}")
             else:
@@ -2211,7 +2301,7 @@ class MaintenanceApp(QMainWindow):
             d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
             d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
 
-            tiene_foto = "[FOTO:" in d or "[FOTO_DESPUES:" in d
+            tiene_foto = self._hay_foto_disponible(d)
 
             # Texto visual limpio
             texto_visual = f"⬜ {t}"
@@ -2541,10 +2631,14 @@ class MaintenanceApp(QMainWindow):
             for row in c.fetchall():
                 m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
                 if m: fotos_en_uso.add(m.group(1).strip())
+                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
+                if m_d: fotos_en_uso.add(m_d.group(1).strip())
             c.execute("SELECT detalles FROM pendientes")
             for row in c.fetchall():
                 m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
                 if m: fotos_en_uso.add(m.group(1).strip())
+                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
+                if m_d: fotos_en_uso.add(m_d.group(1).strip())
             conn.close()
             if not os.path.exists(self.carpeta_fotos): return
             basura = []
