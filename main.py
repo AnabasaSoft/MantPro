@@ -1653,7 +1653,7 @@ class MaintenanceApp(QMainWindow):
 
         for r, (id_t, fecha, desc, tags) in enumerate(data):
             # LIMPIEZA VISUAL (FOTO Y REF)
-            desc_limpia = re.sub(r"\[FOTO:.*?\]", "", desc)
+            desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
             desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
             desc_visual = desc_limpia.replace("\n", "  ➜  ")
@@ -1667,9 +1667,9 @@ class MaintenanceApp(QMainWindow):
             item_f = QTableWidgetItem(fecha); item_f.setData(Qt.ItemDataRole.UserRole, id_t)
             item_d = QTableWidgetItem(desc_visual); item_d.setToolTip(desc_limpia)
 
-            if "[FOTO:" in desc:
+            if "[FOTO:" in desc or "[FOTO_DESPUES:" in desc:
                 item_d.setIcon(icon_foto)
-                item_d.setToolTip(f"📸 CON FOTO ADJUNTA\n\n{desc_limpia}")
+                item_d.setToolTip(f"📸 CON FOTO(S) ADJUNTA(S)\n\n{desc_limpia}")
             else:
                 item_d.setIcon(icon_vacio)
 
@@ -2208,10 +2208,10 @@ class MaintenanceApp(QMainWindow):
 
         for i, t, d in ps:
             # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
-            d_limpio = re.sub(r"\[FOTO:.*?\]", "", d)
+            d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
             d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
 
-            tiene_foto = "[FOTO:" in d
+            tiene_foto = "[FOTO:" in d or "[FOTO_DESPUES:" in d
 
             # Texto visual limpio
             texto_visual = f"⬜ {t}"
@@ -2336,7 +2336,7 @@ class MaintenanceApp(QMainWindow):
                 writer = csv.writer(f, delimiter=';'); writer.writerow(["ID", "Fecha", "Descripción", "Tags", "Nombre Foto"])
                 for tarea in datos:
                     # Limpiamos FOTO y REF también aquí para que quede perfecto
-                    desc_limpia = re.sub(r"\[FOTO:.*?\]", "", tarea[2])
+                    desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
                     desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
                     nombre_foto = "NO"
@@ -2364,7 +2364,7 @@ class MaintenanceApp(QMainWindow):
                 worksheet.write(row, 0, tarea[0], center); worksheet.write(row, 1, tarea[1], center)
 
                 # Limpieza de FOTO y REF
-                desc_limpia = re.sub(r"\[FOTO:.*?\]", "", tarea[2])
+                desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
                 desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
                 worksheet.write(row, 2, desc_limpia, wrap); worksheet.write(row, 3, tarea[3], wrap)
@@ -2588,7 +2588,7 @@ class MaintenanceApp(QMainWindow):
                 ref_oculta = m_ref.group(0) # Guardamos "[REF:12345]" entero
 
             # 3. Limpiar el texto para que tú lo veas bonito
-            texto_limpio = re.sub(r"\[FOTO:.*?\]", "", detalles_raw)
+            texto_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", detalles_raw)
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
 
         # Abrimos el diálogo con el texto LIMPIO

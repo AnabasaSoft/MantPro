@@ -517,6 +517,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (d['imagePath'] != null && File(d['imagePath']).existsSync()) {
         r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
       }
+      if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) {
+        r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
+      }
       return (await r.send()).statusCode == 200;
     } catch (e) { return false; }
   }
@@ -534,6 +537,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       detalles: item['detalles'],
       tags: item['tags'] ?? "General",
       imagePath: item['imagePath'],
+      imagePathDespues: item['imagePathDespues'],
       fecha: item['fecha']
     );
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
@@ -547,6 +551,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             'detalles': r.detalles,
             'tags': r.tags,
             'imagePath': r.imagePath,
+            'imagePathDespues': r.imagePathDespues,
             'fecha': r.fecha
           };
         });
@@ -571,6 +576,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'detalles': r.detalles,
           'tags': r.tags,
           'imagePath': r.imagePath,
+          'imagePathDespues': r.imagePathDespues,
           'fecha': r.fecha
         };
         // ---------------------
@@ -588,7 +594,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       onUpdate: (r) {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
         if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
-        Map<String, dynamic> t = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath};
+        Map<String, dynamic> t = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues};
         setState(() {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
           _colaEdiciones.add(t);
@@ -845,7 +851,7 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   Future<void> _guardarCola() async { final p = await SharedPreferences.getInstance(); await p.setString('historial_cola_ediciones', json.encode(_colaEdiciones)); }
   void _aplicarCambiosVisuales() {
-    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, imagePath: e['fotoPath'] ?? _registros[i].imagePath); }
+    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues); }
   }
   Future<void> _sincronizarEdiciones() async {
     if (_urlPC == null || _colaEdiciones.isEmpty) return;
@@ -855,6 +861,7 @@ class _TabHistorialState extends State<TabHistorial> {
         var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/editar_historial"));
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
+        if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if ((await req.send()).statusCode == 200) ok.add(e);
       } catch (e) { /* */ }
     }
@@ -880,10 +887,11 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   Future<String> _localPath(String f) async { final d = await getApplicationDocumentsDirectory(); return path.join(d.path, f); }
   void _edit(Registro r) async {
-    String? lp; var ep = _colaEdiciones.firstWhere((e) => e['id'] == r.id.toString(), orElse: () => {});
+    String? lp; String? lpD; var ep = _colaEdiciones.firstWhere((e) => e['id'] == r.id.toString(), orElse: () => {});
     if (ep.isNotEmpty && ep['fotoPath'] != null) lp = ep['fotoPath']; else if (r.serverImageName != null) { final fp = await _localPath(r.serverImageName!); if (File(fp).existsSync()) lp = fp; }
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp), esHistorial: true, onSave: (re) async {
-      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath};
+    if (ep.isNotEmpty && ep['fotoPathDespues'] != null) lpD = ep['fotoPathDespues']; else if (r.serverImageNameDespues != null) { final fpD = await _localPath(r.serverImageNameDespues!); if (File(fpD).existsSync()) lpD = fpD; }
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, serverImageName: r.serverImageName, serverImageNameDespues: r.serverImageNameDespues, registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp, imagePathDespues: lpD), esHistorial: true, onSave: (re) async {
+      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues};
       int i = _colaEdiciones.indexWhere((e) => e['id'] == r.id.toString()); if (i != -1) _colaEdiciones[i] = ne; else _colaEdiciones.add(ne);
       await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Guardado")));
     })));
@@ -912,13 +920,13 @@ class _TabHistorialState extends State<TabHistorial> {
 // ==========================================
 // FORMULARIO Y QR (COMPACTOS)
 // ==========================================
-class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC}); @override State<FormScreen> createState() => _FormScreenState(); }
+class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC, serverImageNameDespues; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC, this.serverImageNameDespues}); @override State<FormScreen> createState() => _FormScreenState(); }
 class _FormScreenState extends State<FormScreen> {
   final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
   @override void initState() { super.initState();
     if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
-    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); }
   }
   void _save(bool end) {
     if (_t.text.isEmpty && !widget.esHistorial) return;
@@ -940,8 +948,9 @@ class _FormScreenState extends State<FormScreen> {
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
   Future<void> _cam() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _img = n); } }
-  Future<void> _down() async { if (widget.serverImageName!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, widget.serverImageName!); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/${widget.serverImageName}")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
+  Future<void> _down() async { String? sn = widget.serverImageName ?? widget.registroExistente?.serverImageName; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
   Future<void> _camDespues() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_d_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _imgDespues = n); } }
+  Future<void> _downDespues() async { String? sn = widget.serverImageNameDespues ?? widget.registroExistente?.serverImageNameDespues; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _imgDespues = fp); } } }
   @override Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(title: Text(widget.esHistorial?"Editar": "Nuevo")), body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       if(!widget.esHistorial) TextField(controller: _t, decoration: const InputDecoration(labelText: "Título")), const SizedBox(height: 15),
@@ -953,12 +962,18 @@ class _FormScreenState extends State<FormScreen> {
             Expanded(child: Column(children: [
               const Text("ANTES", style: TextStyle(fontWeight: FontWeight.bold)),
               if (_img != null) ...[SizedBox(height: 150, child: Image.file(File(_img!))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _img = null))]
-                else ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _cam)
+                else ...[
+                  if (widget.serverImageName != null || widget.registroExistente?.serverImageName != null) ElevatedButton.icon(icon: const Icon(Icons.cloud_download), label: const Text("BAJAR"), onPressed: _down),
+                    ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _cam)
+                ]
             ])),
             Expanded(child: Column(children: [
               const Text("DESPUÉS", style: TextStyle(fontWeight: FontWeight.bold)),
               if (_imgDespues != null) ...[SizedBox(height: 150, child: Image.file(File(_imgDespues!))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _imgDespues = null))]
-                else ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _camDespues)
+                else ...[
+                  if (widget.serverImageNameDespues != null || widget.registroExistente?.serverImageNameDespues != null) ElevatedButton.icon(icon: const Icon(Icons.cloud_download), label: const Text("BAJAR"), onPressed: _downDespues),
+                    ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("FOTO"), onPressed: _camDespues)
+                ]
             ])),
           ],
         ),
