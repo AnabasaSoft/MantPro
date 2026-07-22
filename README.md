@@ -50,18 +50,17 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 
 ### 💻 Aplicación de Escritorio (PC)
 
-- **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color
-- **📊 Gestión de Equipos**: Base de datos completa con información de vehículos/equipos
-- **🏢 Gestión de Clientes**: Registro detallado de clientes con datos de contacto y localización
-- **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas
+- **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
+- **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
 - **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
 - **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones
-- **📱 Sincronización Móvil**: Servidor integrado para sincronización con la app móvil
+- **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
 - **📦 Backup/Restore**: Exportación e importación de base de datos completa
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
-- **🔔 Tareas Pendientes**: Gestión de trabajos pendientes y planificación
-- **📊 Estadísticas**: Análisis de intervenciones por tipo y período
+- **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar)
+- **⚠️ Avisos Recurrentes**: Avisos de mantenimiento que se repiten automáticamente
+- **📊 Exportación**: A PDF, CSV y Excel
 
 ### 📱 Aplicación Móvil (Android)
 
@@ -73,6 +72,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📋 Trabajos Pendientes**: Visualiza y gestiona tareas asignadas desde el PC
 - **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
+- **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
 
 ---
 
@@ -166,7 +166,7 @@ Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSof
 
 1. **Navegar al directorio móvil**:
    ```bash
-   cd mobile_app
+   cd mantenimiento_app
    ```
 
 2. **Instalar dependencias**:
@@ -192,18 +192,17 @@ Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSof
 
 #### Aplicación de Escritorio
 
-1. **Iniciar la aplicación**: Ejecuta `python main.py`
-2. **Configurar logo** (opcional): Menú > Configuración > Cambiar Logo
-3. **Añadir equipos**: Pestaña "Equipos" > Botón "Añadir Equipo"
-4. **Añadir clientes**: Pestaña "Clientes" > Botón "Añadir Cliente"
-5. **Iniciar servidor**: Menú > Servidor > Iniciar Servidor (para sincronización móvil)
+1. **Iniciar la aplicación**: Ejecuta `python main.py` (el servidor de sincronización arranca solo, no hace falta iniciarlo a mano)
+2. **Configurar logo** (opcional): Menú `Archivo` > `📄 Opciones PDF` > `🖼️ Añadir / Cambiar Logo`
+3. **Registrar un trabajo**: Pestaña "📝 Registrar" > rellena resumen/detalles > "💾 GUARDAR REGISTRO"
+4. **Crear un pendiente**: Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" (Título + Detalles) > "Añadir"
 
 #### Aplicación Móvil
 
 1. **Instalar la app** en tu dispositivo móvil
 2. **Conectar con PC**: 
    - Asegúrate de que el PC y el móvil están en la misma red WiFi
-   - En el PC: Menú > Servidor > Mostrar QR de Conexión
+   - En el PC: Menú `Herramientas` > `📲 Sincronizar App (QR)`
    - En el móvil: Tap en el icono QR y escanea el código
 3. **Listo**: Ya puedes registrar intervenciones desde el móvil
 
@@ -212,30 +211,27 @@ Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSof
 #### Desde el PC
 
 1. **Crear tarea pendiente**:
-   - Pestaña "Pendientes" > Botón "Añadir Pendiente"
-   - Asociar a un equipo/cliente
-   - Generar QR para el técnico
+   - Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" > rellena Título y Detalles > "Añadir"
+   - Gestiónala con los botones "✅ Completar", "✏️ Editar" o "❌ Eliminar"
 
 2. **Revisar trabajos completados**:
-   - Los trabajos sincronizados desde móvil aparecen automáticamente
-   - Revisa fotos y detalles en el calendario
-   - Genera PDF de informe si es necesario
+   - Los trabajos sincronizados desde el móvil aparecen automáticamente
+   - Revisa fotos (antes/después) y detalles en la pestaña "🗂 Historial" o en el "📅 Calendario"
 
 3. **Generar reportes**:
-   - Menú > Exportar > Exportar PDF
-   - Selecciona rango de fechas
-   - Elige si incluir fotos en el informe
+   - Menú `Archivo` > `📄 Opciones PDF` > `📄 Generar PDF Ahora`
+   - O exporta a `📄 CSV` / `📊 Excel` desde el mismo menú `Archivo`
 
 #### Desde el Móvil
 
-1. **Escanear trabajo pendiente** (opcional):
-   - Si el PC te asignó un trabajo, escanea el QR
-   - Se cargará automáticamente la información
+1. **Vincular con el PC** (solo la primera vez, o si cambias de red):
+   - Tap en "Vincular PC" y escanea el QR que muestra el PC
+   - El móvil guarda la dirección del PC para sincronizar automáticamente a partir de ahí
 
 2. **Registrar intervención**:
-   - Tap en "Nuevo" o selecciona trabajo pendiente
+   - Tap en "Nuevo" o selecciona un trabajo pendiente ya sincronizado desde el PC
    - Completa título y detalles
-   - Toma foto con la cámara
+   - Toma foto "antes" y, opcionalmente, foto "después" con la cámara
    - Dibuja/anota sobre la foto si es necesario
    - Selecciona tags apropiados
    - Guarda
@@ -279,6 +275,13 @@ Para que la sincronización funcione:
 - Comprueba los permisos de la carpeta `fotos_mantenimiento`
 - Asegúrate de que la foto se guardó correctamente en el móvil
 
+**No me llega la notificación diaria de avisos pendientes (Android):**
+- Comprueba que el permiso de notificaciones está concedido: `Ajustes → Apps → MantPro → Notificaciones`
+- En fabricantes como **OPPO/Realme (ColorOS), Xiaomi (MIUI) o Huawei**, el sistema puede matar la alarma programada aunque el permiso esté dado. Hay que además:
+  - `Ajustes → Batería → Uso de batería por app → MantPro` → ponerlo en **"Sin restricciones"**
+  - `Ajustes → Batería → Inicio automático` → **activar** MantPro
+- La notificación se reevalúa cada vez que abres el Dashboard, así que si acabas de marcar un trabajo como completado, ábrelo de nuevo para que se cancele/reprograme correctamente.
+
 ---
 
 ## 📁 Estructura del Proyecto
@@ -291,10 +294,10 @@ MantPro/
 ├── README.md                    # Este archivo
 ├── fotos_mantenimiento/         # Carpeta de imágenes
 ├── mantenimiento.db             # Base de datos SQLite
-├── mobile_app/                  # Aplicación móvil Flutter
-│   ├── main.dart               # Código principal móvil
-│   ├── pubspec.yaml            # Dependencias Flutter
-│   └── android/                # Configuración Android
+├── mantenimiento_app/            # Aplicación móvil Flutter
+│   ├── lib/main.dart            # Código principal móvil
+│   ├── pubspec.yaml             # Dependencias Flutter
+│   └── android/                 # Configuración Android
 ├── backups/                     # Backups de base de datos
 └── docs/                        # Documentación adicional
 ```
@@ -303,10 +306,11 @@ MantPro/
 
 La aplicación utiliza SQLite con las siguientes tablas:
 
-- **`tareas`**: Registro de intervenciones realizadas
-- **`equipos`**: Catálogo de equipos/vehículos
-- **`clientes`**: Base de datos de clientes
-- **`pendientes`**: Tareas pendientes de realizar
+- **`tareas`**: Registro de intervenciones realizadas (fecha, descripción, tags)
+- **`pendientes`**: Tareas pendientes de realizar (título, detalles)
+- **`avisos_recurrentes`**: Avisos de mantenimiento que se repiten automáticamente
+- **`dias_especiales`**: Festivos, vacaciones y días marcados en el calendario
+- **`config`**: Configuración interna de la aplicación (logo, provincia, etc.)
 
 ---
 
