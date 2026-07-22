@@ -29,8 +29,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHeaderView, QDialog, QDialogButtonBox, QAbstractItemView,
                              QListWidgetItem, QStyleFactory, QComboBox, QGroupBox, QCheckBox,
                              QCompleter, QFileDialog, QScrollArea, QSizePolicy, QGridLayout,
-                             QSpinBox, QRadioButton, QProgressBar, QTreeView, QMenu, QSplashScreen,
-                             QTreeWidget, QTreeWidgetItem, QSplitter)
+                             QSpinBox, QRadioButton, QProgressBar, QTreeView, QMenu, QSplashScreen)
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QPropertyAnimation, QEasingCurve, QTimer)
@@ -118,9 +117,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "2.6.7"
-REPO_OWNER = "AnabasaSoft"
-REPO_NAME = "MantPro"
+
 
 # ==========================================
 # DATOS GLOBALES: PROVINCIAS
@@ -183,35 +180,6 @@ PROVINCIAS_ESPAÑA = {
 # ==========================================
 # 1. UTILIDADES Y SERVIDORES
 # ==========================================
-class ChequeadorActualizaciones(QThread):
-    resultado = pyqtSignal(bool, str, str, str)
-
-    def comparar_versiones(self, v1, v2):
-        def parse(v): return [int(x) for x in re.sub(r'[^\d.]', '', v).split('.') if x.strip()]
-        p1, p2 = parse(v1), parse(v2)
-        for i in range(max(len(p1), len(p2))):
-            va = p1[i] if i < len(p1) else 0
-            vb = p2[i] if i < len(p2) else 0
-            if va != vb: return va > vb
-        return False
-
-    def run(self):
-        try:
-            url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
-            res = requests.get(url, timeout=5)
-            if res.status_code == 200:
-                data = res.json()
-                tag = data.get("tag_name", "")
-                html_url = data.get("html_url", "")
-                body = data.get("body", "")
-                if tag and self.comparar_versiones(tag, APP_VERSION):
-                    self.resultado.emit(True, tag, html_url, body)
-                else:
-                    self.resultado.emit(False, tag, "", "")
-            else:
-                self.resultado.emit(False, "error", "", "")
-        except:
-            self.resultado.emit(False, "error", "", "")
 
 class GeneradorPDFThread(QThread):
     resultado = pyqtSignal(bool, str)
@@ -678,21 +646,13 @@ class ServidorSincronizacion(QThread):
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
 
-                mes = request.args.get('mes', '')
-                sql = "SELECT id, fecha, descripcion, tags FROM tareas WHERE 1=1"
-                params = []
+                sql = "SELECT id, fecha, descripcion, tags FROM tareas ORDER BY fecha DESC, id DESC LIMIT ? OFFSET ?"
+                params = [limit + 1, offset]
 
                 if query:
-                    sql += " AND (descripcion LIKE ? OR tags LIKE ?)"
+                    sql = "SELECT id, fecha, descripcion, tags FROM tareas WHERE descripcion LIKE ? OR tags LIKE ? ORDER BY fecha DESC, id DESC LIMIT ? OFFSET ?"
                     p_query = f"%{query}%"
-                    params.extend([p_query, p_query])
-
-                if mes:
-                    sql += " AND fecha LIKE ?"
-                    params.append(f"{mes}%")
-
-                sql += " ORDER BY fecha DESC, id DESC LIMIT ? OFFSET ?"
-                params.extend([limit + 1, offset])
+                    params = [p_query, p_query, limit + 1, offset]
 
                 c.execute(sql, params)
                 filas = c.fetchall()
@@ -1723,8 +1683,6 @@ class MaintenanceApp(QMainWindow):
         self.tab_todo = QWidget(); self.init_todo_tab(); self.tabs.addTab(self.tab_todo, "🔨 Pendientes")
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
-        # Comprobar actualizaciones en segundo plano al arrancar
-        self.comprobar_actualizaciones(manual=False)
 
     def closeEvent(self, e):
         self.settings.setValue("geometry", self.saveGeometry())
@@ -1892,86 +1850,7 @@ class MaintenanceApp(QMainWindow):
             if mostrar: filas_visibles += 1
         self.statusBar().showMessage(f"🔍 Mostrando {filas_visibles} resultados", 3000)
 
-    def refresh_history(self):
-        datos = self.db.obtener_todas_cronologico()
-        self.fill_t(self.h_table, datos)
-
-        # Construir árbol de fechas dinámico
-        self.tree_history.clear()
-        arbol_datos = {}
-        for row in datos:
-            fecha = row[1]
-            if not fecha or len(fecha) < 7: continue
-            year, month = fecha[:4], fecha[5:7]
-            if year not in arbol_datos: arbol_datos[year] = set()
-            arbol_datos[year].add(month)
-
-        meses = {"01":"Enero", "02":"Febrero", "03":"Marzo", "04":"Abril", "05":"Mayo", "06":"Junio", "07":"Julio", "08":"Agosto", "09":"Septiembre", "10":"Octubre", "11":"Noviembre", "12":"Diciembre"}
-
-        item_todo = QTreeWidgetItem(["Todos los trabajos"])
-        item_todo.setData(0, Qt.ItemDataRole.UserRole, "TODO")
-        self.tree_history.addTopLevelItem(item_todo)
-
-        for year in sorted(arbol_datos.keys(), reverse=True):
-            item_year = QTreeWidgetItem([f"📅 {year}"])
-            item_year.setData(0, Qt.ItemDataRole.UserRole, year)
-            self.tree_history.addTopLevelItem(item_year)
-
-            for month in sorted(arbol_datos[year], reverse=True):
-                item_month = QTreeWidgetItem([meses.get(month, month)])
-                item_month.setData(0, Qt.ItemDataRole.UserRole, f"{year}-{month}")
-                item_year.addChild(item_month)
-
-        self.tree_history.setCurrentItem(item_todo)
-
-        # Desocultar todas las filas al refrescar la tabla por defecto
-        for row in range(self.h_table.rowCount()):
-            self.h_table.setRowHidden(row, False)
-    def mostrar_about(self):
-        import webbrowser
-        texto = f"""
-        <h2>MantPro v{APP_VERSION}</h2>
-        <p><b>AnabasaSoft</b></p>
-        <p>📧 Email: <a href="mailto:anabasasoft@gmail.com">anabasasoft@gmail.com</a></p>
-        <p>🌐 GitHub: <a href="https://github.com/AnabasaSoft">github.com/AnabasaSoft</a></p>
-        <p>💼 Proyecto: <a href="https://github.com/AnabasaSoft/MantPro">github.com/AnabasaSoft/MantPro</a></p>
-        """
-        msg = QMessageBox(self)
-        msg.setWindowTitle("Acerca de MantPro")
-        msg.setTextFormat(Qt.TextFormat.RichText)
-        msg.setText(texto)
-        # Esto permite que los enlaces abran el navegador de KDE (o el por defecto del SO)
-        msg.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        msg.exec()
-
-    def comprobar_actualizaciones(self, manual=False):
-        self._check_manual = manual
-        if manual: self.statusBar().showMessage("🔄 Buscando actualizaciones en GitHub...", 3000)
-        self.hilo_updates = ChequeadorActualizaciones()
-        self.hilo_updates.resultado.connect(self.on_actualizacion_comprobada)
-        self.hilo_updates.start()
-
-    def on_actualizacion_comprobada(self, hay_nueva, version, url, notas):
-        import webbrowser
-        if hay_nueva:
-            msg = QMessageBox(self)
-            msg.setWindowTitle("🚀 Nueva versión disponible")
-            msg.setText(f"Tienes la versión {APP_VERSION} instalada y en GitHub ya está la {version}.")
-            msg.setInformativeText("¿Quieres descargarla ahora?")
-            if notas: msg.setDetailedText(notas)
-
-            btn_si = msg.addButton("Descargar", QMessageBox.ButtonRole.YesRole)
-            msg.addButton("Luego", QMessageBox.ButtonRole.NoRole)
-            msg.exec()
-
-            if msg.clickedButton() == btn_si:
-                webbrowser.open(url)
-        elif self._check_manual:
-            if version == "error":
-                QMessageBox.warning(self, "Error", "No se pudo conectar con GitHub para buscar actualizaciones.")
-            else:
-                QMessageBox.information(self, "Actualizado", f"✅ Ya tienes la última versión instalada (v{APP_VERSION}).")
-
+    def refresh_history(self): self.fill_t(self.h_table, self.db.obtener_todas_cronologico())
     def crear_menu(self):
         mb = self.menuBar(); fm = mb.addMenu("&Archivo")
         fm.addAction(QAction("💾 Backup", self, triggered=self.realizar_backup))
@@ -2011,9 +1890,6 @@ class MaintenanceApp(QMainWindow):
 
         fm.addSeparator()
         tm.addAction(QAction("🧹 Limpiar Fotos Basura", self, triggered=self.limpiar_fotos_huerfanas))
-        hm = mb.addMenu("&Ayuda")
-        hm.addAction(QAction("🔄 Buscar Actualizaciones", self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
-        hm.addAction(QAction("ℹ️ Acerca de", self, triggered=self.mostrar_about))
 
     def cambiar_provincia(self):
         # Abre el diálogo para seleccionar la provincia
@@ -2327,77 +2203,9 @@ class MaintenanceApp(QMainWindow):
                 self.update_calendar_list()
 
     def init_history_tab(self):
-        l = QHBoxLayout() # Layout contenedor principal
-
-        # Crear el separador arrastrable horizontal
-        self.splitter_history = QSplitter(Qt.Orientation.Horizontal)
-
-        # PANEL IZQUIERDO: Árbol de fechas
-        left_widget = QWidget()
-        left_panel = QVBoxLayout(left_widget)
-        left_panel.setContentsMargins(0, 0, 0, 0)
-
-        btn_layout = QHBoxLayout()
-        btn_expand = QPushButton("🠇")
-        btn_expand.setToolTip("Desplegar todas las ramas")
-        btn_expand.setFixedWidth(35)
-        btn_collapse = QPushButton("🠅")
-        btn_collapse.setToolTip("Plegar todas las ramas")
-        btn_collapse.setFixedWidth(35)
-
-        btn_expand.clicked.connect(lambda: self.tree_history.expandAll())
-        btn_collapse.clicked.connect(lambda: self.tree_history.collapseAll())
-
-        btn_layout.addWidget(btn_expand)
-        btn_layout.addWidget(btn_collapse)
-        btn_layout.addStretch()  # Empuja los botones compactos a la izquierda
-        left_panel.addLayout(btn_layout)
-
-        self.tree_history = QTreeWidget()
-        self.tree_history.setHeaderHidden(True)
-        self.tree_history.itemClicked.connect(self.on_tree_history_clicked)
-        left_panel.addWidget(self.tree_history)
-
-        # PANEL DERECHO: Tabla
-        right_widget = QWidget()
-        right_panel = QVBoxLayout(right_widget)
-        right_panel.setContentsMargins(0, 0, 0, 0)
-
-        self.h_table = QTableWidget()
-        self.configurar_deseleccion(self.h_table)
-        self.setup_table(self.h_table)
-        self.h_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.h_table))
-        right_panel.addWidget(self.h_table)
-
-        bl = QHBoxLayout()
-        bl.addWidget(QPushButton("✏️ Editar", clicked=lambda: self.edit_rec(self.h_table)))
-        bl.addWidget(QPushButton("🗑️ Borrar Seleccionado", clicked=lambda: self.del_rec(self.h_table)))
-        right_panel.addLayout(bl)
-
-        # Añadir paneles al splitter arrastrable
-        self.splitter_history.addWidget(left_widget)
-        self.splitter_history.addWidget(right_widget)
-
-        # Proporción inicial orientativa (se ajusta al arrastrar con el ratón)
-        self.splitter_history.setSizes([100,900])
-
-        l.addWidget(self.splitter_history)
-        self.tab_history.setLayout(l)
-
-    def on_tree_history_clicked(self, item, column):
-        filtro = item.data(0, Qt.ItemDataRole.UserRole)
-        for row in range(self.h_table.rowCount()):
-            item_fecha = self.h_table.item(row, 0)
-            if not item_fecha: continue
-            fecha_str = item_fecha.text()
-            mostrar = True
-
-            if filtro != "TODO":
-                # El filtro puede ser "2026" (año) o "2026-07" (año-mes)
-                if not fecha_str.startswith(filtro):
-                    mostrar = False
-
-            self.h_table.setRowHidden(row, not mostrar)
+        l = QVBoxLayout(); self.h_table = QTableWidget(); self.configurar_deseleccion(self.h_table); self.setup_table(self.h_table)
+        self.h_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.h_table)); l.addWidget(self.h_table)
+        bl = QHBoxLayout(); bl.addWidget(QPushButton("Editar", clicked=lambda: self.edit_rec(self.h_table))); bl.addWidget(QPushButton("Borrar Seleccionado", clicked=lambda: self.del_rec(self.h_table))); l.addLayout(bl); self.tab_history.setLayout(l)
     def init_search_tab(self):
         l = QVBoxLayout(); sl = QHBoxLayout()
         self.s_in = QLineEdit(); self.s_in.setPlaceholderText("🔍 Buscar texto (Motor, Fuga, KM1)..."); self.s_in.textChanged.connect(self.search); sl.addWidget(self.s_in)
