@@ -2448,7 +2448,7 @@ class MaintenanceApp(QMainWindow):
         self.refresh_dashboard(); self.pintar_calendario(); self.update_calendar_list()
         self.refresh_history(); self.search(); self.refresh_todos(); self.refresh_avisos()
     def setup_table(self, t):
-        t.setColumnCount(3); t.setHorizontalHeaderLabels(["Fecha", "Descripción", "Tag"]); t.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); t.setAlternatingRowColors(True)
+        t.setColumnCount(3); t.setHorizontalHeaderLabels(["Fecha", "Descripción", "Tag"]); t.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); t.setAlternatingRowColors(True); t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     def configurar_deseleccion(self, widget):
         clase_base = type(widget)
         def click_inteligente(event):

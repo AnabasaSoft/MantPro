@@ -10,11 +10,88 @@ import 'package:image_painter/image_painter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 // --- GESTOR DE TEMA GLOBAL ---
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 // Tamaño de página usado en los refrescos de historial en segundo plano (fuera de la pestaña Historial)
 const int _historialPorPagina = 50;
+
+final FlutterLocalNotificationsPlugin pluginNotificaciones = FlutterLocalNotificationsPlugin();
+
+// --- EVALUADOR DIARIO DE NOTIFICACIONES ---
+Future<void> evaluarNotificacionesAvisos() async {
+  final prefs = await SharedPreferences.getInstance();
+  bool hayPendientes = false;
+
+  if (prefs.getString('avisos_cache') != null) {
+    try {
+      final List<dynamic> d = json.decode(prefs.getString('avisos_cache')!);
+      String hoyStr = DateTime.now().toString().substring(0, 10);
+
+      String? strComp = prefs.getString('avisos_cola_completados');
+      List<dynamic> colaComp = strComp != null ? json.decode(strComp) : [];
+
+      String? strRest = prefs.getString('avisos_cola_restaurar');
+      List<String> colaRest = strRest != null ? List<String>.from(json.decode(strRest)) : [];
+
+      for (var i in d) {
+        String idStr = i['id'].toString();
+        String estado = i['estado'];
+        if (i['raw_inicio'] != null && estado == "FUTURO") {
+          if (hoyStr.compareTo(i['raw_inicio']) >= 0) estado = "PENDIENTE";
+        }
+
+        bool marcadoListo = colaComp.any((x) => x['id'] == idStr);
+        bool marcadoRestaurar = colaRest.contains(idStr);
+
+        if ((estado == "PENDIENTE" || marcadoRestaurar) && !marcadoListo) {
+          hayPendientes = true;
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (hayPendientes) {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'canal_avisos', 'Avisos de Mantenimiento',
+      channelDescription: 'Recordatorios diarios a las 8:00 AM',
+      importance: Importance.max, priority: Priority.high, icon: '@mipmap/ic_launcher');
+    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+
+    print('DEBUG NOTIF: entra, hayPendientes=true');
+
+    // Calcular cuándo son las próximas 8:00 AM
+    tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 8);
+    // Si ya pasaron las 8 de la mañana de hoy, programamos para mañana
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    print('DEBUG NOTIF: now=$now scheduledDate=$scheduledDate');
+
+    // Programar alarma exacta
+    await pluginNotificaciones.zonedSchedule(
+      id: 1,
+      title: '⚠️ Mantenimiento Preventivo',
+      body: 'Tienes trabajos recurrentes pendientes de realizar.',
+      scheduledDate: scheduledDate,
+      notificationDetails: platformDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time, // Hace que se repita todos los días a esa misma hora
+    );
+    print('DEBUG NOTIF: zonedSchedule ejecutado sin excepción');
+  } else {
+     print('DEBUG NOTIF: hayPendientes=false, cancelando');
+    // Si todo está OK, aborta la notificación de las 8:00 AM
+    await pluginNotificaciones.cancel(id: 1);
+  }
+}
 
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
@@ -80,6 +157,24 @@ void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  tz.initializeTimeZones();
+  try {
+    final currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(currentTimeZone));
+  } catch (e) {
+    tz.setLocalLocation(tz.getLocation('Europe/Madrid'));
+  }
+
+  const AndroidInitializationSettings initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initSettings = InitializationSettings(android: initSettingsAndroid);
+  await pluginNotificaciones.initialize(settings: initSettings);
+
+  final androidImpl = pluginNotificaciones
+  .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  await androidImpl?.requestNotificationsPermission();
+  await androidImpl?.requestExactAlarmsPermission();
+
   final prefs = await SharedPreferences.getInstance();
   final bool isDark = prefs.getBool('is_dark_mode') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
@@ -271,6 +366,8 @@ class _TabDashboardState extends State<TabDashboard> {
   Future<void> _inicializarDatos() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
+    // Reevaluar notificaciones cada vez que se carga el dashboard
+    evaluarNotificacionesAvisos();
     // Pintamos algo ya mismo: preferimos un cálculo fresco a partir de la caché local
     // (refleja pendientes/registros/avisos aunque estén solo guardados en el móvil, sin subir aún).
     await _actualizarStatsOffline();
@@ -929,7 +1026,10 @@ class _TabAvisosState extends State<TabAvisos> {
         setState(() => _avisos = d.map((x) => AvisoPC.fromJson(x)).toList());
         await prefs.setString('avisos_cache', res.body);
       }
-    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
+    } catch (e) { /* */ } finally {
+      evaluarNotificacionesAvisos();
+      if (mounted) setState(() => _cargando = false);
+    }
   }
   Future<void> _completar(AvisoPC a) async {
     if (_colaRestaurar.contains(a.id.toString())) { setState(() => _colaRestaurar.remove(a.id.toString())); await _guardarColas(); return; }

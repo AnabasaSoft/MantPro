@@ -322,7 +322,7 @@ La aplicación utiliza SQLite con las siguientes tablas:
 
 ### Ideas de Mejora
 
-- [ ] Implementar notificaciones push para recordatorios
+- [X] Implementar notificaciones push para recordatorios
 - [ ] Añadir gráficas de estadísticas más detalladas
 - [ ] Integración con calendario de Google
 - [X] Modo oscuro
