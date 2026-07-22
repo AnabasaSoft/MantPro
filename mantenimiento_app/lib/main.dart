@@ -206,9 +206,49 @@ class _TabDashboardState extends State<TabDashboard> {
   Future<void> _inicializarDatos() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
-    String? cache = prefs.getString('dashboard_cache');
-    if (cache != null) setState(() => _stats = json.decode(cache));
+    // Pintamos algo ya mismo: preferimos un cálculo fresco a partir de la caché local
+    // (refleja pendientes/registros/avisos aunque estén solo guardados en el móvil, sin subir aún).
+    await _actualizarStatsOffline();
     if (_urlPC != null) _cargarStatsOnline();
+  }
+
+  // Recalcula las 3 cifras del dashboard a partir de todo lo que hay guardado en el móvil
+  // (trabajos del PC en caché + colas de sincronización pendientes + historial local + avisos en caché).
+  Future<Map<String, dynamic>> _calcularStatsOffline() async {
+    final prefs = await SharedPreferences.getInstance();
+    int listLen(String? raw) { if (raw == null) return 0; try { return (json.decode(raw) as List).length; } catch (_) { return 0; } }
+
+    // Pendientes = trabajos del PC en caché + nuevos creados offline - completados/borrados offline (aún sin subir)
+    int nPendientes = listLen(prefs.getString('trabajos_pc'))
+        + listLen(prefs.getString('cola_nuevos'))
+        - listLen(prefs.getString('cola_borrados'))
+        - listLen(prefs.getString('cola_salida'));
+    if (nPendientes < 0) nPendientes = 0;
+
+    // Registros del mes = historial local de este mes + trabajos completados offline (aún sin subir, cuentan como de hoy)
+    final mesActual = DateTime.now().toString().substring(0, 7); // YYYY-MM
+    int nMes = 0;
+    try {
+      final h = prefs.getString('historial_cache');
+      if (h != null) {
+        for (var item in (json.decode(h) as List)) {
+          final fecha = (item['fecha'] ?? '').toString();
+          if (fecha.startsWith(mesActual)) nMes++;
+        }
+      }
+    } catch (_) {}
+    nMes += listLen(prefs.getString('registros_pendientes'));
+    nMes += listLen(prefs.getString('cola_salida'));
+
+    // Avisos configurados = último listado sincronizado
+    int nAvisos = listLen(prefs.getString('avisos_cache'));
+
+    return {"pendientes": nPendientes, "registros_mes": nMes, "avisos_total": nAvisos};
+  }
+
+  Future<void> _actualizarStatsOffline() async {
+    final offline = await _calcularStatsOffline();
+    if (mounted) setState(() => _stats = offline);
   }
 
   Future<void> _cargarStatsOnline() async {
@@ -221,7 +261,11 @@ class _TabDashboardState extends State<TabDashboard> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('dashboard_cache', res.body);
       }
-    } catch (e) { setState(() => _conexionActiva = false); }
+    } catch (e) {
+      // Sin conexión: no dejamos el último dato tal cual, lo recalculamos con lo que haya en el móvil ahora mismo.
+      await _actualizarStatsOffline();
+      if (mounted) setState(() => _conexionActiva = false);
+    }
     finally { if (mounted) setState(() => _cargando = false); }
   }
 
@@ -858,7 +902,7 @@ class _TabHistorialState extends State<TabHistorial> {
   bool _cargando = false; String? _urlPC; final _searchCtrl = TextEditingController();
   static const int _porPagina = 50;
   final _scrollCtrl = ScrollController();
-  int _pagina = 0; bool _hayMas = true; bool _cargandoMas = false;
+  int _pagina = 0; bool _hayMas = true; bool _cargandoMas = false; bool _sinConexion = false;
   @override void initState() {
     super.initState();
     _inicializarHistorial();
@@ -871,7 +915,7 @@ class _TabHistorialState extends State<TabHistorial> {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
     if (prefs.getString('historial_cola_ediciones') != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cola_ediciones')!));
-    if (prefs.getString('historial_cache') != null) { try { final List<dynamic> d = json.decode(prefs.getString('historial_cache')!); setState(() => _registros = d.map((i) => Registro.fromJson(i)).toList()); _aplicarCambiosVisuales(); } catch (e) { /* */ } }
+    if (prefs.getString('historial_cache') != null) { try { final List<dynamic> d = json.decode(prefs.getString('historial_cache')!); setState(() { _registros = d.map((i) => Registro.fromJson(i)).toList(); _hayMas = false; _sinConexion = _urlPC == null; }); _aplicarCambiosVisuales(); } catch (e) { /* */ } }
     if (_urlPC != null) { _sincronizarCompleto(); }
   }
   Future<void> _sincronizarCompleto() async {
@@ -897,6 +941,32 @@ class _TabHistorialState extends State<TabHistorial> {
     }
     if (ok.isNotEmpty) { setState(() { for (var s in ok) _colaEdiciones.remove(s); }); await _guardarCola(); }
   }
+  // Fusiona páginas nuevas en el caché offline persistente ('historial_cache'), sin perder lo ya guardado.
+  // Solo se toca ese caché cuando la búsqueda está vacía: así nunca lo "ensuciamos" con resultados filtrados.
+  Future<void> _fusionarEnCacheOffline(String q, List<Registro> nuevos, {required bool alPrincipio}) async {
+    if (q.isNotEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    List<Map<String, dynamic>> cache = [];
+    final actual = prefs.getString('historial_cache');
+    if (actual != null) { try { cache = List<Map<String, dynamic>>.from(json.decode(actual)); } catch (_) {} }
+    final nuevosJson = nuevos.map((r) => r.toJson()).toList();
+    for (var n in nuevosJson) { cache.removeWhere((c) => c['id'] == n['id']); }
+    cache = alPrincipio ? [...nuevosJson, ...cache] : [...cache, ...nuevosJson];
+    await prefs.setString('historial_cache', json.encode(cache));
+  }
+  // Carga TODO lo guardado localmente (todas las páginas ya sincronizadas alguna vez), para poder buscar sin conexión.
+  Future<List<Registro>> _cargarCacheOfflineCompleta() async {
+    final prefs = await SharedPreferences.getInstance();
+    final c = prefs.getString('historial_cache');
+    if (c == null) return [];
+    try { final List<dynamic> d = json.decode(c); return d.map((i) => Registro.fromJson(i)).toList(); } catch (_) { return []; }
+  }
+  // Filtra localmente por texto (título/fecha, descripción y tags), igual que hace el servidor.
+  List<Registro> _filtrarLocal(List<Registro> lista, String q) {
+    if (q.isEmpty) return lista;
+    final ql = q.toLowerCase();
+    return lista.where((r) => r.detalles.toLowerCase().contains(ql) || r.tags.toLowerCase().contains(ql)).toList();
+  }
   // Descarga una página del historial (page=0 es la más reciente) y cachea sus fotos localmente.
   Future<List<Registro>> _descargarPagina(String q, int pagina) async {
     final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
@@ -912,23 +982,35 @@ class _TabHistorialState extends State<TabHistorial> {
     }
     return nuevos;
   }
-  Future<void> _guardarCacheHistorial() async { final prefs = await SharedPreferences.getInstance(); await prefs.setString('historial_cache', json.encode(_registros.map((r) => r.toJson()).toList())); }
   // Recarga desde cero (búsqueda nueva o pull-to-refresh): vuelve a la página 0.
+  // Si no hay conexión (o falla la petición) se filtra directamente sobre el caché guardado en el móvil.
   Future<void> _buscar(String q) async {
     final prefs = await SharedPreferences.getInstance(); String? ip = prefs.getString('pc_ip_url'); if (ip != null) _urlPC = ip;
-    if (_urlPC == null) return;
     setState(() => _cargando = true);
-    try {
-      _pagina = 0; _hayMas = true;
-      final nuevos = await _descargarPagina(q, 0);
-      setState(() => _registros = nuevos);
+    bool ok = false;
+    if (_urlPC != null) {
+      try {
+        _pagina = 0; _hayMas = true;
+        final nuevos = await _descargarPagina(q, 0);
+        setState(() { _registros = nuevos; _sinConexion = false; });
+        _aplicarCambiosVisuales();
+        await _fusionarEnCacheOffline(q, nuevos, alPrincipio: true);
+        ok = true;
+      } catch (e) { ok = false; }
+    }
+    if (!ok) {
+      // Sin conexión (o PC inalcanzable): buscamos en todo lo que tengamos guardado localmente.
+      final completa = await _cargarCacheOfflineCompleta();
+      final filtrados = _filtrarLocal(completa, q);
+      setState(() { _registros = filtrados; _hayMas = false; _sinConexion = true; });
       _aplicarCambiosVisuales();
-      await _guardarCacheHistorial();
-    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
+    }
+    if (mounted) setState(() => _cargando = false);
   }
   // Scroll infinito: pide la siguiente página y la añade al final, sin tocar lo ya cargado.
+  // Sin conexión no hay "más páginas" que pedir: el filtrado local ya trae todos los resultados de golpe.
   Future<void> _cargarMas() async {
-    if (_cargandoMas || !_hayMas || _urlPC == null) return;
+    if (_cargandoMas || !_hayMas || _urlPC == null || _sinConexion) return;
     setState(() => _cargandoMas = true);
     try {
       final siguiente = _pagina + 1;
@@ -937,7 +1019,7 @@ class _TabHistorialState extends State<TabHistorial> {
         _pagina = siguiente;
         setState(() => _registros.addAll(nuevos));
         _aplicarCambiosVisuales();
-        await _guardarCacheHistorial();
+        await _fusionarEnCacheOffline(_searchCtrl.text, nuevos, alPrincipio: false);
       }
     } catch (e) { /* */ } finally { if (mounted) setState(() => _cargandoMas = false); }
   }
@@ -1012,6 +1094,7 @@ class _TabHistorialState extends State<TabHistorial> {
     return Scaffold(
       body: Column(children: [
         if (_colaEdiciones.isNotEmpty) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Text("${_colaEdiciones.length} pendientes de subir", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+          if (_sinConexion) Container(width: double.infinity, color: Colors.blueGrey, padding: const EdgeInsets.all(6), child: const Text("📴 Sin conexión — mostrando datos guardados en el móvil", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12))),
           Padding(padding: const EdgeInsets.all(8.0), child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: "Buscar historial...", suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)), border: const OutlineInputBorder(), filled: _urlPC == null, fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null), onSubmitted: _buscar)),
           Expanded(child: RefreshIndicator(onRefresh: _sincronizarCompleto, child: _registros.isEmpty
           ? ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), const Center(child:Text("Sin historial visible"))])
