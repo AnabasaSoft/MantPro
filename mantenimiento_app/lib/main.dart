@@ -19,7 +19,7 @@ const int _historialPorPagina = 50;
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '2.6.5';
+const String kAppVersion = '2.6.7';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -970,6 +970,24 @@ class _TabHistorialState extends State<TabHistorial> {
   List<Registro> _registros = []; List<Map<String, dynamic>> _colaEdiciones = [];
   bool _cargando = false; String? _urlPC; final _searchCtrl = TextEditingController();
   static const int _porPagina = 50;
+  String _filtroAno = "TODO"; String _filtroMes = "TODO";
+  List<String> _aniosLista = ["TODO"];
+  Future<void> _actualizarAnios() async {
+    final prefs = await SharedPreferences.getInstance();
+    Set<String> anios = {DateTime.now().year.toString()};
+    final c = prefs.getString('historial_cache');
+    if (c != null) {
+      try {
+        final List<dynamic> d = json.decode(c);
+        for (var item in d) {
+          String fecha = (item['titulo'] ?? '').toString();
+          if (fecha.length >= 4) anios.add(fecha.substring(0, 4));
+        }
+      } catch (_) {}
+    }
+    List<String> ordenados = anios.toList()..sort((a, b) => b.compareTo(a));
+    if (mounted) setState(() => _aniosLista = ["TODO", ...ordenados]);
+  }
   final _scrollCtrl = ScrollController();
   int _pagina = 0; bool _hayMas = true; bool _cargandoMas = false; bool _sinConexion = false;
   @override void initState() {
@@ -981,10 +999,11 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   @override void dispose() { _scrollCtrl.dispose(); super.dispose(); }
   Future<void> _inicializarHistorial() async {
+    await _actualizarAnios();
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
     if (prefs.getString('historial_cola_ediciones') != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cola_ediciones')!));
-    if (prefs.getString('historial_cache') != null) { try { final List<dynamic> d = json.decode(prefs.getString('historial_cache')!); setState(() { _registros = d.map((i) => Registro.fromJson(i)).toList(); _hayMas = false; _sinConexion = _urlPC == null; }); _aplicarCambiosVisuales(); } catch (e) { /* */ } }
+    if (prefs.getString('historial_cache') != null) { try { final List<dynamic> d = json.decode(prefs.getString('historial_cache')!); List<Registro> cargados = d.map((i) => Registro.fromJson(i)).toList(); cargados.sort((a, b) { int cmp = b.titulo.compareTo(a.titulo); return cmp == 0 ? (b.id ?? 0).compareTo(a.id ?? 0) : cmp; }); setState(() { _registros = cargados; _hayMas = false; _sinConexion = _urlPC == null; }); _aplicarCambiosVisuales(); } catch (e) { /* */ } }
     if (_urlPC != null) { _sincronizarCompleto(); }
   }
   Future<void> _sincronizarCompleto() async {
@@ -1021,7 +1040,12 @@ class _TabHistorialState extends State<TabHistorial> {
     final nuevosJson = nuevos.map((r) => r.toJson()).toList();
     for (var n in nuevosJson) { cache.removeWhere((c) => c['id'] == n['id']); }
     cache = alPrincipio ? [...nuevosJson, ...cache] : [...cache, ...nuevosJson];
+    cache.sort((a, b) {
+      int cmp = (b['titulo'] ?? '').toString().compareTo((a['titulo'] ?? '').toString());
+      return cmp == 0 ? (b['id'] ?? 0).compareTo(a['id'] ?? 0) : cmp;
+    });
     await prefs.setString('historial_cache', json.encode(cache));
+    _actualizarAnios();
   }
   // Carga TODO lo guardado localmente (todas las páginas ya sincronizadas alguna vez), para poder buscar sin conexión.
   Future<List<Registro>> _cargarCacheOfflineCompleta() async {
@@ -1032,13 +1056,18 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   // Filtra localmente por texto (título/fecha, descripción y tags), igual que hace el servidor.
   List<Registro> _filtrarLocal(List<Registro> lista, String q) {
-    if (q.isEmpty) return lista;
+    String fDate = _filtroAno != "TODO" ? (_filtroMes != "TODO" ? "$_filtroAno-$_filtroMes" : _filtroAno) : "";
     final ql = q.toLowerCase();
-    return lista.where((r) => r.detalles.toLowerCase().contains(ql) || r.tags.toLowerCase().contains(ql)).toList();
+    return lista.where((r) {
+      bool pTexto = ql.isEmpty || r.detalles.toLowerCase().contains(ql) || r.tags.toLowerCase().contains(ql);
+      bool pFecha = fDate.isEmpty || r.titulo.startsWith(fDate);
+      return pTexto && pFecha;
+    }).toList();
   }
   // Descarga una página del historial (page=0 es la más reciente) y cachea sus fotos localmente.
   Future<List<Registro>> _descargarPagina(String q, int pagina) async {
-    final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
+    String fDate = _filtroAno != "TODO" ? (_filtroMes != "TODO" ? "$_filtroAno-$_filtroMes" : _filtroAno) : "";
+    final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q&mes=$fDate&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
     if (res.statusCode != 200) return [];
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
@@ -1071,6 +1100,7 @@ class _TabHistorialState extends State<TabHistorial> {
       // Sin conexión (o PC inalcanzable): buscamos en todo lo que tengamos guardado localmente.
       final completa = await _cargarCacheOfflineCompleta();
       final filtrados = _filtrarLocal(completa, q);
+      filtrados.sort((a, b) { int cmp = b.titulo.compareTo(a.titulo); return cmp == 0 ? (b.id ?? 0).compareTo(a.id ?? 0) : cmp; });
       setState(() { _registros = filtrados; _hayMas = false; _sinConexion = true; });
       _aplicarCambiosVisuales();
     }
@@ -1164,7 +1194,15 @@ class _TabHistorialState extends State<TabHistorial> {
       body: Column(children: [
         if (_colaEdiciones.isNotEmpty) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Text("${_colaEdiciones.length} pendientes de subir", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
           if (_sinConexion) Container(width: double.infinity, color: Colors.blueGrey, padding: const EdgeInsets.all(6), child: const Text("📴 Sin conexión — mostrando datos guardados en el móvil", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12))),
-          Padding(padding: const EdgeInsets.all(8.0), child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: "Buscar historial...", suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)), border: const OutlineInputBorder(), filled: _urlPC == null, fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null), onSubmitted: _buscar)),
+
+            const SizedBox(height: 5),
+            // Pestañas de Años
+            SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: _aniosLista.map((a) => Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: ChoiceChip(label: Text(a == "TODO" ? "Todos los años" : a), selected: _filtroAno == a, onSelected: (sel) { if (sel) { setState(() { _filtroAno = a; if (a == "TODO") _filtroMes = "TODO"; }); _buscar(_searchCtrl.text); } }))).toList())),
+
+            // Pestañas de Meses (Solo si hay un año seleccionado)
+            if (_filtroAno != "TODO") SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: ["TODO", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].asMap().entries.map((e) { List<String> n = ["Todo el año", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]; return Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: ChoiceChip(label: Text(n[e.key]), selected: _filtroMes == e.value, onSelected: (sel) { if (sel) { setState(() => _filtroMes = e.value); _buscar(_searchCtrl.text); } })); }).toList())),
+
+              Padding(padding: const EdgeInsets.all(8.0), child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: "Buscar historial...", suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)), border: const OutlineInputBorder(), filled: _urlPC == null, fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null), onSubmitted: _buscar)),
           Expanded(child: RefreshIndicator(onRefresh: _sincronizarCompleto, child: _registros.isEmpty
           ? ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), const Center(child:Text("Sin historial visible"))])
           : ListView.builder(controller: _scrollCtrl, itemCount: _registros.length + (_hayMas ? 1 : 0), itemBuilder: (ctx, i) {
