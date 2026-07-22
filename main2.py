@@ -605,36 +605,21 @@ class ServidorSincronizacion(QThread):
         def api_historial():
             try:
                 query = request.args.get('q', '').lower()
-                # Paginación: 'page' empieza en 0, 'limit' registros por página (por defecto 50)
-                try:
-                    page = max(0, int(request.args.get('page', 0)))
-                except (TypeError, ValueError):
-                    page = 0
-                try:
-                    limit = int(request.args.get('limit', 50))
-                except (TypeError, ValueError):
-                    limit = 50
-                limit = max(1, min(limit, 200))
-                offset = page * limit
-
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
 
-                sql = "SELECT id, fecha, descripcion, tags FROM tareas ORDER BY fecha DESC LIMIT ? OFFSET ?"
-                params = [limit + 1, offset]  # pedimos uno de más para saber si hay más páginas
+                sql = "SELECT id, fecha, descripcion, tags FROM tareas ORDER BY fecha DESC LIMIT 50"
+                params = []
 
                 if query:
-                    sql = "SELECT id, fecha, descripcion, tags FROM tareas WHERE descripcion LIKE ? OR tags LIKE ? ORDER BY fecha DESC LIMIT ? OFFSET ?"
+                    sql = "SELECT id, fecha, descripcion, tags FROM tareas WHERE descripcion LIKE ? OR tags LIKE ? ORDER BY fecha DESC LIMIT 50"
                     p_query = f"%{query}%"
-                    params = [p_query, p_query, limit + 1, offset]
+                    params = [p_query, p_query]
 
                 c.execute(sql, params)
-                filas = c.fetchall()
-                hay_mas = len(filas) > limit
-                filas = filas[:limit]
                 # Procesamos para extraer nombre de foto si existe
                 resultados = []
-                for r in filas:
+                for r in c.fetchall():
                     desc = r[2]
                     foto = None
                     m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
@@ -658,7 +643,7 @@ class ServidorSincronizacion(QThread):
                         "raw_desc": desc # Necesario para editar
                     })
                 conn.close()
-                return jsonify({"items": resultados, "has_more": hay_mas, "page": page})
+                return jsonify(resultados)
             except Exception as e: return jsonify({"error": str(e)}), 500
 
         # ---------------------------------------------------------

@@ -12,8 +12,6 @@ import 'package:path/path.dart' as path;
 
 // --- GESTOR DE TEMA GLOBAL ---
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
-// Tamaño de página usado en los refrescos de historial en segundo plano (fuera de la pestaña Historial)
-const int _historialPorPagina = 50;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -349,20 +347,14 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
       if (enviados.isNotEmpty) {
         // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
         try {
-          final resH = await http.get(Uri.parse("http://$urlUsar/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+          final resH = await http.get(Uri.parse("http://$urlUsar/api/historial?q=")).timeout(const Duration(seconds: 5));
           if (resH.statusCode == 200) {
-            final body = json.decode(resH.body);
-            final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
-            List<Map<String, dynamic>> nuevosH = dH.map((i) => {
+            final List<dynamic> dH = json.decode(resH.body);
+            List<Map<String, dynamic>> cacheH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
               'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc']
             }).toList();
             final prefs = await SharedPreferences.getInstance();
-            List<Map<String, dynamic>> cacheH = [];
-            final actual = prefs.getString('historial_cache');
-            if (actual != null) { try { cacheH = List<Map<String, dynamic>>.from(json.decode(actual)); } catch (_) {} }
-            for (var n in nuevosH) { cacheH.removeWhere((c) => c['id'] == n['id']); }
-            cacheH = [...nuevosH, ...cacheH]; // los más recientes primero, sin perder páginas ya cargadas
             await prefs.setString('historial_cache', json.encode(cacheH));
           }
         } catch (_) {}
@@ -481,19 +473,13 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
     if (bo.isNotEmpty || no.isNotEmpty || eo.isNotEmpty || so.isNotEmpty) {
       try {
-        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=")).timeout(const Duration(seconds: 5));
         if (resH.statusCode == 200) {
-          final body = json.decode(resH.body);
-          final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
-          List<Map<String, dynamic>> nuevosH = dH.map((i) => {
+          final List<dynamic> dH = json.decode(resH.body);
+          List<Map<String, dynamic>> cacheH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
             'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
           }).toList();
-          List<Map<String, dynamic>> cacheH = [];
-          final actual = prefs.getString('historial_cache');
-          if (actual != null) { try { cacheH = List<Map<String, dynamic>>.from(json.decode(actual)); } catch (_) {} }
-          for (var n in nuevosH) { cacheH.removeWhere((c) => c['id'] == n['id']); }
-          cacheH = [...nuevosH, ...cacheH];
           await prefs.setString('historial_cache', json.encode(cacheH));
         }
       } catch (_) {}
@@ -791,19 +777,13 @@ class _TabAvisosState extends State<TabAvisos> {
 
       // --- NUEVO: Descargar el nuevo historial en segundo plano al marcar avisos ---
       try {
-        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=")).timeout(const Duration(seconds: 5));
         if (resH.statusCode == 200) {
-          final body = json.decode(resH.body);
-          final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
-          List<Map<String, dynamic>> nuevosH = dH.map((i) => {
+          final List<dynamic> dH = json.decode(resH.body);
+          List<Map<String, dynamic>> cacheH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
             'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
           }).toList();
-          List<Map<String, dynamic>> cacheH = [];
-          final actual = prefs.getString('historial_cache');
-          if (actual != null) { try { cacheH = List<Map<String, dynamic>>.from(json.decode(actual)); } catch (_) {} }
-          for (var n in nuevosH) { cacheH.removeWhere((c) => c['id'] == n['id']); }
-          cacheH = [...nuevosH, ...cacheH];
           await prefs.setString('historial_cache', json.encode(cacheH));
         }
       } catch (_) {}
@@ -856,17 +836,7 @@ class TabHistorial extends StatefulWidget { const TabHistorial({super.key}); @ov
 class _TabHistorialState extends State<TabHistorial> {
   List<Registro> _registros = []; List<Map<String, dynamic>> _colaEdiciones = [];
   bool _cargando = false; String? _urlPC; final _searchCtrl = TextEditingController();
-  static const int _porPagina = 50;
-  final _scrollCtrl = ScrollController();
-  int _pagina = 0; bool _hayMas = true; bool _cargandoMas = false;
-  @override void initState() {
-    super.initState();
-    _inicializarHistorial();
-    _scrollCtrl.addListener(() {
-      if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 400) _cargarMas();
-    });
-  }
-  @override void dispose() { _scrollCtrl.dispose(); super.dispose(); }
+  @override void initState() { super.initState(); _inicializarHistorial(); }
   Future<void> _inicializarHistorial() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
@@ -897,49 +867,23 @@ class _TabHistorialState extends State<TabHistorial> {
     }
     if (ok.isNotEmpty) { setState(() { for (var s in ok) _colaEdiciones.remove(s); }); await _guardarCola(); }
   }
-  // Descarga una página del historial (page=0 es la más reciente) y cachea sus fotos localmente.
-  Future<List<Registro>> _descargarPagina(String q, int pagina) async {
-    final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
-    if (res.statusCode != 200) return [];
-    final body = json.decode(res.body);
-    final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
-    _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'])).toList();
-    final dir = await getApplicationDocumentsDirectory();
-    for (var r in nuevos) {
-      if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
-      if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
-    }
-    return nuevos;
-  }
-  Future<void> _guardarCacheHistorial() async { final prefs = await SharedPreferences.getInstance(); await prefs.setString('historial_cache', json.encode(_registros.map((r) => r.toJson()).toList())); }
-  // Recarga desde cero (búsqueda nueva o pull-to-refresh): vuelve a la página 0.
   Future<void> _buscar(String q) async {
     final prefs = await SharedPreferences.getInstance(); String? ip = prefs.getString('pc_ip_url'); if (ip != null) _urlPC = ip;
     if (_urlPC == null) return;
     setState(() => _cargando = true);
     try {
-      _pagina = 0; _hayMas = true;
-      final nuevos = await _descargarPagina(q, 0);
-      setState(() => _registros = nuevos);
-      _aplicarCambiosVisuales();
-      await _guardarCacheHistorial();
-    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
-  }
-  // Scroll infinito: pide la siguiente página y la añade al final, sin tocar lo ya cargado.
-  Future<void> _cargarMas() async {
-    if (_cargandoMas || !_hayMas || _urlPC == null) return;
-    setState(() => _cargandoMas = true);
-    try {
-      final siguiente = _pagina + 1;
-      final nuevos = await _descargarPagina(_searchCtrl.text, siguiente);
-      if (nuevos.isNotEmpty) {
-        _pagina = siguiente;
-        setState(() => _registros.addAll(nuevos));
-        _aplicarCambiosVisuales();
-        await _guardarCacheHistorial();
+      final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q")).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final List<dynamic> d = json.decode(res.body);
+        List<Registro> news = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'])).toList();
+        final dir = await getApplicationDocumentsDirectory();
+        for (var r in news) {
+          if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
+            if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
+        }
+        setState(() => _registros = news); _aplicarCambiosVisuales(); await prefs.setString('historial_cache', json.encode(news.map((r) => r.toJson()).toList()));
       }
-    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargandoMas = false); }
+    } catch (e) { /* */ } finally { if (mounted) setState(() => _cargando = false); }
   }
   Future<String> _localPath(String f) async { final d = await getApplicationDocumentsDirectory(); return path.join(d.path, f); }
   Widget? _widgetFoto(String? localPath, String? serverName) {
@@ -1015,12 +959,7 @@ class _TabHistorialState extends State<TabHistorial> {
           Padding(padding: const EdgeInsets.all(8.0), child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: "Buscar historial...", suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)), border: const OutlineInputBorder(), filled: _urlPC == null, fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null), onSubmitted: _buscar)),
           Expanded(child: RefreshIndicator(onRefresh: _sincronizarCompleto, child: _registros.isEmpty
           ? ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), const Center(child:Text("Sin historial visible"))])
-          : ListView.builder(controller: _scrollCtrl, itemCount: _registros.length + (_hayMas ? 1 : 0), itemBuilder: (ctx, i) {
-            if (i >= _registros.length) {
-              // Centinela final: dispara la carga de la siguiente página y muestra el indicador.
-              WidgetsBinding.instance.addPostFrameCallback((_) => _cargarMas());
-              return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))));
-            }
+          : ListView.builder(itemCount: _registros.length, itemBuilder: (ctx, i) {
             final r = _registros[i]; Widget w;
             w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues) ?? const Icon(Icons.article, color: Colors.blueGrey);
               bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
