@@ -18,6 +18,7 @@ dependencies:
   shared_preferences: ^2.2.2
   image_painter: ^0.7.0
   path: ^1.8.3
+  url_launcher: ^6.3.2
 
 flutter:
   uses-material-design: true
