@@ -9,11 +9,74 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_painter/image_painter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:url_launcher/url_launcher.dart';
 
 // --- GESTOR DE TEMA GLOBAL ---
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 // Tamaño de página usado en los refrescos de historial en segundo plano (fuera de la pestaña Historial)
 const int _historialPorPagina = 50;
+
+// --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
+// IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
+// así la app sabrá que la instalada se ha quedado atrás.
+const String kAppVersion = '2.6.5';
+const String kRepoOwner = 'AnabasaSoft';
+const String kRepoName = 'MantPro';
+
+/// Compara dos versiones tipo "1.2.3" (o "v1.2.3"). Devuelve >0 si a > b, <0 si a < b, 0 si iguales.
+int _compararVersiones(String a, String b) {
+  List<int> parse(String v) => v.trim().replaceFirst(RegExp(r'^[vV]'), '').split('.').map((s) => int.tryParse(s.trim()) ?? 0).toList();
+  final pa = parse(a), pb = parse(b);
+  for (int i = 0; i < 3; i++) {
+    final va = i < pa.length ? pa[i] : 0;
+    final vb = i < pb.length ? pb[i] : 0;
+    if (va != vb) return va.compareTo(vb);
+  }
+  return 0;
+}
+
+/// Consulta el último release del repo en GitHub y, si hay una versión más nueva que la instalada,
+/// muestra un diálogo para descargarla. Por defecto no molesta más de una vez al día ni repite
+/// aviso para una versión que el usuario ya descartó con "Luego" (salvo que 'forzar' sea true).
+Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = false}) async {
+  final prefs = await SharedPreferences.getInstance();
+  if (!forzar) {
+    final ultima = prefs.getInt('update_ultima_comprobacion') ?? 0;
+    if (DateTime.now().millisecondsSinceEpoch - ultima < const Duration(hours: 24).inMilliseconds) return;
+  }
+  try {
+    final res = await http.get(
+      Uri.parse('https://api.github.com/repos/$kRepoOwner/$kRepoName/releases/latest'),
+      headers: {'Accept': 'application/vnd.github+json'},
+    ).timeout(const Duration(seconds: 6));
+    await prefs.setInt('update_ultima_comprobacion', DateTime.now().millisecondsSinceEpoch);
+    if (res.statusCode != 200) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); return; }
+    final data = json.decode(res.body);
+    final String tag = (data['tag_name'] ?? '').toString();
+    final String urlRelease = (data['html_url'] ?? 'https://github.com/$kRepoOwner/$kRepoName/releases').toString();
+    final String notas = (data['body'] ?? '').toString();
+    if (tag.isEmpty) return;
+    if (_compararVersiones(tag, kAppVersion) <= 0) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: false); return; }
+    final descartada = prefs.getString('update_descartada');
+    if (!forzar && descartada == tag) return; // el usuario ya dijo "Luego" para esta versión
+    if (!context.mounted) return;
+    showDialog(context: context, barrierDismissible: true, builder: (ctx) => AlertDialog(
+      title: const Text("🚀 Nueva versión disponible"),
+      content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Text("Tienes la versión $kAppVersion instalada y en GitHub ya está la $tag."),
+        if (notas.trim().isNotEmpty) ...[const SizedBox(height: 10), Text(notas.trim(), style: const TextStyle(fontSize: 12, color: Colors.grey))],
+      ])),
+      actions: [
+        TextButton(onPressed: () async { await prefs.setString('update_descartada', tag); if (ctx.mounted) Navigator.pop(ctx); }, child: const Text("Luego")),
+        ElevatedButton.icon(icon: const Icon(Icons.download), label: const Text("Descargar"), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
+      ],
+    ));
+  } catch (e) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); } // sin conexión o GitHub caído: no molestamos
+}
+
+void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? "❌ No se pudo comprobar actualizaciones (sin conexión)" : "✅ Ya tienes la última versión")));
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,6 +208,8 @@ class _MainScreenState extends State<MainScreen> {
       const TabAvisos(),
       const TabHistorial(),
     ];
+    // Comprobamos si hay una versión nueva en GitHub (como mucho una vez al día, sin molestar).
+    WidgetsBinding.instance.addPostFrameCallback((_) => comprobarActualizacionGitHub(context));
   }
 
   void _toggleTheme() async {
@@ -232,7 +297,8 @@ class _TabDashboardState extends State<TabDashboard> {
       final h = prefs.getString('historial_cache');
       if (h != null) {
         for (var item in (json.decode(h) as List)) {
-          final fecha = (item['fecha'] ?? '').toString();
+          // En los registros de historial la fecha viaja en 'titulo' (ver Registro.toJson), no en 'fecha'.
+          final fecha = (item['titulo'] ?? item['fecha'] ?? '').toString();
           if (fecha.startsWith(mesActual)) nMes++;
         }
       }
@@ -324,7 +390,10 @@ class _TabDashboardState extends State<TabDashboard> {
       child: ListView(padding: const EdgeInsets.all(16), children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text("Estado Planta", style: Theme.of(context).textTheme.headlineSmall),
-          Icon(_conexionActiva ? Icons.cloud_done : Icons.cloud_off, size: 18, color: _conexionActiva ? Colors.green : Colors.red)
+          Row(children: [
+            IconButton(tooltip: "Buscar actualizaciones", icon: const Icon(Icons.system_update, size: 20), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
+            Icon(_conexionActiva ? Icons.cloud_done : Icons.cloud_off, size: 18, color: _conexionActiva ? Colors.green : Colors.red),
+          ]),
         ]), const SizedBox(height: 20),
         GridView.count(crossAxisCount: 2, shrinkWrap: true, crossAxisSpacing: 10, mainAxisSpacing: 10, physics: const NeverScrollableScrollPhysics(), children: [
           _buildCard("Pendientes", "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, targetTabIndex: 2),

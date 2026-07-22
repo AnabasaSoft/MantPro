@@ -212,14 +212,15 @@ class GeneradorPDFThread(QThread):
 
             elements.append(Paragraph(self.titulo_doc, styles['Title'])); elements.append(Spacer(1, 12))
 
-            data_tabla = [["FECHA", "DESCRIPCIÓN", "TAGS", "FOTO"]]
+            data_tabla = [["FECHA", "DESCRIPCIÓN", "TAGS", "FOTO ANTES", "FOTO DESPUÉS"]]
             style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
             for fecha, desc, tags in self.datos:
                 desc_visual = desc
                 img_obj = "-"
+                img_obj_d = "-"
 
-                # Gestión de FOTO
+                # Gestión de FOTO (antes)
                 m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
                 if m:
                     nombre_foto = m.group(1).split("]")[0].strip()
@@ -229,31 +230,56 @@ class GeneradorPDFThread(QThread):
                         if os.path.exists(ruta_foto):
                             try:
                                 img = PDFImage(ruta_foto)
-                                img.drawHeight = 2.5*cm
-                                img.drawWidth = 3.5*cm
+                                img.drawHeight = 1.8*cm
+                                img.drawWidth = 2.4*cm
                                 img.keepAspectRatio = True
                                 img_obj = img
                             except: img_obj = "Error Img"
                         else: img_obj = "No File"
                     else: img_obj = "SÍ"
 
+                # Gestión de FOTO_DESPUES
+                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
+                if m_d:
+                    nombre_foto_d = m_d.group(1).split("]")[0].strip()
+
+                    if self.incluir_fotos:
+                        ruta_foto_d = os.path.join(self.carpeta_fotos, nombre_foto_d)
+                        if os.path.exists(ruta_foto_d):
+                            try:
+                                img_d = PDFImage(ruta_foto_d)
+                                img_d.drawHeight = 1.8*cm
+                                img_d.drawWidth = 2.4*cm
+                                img_d.keepAspectRatio = True
+                                img_obj_d = img_d
+                            except: img_obj_d = "Error Img"
+                        else: img_obj_d = "No File"
+                    else: img_obj_d = "SÍ"
+
                 # LIMPIEZA DE ETIQUETAS
                 desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
+                desc_visual = re.sub(r"\[FOTO_DESPUES:.*?\]", "", desc_visual)
                 desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual)
                 desc_visual = desc_visual.strip()
 
                 p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
                 p_tags = Paragraph(tags, style_cell)
-                data_tabla.append([fecha, p_desc, p_tags, img_obj])
+                data_tabla.append([fecha, p_desc, p_tags, img_obj, img_obj_d])
 
-            ancho_foto = 4*cm if self.incluir_fotos else 1.5*cm
-            t = Table(data_tabla, colWidths=[2.5*cm, 9*cm, 3.5*cm, ancho_foto])
+            # Las columnas de foto llevan algo más de ancho que la imagen (2.4cm) para dejar hueco
+            # al padding interno de la celda; si no, la imagen se sale del recuadro (se ve "cortada").
+            ancho_foto = 3*cm if self.incluir_fotos else 1.3*cm
+            t = Table(data_tabla, colWidths=[2.2*cm, 6.5*cm, 2.7*cm, ancho_foto, ancho_foto])
             t.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 1), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
