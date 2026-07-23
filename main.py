@@ -1225,15 +1225,28 @@ class GestorBaseDatos:
 class GestorFestivos:
     def __init__(self, db_instance):
         self.db = db_instance
-        # USAMOS DATA_DIR PARA EL CACHÉ JSON
-        self.archivo_cache = os.path.join(DATA_DIR, "festivos_cache.json")
         self.year = datetime.now().year
-        self.url_api = f"https://date.nager.at/api/v3/publicholidays/{self.year}/ES"
+
+    def obtener_config_pais(self):
+        # Por defecto España, para no romper instalaciones existentes
+        return self.db.get_config("country_iso") or "ES"
 
     def obtener_config_region(self):
-        iso_prov = self.db.get_config("region_iso") or "ES-BI"
-        iso_com = self.db.get_config("parent_iso") or "ES-PV"
+        pais = self.obtener_config_pais()
+        # Si no hay región guardada y el país es España, mantenemos el valor por defecto histórico (Bizkaia)
+        default_prov = "ES-BI" if pais == "ES" else ""
+        default_com = "ES-PV" if pais == "ES" else ""
+        iso_prov = self.db.get_config("region_iso") or default_prov
+        iso_com = self.db.get_config("parent_iso") or default_com
         return iso_prov, iso_com
+
+    def _archivo_cache(self):
+        pais = self.obtener_config_pais()
+        return os.path.join(DATA_DIR, f"festivos_cache_{pais}_{self.year}.json")
+
+    def _url_api(self):
+        pais = self.obtener_config_pais()
+        return f"https://date.nager.at/api/v3/publicholidays/{self.year}/{pais}"
 
     def obtener_festivos(self):
         datos = self.cargar_cache()
@@ -1245,30 +1258,55 @@ class GestorFestivos:
         if datos:
             for i in datos:
                 counties = i.get('counties')
-                if counties is None or iso_com in counties or iso_prov in counties:
+                # Si no hay provincia/región configurada (país sin desglose), solo festivos nacionales (counties=None)
+                if counties is None or (iso_com and iso_com in counties) or (iso_prov and iso_prov in counties):
                     l.append(QDate.fromString(i.get('date'),"yyyy-MM-dd"))
         return l
 
     def descargar_festivos(self):
         try:
-            r = requests.get(self.url_api)
+            r = requests.get(self._url_api())
             if r.status_code == 200:
-                with open(self.archivo_cache, 'w') as f: json.dump(r.json(), f)
+                with open(self._archivo_cache(), 'w') as f: json.dump(r.json(), f)
                 return r.json()
         except: return []
         return []
 
     def cargar_cache(self):
-        if os.path.exists(self.archivo_cache):
+        archivo = self._archivo_cache()
+        if os.path.exists(archivo):
             try:
-                with open(self.archivo_cache, 'r') as f: return json.load(f)
+                with open(archivo, 'r') as f: return json.load(f)
             except: return None
+
         return None
 
-    def limpiar_cache(self):
-        if os.path.exists(self.archivo_cache):
+    def obtener_paises_disponibles(self):
+        """Devuelve una lista de tuplas (nombre, codigo_iso) de los países soportados por la API, cacheada en disco."""
+        archivo = os.path.join(DATA_DIR, "paises_cache.json")
+        datos = None
+        if os.path.exists(archivo):
             try:
-                os.remove(self.archivo_cache)
+                with open(archivo, 'r') as f: datos = json.load(f)
+            except: datos = None
+        if not datos:
+            try:
+                r = requests.get("https://date.nager.at/api/v3/AvailableCountries")
+                if r.status_code == 200:
+                    datos = r.json()
+                    with open(archivo, 'w') as f: json.dump(datos, f)
+            except:
+                datos = None
+        if not datos:
+            # Fallback mínimo por si no hay conexión y tampoco hay caché todavía
+            datos = [{"countryCode": "ES", "name": "Spain"}]
+        return sorted([(d["name"], d["countryCode"]) for d in datos], key=lambda x: x[0])
+
+    def limpiar_cache(self):
+        archivo = self._archivo_cache()
+        if os.path.exists(archivo):
+            try:
+                os.remove(archivo)
             except: pass
 
 class LabelArrastrable(QLabel):
@@ -1367,6 +1405,40 @@ class DialogoDiasEspeciales(QDialog):
 # ==========================================
 # 3. DIÁLOGOS DE INTERFAZ
 # ==========================================
+class DialogoSeleccionPais(QDialog):
+    def __init__(self, gestor_festivos, db, parent=None):
+        super().__init__(parent)
+        self.db = db
+        self.setWindowTitle("Seleccionar País")
+        self.resize(400, 150)
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Elige tu país para descargar los días festivos:"))
+        layout.addWidget(QLabel("(Para España se podrá afinar después por provincia)"))
+
+        self.combo = QComboBox()
+        self.paises = gestor_festivos.obtener_paises_disponibles()  # lista de (nombre, iso)
+        self.combo.addItems([nombre for nombre, iso in self.paises])
+
+        actual_iso = self.db.get_config("country_iso") or "ES"
+        for nombre, iso in self.paises:
+            if iso == actual_iso:
+                self.combo.setCurrentText(nombre)
+                break
+
+        layout.addWidget(self.combo)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        layout.addWidget(btns)
+        self.setLayout(layout)
+
+    def get_selection(self):
+        nombre_sel = self.combo.currentText()
+        for nombre, iso in self.paises:
+            if nombre == nombre_sel:
+                return nombre, iso
+        return "Spain", "ES"
+
 class DialogoSeleccionRegion(QDialog):
     def __init__(self, db, parent=None):
         super().__init__(parent)
@@ -2003,9 +2075,9 @@ class MaintenanceApp(QMainWindow):
         act_sync = QAction("📲 Sincronizar App (QR)", self); act_sync.triggered.connect(self.mostrar_dialogo_qr); tm.addAction(act_sync)
         tm.addAction(QAction("Gestionar Días / Festivos", self, triggered=self.gest_dias));
 
-        # --- NUEVA OPCIÓN DE PROVINCIA ---
-        act_prov = QAction("🌍 Seleccionar Provincia", self)
-        act_prov.triggered.connect(self.cambiar_provincia)
+        # --- OPCIÓN DE PAÍS / PROVINCIA ---
+        act_prov = QAction("🌍 País / Región (Festivos)", self)
+        act_prov.triggered.connect(self.cambiar_pais_region)
         tm.addAction(act_prov)
         # ---------------------------------
 
@@ -2015,24 +2087,37 @@ class MaintenanceApp(QMainWindow):
         hm.addAction(QAction("🔄 Buscar Actualizaciones", self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
         hm.addAction(QAction("ℹ️ Acerca de", self, triggered=self.mostrar_about))
 
-    def cambiar_provincia(self):
-        # Abre el diálogo para seleccionar la provincia
-        dlg = DialogoSeleccionRegion(self.db, self)
-        if dlg.exec():
-            nombre, iso_prov, iso_parent = dlg.get_selection()
+    def cambiar_pais_region(self):
+        # PASO 1: Elegir país
+        dlg_pais = DialogoSeleccionPais(self.gestor_festivos, self.db, self)
+        if not dlg_pais.exec():
+            return  # Cancelado
 
-            # Guardamos ambas configuraciones
-            self.db.set_config("region_iso", iso_prov)
-            self.db.set_config("parent_iso", iso_parent)
+        nombre_pais, iso_pais = dlg_pais.get_selection()
+        self.db.set_config("country_iso", iso_pais)
 
-            # Limpiar la caché antigua
+        if iso_pais == "ES":
+            # PASO 2 (solo España): Elegir provincia, igual que antes
+            dlg = DialogoSeleccionRegion(self.db, self)
+            if dlg.exec():
+                nombre, iso_prov, iso_parent = dlg.get_selection()
+                self.db.set_config("region_iso", iso_prov)
+                self.db.set_config("parent_iso", iso_parent)
+                self.gestor_festivos.limpiar_cache()
+                QMessageBox.information(self, "Región Cambiada", f"País: España\nNueva zona: {nombre}\n(Se descargarán festivos nacionales, de {iso_parent} y de {iso_prov})")
+            else:
+                # Canceló la provincia, pero el país ya quedó guardado como España
+                self.gestor_festivos.limpiar_cache()
+        else:
+            # Otro país: sin desglose regional, solo festivos nacionales
+            self.db.set_config("region_iso", "")
+            self.db.set_config("parent_iso", "")
             self.gestor_festivos.limpiar_cache()
+            QMessageBox.information(self, "País Cambiado", f"Nuevo país: {nombre_pais}\n(Se descargarán los festivos nacionales de {nombre_pais})")
 
-            QMessageBox.information(self, "Provincia Cambiada", f"Nueva zona: {nombre}\n(Se descargarán festivos nacionales, de {iso_parent} y de {iso_prov})")
-
-            # Repintar el calendario
-            self.pintar_calendario()
-            self.update_calendar_list()
+        # Repintar el calendario
+        self.pintar_calendario()
+        self.update_calendar_list()
 
     def aplicar_estilo_visual(self):
         QApplication.setStyle(QStyleFactory.create("Fusion"))
