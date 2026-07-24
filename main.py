@@ -751,6 +751,7 @@ class ServidorSincronizacion(QThread):
                     except: continue
 
                     if not freq: freq = "Anual"
+                    freq = idiomas.normalizar_frecuencia(freq)
 
                     # Calcular cuándo toca (Misma lógica matemática de antes)
                     ocurrencia = fi
@@ -1884,6 +1885,7 @@ class MaintenanceApp(QMainWindow):
             if not finicio: continue
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
+            freq = idiomas.normalizar_frecuencia(freq)
             ocurrencia = fi
             while ocurrencia.addDays(dur) < sd:
                 if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
@@ -1907,6 +1909,7 @@ class MaintenanceApp(QMainWindow):
         for tarea in ts:
             # --- LIMPIEZA VISUAL COMPLETA ---
             texto_limpio = re.sub(r"\[FOTO:.*?\]", "", tarea[1])
+            texto_limpio = re.sub(r"\[FOTO_DESPUES:.*?\]", "", texto_limpio)
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
             # --------------------------------
 
@@ -2367,6 +2370,7 @@ class MaintenanceApp(QMainWindow):
         for r, (aid, tit, finicio, freq, dur, ult) in enumerate(avisos):
             if not finicio: finicio = f"{hoy.year()}-01-01"
             if not freq: freq = "Anual"
+            freq = idiomas.normalizar_frecuencia(freq)
 
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             ocurrencia = fi
@@ -2919,6 +2923,7 @@ class MaintenanceApp(QMainWindow):
             if not finicio: continue
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
+            freq = idiomas.normalizar_frecuencia(freq)
             ocurrencia = fi
             while ocurrencia.addDays(dur) < hoy:
                 if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
