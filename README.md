@@ -330,7 +330,7 @@ La aplicación utiliza SQLite con las siguientes tablas:
 - [ ] Añadir gráficas de estadísticas más detalladas
 - [ ] Integración con calendario de Google
 - [X] Modo oscuro
-- [ ] Multi-idioma
+- [X] Multi-idioma (Español, Inglés, Euskara)
 - [X] Exportación a Excel
 - [ ] API para integración con otros sistemas
 - [ ] Firma digital de trabajos completados

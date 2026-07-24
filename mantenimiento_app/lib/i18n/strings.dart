@@ -1,0 +1,322 @@
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// ==========================================
+// SISTEMA DE IDIOMAS - MantPro (Móvil)
+// ==========================================
+// Cómo añadir un idioma nuevo:
+//   1. Copia el bloque "es" o "en" entero y tradúcelo.
+//   2. Añade su entrada en idiomasDisponibles.
+//   3. Ya aparece automáticamente en el selector de idioma.
+//
+// Cómo usar una clave nueva en el código:
+//   - Añade la clave en TODOS los idiomas (si falta en alguno, se
+//     muestra la clave en español como respaldo automático).
+//   - Donde antes tenías texto literal, usa t('tu_clave').
+//   - Envuelve el widget en ValueListenableBuilder(valueListenable: idiomaNotifier, ...)
+//     si quieres que se actualice al vuelo sin reiniciar la app.
+
+const List<Map<String, String>> idiomasDisponibles = [
+  {"codigo": "es", "nombre": "Español"},
+  {"codigo": "en", "nombre": "English"},
+  {"codigo": "eu", "nombre": "Euskara"},
+];
+
+const Map<String, Map<String, String>> _traducciones = {
+  "es": {
+    // --- Listas, Estados y Notificaciones ---
+        "hdr_fecha": "FECHA",
+        "hdr_descripcion": "DESCRIPCIÓN",
+        "hdr_tags": "TAGS",
+        "hdr_foto_antes": "FOTO ANTES",
+        "hdr_foto_despues": "FOTO DESPUÉS",
+        "msg_dia_no_laborable": "--- Día no laborable ---",
+        "msg_nada_registrado": "--- Nada registrado ---",
+        "msg_nada": "--- Nada ---",
+        "msg_sin_detalles": "Sin detalles",
+        "msg_no_hay_pendientes": "No hay tareas pendientes",
+        "msg_no_hay_avisos": "No hay avisos",
+        "msg_sin_historial": "Sin historial visible",
+        "msg_sin_registros_locales": "Sin registros locales",
+        "lbl_todos_trabajos": "Todos los trabajos",
+        "lbl_todos_los_anos": "Todos los años",
+        "tipo_vacaciones": "Vacaciones",
+        "tipo_puente": "Puente",
+        "tipo_dia_libre": "Día Libre",
+        "tipo_festivo_manual": "Festivo (Manual)",
+        "estado_ok": "OK",
+        "estado_pendiente": "PENDIENTE",
+        "estado_futuro": "Futuro",
+        "estado_listo_subir": "LISTO (Subir)",
+        "estado_pendiente_subir": "PENDIENTE (Subir)",
+        "notif_titulo": "⚠️ Mantenimiento Preventivo",
+        "notif_cuerpo": "Tienes trabajos recurrentes pendientes de realizar.",
+        "mes_01": "Enero", "mes_02": "Febrero", "mes_03": "Marzo", "mes_04": "Abril", "mes_05": "Mayo", "mes_06": "Junio", "mes_07": "Julio", "mes_08": "Agosto", "mes_09": "Septiembre", "mes_10": "Octubre", "mes_11": "Noviembre", "mes_12": "Diciembre",
+        "mes_todo": "Todo el año", "mes_01_corto": "Ene", "mes_02_corto": "Feb", "mes_03_corto": "Mar", "mes_04_corto": "Abr", "mes_05_corto": "May", "mes_06_corto": "Jun", "mes_07_corto": "Jul", "mes_08_corto": "Ago", "mes_09_corto": "Sep", "mes_10_corto": "Oct", "mes_11_corto": "Nov", "mes_12_corto": "Dic",
+
+    "tab_inicio": "Inicio",
+    "tab_local": "Local",
+    "tab_pendientes": "Pendientes",
+    "tab_avisos": "Avisos",
+    "tab_historial": "Historial",
+    "titulo_dashboard": "Dashboard",
+    "titulo_local": "Mis Registros Locales",
+    "titulo_pendientes": "Pendientes",
+    "titulo_avisos": "Avisos Recurrentes",
+    "titulo_historial": "Historial Completo",
+    "dlg_idioma_titulo": "Idioma",
+    "tag_urgente": "Urgente",
+    "tag_electrico": "Eléctrico",
+    "tag_mecanico": "Mecánico",
+    "tag_preventivo": "Preventivo",
+    "lbl_estado_planta": "Estado Planta",
+    "lbl_pendientes": "Pendientes",
+    "lbl_registros_mes": "Registros Mes",
+    "lbl_avisos_config": "Avisos Config.",
+    "lbl_conexion": "Conexión",
+    "lbl_pc_no_vinculado": "PC No Vinculado",
+    "btn_vincular_ahora": "Vincular Ahora",
+    "lbl_anadir": "AÑADIR",
+    "lbl_nuevo": "Nuevo",
+    "lbl_editar": "Editar",
+    "lbl_tags_extra": "Tags extra",
+    "btn_bajar": "BAJAR",
+    "btn_foto_camara": "FOTO",
+    "btn_actualizar": "ACTUALIZAR",
+    "btn_terminar": "TERMINAR",
+    "btn_guardar_form": "GUARDAR",
+    "ph_buscar_historial": "Buscar historial...",
+    "msg_conexion_recuperada": "✅ Conexión recuperada.",
+    "msg_vinculado": "✅ Vinculado y sincronizado a {ip}",
+    "msg_enviados": "✅ {n} enviados y registrados",
+    "msg_foto_anadida": "✅ Foto añadida al completado",
+    "msg_tarea_completada": "✅ Tarea completada",
+    "msg_pendiente_creado": "✅ Pendiente creado",
+    "msg_deshecho": "↩️ Deshecho",
+    "msg_guardado": "✅ Guardado",
+    "msg_sin_conexion_pc": "❌ Sin conexión al PC",
+    "msg_fotos_reenviadas": "✅ {n} fotos reenviadas ({r} trabajos revisados)",
+    "lbl_borrar_q": "¿Borrar?",
+    "btn_si": "SÍ",
+    "btn_no": "NO",
+    "lbl_confirmar": "Confirmar",
+    "msg_marcar_q": "¿Marcar '{titulo}'?",
+    "lbl_desmarcar": "Desmarcar",
+    "msg_volver_pendiente": "¿Volver a pendiente?",
+    "btn_cancelar_mayus": "CANCELAR",
+    "btn_desmarcar_mayus": "DESMARCAR",
+    "lbl_conecta_pc_sync": "Conecta el PC para sincronizar",
+    "btn_vincular_pc": "Vincular PC",
+  },
+  "en": {
+    // --- Listas, Estados y Notificaciones ---
+        "hdr_fecha": "DATE",
+        "hdr_descripcion": "DESCRIPTION",
+        "hdr_tags": "TAGS",
+        "hdr_foto_antes": "BEFORE PHOTO",
+        "hdr_foto_despues": "AFTER PHOTO",
+        "msg_dia_no_laborable": "--- Non-working day ---",
+        "msg_nada_registrado": "--- Nothing recorded ---",
+        "msg_nada": "--- Nothing ---",
+        "msg_sin_detalles": "No details",
+        "msg_no_hay_pendientes": "No pending tasks",
+        "msg_no_hay_avisos": "No alerts",
+        "msg_sin_historial": "No history visible",
+        "msg_sin_registros_locales": "No local records",
+        "lbl_todos_trabajos": "All jobs",
+        "lbl_todos_los_anos": "All years",
+        "tipo_vacaciones": "Vacation",
+        "tipo_puente": "Long Weekend",
+        "tipo_dia_libre": "Day Off",
+        "tipo_festivo_manual": "Holiday (Manual)",
+        "estado_ok": "OK",
+        "estado_pendiente": "PENDING",
+        "estado_futuro": "Future",
+        "estado_listo_subir": "READY (Upload)",
+        "estado_pendiente_subir": "PENDING (Upload)",
+        "notif_titulo": "⚠️ Preventive Maintenance",
+        "notif_cuerpo": "You have pending recurring jobs to do.",
+        "mes_01": "January", "mes_02": "February", "mes_03": "March", "mes_04": "April", "mes_05": "May", "mes_06": "June", "mes_07": "July", "mes_08": "August", "mes_09": "September", "mes_10": "October", "mes_11": "November", "mes_12": "December",
+        "mes_todo": "All year", "mes_01_corto": "Jan", "mes_02_corto": "Feb", "mes_03_corto": "Mar", "mes_04_corto": "Apr", "mes_05_corto": "May", "mes_06_corto": "Jun", "mes_07_corto": "Jul", "mes_08_corto": "Aug", "mes_09_corto": "Sep", "mes_10_corto": "Oct", "mes_11_corto": "Nov", "mes_12_corto": "Dec",
+
+    "tab_inicio": "Home",
+    "tab_local": "Local",
+    "tab_pendientes": "Pending",
+    "tab_avisos": "Alerts",
+    "tab_historial": "History",
+    "titulo_dashboard": "Dashboard",
+    "titulo_local": "My Local Records",
+    "titulo_pendientes": "Pending",
+    "titulo_avisos": "Recurring Alerts",
+    "titulo_historial": "Full History",
+    "dlg_idioma_titulo": "Language",
+    "tag_urgente": "Urgent",
+    "tag_electrico": "Electrical",
+    "tag_mecanico": "Mechanical",
+    "tag_preventivo": "Preventive",
+    "lbl_estado_planta": "Plant Status",
+    "lbl_pendientes": "Pending",
+    "lbl_registros_mes": "Month Records",
+    "lbl_avisos_config": "Config. Alerts",
+    "lbl_conexion": "Connection",
+    "lbl_pc_no_vinculado": "PC Not Linked",
+    "btn_vincular_ahora": "Link Now",
+    "lbl_anadir": "ADD",
+    "lbl_nuevo": "New",
+    "lbl_editar": "Edit",
+    "lbl_tags_extra": "Extra tags",
+    "btn_bajar": "DOWNLOAD",
+    "btn_foto_camara": "PHOTO",
+    "btn_actualizar": "UPDATE",
+    "btn_terminar": "FINISH",
+    "btn_guardar_form": "SAVE",
+    "ph_buscar_historial": "Search history...",
+    "msg_conexion_recuperada": "✅ Connection recovered.",
+    "msg_vinculado": "✅ Linked and synced to {ip}",
+    "msg_enviados": "✅ {n} sent and registered",
+    "msg_foto_anadida": "✅ Photo added to completed task",
+    "msg_tarea_completada": "✅ Task completed",
+    "msg_pendiente_creado": "✅ Pending task created",
+    "msg_deshecho": "↩️ Undone",
+    "msg_guardado": "✅ Saved",
+    "msg_sin_conexion_pc": "❌ No PC connection",
+    "msg_fotos_reenviadas": "✅ {n} photos resent ({r} jobs reviewed)",
+    "lbl_borrar_q": "Delete?",
+    "btn_si": "YES",
+    "btn_no": "NO",
+    "lbl_confirmar": "Confirm",
+    "msg_marcar_q": "Mark '{titulo}' as done?",
+    "lbl_desmarcar": "Uncheck",
+    "msg_volver_pendiente": "Return to pending?",
+    "btn_cancelar_mayus": "CANCEL",
+    "btn_desmarcar_mayus": "UNCHECK",
+    "lbl_conecta_pc_sync": "Connect PC to sync",
+    "btn_vincular_pc": "Link PC",
+  },
+  "eu": {
+    "hdr_fecha": "DATA",
+    "hdr_descripcion": "DESKRIBAPENA",
+    "hdr_tags": "ETIKETAK",
+    "hdr_foto_antes": "AURREKO ARGAZKIA",
+    "hdr_foto_despues": "ONDORENGO ARGAZKIA",
+    "msg_dia_no_laborable": "--- Lan-eguna ez ---",
+    "msg_nada_registrado": "--- Ezer ez erregistratuta ---",
+    "msg_nada": "--- Ezer ez ---",
+    "msg_sin_detalles": "Xehetasunik ez",
+    "msg_no_hay_pendientes": "Ez dago zereginik",
+    "msg_no_hay_avisos": "Ez dago abisurik",
+    "msg_sin_historial": "Ez dago historiarik",
+    "msg_sin_registros_locales": "Erregistro lokalik ez",
+    "lbl_todos_trabajos": "Lan guztiak",
+    "lbl_todos_los_anos": "Urte guztiak",
+    "tipo_vacaciones": "Oporrak",
+    "tipo_puente": "Zubia",
+    "tipo_dia_libre": "Jai eguna",
+    "tipo_festivo_manual": "Jaieguna (Eskuzkoa)",
+    "estado_ok": "OK",
+    "estado_pendiente": "ZAIN",
+    "estado_futuro": "Etorkizuna",
+    "estado_listo_subir": "PREST (Igo)",
+    "estado_pendiente_subir": "ZAIN (Igo)",
+    "notif_titulo": "⚠️ Prebentziozko Mantentzea",
+    "notif_cuerpo": "Errepikatzen diren lanak dituzu egiteko.",
+    "mes_01": "Urtarrila", "mes_02": "Otsaila", "mes_03": "Martxoa", "mes_04": "Apirila", "mes_05": "Maiatza", "mes_06": "Ekaina", "mes_07": "Uztaila", "mes_08": "Abuztua", "mes_09": "Iraila", "mes_10": "Urria", "mes_11": "Azaroa", "mes_12": "Abendua",
+    "mes_todo": "Urte osoa", "mes_01_corto": "Urt", "mes_02_corto": "Ots", "mes_03_corto": "Mar", "mes_04_corto": "Api", "mes_05_corto": "Mai", "mes_06_corto": "Eka", "mes_07_corto": "Uzt", "mes_08_corto": "Abu", "mes_09_corto": "Ira", "mes_10_corto": "Urr", "mes_11_corto": "Aza", "mes_12_corto": "Abe",
+    "tab_inicio": "Hasiera",
+    "tab_local": "Lokala",
+    "tab_pendientes": "Egiteke",
+    "tab_avisos": "Abisuak",
+    "tab_historial": "Historia",
+    "titulo_dashboard": "Aginte-mahaia",
+    "titulo_local": "Nire Erregistro Lokalak",
+    "titulo_pendientes": "Egiteke",
+    "titulo_avisos": "Abisu Errepikakorrak",
+    "titulo_historial": "Historia Osoa",
+    "dlg_idioma_titulo": "Hizkuntza",
+    "lbl_estado_planta": "Lantegiaren Egoera",
+    "lbl_pendientes": "Egiteke",
+    "lbl_registros_mes": "Hileko Erregistroak",
+    "lbl_avisos_config": "Abisu Konfig.",
+    "lbl_conexion": "Konexioa",
+    "lbl_pc_no_vinculado": "PCa Ez Da Estekatu",
+    "btn_vincular_ahora": "Estekatu Orain",
+    "lbl_anadir": "GEHITU",
+    "lbl_nuevo": "Berria",
+    "lbl_editar": "Editatu",
+    "lbl_tags_extra": "Etiketa gehigarriak",
+    "btn_bajar": "DESKARGATU",
+    "btn_foto_camara": "ARGAZKIA",
+    "btn_actualizar": "EGUNERATU",
+    "btn_terminar": "AMAIERATU",
+    "btn_guardar_form": "GORDE",
+    "ph_buscar_historial": "Bilatu historian...",
+    "msg_conexion_recuperada": "✅ Konexioa berreskuratu da.",
+    "msg_vinculado": "✅ {ip}-ra estekatuta eta sinkronizatuta",
+    "msg_enviados": "✅ {n} bidalita eta erregistratuta",
+    "msg_foto_anadida": "✅ Argazkia gehituta osatutako lanari",
+    "msg_tarea_completada": "✅ Lana osatuta",
+    "msg_pendiente_creado": "✅ Egiteke dagoena sortuta",
+    "msg_deshecho": "↩️ Deseginda",
+    "msg_guardado": "✅ Gordeta",
+    "msg_sin_conexion_pc": "❌ Ez dago konexiorik PCarekin",
+    "msg_fotos_reenviadas": "✅ {n} argazki berriro bidalita ({r} lan berrikusita)",
+    "lbl_borrar_q": "Ezabatu?",
+    "lbl_confirmar": "Berretsi",
+    "msg_marcar_q": "'{titulo}' eginda markatu?",
+    "lbl_desmarcar": "Desmarkatu",
+    "msg_volver_pendiente": "Egiteke daudenetara itzuli?",
+    "btn_cancelar_mayus": "UTZI",
+    "btn_desmarcar_mayus": "DESMARKATU",
+    "lbl_conecta_pc_sync": "Konektatu PCa sinkronizatzeko",
+    "btn_vincular_pc": "Estekatu PCa",
+    "lbl_proxima": "Hurrengoa: ",
+    "btn_deshacer": "Desegin",
+    "btn_completar_min": "Osatu",
+    "msg_cambios_pendientes": "{p} aldaketa egiteke",
+    "title_qr": "Eskaneatu QRa",
+    "tag_urgente": "Premiazkoa",
+    "tag_electrico": "Elektrikoa",
+    "tag_mecanico": "Mekanikoa",
+    "tag_preventivo": "Prebentziozkoa",
+    "lbl_titulo": "Izenburua",
+    "lbl_detalles": "Xehetasunak",
+    "lbl_antes": "AURREKOA",
+    "lbl_despues": "ONDORENGOA"
+  },
+};
+
+/// Idioma activo en memoria. Escúchalo con ValueListenableBuilder para que
+/// los widgets se repinten solos al cambiar de idioma, sin reiniciar la app.
+final ValueNotifier<String> idiomaNotifier = ValueNotifier('es');
+
+/// Carga el idioma guardado (o 'es' por defecto). Llamar una vez en main().
+Future<void> cargarIdiomaGuardado() async {
+  final prefs = await SharedPreferences.getInstance();
+  final codigo = prefs.getString('idioma') ?? 'es';
+  idiomaNotifier.value = _traducciones.containsKey(codigo) ? codigo : 'es';
+}
+
+/// Cambia el idioma activo y lo persiste.
+Future<void> cambiarIdioma(String codigo) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('idioma', codigo);
+  idiomaNotifier.value = _traducciones.containsKey(codigo) ? codigo : 'es';
+}
+
+/// Devuelve el texto traducido para [clave] en el idioma activo.
+/// Si falta en el idioma activo, cae a español. Si tampoco existe, devuelve la propia clave.
+String t(String clave) {
+  final diccionarioActual = _traducciones[idiomaNotifier.value] ?? _traducciones['es']!;
+  return diccionarioActual[clave] ?? _traducciones['es']![clave] ?? clave;
+}
+
+String traducirTagsBD(String tagsBd) {
+  if (idiomaNotifier.value == 'es') return tagsBd;
+  final map = {
+    "Urgente": t("tag_urgente"),
+    "Eléctrico": t("tag_electrico"),
+    "Mecánico": t("tag_mecanico"),
+    "Preventivo": t("tag_preventivo")
+  };
+  return tagsBd.split(', ').map((tag) => map[tag] ?? tag).join(', ');
+}

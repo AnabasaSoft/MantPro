@@ -18,6 +18,8 @@ from reportlab.lib.units import cm
 import zipfile
 import qrcode
 from io import BytesIO
+import idiomas
+from idiomas import t
 
 # ==========================================
 # IMPORTS CORREGIDOS (PyQt6)
@@ -118,7 +120,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "2.6.9"
+APP_VERSION = "2.7.0"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -244,7 +246,7 @@ class GeneradorPDFThread(QThread):
 
             elements.append(Paragraph(self.titulo_doc, styles['Title'])); elements.append(Spacer(1, 12))
 
-            data_tabla = [["FECHA", "DESCRIPCIÓN", "TAGS", "FOTO ANTES", "FOTO DESPUÉS"]]
+            data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
             style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
             for fecha, desc, tags in self.datos:
@@ -328,7 +330,7 @@ class GeneradorPDFThread(QThread):
 class VisorFoto(QDialog):
     def __init__(self, ruta_imagen, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Visor de Imagen")
+        self.setWindowTitle(t("title_visor_imagen"))
         self.resize(800, 600)
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -336,11 +338,11 @@ class VisorFoto(QDialog):
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         layout.addWidget(self.label)
-        btn_cerrar = QPushButton("Cerrar")
+        btn_cerrar = QPushButton(t("btn_cerrar"))
         btn_cerrar.clicked.connect(self.accept)
         layout.addWidget(btn_cerrar)
         self.pixmap_original = QPixmap(ruta_imagen)
-        if self.pixmap_original.isNull(): self.label.setText("Error al cargar la imagen")
+        if self.pixmap_original.isNull(): self.label.setText(t("msg_error_cargar_imagen"))
         else: self.actualizar_imagen()
 
     def resizeEvent(self, event):
@@ -357,7 +359,7 @@ class VisorFoto(QDialog):
 class DialogoSelectorFoto(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("📸 VISOR MANUAL")
+        self.setWindowTitle(t("title_visor_manual"))
         self.resize(1100, 600)
         self.ruta_seleccionada = None
 
@@ -382,17 +384,17 @@ class DialogoSelectorFoto(QDialog):
         self.tree.doubleClicked.connect(self.on_double_click)
 
         right_layout = QVBoxLayout()
-        self.preview_lbl = QLabel("Selecciona un archivo...")
+        self.preview_lbl = QLabel(t("lbl_seleccionar_archivo"))
         self.preview_lbl.setFixedWidth(500)
         self.preview_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_lbl.setStyleSheet("border: 2px solid #555; background-color: #222; color: #aaa;")
 
-        btn_ok = QPushButton("✅ ELEGIR ESTA FOTO")
+        btn_ok = QPushButton(t("btn_elegir_foto"))
         btn_ok.setMinimumHeight(45)
         btn_ok.setStyleSheet("background-color: #2980b9; color: white; font-weight: bold;")
         btn_ok.clicked.connect(self.accept)
 
-        btn_cancel = QPushButton("Cancelar")
+        btn_cancel = QPushButton(t("btn_cancelar"))
         btn_cancel.clicked.connect(self.reject)
 
         right_layout.addWidget(self.preview_lbl)
@@ -409,7 +411,7 @@ class DialogoSelectorFoto(QDialog):
             self.ruta_seleccionada = path
         else:
             self.ruta_seleccionada = None
-            self.preview_lbl.setText("📁 Es una carpeta")
+            self.preview_lbl.setText(t("msg_es_carpeta"))
             self.preview_lbl.setPixmap(QPixmap())
 
     def on_double_click(self, index):
@@ -425,7 +427,7 @@ class DialogoSelectorFoto(QDialog):
                 self.preview_lbl.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             ))
         else:
-            self.preview_lbl.setText("❌ No es una imagen válida")
+            self.preview_lbl.setText(t("msg_no_imagen_valida"))
 
     def selectedFiles(self):
         if self.ruta_seleccionada: return [self.ruta_seleccionada]
@@ -434,11 +436,11 @@ class DialogoSelectorFoto(QDialog):
 class DialogoQR(QDialog):
     def __init__(self, url, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Sincronizar Móvil")
+        self.setWindowTitle(t("title_sincronizar_movil"))
         self.resize(300, 420)
         l = QVBoxLayout()
-        l.addWidget(QLabel("1. Abre la App 'MantPro' en el móvil", alignment=Qt.AlignmentFlag.AlignCenter))
-        l.addWidget(QLabel("2. Dale al botón de escanear", alignment=Qt.AlignmentFlag.AlignCenter))
+        l.addWidget(QLabel(t("lbl_qr_paso1"), alignment=Qt.AlignmentFlag.AlignCenter))
+        l.addWidget(QLabel(t("lbl_qr_paso2"), alignment=Qt.AlignmentFlag.AlignCenter))
         qr = qrcode.QRCode(box_size=10, border=2)
         qr.add_data(url)
         qr.make(fit=True)
@@ -1314,7 +1316,7 @@ class LabelArrastrable(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
-        self.setText("Arrastra una foto aquí\no haz clic para buscar")
+        self.setText(t("lbl_arrastra_foto"))
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("border: 2px dashed #666; color: #888; background: #2b2b2b;")
     def dragEnterEvent(self, event):
@@ -1326,32 +1328,32 @@ class LabelArrastrable(QLabel):
         if urls:
             ruta = urls[0].toLocalFile()
             if ruta.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')): self.archivo_soltado.emit(ruta)
-            else: self.setText("Formato no válido"); self.setStyleSheet("border: 2px dashed red; color: red;")
+            else: self.setText(t("lbl_formato_invalido")); self.setStyleSheet("border: 2px dashed red; color: red;")
 
 class DialogoDiasEspeciales(QDialog):
     def __init__(self, db, gestor_festivos, parent=None):
         super().__init__(parent)
         self.db = db
         self.gestor_festivos = gestor_festivos
-        self.setWindowTitle("Gestión de Días Especiales")
+        self.setWindowTitle(t("title_gestion_dias_especiales"))
         self.resize(500, 400)
         layout = QVBoxLayout()
 
         # Selector de Fecha y Tipo
         h_top = QHBoxLayout()
-        h_top.addWidget(QLabel("Fecha:"))
+        h_top.addWidget(QLabel(t("lbl_fecha")))
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDate(QDate.currentDate())
         self.date_edit.setDisplayFormat("yyyy-MM-dd")
         h_top.addWidget(self.date_edit)
 
-        h_top.addWidget(QLabel("Tipo:"))
+        h_top.addWidget(QLabel(t("lbl_tipo")))
         self.combo_tipo = QComboBox()
-        self.combo_tipo.addItems(["Vacaciones", "Puente", "Día Libre", "Festivo (Manual)"])
+        self.combo_tipo.addItems([t("tipo_vacaciones"), t("tipo_puente"), t("tipo_dia_libre"), t("tipo_festivo_manual")])
         h_top.addWidget(self.combo_tipo)
 
-        btn_add = QPushButton("Añadir")
+        btn_add = QPushButton(t("btn_anadir"))
         btn_add.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold;")
         btn_add.clicked.connect(self.add_dia)
         h_top.addWidget(btn_add)
@@ -1365,12 +1367,12 @@ class DialogoDiasEspeciales(QDialog):
 
         # Botones inferiores
         h_bot = QHBoxLayout()
-        btn_del = QPushButton("🗑️ Borrar Seleccionado")
+        btn_del = QPushButton(t("btn_borrar_seleccionado"))
         btn_del.setStyleSheet("background-color: #c0392b; color: white;")
         btn_del.clicked.connect(self.del_dia)
         h_bot.addWidget(btn_del)
 
-        btn_close = QPushButton("Cerrar")
+        btn_close = QPushButton(t("btn_cerrar"))
         btn_close.clicked.connect(self.accept)
         h_bot.addWidget(btn_close)
 
@@ -1409,11 +1411,11 @@ class DialogoSeleccionPais(QDialog):
     def __init__(self, gestor_festivos, db, parent=None):
         super().__init__(parent)
         self.db = db
-        self.setWindowTitle("Seleccionar País")
+        self.setWindowTitle(t("title_seleccionar_pais"))
         self.resize(400, 150)
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Elige tu país para descargar los días festivos:"))
-        layout.addWidget(QLabel("(Para España se podrá afinar después por provincia)"))
+        layout.addWidget(QLabel(t("lbl_elige_pais")))
+        layout.addWidget(QLabel(t("lbl_nota_espana")))
 
         self.combo = QComboBox()
         self.paises = gestor_festivos.obtener_paises_disponibles()  # lista de (nombre, iso)
@@ -1427,6 +1429,7 @@ class DialogoSeleccionPais(QDialog):
 
         layout.addWidget(self.combo)
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); btns.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
@@ -1443,11 +1446,11 @@ class DialogoSeleccionRegion(QDialog):
     def __init__(self, db, parent=None):
         super().__init__(parent)
         self.db = db
-        self.setWindowTitle("Seleccionar Provincia")
+        self.setWindowTitle(t("title_seleccionar_provincia"))
         self.resize(400, 150)
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Elige tu provincia para descargar los días festivos:"))
-        layout.addWidget(QLabel("(Se descargarán festivos nacionales + comunidad + provincia)"))
+        layout.addWidget(QLabel(t("lbl_elige_provincia")))
+        layout.addWidget(QLabel(t("lbl_nota_provincia")))
         self.combo = QComboBox()
         self.nombres_ordenados = sorted(PROVINCIAS_ESPAÑA.keys())
         self.combo.addItems(self.nombres_ordenados)
@@ -1460,6 +1463,7 @@ class DialogoSeleccionRegion(QDialog):
         self.combo.setCurrentText(nombre_actual)
         layout.addWidget(self.combo)
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); btns.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
         layout.addWidget(btns)
@@ -1476,46 +1480,46 @@ class EditDialog(QDialog):
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
         self.ref_oculta = ""
-        self.setWindowTitle("Editar Registro")
+        self.setWindowTitle(t("title_editar_registro"))
         self.resize(600, 600)
         l = QVBoxLayout()
         self.de = QDateEdit(); self.de.setDate(QDate.fromString(fecha, "yyyy-MM-dd")); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd")
-        l.addWidget(QLabel("Fecha:")); l.addWidget(self.de)
+        l.addWidget(QLabel(t("lbl_fecha"))); l.addWidget(self.de)
         texto_limpio, nombre_foto, nombre_foto_d, ref_encontrada = self.separar_datos(desc)
         self.foto_filename = nombre_foto
         self.foto_despues_filename = nombre_foto_d
         self.ref_oculta = ref_encontrada
         self.te = QTextEdit(); self.te.setText(texto_limpio)
-        l.addWidget(QLabel("Descripción:")); l.addWidget(self.te)
+        l.addWidget(QLabel(t("lbl_descripcion"))); l.addWidget(self.te)
 
-        l.addWidget(QLabel("📸 Fotos (ANTES y DESPUÉS):"))
+        l.addWidget(QLabel(t("lbl_fotos_antes_despues")))
         h_fotos = QHBoxLayout()
-        v_antes = QVBoxLayout(); v_antes.addWidget(QLabel("ANTES:"))
+        v_antes = QVBoxLayout(); v_antes.addWidget(QLabel(t("lbl_antes")))
         self.lbl_foto = LabelArrastrable(); self.lbl_foto.setFixedHeight(150); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_foto.mousePressEvent = self.abrir_o_buscar; self.lbl_foto.archivo_soltado.connect(self.procesar_nueva_foto)
         v_antes.addWidget(self.lbl_foto)
         h_btns_a = QHBoxLayout()
-        btn_foto = QPushButton("📂 Cambiar"); btn_foto.clicked.connect(self.seleccionar_foto_boton); h_btns_a.addWidget(btn_foto)
-        btn_borrar_a = QPushButton("❌ Borrar"); btn_borrar_a.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar_a.clicked.connect(self.borrar_foto_antes); h_btns_a.addWidget(btn_borrar_a)
+        btn_foto = QPushButton(t("btn_cambiar_foto")); btn_foto.clicked.connect(self.seleccionar_foto_boton); h_btns_a.addWidget(btn_foto)
+        btn_borrar_a = QPushButton(t("btn_borrar_foto")); btn_borrar_a.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar_a.clicked.connect(self.borrar_foto_antes); h_btns_a.addWidget(btn_borrar_a)
         v_antes.addLayout(h_btns_a)
         h_fotos.addLayout(v_antes)
 
-        v_despues = QVBoxLayout(); v_despues.addWidget(QLabel("DESPUÉS:"))
+        v_despues = QVBoxLayout(); v_despues.addWidget(QLabel(t("lbl_despues")))
         self.lbl_foto_d = LabelArrastrable(); self.lbl_foto_d.setFixedHeight(150); self.lbl_foto_d.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_foto_d.mousePressEvent = self.abrir_o_buscar_d; self.lbl_foto_d.archivo_soltado.connect(self.procesar_nueva_foto_d)
         v_despues.addWidget(self.lbl_foto_d)
         h_btns_d = QHBoxLayout()
-        btn_foto_d = QPushButton("📂 Cambiar"); btn_foto_d.clicked.connect(self.seleccionar_foto_boton_d); h_btns_d.addWidget(btn_foto_d)
-        btn_borrar_d = QPushButton("❌ Borrar"); btn_borrar_d.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar_d.clicked.connect(self.borrar_foto_despues); h_btns_d.addWidget(btn_borrar_d)
+        btn_foto_d = QPushButton(t("btn_cambiar_foto")); btn_foto_d.clicked.connect(self.seleccionar_foto_boton_d); h_btns_d.addWidget(btn_foto_d)
+        btn_borrar_d = QPushButton(t("btn_borrar_foto")); btn_borrar_d.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar_d.clicked.connect(self.borrar_foto_despues); h_btns_d.addWidget(btn_borrar_d)
         v_despues.addLayout(h_btns_d)
         h_fotos.addLayout(v_despues)
 
         l.addLayout(h_fotos)
         self.actualizar_vista_foto()
-        l.addWidget(QLabel("Etiquetas:"))
+        l.addWidget(QLabel(t("lbl_etiquetas")))
         h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico")
-        self.chk_mecanico = QCheckBox("Mecánico"); self.chk_prev = QCheckBox("Preventivo")
+        self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
+        self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
         lista_actual = [t.strip().lower() for t in tags.split(',')]
         def check_and_clean(texto_check, chk_box):
             if texto_check.lower() in lista_actual:
@@ -1530,9 +1534,10 @@ class EditDialog(QDialog):
         h_tags.addWidget(self.chk_mecanico); h_tags.addWidget(self.chk_prev)
         l.addLayout(h_tags)
         texto_manual = ", ".join([x for x in tags.split(',') if x.strip().lower() in lista_actual])
-        self.tag = QLineEdit(); self.tag.setText(texto_manual); self.tag.setPlaceholderText("Otros tags...")
+        self.tag = QLineEdit(); self.tag.setText(texto_manual); self.tag.setPlaceholderText(t("ph_otros_tags"))
         l.addWidget(self.tag)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
         l.addWidget(b); self.setLayout(l)
 
@@ -1551,7 +1556,7 @@ class EditDialog(QDialog):
                 self.lbl_foto.setPixmap(QPixmap(ruta).scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
             else: self.lbl_foto.setText(f"Error: {self.foto_filename}")
-        else: self.lbl_foto.setText("Arrastra o click"); self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
+        else: self.lbl_foto.setText(t("lbl_arrastra_click")); self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
 
         if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename:
             ruta_d = os.path.join(self.carpeta_fotos, self.foto_despues_filename)
@@ -1559,7 +1564,7 @@ class EditDialog(QDialog):
                 self.lbl_foto_d.setPixmap(QPixmap(ruta_d).scaled(self.lbl_foto_d.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto_d.setStyleSheet("border: 2px solid #2ecc71;")
             else: self.lbl_foto_d.setText(f"Error: {self.foto_despues_filename}")
-        else: self.lbl_foto_d.setText("Arrastra o click"); self.lbl_foto_d.setStyleSheet("border: 2px dashed #666; color: #888;")
+        else: self.lbl_foto_d.setText(t("lbl_arrastra_click")); self.lbl_foto_d.setStyleSheet("border: 2px dashed #666; color: #888;")
 
     def abrir_o_buscar(self, event):
         if self.foto_filename and os.path.exists(os.path.join(self.carpeta_fotos, self.foto_filename)): VisorFoto(os.path.join(self.carpeta_fotos, self.foto_filename), self).exec()
@@ -1571,7 +1576,7 @@ class EditDialog(QDialog):
         try:
             nuevo = f"pc_drag_{datetime.now().strftime('%Y%m%d_%H%M%S')}{os.path.splitext(ruta_origen)[1]}"; destino = os.path.join(self.carpeta_fotos, nuevo)
             shutil.copy2(ruta_origen, destino); self.foto_filename = nuevo; self.actualizar_vista_foto()
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
     def abrir_o_buscar_d(self, event):
         if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename and os.path.exists(os.path.join(self.carpeta_fotos, self.foto_despues_filename)): VisorFoto(os.path.join(self.carpeta_fotos, self.foto_despues_filename), self).exec()
@@ -1583,7 +1588,7 @@ class EditDialog(QDialog):
         try:
             nuevo = f"pc_drag_d_{datetime.now().strftime('%Y%m%d_%H%M%S')}{os.path.splitext(ruta_origen)[1]}"; destino = os.path.join(self.carpeta_fotos, nuevo)
             shutil.copy2(ruta_origen, destino); self.foto_despues_filename = nuevo; self.actualizar_vista_foto()
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
     def borrar_foto_antes(self):
         self.foto_filename = None; self.actualizar_vista_foto()
     def borrar_foto_despues(self):
@@ -1605,23 +1610,23 @@ class EditDialog(QDialog):
 class DialogoEditarPendiente(QDialog):
     def __init__(self, parent=None, titulo="", detalles="", ruta_foto=""):
         super().__init__(parent)
-        self.setWindowTitle("Editar Tarea Pendiente")
+        self.setWindowTitle(t("title_editar_tarea_pendiente"))
         self.resize(550, 650)
         self.ruta_foto_seleccionada = ruta_foto
         l = QVBoxLayout()
-        l.addWidget(QLabel("Título:")); self.t = QLineEdit(titulo); l.addWidget(self.t)
-        l.addWidget(QLabel("Detalles:")); self.d = QTextEdit(); self.d.setText(detalles); self.d.setMaximumHeight(100); l.addWidget(self.d)
-        l.addWidget(QLabel("📸 Foto Adjunta:"))
-        self.lbl_preview = QLabel("Sin foto"); self.lbl_preview.setFixedSize(400, 300)
+        l.addWidget(QLabel(t("lbl_titulo"))); self.t = QLineEdit(titulo); l.addWidget(self.t)
+        l.addWidget(QLabel(t("lbl_detalles"))); self.d = QTextEdit(); self.d.setText(detalles); self.d.setMaximumHeight(100); l.addWidget(self.d)
+        l.addWidget(QLabel(t("lbl_foto_adjunta")))
+        self.lbl_preview = QLabel(t("lbl_sin_foto")); self.lbl_preview.setFixedSize(400, 300)
         self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
         h_center = QHBoxLayout(); h_center.addStretch(); h_center.addWidget(self.lbl_preview); h_center.addStretch(); l.addLayout(h_center)
         h_btns = QHBoxLayout(); self.lbl_nombre = QLabel(""); self.lbl_nombre.setStyleSheet("color: #777; font-size: 10px;"); h_btns.addWidget(self.lbl_nombre); h_btns.addStretch()
-        btn_ver = QPushButton("🔍 Ver Grande"); btn_ver.clicked.connect(self.ver_grande); h_btns.addWidget(btn_ver)
-        btn_cambiar = QPushButton("📂 Cambiar"); btn_cambiar.clicked.connect(self.seleccionar_foto); h_btns.addWidget(btn_cambiar)
-        btn_borrar = QPushButton("❌ Borrar"); btn_borrar.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar.clicked.connect(self.borrar_foto); h_btns.addWidget(btn_borrar)
+        btn_ver = QPushButton(t("btn_ver_grande")); btn_ver.clicked.connect(self.ver_grande); h_btns.addWidget(btn_ver)
+        btn_cambiar = QPushButton(t("btn_cambiar_foto")); btn_cambiar.clicked.connect(self.seleccionar_foto); h_btns.addWidget(btn_cambiar)
+        btn_borrar = QPushButton(t("btn_borrar_foto")); btn_borrar.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar.clicked.connect(self.borrar_foto); h_btns.addWidget(btn_borrar)
         l.addLayout(h_btns)
         self.actualizar_vista_foto()
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def actualizar_vista_foto(self):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
             pix = QPixmap(self.ruta_foto_seleccionada)
@@ -1647,16 +1652,17 @@ class CompleteDialog(QDialog):
         self.foto_filename = None
         self.setWindowTitle(f"Completar: {titulo}"); self.resize(500, 550); l = QVBoxLayout()
         lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{detalles}</i>"); lbl_info.setWordWrap(True); lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;"); l.addWidget(lbl_info)
-        l.addWidget(QLabel("Fecha Finalización:")); self.de = QDateEdit(); self.de.setDate(QDate.currentDate()); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd"); l.addWidget(self.de)
+        l.addWidget(QLabel(t("lbl_fecha_finalizacion"))); self.de = QDateEdit(); self.de.setDate(QDate.currentDate()); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd"); l.addWidget(self.de)
         self.lbl_foto = LabelArrastrable(); self.lbl_foto.setFixedHeight(180); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_foto.mousePressEvent = self.click_foto; self.lbl_foto.archivo_soltado.connect(self.procesar_foto); l.addWidget(self.lbl_foto)
-        btn = QPushButton("📸 Buscar Foto Manualmente"); btn.clicked.connect(self.buscar_foto); l.addWidget(btn)
-        l.addWidget(QLabel("Etiquetas Rápidas:")); h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico"); self.chk_mecanico = QCheckBox("Mecánico"); self.chk_prev = QCheckBox("Preventivo")
+        btn = QPushButton(t("btn_buscar_foto_manual")); btn.clicked.connect(self.buscar_foto); l.addWidget(btn)
+        l.addWidget(QLabel(t("lbl_etiquetas_rapidas"))); h_tags = QHBoxLayout()
+        self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
+        self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
         for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet("font-weight: bold; color: #bbb;"); h_tags.addWidget(c)
         l.addLayout(h_tags)
-        l.addWidget(QLabel("Otros Tags (Opcional):")); self.tag = QLineEdit(); self.tag.setPlaceholderText("Ej: limpieza, rodamiento..."); l.addWidget(self.tag)
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
+        l.addWidget(QLabel(t("lbl_otros_tags"))); self.tag = QLineEdit(); self.tag.setPlaceholderText(t("ph_ejemplo_tags")); l.addWidget(self.tag)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def click_foto(self, e):
         if self.foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.foto_filename)
@@ -1672,7 +1678,7 @@ class CompleteDialog(QDialog):
             shutil.copy2(ruta, dest); self.foto_filename = nuevo
             self.lbl_foto.setPixmap(QPixmap(dest).scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
             self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
     def get_data(self):
         lista_tags = []
         if self.chk_urgente.isChecked(): lista_tags.append("Urgente")
@@ -1685,18 +1691,19 @@ class CompleteDialog(QDialog):
 class AvisoEditDialog(QDialog):
     def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1):
         super().__init__(parent)
-        self.setWindowTitle("✏️ Editar Aviso Recurrente"); self.resize(500, 450)
+        self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 450)
         l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = "font-weight: bold; font-size: 14px; color: #ccc;"
-        l.addWidget(QLabel("Título del Aviso:", styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
-        l.addWidget(QLabel("Fecha de Inicio:", styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
+        l.addWidget(QLabel(t("lbl_titulo_aviso"), styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
+        l.addWidget(QLabel(t("lbl_fecha_inicio"), styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
         if inicio: self.inicio.setDate(QDate.fromString(inicio, "yyyy-MM-dd"))
         else: self.inicio.setDate(QDate.currentDate())
         l.addWidget(self.inicio)
-        l.addWidget(QLabel("Frecuencia de Repetición:", styleSheet=lbl_style)); self.freq = QComboBox(); self.freq.addItems(["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diario"])
+        l.addWidget(QLabel(t("lbl_frecuencia_repeticion"), styleSheet=lbl_style)); self.freq = QComboBox(); self.freq.addItems([t("freq_anual"), t("freq_semestral"), t("freq_trimestral"), t("freq_mensual"), t("freq_semanal"), t("freq_diario")])
         self.freq.setCurrentText(freq if freq else "Anual"); self.freq.setMinimumHeight(35); l.addWidget(self.freq)
-        l.addWidget(QLabel("Días que permanece activo (margen):", styleSheet=lbl_style)); self.dur = QSpinBox(); self.dur.setRange(1, 365); self.dur.setValue(int(duracion)); self.dur.setMinimumHeight(35); l.addWidget(self.dur)
+        l.addWidget(QLabel(t("lbl_dias_margen"), styleSheet=lbl_style)); self.dur = QSpinBox(); self.dur.setRange(1, 365); self.dur.setValue(int(duracion)); self.dur.setMinimumHeight(35); l.addWidget(self.dur)
         l.addStretch()
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         for btn in b.buttons(): btn.setMinimumHeight(40); btn.setStyleSheet("font-size: 14px;")
         b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def get_data(self): return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentText(), self.dur.value())
@@ -1704,22 +1711,31 @@ class AvisoEditDialog(QDialog):
 class DialogoExportarPDF(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Exportar a PDF"); self.resize(400, 300)
+        self.setWindowTitle(t("title_exportar_pdf")); self.resize(400, 300)
         l = QVBoxLayout()
-        g = QGroupBox("Opciones de Exportación"); gl = QVBoxLayout()
-        self.rb_todo = QRadioButton("Exportar TODO el historial"); self.rb_todo.setChecked(True); self.rb_todo.toggled.connect(self.toggle_fechas); gl.addWidget(self.rb_todo)
-        self.rb_rango = QRadioButton("Exportar rango de fechas"); gl.addWidget(self.rb_rango)
+        g = QGroupBox(t("lbl_opciones_exportacion")); gl = QVBoxLayout()
+        self.rb_todo = QRadioButton(t("lbl_exportar_todo")); self.rb_todo.setChecked(True); self.rb_todo.toggled.connect(self.toggle_fechas); gl.addWidget(self.rb_todo)
+        self.rb_rango = QRadioButton(t("lbl_exportar_rango")); gl.addWidget(self.rb_rango)
         h = QHBoxLayout()
         self.d_inicio = QDateEdit(QDate.currentDate().addMonths(-1)); self.d_inicio.setCalendarPopup(True); self.d_inicio.setDisplayFormat("yyyy-MM-dd"); self.d_inicio.setEnabled(False)
         self.d_fin = QDateEdit(QDate.currentDate()); self.d_fin.setCalendarPopup(True); self.d_fin.setDisplayFormat("yyyy-MM-dd"); self.d_fin.setEnabled(False)
-        h.addWidget(QLabel("De:")); h.addWidget(self.d_inicio); h.addWidget(QLabel("A:")); h.addWidget(self.d_fin); gl.addLayout(h); gl.addSpacing(10)
-        self.chk_fotos = QCheckBox("📸 Incluir imágenes en el PDF"); self.chk_fotos.setChecked(False); gl.addWidget(self.chk_fotos); g.setLayout(gl); l.addWidget(g)
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
+        h.addWidget(QLabel(t("lbl_de"))); h.addWidget(self.d_inicio); h.addWidget(QLabel(t("lbl_a"))); h.addWidget(self.d_fin); gl.addLayout(h); gl.addSpacing(10)
+        self.chk_fotos = QCheckBox(t("lbl_incluir_imagenes")); self.chk_fotos.setChecked(False); gl.addWidget(self.chk_fotos); g.setLayout(gl); l.addWidget(g)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def toggle_fechas(self): estado = self.rb_rango.isChecked(); self.d_inicio.setEnabled(estado); self.d_fin.setEnabled(estado)
     def get_data(self):
         con_fotos = self.chk_fotos.isChecked()
         if self.rb_todo.isChecked(): return None, None, con_fotos
         else: return self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd"), con_fotos
+
+def traducir_tags_bd(tags_bd):
+    traducciones = {
+        "Urgente": t("tag_urgente"),
+        "Eléctrico": t("tag_electrico"),
+        "Mecánico": t("tag_mecanico"),
+        "Preventivo": t("tag_preventivo")
+    }
+    return ", ".join([traducciones.get(x.strip(), x.strip()) for x in tags_bd.split(",") if x.strip()])
 
 # ==========================================
 # 4. APLICACIÓN PRINCIPAL
@@ -1729,6 +1745,8 @@ class MaintenanceApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.db = GestorBaseDatos()
+        # Cargamos el idioma guardado (por defecto español) antes de construir nada de la UI
+        idiomas.set_idioma(self.db.get_config("idioma") or "es")
         # GestorFestivos ahora necesita la BD para saber qué región usar
         self.gestor_festivos = GestorFestivos(self.db)
 
@@ -1770,7 +1788,7 @@ class MaintenanceApp(QMainWindow):
         self.server_thread.registro_recibido.connect(self.on_registro_recibido)
         self.server_thread.pendiente_actualizado.connect(self.refresh_all)
         self.server_thread.start()
-        self.setWindowTitle("Control Mantenimiento")
+        self.setWindowTitle(t("title_control_mantenimiento"))
         self.resize(1100, 750)
         g = self.settings.value("geometry")
         if g: self.restoreGeometry(g)
@@ -1786,17 +1804,20 @@ class MaintenanceApp(QMainWindow):
         self.aplicar_estilo_visual()
         cw = QWidget(); self.setCentralWidget(cw); ml = QVBoxLayout(); ml.setContentsMargins(10, 10, 10, 10); cw.setLayout(ml)
         self.tabs = QTabWidget(); ml.addWidget(self.tabs)
-        self.tab_dashboard = QWidget(); self.init_dashboard_tab(); self.tabs.addTab(self.tab_dashboard, "📊 Dashboard")
-        self.tab_calendar = QWidget(); self.init_calendar_tab(); self.tabs.addTab(self.tab_calendar, "📅 Calendario")
-        self.tab_avisos = QWidget(); self.init_avisos_tab(); self.tabs.addTab(self.tab_avisos, "⚠️ Avisos")
-        self.tab_entry = QWidget(); self.init_entry_tab(); self.tabs.addTab(self.tab_entry, "📝 Registrar")
-        self.tab_history = QWidget(); self.init_history_tab(); self.tabs.addTab(self.tab_history, "🗂 Historial")
-        self.tab_search = QWidget(); self.init_search_tab(); self.tabs.addTab(self.tab_search, "🔍 Buscador")
-        self.tab_todo = QWidget(); self.init_todo_tab(); self.tabs.addTab(self.tab_todo, "🔨 Pendientes")
+        self.tab_dashboard = QWidget(); self.init_dashboard_tab(); self.tabs.addTab(self.tab_dashboard, t("tab_dashboard"))
+        self.tab_calendar = QWidget(); self.init_calendar_tab(); self.tabs.addTab(self.tab_calendar, t("tab_calendario"))
+        self.tab_avisos = QWidget(); self.init_avisos_tab(); self.tabs.addTab(self.tab_avisos, t("tab_avisos"))
+        self.tab_entry = QWidget(); self.init_entry_tab(); self.tabs.addTab(self.tab_entry, t("tab_registrar"))
+        self.tab_history = QWidget(); self.init_history_tab(); self.tabs.addTab(self.tab_history, t("tab_historial"))
+        self.tab_search = QWidget(); self.init_search_tab(); self.tabs.addTab(self.tab_search, t("tab_buscador"))
+        self.tab_todo = QWidget(); self.init_todo_tab(); self.tabs.addTab(self.tab_todo, t("tab_pendientes"))
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
-        # Comprobar actualizaciones en segundo plano al arrancar
-        self.comprobar_actualizaciones(manual=False)
+        # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
+        # Se dispara desde el punto de entrada (bloque __main__), una vez que la
+        # ventana principal ya está visible y el splash se ha cerrado del todo,
+        # para evitar la carrera de foco/apilamiento entre el splash, la ventana
+        # principal y el diálogo modal de "nueva versión disponible".
 
     def closeEvent(self, e):
         self.settings.setValue("geometry", self.saveGeometry())
@@ -1876,22 +1897,22 @@ class MaintenanceApp(QMainWindow):
             if ocurrencia <= sd <= ff:
                 es_completado = (ult == ocurrencia.toString("yyyy-MM-dd"))
                 color_bg = "#27ae60" if es_completado else "#e74c3c"
-                estado_txt = "[OK]" if es_completado else "[PENDIENTE]"
+                estado_txt = f"[{t('estado_ok')}]" if es_completado else f"[{t('estado_pendiente')}]"
                 it = QListWidgetItem(f"⚠️ AVISO: {tit} {estado_txt}")
                 it.setBackground(QColor(color_bg)); it.setForeground(Qt.GlobalColor.white)
                 self.task_list.addItem(it)
 
         ts = self.db.obtener_tareas_por_fecha(sds)
-        if not ts and self.task_list.count() == 0: self.task_list.addItem("--- Día no laborable ---" if ets else "--- Nada registrado ---")
-        for t in ts:
+        if not ts and self.task_list.count() == 0: self.task_list.addItem(t("msg_dia_no_laborable") if ets else t("msg_nada_registrado"))
+        for tarea in ts:
             # --- LIMPIEZA VISUAL COMPLETA ---
-            texto_limpio = re.sub(r"\[FOTO:.*?\]", "", t[1])
+            texto_limpio = re.sub(r"\[FOTO:.*?\]", "", tarea[1])
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
             # --------------------------------
 
-            it = QListWidgetItem(f"{texto_limpio} | {t[2]}")
-            if self._hay_foto_disponible(t[1]): it.setIcon(QIcon.fromTheme("camera-photo")); it.setToolTip("Tiene foto adjunta")
-            it.setData(Qt.ItemDataRole.UserRole, t[0])
+            it = QListWidgetItem(f"{texto_limpio} | {traducir_tags_bd(tarea[2])}")
+            if self._hay_foto_disponible(tarea[1]): it.setIcon(QIcon.fromTheme("camera-photo")); it.setToolTip("Tiene foto adjunta")
+            it.setData(Qt.ItemDataRole.UserRole, tarea[0])
             self.task_list.addItem(it)
 
     def _hay_foto_disponible(self, desc):
@@ -1935,7 +1956,7 @@ class MaintenanceApp(QMainWindow):
             else:
                 item_d.setIcon(icon_vacio)
 
-            item_t = QTableWidgetItem(tags)
+            item_t = QTableWidgetItem(traducir_tags_bd(tags))
 
             if color_bg:
                 item_f.setBackground(color_bg); item_d.setBackground(color_bg); item_t.setBackground(color_bg)
@@ -1962,7 +1983,7 @@ class MaintenanceApp(QMainWindow):
                     if sin_tilde not in item_tags: mostrar = False; break
             self.s_table.setRowHidden(row, not mostrar)
             if mostrar: filas_visibles += 1
-        self.statusBar().showMessage(f"🔍 Mostrando {filas_visibles} resultados", 3000)
+        self.statusBar().showMessage(t("msg_mostrando_resultados").format(n=filas_visibles), 3000)
 
     def refresh_history(self):
         datos = self.db.obtener_todas_cronologico()
@@ -1978,9 +1999,9 @@ class MaintenanceApp(QMainWindow):
             if year not in arbol_datos: arbol_datos[year] = set()
             arbol_datos[year].add(month)
 
-        meses = {"01":"Enero", "02":"Febrero", "03":"Marzo", "04":"Abril", "05":"Mayo", "06":"Junio", "07":"Julio", "08":"Agosto", "09":"Septiembre", "10":"Octubre", "11":"Noviembre", "12":"Diciembre"}
+        meses = {"01":t("mes_01"), "02":t("mes_02"), "03":t("mes_03"), "04":t("mes_04"), "05":t("mes_05"), "06":t("mes_06"), "07":t("mes_07"), "08":t("mes_08"), "09":t("mes_09"), "10":t("mes_10"), "11":t("mes_11"), "12":t("mes_12")}
 
-        item_todo = QTreeWidgetItem(["Todos los trabajos"])
+        item_todo = QTreeWidgetItem([t("lbl_todos_trabajos")])
         item_todo.setData(0, Qt.ItemDataRole.UserRole, "TODO")
         self.tree_history.addTopLevelItem(item_todo)
 
@@ -2009,7 +2030,7 @@ class MaintenanceApp(QMainWindow):
         <p>💼 Proyecto: <a href="https://github.com/AnabasaSoft/MantPro">github.com/AnabasaSoft/MantPro</a></p>
         """
         msg = QMessageBox(self)
-        msg.setWindowTitle("Acerca de MantPro")
+        msg.setWindowTitle(t("title_acerca_de"))
         msg.setTextFormat(Qt.TextFormat.RichText)
         msg.setText(texto)
         # Esto permite que los enlaces abran el navegador de KDE (o el por defecto del SO)
@@ -2027,65 +2048,114 @@ class MaintenanceApp(QMainWindow):
         import webbrowser
         if hay_nueva:
             msg = QMessageBox(self)
-            msg.setWindowTitle("🚀 Nueva versión disponible")
-            msg.setText(f"Tienes la versión {APP_VERSION} instalada y en GitHub ya está la {version}.")
-            msg.setInformativeText("¿Quieres descargarla ahora?")
+            msg.setWindowFlags(msg.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+            msg.setWindowTitle(t("title_nueva_version"))
+            msg.setText(t("msg_nueva_version_disponible").format(actual=APP_VERSION, nueva=version))
+            msg.setInformativeText(t("msg_quieres_descargar"))
             if notas: msg.setDetailedText(notas)
 
-            btn_si = msg.addButton("Descargar", QMessageBox.ButtonRole.YesRole)
-            msg.addButton("Luego", QMessageBox.ButtonRole.NoRole)
+            btn_si = msg.addButton(t("btn_descargar"), QMessageBox.ButtonRole.YesRole)
+            msg.addButton(t("btn_luego"), QMessageBox.ButtonRole.NoRole)
+
+            # Forzamos que la ventana se ponga delante y coja el foco (necesario en Wayland,
+            # donde una ventana nueva no roba el foco a la principal por defecto)
+            msg.setWindowState(msg.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
+            msg.raise_()
+            msg.activateWindow()
+
             msg.exec()
 
             if msg.clickedButton() == btn_si:
                 webbrowser.open(url)
         elif self._check_manual:
             if version == "error":
-                QMessageBox.warning(self, "Error", "No se pudo conectar con GitHub para buscar actualizaciones.")
+                QMessageBox.warning(self, t("title_error"), t("msg_error_conexion_github"))
             else:
-                QMessageBox.information(self, "Actualizado", f"✅ Ya tienes la última versión instalada (v{APP_VERSION}).")
+                QMessageBox.information(self, t("title_actualizado"), t("msg_ya_actualizado").format(v=APP_VERSION))
 
     def crear_menu(self):
-        mb = self.menuBar(); fm = mb.addMenu("&Archivo")
-        fm.addAction(QAction("💾 Backup", self, triggered=self.realizar_backup))
-        fm.addAction(QAction("♻️ Restaurar", self, triggered=self.restaurar_backup))
+        mb = self.menuBar(); fm = mb.addMenu(t("menu_archivo"))
+        fm.addAction(QAction(t("menu_backup"), self, triggered=self.realizar_backup))
+        fm.addAction(QAction(t("menu_restaurar"), self, triggered=self.restaurar_backup))
         fm.addSeparator()
 
         # --- SUBMENÚ PDF ---
-        menu_pdf = fm.addMenu("📄 Opciones PDF")
+        menu_pdf = fm.addMenu(t("menu_opciones_pdf"))
 
-        act_exportar = QAction("📄 Generar PDF Ahora", self)
+        act_exportar = QAction(t("menu_generar_pdf"), self)
         act_exportar.triggered.connect(self.exportar_pdf)
         menu_pdf.addAction(act_exportar)
 
         menu_pdf.addSeparator()
 
-        act_cambiar_logo = QAction("🖼️ Añadir / Cambiar Logo", self)
+        act_cambiar_logo = QAction(t("menu_add_logo"), self)
         act_cambiar_logo.triggered.connect(self.cambiar_logo)
         menu_pdf.addAction(act_cambiar_logo)
 
-        act_quitar_logo = QAction("❌ Quitar Logo", self)
+        act_quitar_logo = QAction(t("menu_quitar_logo"), self)
         act_quitar_logo.triggered.connect(self.quitar_logo)
         menu_pdf.addAction(act_quitar_logo)
         # --------------------
 
-        fm.addAction(QAction("📄 CSV", self, triggered=self.exportar_csv))
-        fm.addAction(QAction("📊 Excel", self, triggered=self.exportar_excel))
-        fm.addSeparator(); fm.addAction(QAction("Salir", self, triggered=self.close))
-        tm = mb.addMenu("&Herramientas")
-        act_sync = QAction("📲 Sincronizar App (QR)", self); act_sync.triggered.connect(self.mostrar_dialogo_qr); tm.addAction(act_sync)
-        tm.addAction(QAction("Gestionar Días / Festivos", self, triggered=self.gest_dias));
+        fm.addAction(QAction(t("menu_csv"), self, triggered=self.exportar_csv))
+        fm.addAction(QAction(t("menu_excel"), self, triggered=self.exportar_excel))
+        fm.addSeparator(); fm.addAction(QAction(t("menu_salir"), self, triggered=self.close))
+        tm = mb.addMenu(t("menu_herramientas"))
+        act_sync = QAction(t("menu_sync_qr"), self); act_sync.triggered.connect(self.mostrar_dialogo_qr); tm.addAction(act_sync)
+        tm.addAction(QAction(t("menu_gestionar_dias"), self, triggered=self.gest_dias));
 
         # --- OPCIÓN DE PAÍS / PROVINCIA ---
-        act_prov = QAction("🌍 País / Región (Festivos)", self)
+        act_prov = QAction(t("menu_pais_region"), self)
         act_prov.triggered.connect(self.cambiar_pais_region)
         tm.addAction(act_prov)
         # ---------------------------------
 
+        # --- SUBMENÚ DE IDIOMA ---
+        menu_idioma = tm.addMenu(t("menu_idioma"))
+        self.acciones_idioma = []
+        for codigo, nombre in idiomas.IDIOMAS_DISPONIBLES:
+            act_idioma = QAction(nombre, self)
+            act_idioma.setCheckable(True)
+            act_idioma.setChecked(codigo == idiomas.get_idioma())
+            act_idioma.triggered.connect(lambda checked, c=codigo: self.cambiar_idioma(c))
+            menu_idioma.addAction(act_idioma)
+            self.acciones_idioma.append((codigo, act_idioma))
+        # -------------------------
+
         fm.addSeparator()
-        tm.addAction(QAction("🧹 Limpiar Fotos Basura", self, triggered=self.limpiar_fotos_huerfanas))
-        hm = mb.addMenu("&Ayuda")
-        hm.addAction(QAction("🔄 Buscar Actualizaciones", self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
-        hm.addAction(QAction("ℹ️ Acerca de", self, triggered=self.mostrar_about))
+        tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=self.limpiar_fotos_huerfanas))
+        hm = mb.addMenu(t("menu_ayuda"))
+        hm.addAction(QAction(t("menu_buscar_actualizaciones"), self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
+        hm.addAction(QAction(t("menu_acerca_de"), self, triggered=self.mostrar_about))
+
+    def cambiar_idioma(self, codigo):
+        if codigo == idiomas.get_idioma():
+            for cod, act in self.acciones_idioma:
+                act.setChecked(cod == idiomas.get_idioma())
+            return
+
+        # Guardamos el idioma anterior por si cancela
+        idioma_anterior = idiomas.get_idioma()
+
+        # Cambiamos temporalmente en memoria para que el diálogo salga en el nuevo idioma
+        idiomas.set_idioma(codigo)
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle(t("dlg_idioma_titulo"))
+        msg.setText(t("dlg_idioma_reinicio_texto"))
+        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+
+        if msg.clickedButton() == btn_si:
+            self.db.set_config("idioma", codigo)
+            # idiomas.set_idioma(codigo) ya está activo, cerramos
+            self.close()
+        else:
+            # Si dice que no, revertimos el idioma en memoria y los tics del menú
+            idiomas.set_idioma(idioma_anterior)
+            for cod, act in self.acciones_idioma:
+                act.setChecked(cod == idioma_anterior)
 
     def cambiar_pais_region(self):
         # PASO 1: Elegir país
@@ -2104,7 +2174,7 @@ class MaintenanceApp(QMainWindow):
                 self.db.set_config("region_iso", iso_prov)
                 self.db.set_config("parent_iso", iso_parent)
                 self.gestor_festivos.limpiar_cache()
-                QMessageBox.information(self, "Región Cambiada", f"País: España\nNueva zona: {nombre}\n(Se descargarán festivos nacionales, de {iso_parent} y de {iso_prov})")
+                QMessageBox.information(self, t("title_region_cambiada"), t("msg_region_cambiada").format(zona=nombre, parent=iso_parent, prov=iso_prov))
             else:
                 # Canceló la provincia, pero el país ya quedó guardado como España
                 self.gestor_festivos.limpiar_cache()
@@ -2113,7 +2183,7 @@ class MaintenanceApp(QMainWindow):
             self.db.set_config("region_iso", "")
             self.db.set_config("parent_iso", "")
             self.gestor_festivos.limpiar_cache()
-            QMessageBox.information(self, "País Cambiado", f"Nuevo país: {nombre_pais}\n(Se descargarán los festivos nacionales de {nombre_pais})")
+            QMessageBox.information(self, t("title_pais_cambiado"), t("msg_pais_cambiado").format(pais=nombre_pais))
 
         # Repintar el calendario
         self.pintar_calendario()
@@ -2159,39 +2229,39 @@ class MaintenanceApp(QMainWindow):
         l = QVBoxLayout(); l.setSpacing(10)
         h_top = QHBoxLayout(); v_date = QVBoxLayout()
         self.ide = QDateEdit(); self.ide.setCalendarPopup(True); self.ide.setDate(QDate.currentDate()); self.ide.setDisplayFormat("yyyy-MM-dd")
-        v_date.addWidget(QLabel("Fecha:")); v_date.addWidget(self.ide); v_date.addStretch(); h_top.addLayout(v_date, 40)
+        v_date.addWidget(QLabel(t("lbl_fecha"))); v_date.addWidget(self.ide); v_date.addStretch(); h_top.addLayout(v_date, 40)
         v_foto = QVBoxLayout(); v_foto.setContentsMargins(0,0,0,0); v_foto.setSpacing(2)
         self.lbl_entry_foto = LabelArrastrable(); self.lbl_entry_foto.setFixedHeight(100); self.lbl_entry_foto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_entry_foto.archivo_soltado.connect(self.procesar_foto_entry); self.lbl_entry_foto.mousePressEvent = self.buscar_foto_entry_click
         v_foto.addWidget(self.lbl_entry_foto)
-        self.btn_del_foto = QPushButton("❌ Quitar Foto"); self.btn_del_foto.setStyleSheet("background-color: #c0392b; color: white; border-radius: 4px; padding: 2px;"); self.btn_del_foto.setFixedHeight(20); self.btn_del_foto.clicked.connect(self.borrar_foto_entry); self.btn_del_foto.hide()
+        self.btn_del_foto = QPushButton(t("btn_quitar_foto")); self.btn_del_foto.setStyleSheet("background-color: #c0392b; color: white; border-radius: 4px; padding: 2px;"); self.btn_del_foto.setFixedHeight(20); self.btn_del_foto.clicked.connect(self.borrar_foto_entry); self.btn_del_foto.hide()
         v_foto.addWidget(self.btn_del_foto)
 
         self.lbl_entry_foto_d = LabelArrastrable(); self.lbl_entry_foto_d.setFixedHeight(100); self.lbl_entry_foto_d.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.lbl_entry_foto_d.setText("Arrastra foto DESPUÉS aquí")
+        self.lbl_entry_foto_d.setText(t("lbl_arrastra_despues"))
         self.lbl_entry_foto_d.archivo_soltado.connect(self.procesar_foto_entry_d); self.lbl_entry_foto_d.mousePressEvent = self.buscar_foto_entry_click_d
         v_foto.addWidget(self.lbl_entry_foto_d)
 
-        self.btn_del_foto_d = QPushButton("❌ Quitar Foto Después"); self.btn_del_foto_d.setStyleSheet("background-color: #c0392b; color: white; border-radius: 4px; padding: 2px;"); self.btn_del_foto_d.setFixedHeight(20); self.btn_del_foto_d.clicked.connect(self.borrar_foto_entry_d); self.btn_del_foto_d.hide()
+        self.btn_del_foto_d = QPushButton(t("btn_quitar_foto_despues")); self.btn_del_foto_d.setStyleSheet("background-color: #c0392b; color: white; border-radius: 4px; padding: 2px;"); self.btn_del_foto_d.setFixedHeight(20); self.btn_del_foto_d.clicked.connect(self.borrar_foto_entry_d); self.btn_del_foto_d.hide()
         v_foto.addWidget(self.btn_del_foto_d)
 
         h_top.addLayout(v_foto, 60); l.addLayout(h_top)
-        self.ire = QLineEdit(); self.ire.setPlaceholderText("Resumen corto del trabajo..."); l.addWidget(QLabel("Resumen / Tarea:")); l.addWidget(self.ire)
-        h_qr = QHBoxLayout(); h_qr.addWidget(QLabel("Detalles:")); h_qr.addStretch()
-        b_qr = QPushButton("📲 Sincronizar App"); b_qr.setStyleSheet("background-color: #d35400; color: white; padding: 4px 8px;"); b_qr.clicked.connect(self.mostrar_dialogo_qr); h_qr.addWidget(b_qr); l.addLayout(h_qr)
+        self.ire = QLineEdit(); self.ire.setPlaceholderText(t("ph_resumen")); l.addWidget(QLabel(t("lbl_resumen_tarea"))); l.addWidget(self.ire)
+        h_qr = QHBoxLayout(); h_qr.addWidget(QLabel(t("lbl_detalles"))); h_qr.addStretch()
+        b_qr = QPushButton(t("btn_sincronizar_app")); b_qr.setStyleSheet("background-color: #d35400; color: white; padding: 4px 8px;"); b_qr.clicked.connect(self.mostrar_dialogo_qr); h_qr.addWidget(b_qr); l.addLayout(h_qr)
         self.idet = QTextEdit(); l.addWidget(self.idet)
-        l.addWidget(QLabel("Etiquetas Rápidas:"))
+        l.addWidget(QLabel(t("lbl_etiquetas_rapidas")))
         h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox("Urgente"); self.chk_electrico = QCheckBox("Eléctrico")
-        self.chk_mecanico = QCheckBox("Mecánico"); self.chk_prev = QCheckBox("Preventivo")
+        self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
+        self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
         for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet("font-weight: bold; color: #bbb;"); h_tags.addWidget(c)
         l.addLayout(h_tags)
-        self.itag = QLineEdit(); self.itag.setPlaceholderText("Otras etiquetas (separadas por comas)..."); l.addWidget(self.itag)
-        b_save = QPushButton("💾 GUARDAR REGISTRO"); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
+        self.itag = QLineEdit(); self.itag.setPlaceholderText(t("ph_otras_etiquetas")); l.addWidget(self.itag)
+        b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
     def borrar_foto_entry(self):
-        self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText("Arrastra foto aquí\no click para buscar"); self.lbl_entry_foto.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto.hide()
+        self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText(t("lbl_arrastra_foto")); self.lbl_entry_foto.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto.hide()
     def borrar_foto_entry_d(self):
-        self.entry_foto_despues_filename = None; self.lbl_entry_foto_d.setPixmap(QPixmap()); self.lbl_entry_foto_d.setText("Arrastra foto DESPUÉS aquí"); self.lbl_entry_foto_d.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto_d.hide()
+        self.entry_foto_despues_filename = None; self.lbl_entry_foto_d.setPixmap(QPixmap()); self.lbl_entry_foto_d.setText(t("lbl_arrastra_despues")); self.lbl_entry_foto_d.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto_d.hide()
 
     def buscar_foto_entry_click_d(self, e):
         if self.entry_foto_despues_filename:
@@ -2208,7 +2278,7 @@ class MaintenanceApp(QMainWindow):
             shutil.copy2(ruta_origen, destino); self.entry_foto_despues_filename = nuevo
             pix = QPixmap(destino); self.lbl_entry_foto_d.setPixmap(pix.scaled(self.lbl_entry_foto_d.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
             self.lbl_entry_foto_d.setStyleSheet("border: 2px solid #2ecc71;"); self.lbl_entry_foto_d.setText(""); self.btn_del_foto_d.show()
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
     def buscar_foto_entry_click(self, e):
         if self.entry_foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.entry_foto_filename)
@@ -2223,11 +2293,11 @@ class MaintenanceApp(QMainWindow):
             shutil.copy2(ruta_origen, destino); self.entry_foto_filename = nuevo
             pix = QPixmap(destino); self.lbl_entry_foto.setPixmap(pix.scaled(self.lbl_entry_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
             self.lbl_entry_foto.setStyleSheet("border: 2px solid #2ecc71;"); self.lbl_entry_foto.setText(""); self.btn_del_foto.show()
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
     def save_entry(self):
         d, r = self.ide.date().toString("yyyy-MM-dd"), self.ire.text().strip()
         de = self.idet.toPlainText().strip()
-        if not r: QMessageBox.warning(self, "Atención", "Falta el resumen"); return
+        if not r: QMessageBox.warning(self, t("title_atencion"), t("msg_falta_resumen")); return
         full_desc = r
         if de: full_desc += f"\n{de}"
         if self.entry_foto_filename: full_desc += f"\n[FOTO: {self.entry_foto_filename}]"
@@ -2240,7 +2310,7 @@ class MaintenanceApp(QMainWindow):
         manuales = self.itag.text().strip()
         if manuales: lista_tags.append(manuales)
         if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags)):
-            self.statusBar().showMessage("✅ Registro guardado correctamente", 4000)
+            self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)
             self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False)
@@ -2251,33 +2321,33 @@ class MaintenanceApp(QMainWindow):
         self.ire.setCompleter(c); self.in_todo_t.setCompleter(c)
     def init_calendar_tab(self):
         l = QHBoxLayout(); lp = QVBoxLayout(); th = QHBoxLayout()
-        th.addWidget(QPushButton("Ir a Hoy", clicked=self.go_today)); th.addWidget(QPushButton("Gestión Días", clicked=lambda: self.gest_dias()))
+        th.addWidget(QPushButton(t("btn_ir_hoy"), clicked=self.go_today)); th.addWidget(QPushButton(t("btn_gestion_dias"), clicked=lambda: self.gest_dias()))
         lp.addLayout(th); self.calendar = QCalendarWidget(); self.calendar.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
         self.calendar.selectionChanged.connect(self.update_calendar_list); lp.addWidget(self.calendar); l.addLayout(lp, 60)
-        rp = QVBoxLayout(); self.lbl_info = QLabel("Info"); rp.addWidget(self.lbl_info)
+        rp = QVBoxLayout(); self.lbl_info = QLabel(t("lbl_info")); rp.addWidget(self.lbl_info)
         self.task_list = QListWidget(); self.configurar_deseleccion(self.task_list)
         self.task_list.itemDoubleClicked.connect(self.edit_cal); rp.addWidget(self.task_list); l.addLayout(rp, 40); self.tab_calendar.setLayout(l)
     def init_avisos_tab(self):
         l = QVBoxLayout()
         self.table_avisos = QTableWidget(0, 5)
-        self.configurar_deseleccion(self.table_avisos); self.table_avisos.setHorizontalHeaderLabels(["Estado", "Título", "Frecuencia", "Próxima", "Sit"])
+        self.configurar_deseleccion(self.table_avisos); self.table_avisos.setHorizontalHeaderLabels([t("hdr_estado"), t("hdr_titulo"), t("hdr_frecuencia"), t("hdr_proxima"), t("hdr_sit")])
         self.table_avisos.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table_avisos.cellDoubleClicked.connect(lambda r, c: self.edit_aviso())
-        l.addWidget(QLabel("⚠️ GESTIÓN DE AVISOS RECURRENTES")); l.addWidget(self.table_avisos)
-        g = QGroupBox("Crear Nuevo Aviso"); f = QGridLayout()
-        self.in_av_t = QLineEdit(); self.in_av_t.setPlaceholderText("Título del aviso...")
-        f.addWidget(QLabel("Título:"), 0, 0); f.addWidget(self.in_av_t, 0, 1)
+        l.addWidget(QLabel(t("lbl_gestion_avisos"))); l.addWidget(self.table_avisos)
+        g = QGroupBox(t("lbl_crear_nuevo_aviso")); f = QGridLayout()
+        self.in_av_t = QLineEdit(); self.in_av_t.setPlaceholderText(t("ph_titulo_aviso"))
+        f.addWidget(QLabel(t("lbl_titulo")), 0, 0); f.addWidget(self.in_av_t, 0, 1)
         self.in_av_i = QDateEdit(); self.in_av_i.setCalendarPopup(True); self.in_av_i.setDate(QDate.currentDate()); self.in_av_i.setDisplayFormat("yyyy-MM-dd")
-        f.addWidget(QLabel("Inicio:"), 0, 2); f.addWidget(self.in_av_i, 0, 3)
-        self.in_av_freq = QComboBox(); self.in_av_freq.addItems(["Anual", "Semestral", "Trimestral", "Mensual", "Semanal", "Diario"])
-        f.addWidget(QLabel("Repetir:"), 1, 0); f.addWidget(self.in_av_freq, 1, 1)
+        f.addWidget(QLabel(t("lbl_inicio")), 0, 2); f.addWidget(self.in_av_i, 0, 3)
+        self.in_av_freq = QComboBox(); self.in_av_freq.addItems([t("freq_anual"), t("freq_semestral"), t("freq_trimestral"), t("freq_mensual"), t("freq_semanal"), t("freq_diario")])
+        f.addWidget(QLabel(t("lbl_repetir")), 1, 0); f.addWidget(self.in_av_freq, 1, 1)
         self.in_av_dur = QSpinBox(); self.in_av_dur.setRange(1, 60); self.in_av_dur.setValue(5); self.in_av_dur.setSuffix(" días")
-        f.addWidget(QLabel("Duración:"), 1, 2); f.addWidget(self.in_av_dur, 1, 3)
-        b = QPushButton("Añadir Aviso"); b.clicked.connect(self.add_aviso); f.addWidget(b, 2, 0, 1, 4); g.setLayout(f); l.addWidget(g)
-        bl = QHBoxLayout(); bl.addWidget(QPushButton("✏️ Editar Seleccionado", clicked=self.edit_aviso)); bl.addWidget(QPushButton("🗑️ Borrar Seleccionado", clicked=self.del_aviso)); l.addLayout(bl); self.tab_avisos.setLayout(l)
+        f.addWidget(QLabel(t("lbl_duracion")), 1, 2); f.addWidget(self.in_av_dur, 1, 3)
+        b = QPushButton(t("btn_anadir_aviso")); b.clicked.connect(self.add_aviso); f.addWidget(b, 2, 0, 1, 4); g.setLayout(f); l.addWidget(g)
+        bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar_seleccionado"), clicked=self.edit_aviso)); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=self.del_aviso)); l.addLayout(bl); self.tab_avisos.setLayout(l)
     def add_aviso(self):
-        t = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentText(); d = self.in_av_dur.value()
-        if t and self.db.agregar_aviso(t, i, f, d): self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
+        tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentText(); dur = self.in_av_dur.value()
+        if tit and self.db.agregar_aviso(tit, i, f, dur): self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
     def edit_aviso(self):
         r = self.table_avisos.currentRow()
         if r < 0: return
@@ -2339,18 +2409,18 @@ class MaintenanceApp(QMainWindow):
 
             # Colores
             color = QColor("#555")
-            estado_txt = "Futuro"
+            estado_txt = t("estado_futuro")
 
             if es_activo:
                 if completado:
                     color = QColor("#27ae60") # Verde
-                    estado_txt = "OK"
+                    estado_txt = t("estado_ok")
                 else:
                     color = QColor("#e74c3c") # Rojo
-                    estado_txt = "PENDIENTE"
+                    estado_txt = t("estado_pendiente")
             elif completado:
                  color = QColor("#27ae60")
-                 estado_txt = "OK"
+                 estado_txt = t("estado_ok")
 
             # Rellenar fila
             item_t = QTableWidgetItem(tit)
@@ -2374,7 +2444,8 @@ class MaintenanceApp(QMainWindow):
             # MARCADO -> Añadir al historial
             tags = "Preventivo, Aviso Recurrente"
             self.db.agregar_tarea(fecha_ocurrencia, desc_historial, tags)
-            self.statusBar().showMessage(f"✅ Guardado en historial: {titulo}", 3000)
+            self.statusBar().showMessage(t("msg_guardado_historial").format(titulo=titulo), 3000)
+            self.statusBar().showMessage(f"🗑️ Eliminado del historial: {titulo}", 3000)
         else:
             # DESMARCADO -> Borrar del historial
             try:
@@ -2382,7 +2453,7 @@ class MaintenanceApp(QMainWindow):
                     c = conn.cursor()
                     c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_ocurrencia, desc_historial))
                     conn.commit()
-                self.statusBar().showMessage(f"🗑️ Eliminado del historial: {titulo}", 3000)
+                self.statusBar().showMessage(t("msg_eliminado_historial").format(titulo=titulo), 3000)
             except Exception as e:
                 print(f"Error borrando historial: {e}")
 
@@ -2397,11 +2468,11 @@ class MaintenanceApp(QMainWindow):
             # --- DIÁLOGO ESPAÑOL FORZADO ---
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Icon.Question)
-            msg.setWindowTitle("Borrar Aviso")
-            msg.setText("¿Estás seguro de borrar este aviso recurrente definitivamente?")
+            msg.setWindowTitle(t("title_borrar_aviso"))
+            msg.setText(t("msg_confirmar_borrar_aviso"))
 
-            btn_si = msg.addButton("SÍ", QMessageBox.ButtonRole.YesRole)
-            btn_no = msg.addButton("NO", QMessageBox.ButtonRole.NoRole)
+            btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+            btn_no = msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
 
             msg.exec()
 
@@ -2455,8 +2526,8 @@ class MaintenanceApp(QMainWindow):
         right_panel.addWidget(self.h_table)
 
         bl = QHBoxLayout()
-        bl.addWidget(QPushButton("✏️ Editar", clicked=lambda: self.edit_rec(self.h_table)))
-        bl.addWidget(QPushButton("🗑️ Borrar Seleccionado", clicked=lambda: self.del_rec(self.h_table)))
+        bl.addWidget(QPushButton(t("btn_editar"), clicked=lambda: self.edit_rec(self.h_table)))
+        bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=lambda: self.del_rec(self.h_table)))
         right_panel.addLayout(bl)
 
         # Añadir paneles al splitter arrastrable
@@ -2485,27 +2556,27 @@ class MaintenanceApp(QMainWindow):
             self.h_table.setRowHidden(row, not mostrar)
     def init_search_tab(self):
         l = QVBoxLayout(); sl = QHBoxLayout()
-        self.s_in = QLineEdit(); self.s_in.setPlaceholderText("🔍 Buscar texto (Motor, Fuga, KM1)..."); self.s_in.textChanged.connect(self.search); sl.addWidget(self.s_in)
+        self.s_in = QLineEdit(); self.s_in.setPlaceholderText(t("ph_buscar_texto")); self.s_in.textChanged.connect(self.search); sl.addWidget(self.s_in)
         self.s_chk_date = QCheckBox("📅 Fecha:"); self.s_chk_date.toggled.connect(lambda: self.s_date.setEnabled(self.s_chk_date.isChecked())); self.s_chk_date.toggled.connect(self.search); sl.addWidget(self.s_chk_date)
         self.s_date = QDateEdit(); self.s_date.setCalendarPopup(True); self.s_date.setDate(QDate.currentDate()); self.s_date.setDisplayFormat("yyyy-MM-dd"); self.s_date.setEnabled(False); self.s_date.dateChanged.connect(self.search); sl.addWidget(self.s_date); l.addLayout(sl)
         fl = QHBoxLayout(); fl.setSpacing(20)
-        self.chk_s_urg = QCheckBox("🚨 Urgente"); self.chk_s_elec = QCheckBox("⚡ Eléctrico"); self.chk_s_mec = QCheckBox("⚙️ Mecánico"); self.chk_s_prev = QCheckBox("🛡️ Preventivo")
+        self.chk_s_urg = QCheckBox(f"🚨 {t('tag_urgente')}"); self.chk_s_elec = QCheckBox(f"⚡ {t('tag_electrico')}"); self.chk_s_mec = QCheckBox(f"⚙️ {t('tag_mecanico')}"); self.chk_s_prev = QCheckBox(f"🛡️ {t('tag_preventivo')}")
         for chk in [self.chk_s_urg, self.chk_s_elec, self.chk_s_mec, self.chk_s_prev]: chk.setStyleSheet("font-weight: bold; color: #ccc;"); chk.toggled.connect(self.search); fl.addWidget(chk)
         fl.addStretch(); l.addLayout(fl)
         self.s_table = QTableWidget(); self.setup_table(self.s_table); self.configurar_deseleccion(self.s_table); self.s_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.s_table)); l.addWidget(self.s_table)
-        bl = QHBoxLayout(); bl.addWidget(QPushButton("✏️ Editar", clicked=lambda: self.edit_rec(self.s_table))); bl.addWidget(QPushButton("🗑️ Borrar Seleccionado", clicked=lambda: self.del_rec(self.s_table))); l.addLayout(bl); self.tab_search.setLayout(l)
+        bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar"), clicked=lambda: self.edit_rec(self.s_table))); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=lambda: self.del_rec(self.s_table))); l.addLayout(bl); self.tab_search.setLayout(l)
     def init_todo_tab(self):
-        l = QHBoxLayout(); ll = QVBoxLayout(); ll.addWidget(QLabel("LISTA DE PENDIENTES"))
+        l = QHBoxLayout(); ll = QVBoxLayout(); ll.addWidget(QLabel(t("lbl_lista_pendientes")))
         self.todo_list = QListWidget(); self.configurar_deseleccion(self.todo_list); self.todo_list.setAlternatingRowColors(True)
         self.todo_list.itemDoubleClicked.connect(self.edit_todo); ll.addWidget(self.todo_list); l.addLayout(ll, 60)
-        rl = QVBoxLayout(); g = QGroupBox("Nuevo Trabajo"); f = QVBoxLayout()
-        self.in_todo_t = QLineEdit(); self.in_todo_t.setPlaceholderText("Título"); f.addWidget(self.in_todo_t)
-        self.in_todo_d = QTextEdit(); self.in_todo_d.setPlaceholderText("Detalles"); self.in_todo_d.setMaximumHeight(100); self.in_todo_d.setStyleSheet("QTextEdit { color: #e0e0e0; background-color: #1e1e1e; border: 1px solid #555; }"); f.addWidget(self.in_todo_d)
-        f.addWidget(QPushButton("Añadir", clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
-        ga = QGroupBox("Acciones"); fa = QVBoxLayout()
-        b_ok = QPushButton("✅ Completar", clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
-        b_edit = QPushButton("✏️ Editar", clicked=self.edit_todo); b_edit.setStyleSheet("background-color:#2980b9; color: white;"); fa.addWidget(b_edit)
-        b_del = QPushButton("❌ Eliminar", clicked=self.del_todo); b_del.setStyleSheet("background-color:#c0392b; color: white;"); fa.addWidget(b_del); ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
+        rl = QVBoxLayout(); g = QGroupBox(t("lbl_nuevo_trabajo")); f = QVBoxLayout()
+        self.in_todo_t = QLineEdit(); self.in_todo_t.setPlaceholderText(t("ph_titulo")); f.addWidget(self.in_todo_t)
+        self.in_todo_d = QTextEdit(); self.in_todo_d.setPlaceholderText(t("ph_detalles")); self.in_todo_d.setMaximumHeight(100); self.in_todo_d.setStyleSheet("QTextEdit { color: #e0e0e0; background-color: #1e1e1e; border: 1px solid #555; }"); f.addWidget(self.in_todo_d)
+        f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
+        ga = QGroupBox(t("lbl_acciones")); fa = QVBoxLayout()
+        b_ok = QPushButton(t("btn_completar"), clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
+        b_edit = QPushButton(t("btn_editar"), clicked=self.edit_todo); b_edit.setStyleSheet("background-color:#2980b9; color: white;"); fa.addWidget(b_edit)
+        b_del = QPushButton(t("btn_eliminar"), clicked=self.del_todo); b_del.setStyleSheet("background-color:#c0392b; color: white;"); fa.addWidget(b_del); ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
 
     # --- LÓGICA GENERAL ---
     def go_today(self): self.calendar.setSelectedDate(QDate.currentDate()); self.update_calendar_list()
@@ -2517,7 +2588,7 @@ class MaintenanceApp(QMainWindow):
         for f in self.gestor_festivos.obtener_festivos(): self.calendar.setDateTextFormat(f, ffst)
         cols = {"Vacaciones": "#FFF59D", "Puente": "#1565C0", "Día Libre": "#F48FB1", "Festivo (Manual)": "#502828"}
         tcols = {"Vacaciones": "black", "Puente": "white", "Día Libre": "black", "Festivo (Manual)": "ddd"}
-        for s, t in self.db.obtener_dias_especiales().items(): fm = QTextCharFormat(); fm.setBackground(QBrush(QColor(cols.get(t, "#555")))); fm.setForeground(QBrush(QColor(tcols.get(t, "black")))); self.calendar.setDateTextFormat(QDate.fromString(s, "yyyy-MM-dd"), fm)
+        for s, tipo_dia in self.db.obtener_dias_especiales().items(): fm = QTextCharFormat(); fm.setBackground(QBrush(QColor(cols.get(tipo_dia, "#555")))); fm.setForeground(QBrush(QColor(tcols.get(tipo_dia, "black")))); self.calendar.setDateTextFormat(QDate.fromString(s, "yyyy-MM-dd"), fm)
         ft = QTextCharFormat(); ft.setBackground(QBrush(QColor("#A5D6A7"))); ft.setForeground(QBrush(Qt.GlobalColor.black)); ft.setFontWeight(750)
         for f in self.db.obtener_fechas_con_tareas(): self.calendar.setDateTextFormat(QDate.fromString(f, "yyyy-MM-dd"), ft)
         self.calendar.setUpdatesEnabled(True)
@@ -2532,8 +2603,8 @@ class MaintenanceApp(QMainWindow):
     def refresh_all(self):
         self.refresh_dashboard(); self.pintar_calendario(); self.update_calendar_list()
         self.refresh_history(); self.search(); self.refresh_todos(); self.refresh_avisos()
-    def setup_table(self, t):
-        t.setColumnCount(3); t.setHorizontalHeaderLabels(["Fecha", "Descripción", "Tag"]); t.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); t.setAlternatingRowColors(True); t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+    def setup_table(self, tabla_widget):
+        tabla_widget.setColumnCount(3); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     def configurar_deseleccion(self, widget):
         clase_base = type(widget)
         def click_inteligente(event):
@@ -2542,30 +2613,30 @@ class MaintenanceApp(QMainWindow):
         widget.mousePressEvent = click_inteligente
 
     def edit_cal(self, i): self.proc_edit(i.data(Qt.ItemDataRole.UserRole))
-    def edit_rec(self, t):
-        r = t.currentRow()
-        if r >= 0: self.proc_edit(t.item(r, 0).data(Qt.ItemDataRole.UserRole))
+    def edit_rec(self, tabla_widget):
+        r = tabla_widget.currentRow()
+        if r >= 0: self.proc_edit(tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole))
     def proc_edit(self, i):
         d = self.db.obtener_tarea_por_id(i)
         if d:
             dlg = EditDialog(self, d[1], d[2], d[3])
             if dlg.exec(): nuevos_datos = dlg.get_data(); self.db.actualizar_tarea(i, *nuevos_datos); self.refresh_all()
 
-    def del_rec(self, t):
-        r = t.currentRow()
+    def del_rec(self, tabla_widget):
+        r = tabla_widget.currentRow()
         if r >= 0:
-            i = t.item(r, 0).data(Qt.ItemDataRole.UserRole)
+            i = tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole)
             d = self.db.obtener_tarea_por_id(i)
             if d:
                 # --- DIÁLOGO ESPAÑOL ---
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Question)
-                msg.setWindowTitle("Confirmar Eliminación")
-                msg.setText("¿Borrar registro permanentemente?\nSi tiene foto adjunta, se eliminará del disco.\n\nSi es un preventivo reciente, volverá a marcarse como PENDIENTE.")
+                msg.setWindowTitle(t("title_confirmar_eliminacion"))
+                msg.setText(t("msg_confirmar_eliminacion_registro"))
 
                 # Botones manuales
-                btn_si = msg.addButton("SÍ", QMessageBox.ButtonRole.YesRole)
-                btn_no = msg.addButton("NO", QMessageBox.ButtonRole.NoRole)
+                btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+                btn_no = msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
 
                 msg.exec()
 
@@ -2621,17 +2692,17 @@ class MaintenanceApp(QMainWindow):
                         self.servidor.pendiente_actualizado.emit()
 
     def add_todo(self):
-        t, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
-        if t and self.db.agregar_pendiente(t, d): self.in_todo_t.clear(); self.in_todo_d.clear(); self.refresh_todos()
+        tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
+        if tit and self.db.agregar_pendiente(tit, d): self.in_todo_t.clear(); self.in_todo_d.clear(); self.refresh_todos()
 
     def refresh_todos(self):
         self.todo_list.clear()
         ps = self.db.obtener_pendientes()
 
         if not ps:
-            self.todo_list.addItem("--- Nada ---")
+            self.todo_list.addItem(t("msg_nada"))
 
-        for i, t, d in ps:
+        for i, tit, d in ps:
             # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
             d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
             d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
@@ -2639,7 +2710,7 @@ class MaintenanceApp(QMainWindow):
             tiene_foto = self._hay_foto_disponible(d)
 
             # Texto visual limpio
-            texto_visual = f"⬜ {t}"
+            texto_visual = f"⬜ {tit}"
             if d_limpio:
                 texto_visual += f"\n   ↳ {d_limpio}"
 
@@ -2666,12 +2737,12 @@ class MaintenanceApp(QMainWindow):
                 # --- DIÁLOGO PERSONALIZADO EN ESPAÑOL ---
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Question)
-                msg.setWindowTitle("Confirmar Borrado")
-                msg.setText("¿Estás seguro de borrar este trabajo pendiente?")
+                msg.setWindowTitle(t("title_confirmar_borrado"))
+                msg.setText(t("msg_confirmar_borrar_pendiente"))
 
                 # Botones personalizados
-                btn_si = msg.addButton("SÍ", QMessageBox.ButtonRole.YesRole)
-                btn_no = msg.addButton("NO", QMessageBox.ButtonRole.NoRole)
+                btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+                btn_no = msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
 
                 msg.exec()
 
@@ -2710,7 +2781,7 @@ class MaintenanceApp(QMainWindow):
                 self.db.borrar_pendiente(id_pendiente)
                 self.refresh_todos()
                 self.refresh_all()
-                self.statusBar().showMessage(f"✅ Tarea '{titulo}' completada", 5000)
+                self.statusBar().showMessage(t("msg_tarea_completada").format(titulo=titulo), 5000)
 
     # =========================================================================
     # FUNCIONES RESTAURADAS Y NUEVAS
@@ -2733,27 +2804,33 @@ class MaintenanceApp(QMainWindow):
                             ruta_archivo = os.path.join(root, file)
                             ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
                             zipf.write(ruta_archivo, arcname=ruta_en_zip)
-            QMessageBox.information(self, "Backup Completo", f"Copia limpia y guardada:\n{nombre_zip}")
-        except Exception as e: QMessageBox.critical(self, "Error Backup", str(e))
+            QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=nombre_zip))
+        except Exception as e: QMessageBox.critical(self, t("title_error_backup"), str(e))
 
     def restaurar_backup(self):
-        advertencia = "⚠️ ATENCIÓN ⚠️\n\nAl restaurar, se SOBRESCRIBIRÁN todos los datos.\n¿Continuar?"
-        if QMessageBox.warning(self, "Restaurar Copia", advertencia, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No: return
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle(t("title_restaurar_copia"))
+        msg.setText(t("msg_advertencia_restaurar"))
+        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() != btn_si: return
         # Use a dialog instance to allow setting DontUseNativeDialog if needed, though getOpenFileName static usually works.
         # But to be safe with styles, we could instantiate QFileDialog.
         # For restore, let's keep it simple as it's a critical operation.
-        archivo_zip, _ = QFileDialog.getOpenFileName(self, "Seleccionar Backup Completo", "backups", "Archivos ZIP (*.zip)", options=QFileDialog.Option.DontUseNativeDialog)
+        archivo_zip, _ = QFileDialog.getOpenFileName(self, t("title_seleccionar_backup"), "backups", "Archivos ZIP (*.zip)", options=QFileDialog.Option.DontUseNativeDialog)
         if archivo_zip:
             try:
                 # Restaurar en DATA_DIR o carpeta local según donde estemos
                 restore_path = os.path.dirname(self.db.db_name)
                 with zipfile.ZipFile(archivo_zip, 'r') as zipf: zipf.extractall(path=restore_path)
-                QMessageBox.information(self, "Restauración", "✅ Sistema restaurado correctamente."); self.refresh_all()
-            except Exception as e: QMessageBox.critical(self, "Error Restauración", f"ZIP corrupto:\n{str(e)}")
+                QMessageBox.information(self, t("title_restauracion"), t("msg_sistema_restaurado")); self.refresh_all()
+            except Exception as e: QMessageBox.critical(self, t("title_error_restauracion"), t("msg_zip_corrupto").format(error=str(e)))
 
     def exportar_csv(self):
         nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}.csv"
-        archivo = self.guardar_archivo_dialogo("Exportar a CSV", nombre_defecto, "CSV (*.csv)")
+        archivo = self.guardar_archivo_dialogo(t("title_exportar_csv"), nombre_defecto, "CSV (*.csv)")
         if not archivo: return
         try:
             datos = self.db.obtener_todas_cronologico()
@@ -2768,14 +2845,14 @@ class MaintenanceApp(QMainWindow):
                     m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
                     if m: nombre_foto = m.group(1).split("]")[0].strip()
                     writer.writerow([tarea[0], tarea[1], desc_limpia, tarea[3], nombre_foto])
-            QMessageBox.information(self, "Exportado", "CSV guardado correctamente.")
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+            QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
     def exportar_excel(self):
         try: import xlsxwriter
-        except ImportError: QMessageBox.warning(self, "Falta librería", "Instala: pip install xlsxwriter"); return
+        except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
         nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}.xlsx"
-        archivo = self.guardar_archivo_dialogo("Exportar a Excel", nombre_defecto, "Excel (*.xlsx)")
+        archivo = self.guardar_archivo_dialogo(t("title_exportar_excel"), nombre_defecto, "Excel (*.xlsx)")
         if not archivo: return
         try:
             workbook = xlsxwriter.Workbook(archivo); worksheet = workbook.add_worksheet("Registro")
@@ -2802,38 +2879,38 @@ class MaintenanceApp(QMainWindow):
                     else: worksheet.write(row, 4, "No File", center)
                 else: worksheet.write(row, 4, "-", center)
                 row += 1
-            workbook.close(); QMessageBox.information(self, "Exportado", "Excel guardado correctamente.")
-        except Exception as e: QMessageBox.critical(self, "Error", str(e))
+            workbook.close(); QMessageBox.information(self, t("title_exportado"), t("msg_excel_guardado"))
+        except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
     def init_dashboard_tab(self):
         l = QVBoxLayout()
         h_cards = QHBoxLayout()
         style_card = "QGroupBox { border: 1px solid #444; border-radius: 8px; background-color: #333; margin-top: 10px; font-weight: bold; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; } QLabel { font-size: 24px; font-weight: bold; }"
-        self.card_avisos = QGroupBox("Avisos Pendientes"); self.card_avisos.setStyleSheet(style_card)
+        self.card_avisos = QGroupBox(t("lbl_avisos_pendientes")); self.card_avisos.setStyleSheet(style_card)
         l_c1 = QVBoxLayout(); self.lbl_count_avisos = QLabel("0"); self.lbl_count_avisos.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l_c1.addWidget(self.lbl_count_avisos); self.card_avisos.setLayout(l_c1); h_cards.addWidget(self.card_avisos)
-        self.card_todos = QGroupBox("Tareas Por Hacer"); self.card_todos.setStyleSheet(style_card)
+        self.card_todos = QGroupBox(t("lbl_tareas_por_hacer")); self.card_todos.setStyleSheet(style_card)
         l_c2 = QVBoxLayout(); self.lbl_count_todos = QLabel("0"); self.lbl_count_todos.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l_c2.addWidget(self.lbl_count_todos); self.card_todos.setLayout(l_c2); h_cards.addWidget(self.card_todos)
-        self.card_regs = QGroupBox("Registros este Mes"); self.card_regs.setStyleSheet(style_card)
+        self.card_regs = QGroupBox(t("lbl_registros_este_mes")); self.card_regs.setStyleSheet(style_card)
         l_c3 = QVBoxLayout(); self.lbl_count_regs = QLabel("0"); self.lbl_count_regs.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l_c3.addWidget(self.lbl_count_regs); self.card_regs.setLayout(l_c3); h_cards.addWidget(self.card_regs)
         l.addLayout(h_cards)
         h_split = QHBoxLayout()
-        v_list = QVBoxLayout(); v_list.addWidget(QLabel("📋 Últimas Intervenciones"))
+        v_list = QVBoxLayout(); v_list.addWidget(QLabel(t("lbl_ultimas_intervenciones")))
         self.dash_table = QTableWidget(); self.setup_table(self.dash_table); self.configurar_deseleccion(self.dash_table); self.dash_table.setRowCount(15); self.dash_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.dash_table)); v_list.addWidget(self.dash_table)
         h_split.addLayout(v_list, 80)
-        v_stats = QVBoxLayout(); v_stats.addWidget(QLabel("📊 Distribución"))
+        v_stats = QVBoxLayout(); v_stats.addWidget(QLabel(t("lbl_distribucion")))
         self.group_stats = QGroupBox(); self.group_stats.setStyleSheet("QGroupBox { border: 1px solid #444; background: #252525; border-radius: 6px; }")
         layout_stats = QVBoxLayout(); layout_stats.setSpacing(10); layout_stats.setContentsMargins(5, 10, 5, 5)
         def crear_barra(titulo, color):
             lbl = QLabel(titulo); lbl.setStyleSheet("font-size: 12px; color: #ccc;")
             bar = QProgressBar(); bar.setStyleSheet(f"QProgressBar {{ border: 1px solid #555; border-radius: 4px; text-align: center; background: #333; height: 18px; font-size: 11px; }} QProgressBar::chunk {{ background-color: {color}; border-radius: 3px; }}"); bar.setValue(0)
             return lbl, bar
-        self.lbl_elec, self.bar_elec = crear_barra("⚡ Eléctrico", "#3daee9"); layout_stats.addWidget(self.lbl_elec); layout_stats.addWidget(self.bar_elec)
-        self.lbl_mec, self.bar_mec = crear_barra("⚙️ Mecánico", "#e67e22"); layout_stats.addWidget(self.lbl_mec); layout_stats.addWidget(self.bar_mec)
-        self.lbl_prev, self.bar_prev = crear_barra("🛡️ Preventivo", "#27ae60"); layout_stats.addWidget(self.lbl_prev); layout_stats.addWidget(self.bar_prev)
-        self.lbl_urg, self.bar_urg = crear_barra("🚨 Urgente", "#c0392b"); layout_stats.addWidget(self.lbl_urg); layout_stats.addWidget(self.bar_urg)
+        self.lbl_elec, self.bar_elec = crear_barra(f"⚡ {t('tag_electrico')}", "#3daee9"); layout_stats.addWidget(self.lbl_elec); layout_stats.addWidget(self.bar_elec)
+        self.lbl_mec, self.bar_mec = crear_barra(f"⚙️ {t('tag_mecanico')}", "#e67e22"); layout_stats.addWidget(self.lbl_mec); layout_stats.addWidget(self.bar_mec)
+        self.lbl_prev, self.bar_prev = crear_barra(f"🛡️ {t('tag_preventivo')}", "#27ae60"); layout_stats.addWidget(self.lbl_prev); layout_stats.addWidget(self.bar_prev)
+        self.lbl_urg, self.bar_urg = crear_barra(f"🚨 {t('tag_urgente')}", "#c0392b"); layout_stats.addWidget(self.lbl_urg); layout_stats.addWidget(self.bar_urg)
         layout_stats.addStretch(); self.group_stats.setLayout(layout_stats); v_stats.addWidget(self.group_stats); h_split.addLayout(v_stats, 20); l.addLayout(h_split); self.tab_dashboard.setLayout(l)
 
     def refresh_dashboard(self):
@@ -2877,16 +2954,16 @@ class MaintenanceApp(QMainWindow):
     # ========================================================
     def cambiar_logo(self):
         # Use DontUseNativeDialog to ensure stylesheets apply
-        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Logo", "", "Imágenes (*.jpg *.png *.jpeg)", options=QFileDialog.Option.DontUseNativeDialog)
+        archivo, _ = QFileDialog.getOpenFileName(self, t("title_seleccionar_logo"), "", "Imágenes (*.jpg *.png *.jpeg)", options=QFileDialog.Option.DontUseNativeDialog)
         if archivo:
             try:
                 # Copiamos la imagen a la carpeta local con el nombre que busca el PDF
                 # Use DATA_DIR path
                 destino = os.path.join(DATA_DIR, "Logo.jpg")
                 shutil.copy2(archivo, destino)
-                QMessageBox.information(self, "Logo Actualizado", "✅ Logo actualizado. Aparecerá en el próximo PDF.")
+                QMessageBox.information(self, t("title_logo_actualizado"), t("msg_logo_actualizado"))
             except Exception as e:
-                QMessageBox.critical(self, "Error", str(e))
+                QMessageBox.critical(self, t("title_error"), str(e))
 
     def quitar_logo(self):
         # Use DATA_DIR path
@@ -2894,11 +2971,11 @@ class MaintenanceApp(QMainWindow):
         if os.path.exists(destino):
             try:
                 os.remove(destino)
-                QMessageBox.information(self, "Logo Borrado", "🗑️ El logo ha sido eliminado del sistema.")
+                QMessageBox.information(self, t("title_logo_borrado"), t("msg_logo_borrado"))
             except Exception as e:
-                QMessageBox.critical(self, "Error", str(e))
+                QMessageBox.critical(self, t("title_error"), str(e))
         else:
-            QMessageBox.information(self, "Información", "No había ningún logo configurado.")
+            QMessageBox.information(self, t("title_informacion"), t("msg_sin_logo"))
 
     def exportar_pdf(self):
         dlg = DialogoExportarPDF(self)
@@ -2906,7 +2983,7 @@ class MaintenanceApp(QMainWindow):
         inicio, fin, incluir_fotos = dlg.get_data()
 
         nombre_defecto = f"Reporte_Mantenimiento_{datetime.now().strftime('%Y%m%d')}.pdf"
-        archivo = self.guardar_archivo_dialogo("Guardar PDF", nombre_defecto, "PDF (*.pdf)")
+        archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
         if not archivo: return
 
         # 1. Recuperar datos en el hilo principal (rápido)
@@ -2922,16 +2999,16 @@ class MaintenanceApp(QMainWindow):
             datos = c.fetchall()
             conn.close()
         except Exception as e:
-            QMessageBox.critical(self, "Error DB", str(e))
+            QMessageBox.critical(self, t("title_error_db"), str(e))
             return
 
         # 2. Configurar UI de progreso
         self.progreso_pdf = QDialog(self)
-        self.progreso_pdf.setWindowTitle("Generando PDF...")
+        self.progreso_pdf.setWindowTitle(t("title_generando_pdf"))
         self.progreso_pdf.setFixedSize(300, 100)
         self.progreso_pdf.setWindowModality(Qt.WindowModality.ApplicationModal)
         l = QVBoxLayout()
-        l.addWidget(QLabel("Procesando imágenes y generando documento...\nPor favor espera."))
+        l.addWidget(QLabel(t("lbl_procesando_pdf")))
         bar = QProgressBar()
         bar.setRange(0, 0) # Barra infinita
         l.addWidget(bar)
@@ -2949,13 +3026,13 @@ class MaintenanceApp(QMainWindow):
     def pdf_finalizado(self, exito, mensaje):
         self.progreso_pdf.accept() # Cierra el diálogo de progreso
         if exito:
-            QMessageBox.information(self, "Éxito", mensaje)
+            QMessageBox.information(self, t("title_exito"), mensaje)
         else:
-            QMessageBox.critical(self, "Error PDF", mensaje)
+            QMessageBox.critical(self, t("title_error_pdf"), mensaje)
 
     def guardar_archivo_dialogo(self, titulo, nombre_defecto, filtro):
         dialogo = QFileDialog(self, titulo); dialogo.setAcceptMode(QFileDialog.AcceptMode.AcceptSave); dialogo.setFileMode(QFileDialog.FileMode.AnyFile); dialogo.setNameFilter(filtro); dialogo.selectFile(nombre_defecto)
-        dialogo.setOption(QFileDialog.Option.DontUseNativeDialog, True); dialogo.setLabelText(QFileDialog.DialogLabel.Accept, "Guardar"); dialogo.setLabelText(QFileDialog.DialogLabel.Reject, "Cancelar")
+        dialogo.setOption(QFileDialog.Option.DontUseNativeDialog, True); dialogo.setLabelText(QFileDialog.DialogLabel.Accept, t("btn_guardar_form")); dialogo.setLabelText(QFileDialog.DialogLabel.Reject, t("btn_cancelar"))
         if dialogo.exec(): return dialogo.selectedFiles()[0]
         return None
 
@@ -2981,7 +3058,15 @@ class MaintenanceApp(QMainWindow):
                 if f not in fotos_en_uso and f not in ["Logo.jpg", "icono.png"] and not f.startswith("QR_"): basura.append(f)
             if not basura: return
             confirmado = True
-            if not silencioso and QMessageBox.question(self, "Limpieza", f"Hay {len(basura)} fotos basura. ¿Borrar?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No: confirmado = False
+            if not silencioso:
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Icon.Question)
+                msg.setWindowTitle(t("title_limpieza"))
+                msg.setText(t("msg_fotos_basura").format(n=len(basura)))
+                btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+                msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+                msg.exec()
+                if msg.clickedButton() != btn_si: confirmado = False
             if confirmado:
                 for f in basura:
                     try: os.remove(os.path.join(self.carpeta_fotos, f))
@@ -3049,7 +3134,7 @@ class MaintenanceApp(QMainWindow):
                 # Guardamos en BD (con la REF oculta de nuevo)
                 if self.db.actualizar_pendiente(pid, nuevo_t, desc_final):
                     self.refresh_todos()
-                    self.statusBar().showMessage("✅ Pendiente actualizado", 3000)
+                    self.statusBar().showMessage(t("msg_pendiente_actualizado"), 3000)
 
 import traceback
 
@@ -3060,8 +3145,8 @@ def manejador_excepciones(exc_type, exc_value, exc_tb):
         # Intentamos mostrar el error en una ventanita antes de morir
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Critical)
-        msg.setWindowTitle("Error Fatal 💥")
-        msg.setText("El programa ha fallado. Dale a 'Show Details' para ver por qué:")
+        msg.setWindowTitle(t("title_error_fatal"))
+        msg.setText(t("msg_error_fatal"))
         msg.setDetailedText(error_msg)
         msg.exec()
     except:
@@ -3099,8 +3184,10 @@ if __name__ == "__main__":
     # --- 3. INSTANCIAR VENTANA PRINCIPAL ---
     try:
         ventana = MaintenanceApp()
-    except NameError:
-        print("Error: Revisa el nombre de la clase de la ventana principal.")
+    except Exception as e:
+        print(f"Error crítico al arrancar la aplicación: {e}")
+        import traceback
+        traceback.print_exc()
 
     # --- 4. SPLASH SCREEN ESTÁTICO (Compatible con Wayland) ---
     if os.path.exists(ruta_logo):
@@ -3118,6 +3205,12 @@ if __name__ == "__main__":
         def iniciar_programa():
             splash.close()
             ventana.show()
+            ventana.raise_()
+            ventana.activateWindow()
+            # Comprobamos actualizaciones solo AHORA, con la ventana ya visible y
+            # con el foco, para que el diálogo modal de "nueva versión" no compita
+            # con el propio arranque de la ventana principal.
+            QTimer.singleShot(500, lambda: ventana.comprobar_actualizaciones(manual=False))
 
         # Esperamos 2 segundos (2000 ms) y cambiamos
         QTimer.singleShot(2000, iniciar_programa)
@@ -3125,5 +3218,8 @@ if __name__ == "__main__":
     else:
         # Si no hay logo, arranca normal
         ventana.show()
+        ventana.raise_()
+        ventana.activateWindow()
+        QTimer.singleShot(500, lambda: ventana.comprobar_actualizaciones(manual=False))
 
     sys.exit(app.exec())

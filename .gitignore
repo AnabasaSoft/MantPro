@@ -9,9 +9,6 @@ __pycache__/
 # La base de datos (contiene datos reales)
 *.db
 mantenimiento.db
-*.pdf
-*.sh
-Logo.jpg
 *.json
 *.bak
 
@@ -44,3 +41,7 @@ mantenimiento_app/macos
 .DS_Store
 Thumbs.db
 Logo.jpg
+
+#Otros archivos
+*.pdf
+*.sh

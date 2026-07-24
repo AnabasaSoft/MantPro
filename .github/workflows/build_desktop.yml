@@ -89,7 +89,7 @@ jobs:
     # --- PASO 1: GENERAR BINARIO STANDALONE ---
     - name: Generar Binario Linux
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --name "MantPro_Linux" main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --add-data "AnabasaSoft.png:." --name "MantPro_Linux" main.py
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
     - name: Subir Binario Linux (Artefacto)
