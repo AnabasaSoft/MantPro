@@ -2048,7 +2048,6 @@ class MaintenanceApp(QMainWindow):
         self.hilo_updates.start()
 
     def on_actualizacion_comprobada(self, hay_nueva, version, url, notas):
-        import webbrowser
         if hay_nueva:
             msg = QMessageBox(self)
             msg.setWindowFlags(msg.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
@@ -2060,8 +2059,6 @@ class MaintenanceApp(QMainWindow):
             btn_si = msg.addButton(t("btn_descargar"), QMessageBox.ButtonRole.YesRole)
             msg.addButton(t("btn_luego"), QMessageBox.ButtonRole.NoRole)
 
-            # Forzamos que la ventana se ponga delante y coja el foco (necesario en Wayland,
-            # donde una ventana nueva no roba el foco a la principal por defecto)
             msg.setWindowState(msg.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
             msg.raise_()
             msg.activateWindow()
@@ -2069,7 +2066,16 @@ class MaintenanceApp(QMainWindow):
             msg.exec()
 
             if msg.clickedButton() == btn_si:
-                webbrowser.open(url)
+                # Forzar apertura externa limpia ignorando librerías empaquetadas del entorno virtual/rpm
+                try:
+                    if sys.platform.startswith('linux'):
+                        os.system(f"xdg-open '{url}' &")
+                    else:
+                        import webbrowser
+                        webbrowser.open(url)
+                except Exception as e:
+                    import webbrowser
+                    webbrowser.open(url)
         elif self._check_manual:
             if version == "error":
                 QMessageBox.warning(self, t("title_error"), t("msg_error_conexion_github"))
