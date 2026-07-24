@@ -782,3 +782,32 @@ def t(clave):
     if clave in dic_actual:
         return dic_actual[clave]
     return TRADUCCIONES["es"].get(clave, clave)
+
+
+# --------------------------------------------------------------------
+# NORMALIZADOR DE FRECUENCIAS DE AVISOS RECURRENTES
+# --------------------------------------------------------------------
+# Las avisos recurrentes guardan en la base de datos el TEXTO que se veía
+# en el combo "Frecuencia de Repetición" en el momento de crear/editar el
+# aviso (p.ej. "Anual" si la interfaz estaba en español, "Yearly" si estaba
+# en inglés). Toda la lógica de cálculo de recurrencia compara ese texto
+# contra los literales fijos en español ("Diario", "Semanal", ...), así que
+# si un aviso se guardó en otro idioma, dejaba de reconocerse.
+#
+# Esta función traduce CUALQUIER valor guardado, en CUALQUIER idioma
+# conocido, de vuelta a su forma canónica en español, para que las
+# comparaciones `freq == "Anual"` etc. sigan funcionando pase lo que pase.
+_CLAVES_FRECUENCIA = ["freq_diario", "freq_semanal", "freq_mensual", "freq_trimestral", "freq_semestral", "freq_anual"]
+
+def normalizar_frecuencia(valor):
+    """Dado un valor de frecuencia guardado (en cualquier idioma soportado),
+    devuelve su forma canónica en español ('Diario', 'Semanal', 'Mensual',
+    'Trimestral', 'Semestral' o 'Anual'). Si no se reconoce, se devuelve tal cual."""
+    if not valor:
+        return valor
+    for clave in _CLAVES_FRECUENCIA:
+        for idioma in TRADUCCIONES:
+            if TRADUCCIONES[idioma].get(clave) == valor:
+                return TRADUCCIONES["es"][clave]
+    return valor
+
