@@ -93,7 +93,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '2.7.1';
+const String kAppVersion = '2.7.2';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -627,7 +627,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.1),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            if (_urlPC != null) TextButton.icon(icon: _cargando ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.sync), label: const Text("Sincronizar"), onPressed: () => _sincronizar()),
+            if (_urlPC != null) TextButton.icon(icon: _cargando ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.sync), label: Text(t("btn_sincronizar")), onPressed: () => _sincronizar()),
               IconButton(icon: const Icon(Icons.qr_code), onPressed: () async {
                 final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
                 if (ip != null) {
