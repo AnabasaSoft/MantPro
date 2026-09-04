@@ -60,7 +60,6 @@ TRADUCCIONES = {
         "menu_csv": "📄 CSV",
         "menu_excel": "📊 Excel",
         "menu_salir": "Salir",
-        "btn_guardar_form": "Guardar",
 
         # --- Menú Herramientas ---
         "menu_herramientas": "&Herramientas",
@@ -109,6 +108,7 @@ TRADUCCIONES = {
         "btn_ir_hoy": "Ir a Hoy",
         "btn_gestion_dias": "Gestión Días",
         "btn_anadir_aviso": "Añadir Aviso",
+        "btn_guardar_form": "Guardar",
 
         # --- Etiquetas de formularios ---
         "lbl_seleccionar_archivo": "Selecciona un archivo...",
@@ -180,6 +180,7 @@ TRADUCCIONES = {
         "title_confirmar_eliminacion": "Confirmar Eliminación",
         "title_confirmar_borrado": "Confirmar Borrado",
         "title_error_fatal": "Error Fatal 💥",
+        "title_seleccionar_carpeta_pdf": "Seleccionar Carpeta para Guardar los PDFs",
 
         # --- Diálogos: mensajes ---
         "msg_error_conexion_github": "No se pudo conectar con GitHub para buscar actualizaciones.",
@@ -241,6 +242,7 @@ TRADUCCIONES = {
         "lbl_opciones_exportacion": "Opciones de Exportación",
         "lbl_exportar_todo": "Exportar TODO el historial",
         "lbl_exportar_rango": "Exportar rango de fechas",
+        "lbl_exportar_por_mes": "Exportar un PDF por mes",
         "lbl_incluir_imagenes": "📸 Incluir imágenes en el PDF",
         "lbl_crear_nuevo_aviso": "Crear Nuevo Aviso",
         "ph_titulo_aviso": "Título del aviso...",
@@ -249,7 +251,7 @@ TRADUCCIONES = {
         "ph_titulo": "Título",
         "ph_detalles": "Detalles",
         "lbl_acciones": "Acciones",
-        "ph_otros_tags": "Otros tags...",
+        "ph_otros_tags": "Otros Tags (Opcional):",
         "ph_otras_etiquetas": "Otras etiquetas (separadas por comas)...",
 
         # --- Mensajes y Snackbars ---
@@ -317,7 +319,6 @@ TRADUCCIONES = {
         "menu_csv": "📄 CSV",
         "menu_excel": "📊 Excel",
         "menu_salir": "Exit",
-        "btn_guardar_form": "Save",
 
         # --- Tools menu ---
         "menu_herramientas": "&Tools",
@@ -366,6 +367,7 @@ TRADUCCIONES = {
         "btn_ir_hoy": "Go to Today",
         "btn_gestion_dias": "Manage Days",
         "btn_anadir_aviso": "Add Alert",
+        "btn_guardar_form": "Save",
 
         # --- Form labels ---
         "lbl_seleccionar_archivo": "Select a file...",
@@ -437,6 +439,7 @@ TRADUCCIONES = {
         "title_confirmar_eliminacion": "Confirm Deletion",
         "title_confirmar_borrado": "Confirm Deletion",
         "title_error_fatal": "Fatal Error 💥",
+        "title_seleccionar_carpeta_pdf": "Select Folder to Save PDFs",
 
         # --- Dialog messages: bodies ---
         "msg_error_conexion_github": "Could not connect to GitHub to check for updates.",
@@ -498,6 +501,7 @@ TRADUCCIONES = {
         "lbl_opciones_exportacion": "Export Options",
         "lbl_exportar_todo": "Export ALL history",
         "lbl_exportar_rango": "Export date range",
+        "lbl_exportar_por_mes": "Export one PDF per month",
         "lbl_incluir_imagenes": "📸 Include images in PDF",
         "lbl_crear_nuevo_aviso": "Create New Alert",
         "ph_titulo_aviso": "Alert title...",
@@ -571,7 +575,6 @@ TRADUCCIONES = {
         "menu_csv": "📄 CSV",
         "menu_excel": "📊 Excel",
         "menu_salir": "Irten",
-        "btn_guardar_form": "Gorde",
         "menu_herramientas": "&Tresnak",
         "menu_sync_qr": "📲 Sinkronizatu Appa (QR)",
         "menu_gestionar_dias": "Kudeatu Egunak / Jaiegunak",
@@ -610,6 +613,7 @@ TRADUCCIONES = {
         "btn_ir_hoy": "Joan Gaurkora",
         "btn_gestion_dias": "Egunen Kudeaketa",
         "btn_anadir_aviso": "Gehitu Abisua",
+        "btn_guardar_form": "Gorde",
         "lbl_seleccionar_archivo": "Hautatu fitxategi bat...",
         "lbl_qr_paso1": "1. Ireki 'MantPro' Appa mugikorrean",
         "lbl_qr_paso2": "2. Sakatu eskaneatu botoia",
@@ -677,6 +681,7 @@ TRADUCCIONES = {
         "title_confirmar_eliminacion": "Berretsi Ezabatzea",
         "title_confirmar_borrado": "Berretsi Ezabatzea",
         "title_error_fatal": "Errore Konponezina 💥",
+        "title_seleccionar_carpeta_pdf": "Hautatu Karpeta PDFak Gordetzeko",
         "msg_error_conexion_github": "Ezin izan da GitHub-ekin konektatu eguneraketak bilatzeko.",
         "msg_ya_actualizado": "✅ Dagoeneko azken bertsioa instalatuta daukazu (v{v}).",
         "msg_nueva_version_disponible": "{actual} bertsioa instalatuta daukazu eta GitHub-en dagoeneko {nueva} dago.",
@@ -730,6 +735,7 @@ TRADUCCIONES = {
         "lbl_opciones_exportacion": "Esportazio Aukerak",
         "lbl_exportar_todo": "Esportatu historia OSOA",
         "lbl_exportar_rango": "Esportatu data tartea",
+        "lbl_exportar_por_mes": "Esportatu PDF bat hilabeteko",
         "lbl_incluir_imagenes": "📸 Sartu irudiak PDFan",
         "lbl_crear_nuevo_aviso": "Sortu Abisu Berria",
         "ph_titulo_aviso": "Abisuaren izenburua...",
@@ -813,4 +819,3 @@ def normalizar_frecuencia(valor):
             if TRADUCCIONES[idioma].get(clave) == valor:
                 return TRADUCCIONES["es"][clave]
     return valor
-

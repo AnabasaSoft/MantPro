@@ -218,112 +218,102 @@ class ChequeadorActualizaciones(QThread):
 class GeneradorPDFThread(QThread):
     resultado = pyqtSignal(bool, str)
 
-    def __init__(self, archivo, titulo_doc, datos, carpeta_fotos, incluir_fotos):
+    def __init__(self, lista_trabajos, carpeta_fotos):
         super().__init__()
-        self.archivo = archivo
-        self.titulo_doc = titulo_doc
-        self.datos = datos
+        # Recibe una lista de diccionarios: [{"archivo": ruta, "titulo": tit, "datos": [...]}]
+        self.lista_trabajos = lista_trabajos
         self.carpeta_fotos = carpeta_fotos
-        self.incluir_fotos = incluir_fotos
 
     def run(self):
         try:
-            doc = SimpleDocTemplate(self.archivo, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=18)
-            elements = []; styles = getSampleStyleSheet()
-
-            # --- ZONA LOGO ---
+            styles = getSampleStyleSheet()
             ruta_logo = os.path.join(DATA_DIR, "Logo.jpg")
-            if os.path.exists(ruta_logo):
-                try:
-                    logo = PDFImage(ruta_logo, width=4*cm, height=2*cm)
-                    logo.hAlign = 'LEFT'
-                    logo.keepAspectRatio = True
-                    elements.append(logo)
-                    elements.append(Spacer(1, 10))
-                except Exception as e:
-                    print("Error cargando logo:", e)
-            # -----------------
 
-            elements.append(Paragraph(self.titulo_doc, styles['Title'])); elements.append(Spacer(1, 12))
+            for trabajo in self.lista_trabajos:
+                doc = SimpleDocTemplate(trabajo["archivo"], pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=18)
+                elements = []
 
-            # Quitamos los tags de los encabezados
-            data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
-            style_cell = styles["BodyText"]; style_cell.fontSize = 9
+                if os.path.exists(ruta_logo):
+                    try:
+                        logo = PDFImage(ruta_logo, width=4*cm, height=2*cm)
+                        logo.hAlign = 'LEFT'
+                        logo.keepAspectRatio = True
+                        elements.append(logo)
+                        elements.append(Spacer(1, 10))
+                    except: pass
 
-            for fecha, desc, tags in self.datos:
-                # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
-                try:
-                    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
-                    fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-                except:
-                    fecha_formateada = fecha
+                elements.append(Paragraph(trabajo["titulo"], styles['Title']))
+                elements.append(Spacer(1, 12))
 
-                desc_visual = desc
-                img_obj = "" # Por defecto en blanco si no hay foto
-                img_obj_d = ""
+                data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
+                style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
-                # Gestión de FOTO (antes) - Forzamos cargar la imagen siempre
-                m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
-                if m:
-                    nombre_foto = m.group(1).split("]")[0].strip()
-                    ruta_foto = os.path.join(self.carpeta_fotos, nombre_foto)
-                    if os.path.exists(ruta_foto):
-                        try:
-                            img = PDFImage(ruta_foto)
-                            img.drawHeight = 2.5 * cm
-                            img.drawWidth = 3.0 * cm
-                            img.keepAspectRatio = True
-                            img_obj = img
-                        except: img_obj = "Error Img"
+                for fecha, desc, tags in trabajo["datos"]:
+                    try:
+                        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+                        fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+                    except:
+                        fecha_formateada = fecha
 
-                # Gestión de FOTO_DESPUES
-                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
-                if m_d:
-                    nombre_foto_d = m_d.group(1).split("]")[0].strip()
-                    ruta_foto_d = os.path.join(self.carpeta_fotos, nombre_foto_d)
-                    if os.path.exists(ruta_foto_d):
-                        try:
-                            img_d = PDFImage(ruta_foto_d)
-                            img_d.drawHeight = 2.5 * cm
-                            img_d.drawWidth = 3.0 * cm
-                            img_d.keepAspectRatio = True
-                            img_obj_d = img_d
-                        except: img_obj_d = "Error Img"
+                    desc_visual = desc
+                    img_obj = ""
+                    img_obj_d = ""
 
-                # LIMPIEZA DE ETIQUETAS VISUALES
-                desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
-                desc_visual = re.sub(r"\[FOTO_DESPUES:.*?\]", "", desc_visual)
-                desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual)
-                desc_visual = desc_visual.strip()
+                    m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
+                    if m:
+                        nombre_foto = m.group(1).split("]")[0].strip()
+                        ruta_foto = os.path.join(self.carpeta_fotos, nombre_foto)
+                        if os.path.exists(ruta_foto):
+                            try:
+                                img = PDFImage(ruta_foto)
+                                img.drawHeight = 2.5 * cm
+                                img.drawWidth = 3.0 * cm
+                                img.keepAspectRatio = True
+                                img_obj = img
+                            except: img_obj = "Error Img"
 
-                p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
+                    m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
+                    if m_d:
+                        nombre_foto_d = m_d.group(1).split("]")[0].strip()
+                        ruta_foto_d = os.path.join(self.carpeta_fotos, nombre_foto_d)
+                        if os.path.exists(ruta_foto_d):
+                            try:
+                                img_d = PDFImage(ruta_foto_d)
+                                img_d.drawHeight = 2.5 * cm
+                                img_d.drawWidth = 3.0 * cm
+                                img_d.keepAspectRatio = True
+                                img_obj_d = img_d
+                            except: img_obj_d = "Error Img"
 
-                # Añadimos la fila con la nueva fecha formateada
-                data_tabla.append([fecha_formateada, p_desc, img_obj, img_obj_d])
+                    desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
+                    desc_visual = re.sub(r"\[FOTO_DESPUES:.*?\]", "", desc_visual)
+                    desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
-            # Repartimos el espacio sobrante de los tags para las descripciones y fotos
-            ancho_foto = 3.5 * cm
-            tabla_pdf = Table(data_tabla, colWidths=[2.2*cm, 8.5*cm, ancho_foto, ancho_foto])
-            tabla_pdf.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                ('TOPPADDING', (0, 1), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP')
-            ]))
+                    p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
+                    data_tabla.append([fecha_formateada, p_desc, img_obj, img_obj_d])
 
-            elements.append(tabla_pdf)
-            doc.build(elements)
-            self.resultado.emit(True, "PDF generado correctamente.")
+                ancho_foto = 3.5 * cm
+                tabla_pdf = Table(data_tabla, colWidths=[2.2*cm, 8.5*cm, ancho_foto, ancho_foto])
+                tabla_pdf.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                    ('TOPPADDING', (0, 1), (-1, -1), 3),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP')
+                ]))
 
+                elements.append(tabla_pdf)
+                doc.build(elements)
+
+            self.resultado.emit(True, "PDF(s) generado(s) correctamente.")
         except Exception as e:
             self.resultado.emit(False, str(e))
 
@@ -1713,11 +1703,16 @@ class DialogoExportarPDF(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_exportar_pdf"))
-        self.resize(400, 250) # Ventana un poco más baja al quitar la opción
+        self.resize(400, 270)
         l = QVBoxLayout()
         g = QGroupBox(t("lbl_opciones_exportacion")); gl = QVBoxLayout()
 
         self.rb_todo = QRadioButton(t("lbl_exportar_todo")); self.rb_todo.setChecked(True); self.rb_todo.toggled.connect(self.toggle_fechas); gl.addWidget(self.rb_todo)
+
+        # Nueva opción por meses
+        texto_meses = t("lbl_exportar_por_mes") if t("lbl_exportar_por_mes") != "lbl_exportar_por_mes" else "Exportar un PDF por mes"
+        self.rb_meses = QRadioButton(texto_meses); self.rb_meses.toggled.connect(self.toggle_fechas); gl.addWidget(self.rb_meses)
+
         self.rb_rango = QRadioButton(t("lbl_exportar_rango")); gl.addWidget(self.rb_rango)
 
         h = QHBoxLayout()
@@ -1740,11 +1735,12 @@ class DialogoExportarPDF(QDialog):
         self.d_fin.setEnabled(estado)
 
     def get_data(self):
-        # Devolvemos True siempre al final para la variable 'incluir_fotos'
         if self.rb_todo.isChecked():
-            return None, None, True
+            return "TODO", None, None
+        elif self.rb_meses.isChecked():
+            return "MESES", None, None
         else:
-            return self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd"), True
+            return "RANGO", self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd")
 
 def traducir_tags_bd(tags_bd):
     traducciones = {
@@ -3008,29 +3004,62 @@ class MaintenanceApp(QMainWindow):
     def exportar_pdf(self):
         dlg = DialogoExportarPDF(self)
         if not dlg.exec(): return
-        inicio, fin, incluir_fotos = dlg.get_data()
+        modo, inicio, fin = dlg.get_data()
 
-        nombre_defecto = f"Reporte_Mantenimiento_{datetime.now().strftime('%Y%m%d')}.pdf"
-        archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
-        if not archivo: return
-
-        # 1. Recuperar datos en el hilo principal (rápido)
         try:
             conn = self.db.conectar()
             c = conn.cursor()
-            if inicio and fin:
+            lista_trabajos = []
+
+            if modo == "RANGO" and inicio and fin:
                 c.execute("SELECT fecha, descripcion, tags FROM tareas WHERE fecha BETWEEN ? AND ? ORDER BY fecha DESC, id DESC", (inicio, fin))
-                titulo_doc = f"Reporte de Mantenimiento ({inicio} a {fin})"
-            else:
+                datos = c.fetchall()
+                if not datos: return
+                nombre_defecto = f"Reporte_Mantenimiento_{inicio}_a_{fin}.pdf"
+                archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
+                if not archivo: return
+                lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({inicio} a {fin})", "datos": datos})
+
+            elif modo == "TODO":
                 c.execute("SELECT fecha, descripcion, tags FROM tareas ORDER BY fecha DESC, id DESC")
-                titulo_doc = "Reporte Histórico Completo"
-            datos = c.fetchall()
+                datos = c.fetchall()
+                if not datos: return
+                nombre_defecto = f"Reporte_Histórico_Completo_{datetime.now().strftime('%Y%m%d')}.pdf"
+                archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
+                if not archivo: return
+                lista_trabajos.append({"archivo": archivo, "titulo": "Reporte Histórico Completo", "datos": datos})
+
+            elif modo == "MESES":
+                c.execute("SELECT fecha, descripcion, tags FROM tareas ORDER BY fecha DESC, id DESC")
+                datos = c.fetchall()
+                if not datos: return
+
+                # Pedir carpeta en vez de archivo
+                carpeta_destino = QFileDialog.getExistingDirectory(self, "Seleccionar Carpeta para Guardar los PDFs", "", options=QFileDialog.Option.DontUseNativeDialog)
+                if not carpeta_destino: return
+
+                # Agrupar por mes (YYYY-MM)
+                datos_por_mes = {}
+                for row in datos:
+                    fecha_str = row[0]
+                    if not fecha_str or len(fecha_str) < 7: continue
+                    mes_str = fecha_str[:7]
+                    if mes_str not in datos_por_mes:
+                        datos_por_mes[mes_str] = []
+                    datos_por_mes[mes_str].append(row)
+
+                for mes, datos_mes in datos_por_mes.items():
+                    archivo = os.path.join(carpeta_destino, f"Reporte_Mantenimiento_{mes}.pdf")
+                    lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({mes})", "datos": datos_mes})
+
             conn.close()
         except Exception as e:
             QMessageBox.critical(self, t("title_error_db"), str(e))
             return
 
-        # 2. Configurar UI de progreso
+        if not lista_trabajos: return
+
+        # Configurar UI de progreso
         self.progreso_pdf = QDialog(self)
         self.progreso_pdf.setWindowTitle(t("title_generando_pdf"))
         self.progreso_pdf.setFixedSize(450, 120)
@@ -3038,18 +3067,17 @@ class MaintenanceApp(QMainWindow):
         l = QVBoxLayout()
         l.addWidget(QLabel(t("lbl_procesando_pdf")))
         bar = QProgressBar()
-        bar.setRange(0, 0) # Barra infinita
+        bar.setRange(0, 0)
         l.addWidget(bar)
         self.progreso_pdf.setLayout(l)
-        # Quitar botón de cerrar para obligar a esperar
         self.progreso_pdf.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
 
-        # 3. Iniciar Hilo
-        self.hilo_pdf = GeneradorPDFThread(archivo, titulo_doc, datos, self.carpeta_fotos, incluir_fotos)
+        # Iniciar Hilo
+        self.hilo_pdf = GeneradorPDFThread(lista_trabajos, self.carpeta_fotos)
         self.hilo_pdf.resultado.connect(self.pdf_finalizado)
         self.hilo_pdf.start()
 
-        self.progreso_pdf.exec() # Bloquea la UI hasta que se cierre con accept()
+        self.progreso_pdf.exec()
 
     def pdf_finalizado(self, exito, mensaje):
         self.progreso_pdf.accept() # Cierra el diálogo de progreso
