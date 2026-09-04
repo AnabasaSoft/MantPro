@@ -53,8 +53,8 @@ jobs:
         path: mantenimiento_app/build/app/outputs/flutter-apk/MantPro.apk
 
     - name: Publicar en Release (Solo si hay Tag)
-    uses: softprops/action-gh-release@v2  # <-- CAMBIO CLAVE: pasar a la v2
+    uses: softprops/action-gh-release@v2
     if: startsWith(github.ref, 'refs/tags/')
     with:
         files: mantenimiento_app/build/app/outputs/flutter-apk/MantPro.apk
-        fail_on_unmatched_files: true       # <-- Recomendado para que el log te avise de forma clara si el archivo falta
+        fail_on_unmatched_files: true
