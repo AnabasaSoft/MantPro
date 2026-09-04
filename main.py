@@ -303,8 +303,8 @@ class GeneradorPDFThread(QThread):
             # Las columnas de foto llevan algo más de ancho que la imagen (2.4cm) para dejar hueco
             # al padding interno de la celda; si no, la imagen se sale del recuadro (se ve "cortada").
             ancho_foto = 3*cm if self.incluir_fotos else 1.3*cm
-            t = Table(data_tabla, colWidths=[2.2*cm, 6.5*cm, 2.7*cm, ancho_foto, ancho_foto])
-            t.setStyle(TableStyle([
+            tabla_pdf = Table(data_tabla, colWidths=[2.2*cm, 6.5*cm, 2.7*cm, ancho_foto, ancho_foto])
+            tabla_pdf.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -320,7 +320,7 @@ class GeneradorPDFThread(QThread):
                 ('VALIGN', (0, 0), (-1, -1), 'TOP')
             ]))
 
-            elements.append(t)
+            elements.append(tabla_pdf)
             doc.build(elements)
             self.resultado.emit(True, "PDF generado correctamente.")
 
