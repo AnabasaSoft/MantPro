@@ -246,64 +246,64 @@ class GeneradorPDFThread(QThread):
 
             elements.append(Paragraph(self.titulo_doc, styles['Title'])); elements.append(Spacer(1, 12))
 
-            data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
+            # Quitamos los tags de los encabezados
+            data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
             style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
             for fecha, desc, tags in self.datos:
-                desc_visual = desc
-                img_obj = "-"
-                img_obj_d = "-"
+                # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
+                try:
+                    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+                    fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+                except:
+                    fecha_formateada = fecha
 
-                # Gestión de FOTO (antes)
+                desc_visual = desc
+                img_obj = "" # Por defecto en blanco si no hay foto
+                img_obj_d = ""
+
+                # Gestión de FOTO (antes) - Forzamos cargar la imagen siempre
                 m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
                 if m:
                     nombre_foto = m.group(1).split("]")[0].strip()
-
-                    if self.incluir_fotos:
-                        ruta_foto = os.path.join(self.carpeta_fotos, nombre_foto)
-                        if os.path.exists(ruta_foto):
-                            try:
-                                img = PDFImage(ruta_foto)
-                                img.drawHeight = 1.8*cm
-                                img.drawWidth = 2.4*cm
-                                img.keepAspectRatio = True
-                                img_obj = img
-                            except: img_obj = "Error Img"
-                        else: img_obj = "No File"
-                    else: img_obj = "SÍ"
+                    ruta_foto = os.path.join(self.carpeta_fotos, nombre_foto)
+                    if os.path.exists(ruta_foto):
+                        try:
+                            img = PDFImage(ruta_foto)
+                            img.drawHeight = 2.5 * cm
+                            img.drawWidth = 3.0 * cm
+                            img.keepAspectRatio = True
+                            img_obj = img
+                        except: img_obj = "Error Img"
 
                 # Gestión de FOTO_DESPUES
                 m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
                 if m_d:
                     nombre_foto_d = m_d.group(1).split("]")[0].strip()
+                    ruta_foto_d = os.path.join(self.carpeta_fotos, nombre_foto_d)
+                    if os.path.exists(ruta_foto_d):
+                        try:
+                            img_d = PDFImage(ruta_foto_d)
+                            img_d.drawHeight = 2.5 * cm
+                            img_d.drawWidth = 3.0 * cm
+                            img_d.keepAspectRatio = True
+                            img_obj_d = img_d
+                        except: img_obj_d = "Error Img"
 
-                    if self.incluir_fotos:
-                        ruta_foto_d = os.path.join(self.carpeta_fotos, nombre_foto_d)
-                        if os.path.exists(ruta_foto_d):
-                            try:
-                                img_d = PDFImage(ruta_foto_d)
-                                img_d.drawHeight = 1.8*cm
-                                img_d.drawWidth = 2.4*cm
-                                img_d.keepAspectRatio = True
-                                img_obj_d = img_d
-                            except: img_obj_d = "Error Img"
-                        else: img_obj_d = "No File"
-                    else: img_obj_d = "SÍ"
-
-                # LIMPIEZA DE ETIQUETAS
+                # LIMPIEZA DE ETIQUETAS VISUALES
                 desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
                 desc_visual = re.sub(r"\[FOTO_DESPUES:.*?\]", "", desc_visual)
                 desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual)
                 desc_visual = desc_visual.strip()
 
                 p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
-                p_tags = Paragraph(tags, style_cell)
-                data_tabla.append([fecha, p_desc, p_tags, img_obj, img_obj_d])
 
-            # Las columnas de foto llevan algo más de ancho que la imagen (2.4cm) para dejar hueco
-            # al padding interno de la celda; si no, la imagen se sale del recuadro (se ve "cortada").
-            ancho_foto = 3*cm if self.incluir_fotos else 1.3*cm
-            tabla_pdf = Table(data_tabla, colWidths=[2.2*cm, 6.5*cm, 2.7*cm, ancho_foto, ancho_foto])
+                # Añadimos la fila con la nueva fecha formateada
+                data_tabla.append([fecha_formateada, p_desc, img_obj, img_obj_d])
+
+            # Repartimos el espacio sobrante de los tags para las descripciones y fotos
+            ancho_foto = 3.5 * cm
+            tabla_pdf = Table(data_tabla, colWidths=[2.2*cm, 8.5*cm, ancho_foto, ancho_foto])
             tabla_pdf.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -1712,22 +1712,39 @@ class AvisoEditDialog(QDialog):
 class DialogoExportarPDF(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(t("title_exportar_pdf")); self.resize(400, 300)
+        self.setWindowTitle(t("title_exportar_pdf"))
+        self.resize(400, 250) # Ventana un poco más baja al quitar la opción
         l = QVBoxLayout()
         g = QGroupBox(t("lbl_opciones_exportacion")); gl = QVBoxLayout()
+
         self.rb_todo = QRadioButton(t("lbl_exportar_todo")); self.rb_todo.setChecked(True); self.rb_todo.toggled.connect(self.toggle_fechas); gl.addWidget(self.rb_todo)
         self.rb_rango = QRadioButton(t("lbl_exportar_rango")); gl.addWidget(self.rb_rango)
+
         h = QHBoxLayout()
         self.d_inicio = QDateEdit(QDate.currentDate().addMonths(-1)); self.d_inicio.setCalendarPopup(True); self.d_inicio.setDisplayFormat("yyyy-MM-dd"); self.d_inicio.setEnabled(False)
         self.d_fin = QDateEdit(QDate.currentDate()); self.d_fin.setCalendarPopup(True); self.d_fin.setDisplayFormat("yyyy-MM-dd"); self.d_fin.setEnabled(False)
-        h.addWidget(QLabel(t("lbl_de"))); h.addWidget(self.d_inicio); h.addWidget(QLabel(t("lbl_a"))); h.addWidget(self.d_fin); gl.addLayout(h); gl.addSpacing(10)
-        self.chk_fotos = QCheckBox(t("lbl_incluir_imagenes")); self.chk_fotos.setChecked(False); gl.addWidget(self.chk_fotos); g.setLayout(gl); l.addWidget(g)
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
-    def toggle_fechas(self): estado = self.rb_rango.isChecked(); self.d_inicio.setEnabled(estado); self.d_fin.setEnabled(estado)
+
+        h.addWidget(QLabel(t("lbl_de"))); h.addWidget(self.d_inicio); h.addWidget(QLabel(t("lbl_a"))); h.addWidget(self.d_fin)
+        gl.addLayout(h); gl.addSpacing(10)
+
+        g.setLayout(gl); l.addWidget(g)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
+        b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def toggle_fechas(self):
+        estado = self.rb_rango.isChecked()
+        self.d_inicio.setEnabled(estado)
+        self.d_fin.setEnabled(estado)
+
     def get_data(self):
-        con_fotos = self.chk_fotos.isChecked()
-        if self.rb_todo.isChecked(): return None, None, con_fotos
-        else: return self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd"), con_fotos
+        # Devolvemos True siempre al final para la variable 'incluir_fotos'
+        if self.rb_todo.isChecked():
+            return None, None, True
+        else:
+            return self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd"), True
 
 def traducir_tags_bd(tags_bd):
     traducciones = {
@@ -3016,7 +3033,7 @@ class MaintenanceApp(QMainWindow):
         # 2. Configurar UI de progreso
         self.progreso_pdf = QDialog(self)
         self.progreso_pdf.setWindowTitle(t("title_generando_pdf"))
-        self.progreso_pdf.setFixedSize(300, 100)
+        self.progreso_pdf.setFixedSize(450, 120)
         self.progreso_pdf.setWindowModality(Qt.WindowModality.ApplicationModal)
         l = QVBoxLayout()
         l.addWidget(QLabel(t("lbl_procesando_pdf")))
