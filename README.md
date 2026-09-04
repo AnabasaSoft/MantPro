@@ -337,6 +337,50 @@ La aplicación utiliza SQLite con las siguientes tablas:
 
 ---
 
+## 🗺️ Roadmap
+
+Estado actual y siguientes pasos previstos.
+
+### ✅ Hecho
+
+- **Gestión de usuarios**: login con usuario y contraseña en PC y móvil, roles
+  (administrador / técnico), alta y baja lógica de usuarios, cambio y
+  restablecimiento de contraseña.
+- **Autoría de los trabajos**: cada registro guarda quién lo realizó. Los
+  registros anteriores al sistema de usuarios quedan marcados como `Histórico`.
+- **Sesión persistente en el móvil**: el técnico inicia sesión una vez y el
+  token queda guardado en el dispositivo.
+- **API autenticada**: todos los endpoints de datos exigen token; un `401`
+  cierra la sesión del móvil y devuelve al login sin perder los registros
+  locales pendientes de enviar.
+- **Pendientes asignados**: el PC asigna cada trabajo a un técnico y el móvil
+  puede filtrar por "Solo míos".
+- **Filtro por técnico** en el histórico y en la exportación a PDF.
+
+### 🔜 Siguientes pasos
+
+- [ ] **Sesiones activas**: listar los móviles vinculados a cada usuario y poder
+      revocar uno concreto (hoy solo se puede desactivar al usuario entero,
+      lo que invalida todos sus dispositivos a la vez).
+- [ ] **Auditoría de ediciones**: registrar quién edita o borra un trabajo, no
+      solo quién lo creó.
+- [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
+- [ ] **Filtro por técnico en CSV y Excel** (por ahora solo está en el PDF).
+- [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
+      oficina, sin depender de estar en la misma WiFi que el PC.
+- [ ] **Firma digital de trabajos completados**, apoyada en el sistema de
+      usuarios.
+
+### 🔒 Nota sobre seguridad
+
+La sincronización viaja por HTTP dentro de la red local. El sistema de usuarios
+está pensado para **trazabilidad** (saber quién hizo cada trabajo), no como
+barrera frente a alguien con acceso a esa misma red. Si en el futuro se expone
+el servidor fuera de la red local, el tráfico debe ir cifrado (VPN o túnel con
+HTTPS).
+
+---
+
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
