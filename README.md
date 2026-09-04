@@ -25,9 +25,11 @@
 - [Requisitos](#-requisitos)
 - [Instalación](#-instalación)
 - [Uso](#-uso)
+- [Usuarios y Acceso](#-usuarios-y-acceso)
 - [Sincronización PC-Móvil](#-sincronización-pc-móvil)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Contribuir](#-contribuir)
+- [Roadmap](#-roadmap)
 - [Licencia](#-licencia)
 - [Contacto](#-contacto)
 
@@ -50,26 +52,31 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 
 ### 💻 Aplicación de Escritorio (PC)
 
+- **👥 Gestión de Usuarios**: Login con usuario y contraseña, roles de administrador y técnico, alta y baja de usuarios, y restablecimiento de contraseñas
+- **✍️ Autoría de los Trabajos**: Cada intervención guarda quién la realizó, visible en el historial y en los informes
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
 - **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
 - **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
 - **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
+- **👤 Filtro por Técnico**: Filtra el historial y los informes PDF por la persona que hizo el trabajo
 - **📦 Backup/Restore**: Exportación e importación de base de datos completa
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
-- **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar)
+- **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
 - **⚠️ Avisos Recurrentes**: Avisos de mantenimiento que se repiten automáticamente
 - **📊 Exportación**: A PDF, CSV y Excel
 
 ### 📱 Aplicación Móvil (Android)
 
-- **📝 Registro Rápido**: Captura de intervenciones sobre el terreno
+- **🔐 Acceso con Usuario**: Cada técnico inicia sesión una vez y la sesión queda guardada en el dispositivo
+- **📝 Registro Rápido**: Captura de intervenciones sobre el terreno, firmadas automáticamente con su usuario
 - **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
 - **✏️ Editor de Imágenes**: Dibuja sobre las fotos para marcar áreas de interés
 - **🔄 Sincronización Automática**: Envío automático de datos al PC mediante código QR
 - **💾 Almacenamiento Local**: Guarda registros offline hasta sincronizar
-- **📋 Trabajos Pendientes**: Visualiza y gestiona tareas asignadas desde el PC
+- **📋 Trabajos Pendientes**: Visualiza y gestiona tareas asignadas desde el PC, con filtro **"Solo míos"**
+- **🔄 Puesta al Día al Abrir**: Al arrancar, la app sincroniza en segundo plano los datos de todas las pestañas
 - **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
@@ -193,43 +200,51 @@ Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSof
 #### Aplicación de Escritorio
 
 1. **Iniciar la aplicación**: Ejecuta `python main.py` (el servidor de sincronización arranca solo, no hace falta iniciarlo a mano)
-2. **Configurar logo** (opcional): Menú `Archivo` > `📄 Opciones PDF` > `🖼️ Añadir / Cambiar Logo`
-3. **Registrar un trabajo**: Pestaña "📝 Registrar" > rellena resumen/detalles > "💾 GUARDAR REGISTRO"
-4. **Crear un pendiente**: Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" (Título + Detalles) > "Añadir"
+2. **Primer acceso**: En el primer arranque se crea el usuario `admin` con contraseña `admin`. La aplicación **obliga a cambiarla** al entrar
+3. **Crear los usuarios**: Menú `Herramientas` > `👥 Gestión de usuarios` > da de alta a cada técnico
+4. **Configurar logo** (opcional): Menú `Archivo` > `📄 Opciones PDF` > `🖼️ Añadir / Cambiar Logo`
+5. **Registrar un trabajo**: Pestaña "📝 Registrar" > rellena resumen/detalles > "💾 GUARDAR REGISTRO"
+6. **Crear un pendiente**: Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" (Título + Detalles + "Asignar a") > "Añadir"
 
 #### Aplicación Móvil
 
 1. **Instalar la app** en tu dispositivo móvil
-2. **Conectar con PC**: 
+2. **Conectar con PC**:
    - Asegúrate de que el PC y el móvil están en la misma red WiFi
    - En el PC: Menú `Herramientas` > `📲 Sincronizar App (QR)`
-   - En el móvil: Tap en el icono QR y escanea el código
-3. **Listo**: Ya puedes registrar intervenciones desde el móvil
+   - En el móvil: Tap en "Vincular PC" y escanea el código
+3. **Iniciar sesión**: Introduce el usuario y la contraseña que te haya creado el administrador. La sesión queda guardada: solo hay que hacerlo una vez
+4. **Listo**: Ya puedes registrar intervenciones desde el móvil
 
 ### Flujo de Trabajo Típico
 
 #### Desde el PC
 
-1. **Crear tarea pendiente**:
-   - Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" > rellena Título y Detalles > "Añadir"
-   - Gestiónala con los botones "✅ Completar", "✏️ Editar" o "❌ Eliminar"
+1. **Crear y asignar una tarea pendiente**:
+   - Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" > rellena Título y Detalles, elige el técnico en "Asignar a" > "Añadir"
+   - Gestiónala con los botones "✅ Completar", "✏️ Editar", "❌ Eliminar" o "👤 Reasignar"
+   - El desplegable "Ver los de" filtra la lista por técnico (incluye "Sin asignar")
 
 2. **Revisar trabajos completados**:
    - Los trabajos sincronizados desde el móvil aparecen automáticamente
    - Revisa fotos (antes/después) y detalles en la pestaña "🗂 Historial" o en el "📅 Calendario"
+   - La columna "Realizado por" indica quién hizo cada trabajo, y el desplegable de arriba permite ver solo los de una persona
 
 3. **Generar reportes**:
    - Menú `Archivo` > `📄 Opciones PDF` > `📄 Generar PDF Ahora`
+   - En el diálogo puedes elegir el técnico, y su nombre aparece en el título del informe
    - O exporta a `📄 CSV` / `📊 Excel` desde el mismo menú `Archivo`
 
 #### Desde el Móvil
 
-1. **Vincular con el PC** (solo la primera vez, o si cambias de red):
+1. **Vincular con el PC e iniciar sesión** (solo la primera vez, o si cambias de red):
    - Tap en "Vincular PC" y escanea el QR que muestra el PC
-   - El móvil guarda la dirección del PC para sincronizar automáticamente a partir de ahí
+   - Introduce tu usuario y contraseña
+   - El móvil guarda la dirección del PC y tu sesión para sincronizar automáticamente a partir de ahí
 
 2. **Registrar intervención**:
    - Tap en "Nuevo" o selecciona un trabajo pendiente ya sincronizado desde el PC
+   - Con el chip "Solo míos" ves únicamente los trabajos que te han asignado
    - Completa título y detalles
    - Toma foto "antes" y, opcionalmente, foto "después" con la cámara
    - Dibuja/anota sobre la foto si es necesario
@@ -237,9 +252,52 @@ Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSof
    - Guarda
 
 3. **Sincronizar**:
-   - Tap en el icono de sincronización
-   - Los registros se envían automáticamente al PC
-   - Se eliminan del móvil al confirmar envío exitoso
+   - Al abrir la app se sincroniza todo en segundo plano (verás un indicador en la barra superior)
+   - También puedes forzarlo tirando de la lista hacia abajo o con el icono de sincronización
+   - Los registros se envían al PC y se eliminan del móvil al confirmar el envío
+   - Todo funciona sin conexión: lo pendiente se guarda y se sube cuando hay cobertura
+
+---
+
+## 👥 Usuarios y Acceso
+
+### Roles
+
+| Rol | Puede hacer |
+|-----|-------------|
+| **Administrador** | Todo lo del técnico, más dar de alta y de baja usuarios, cambiar roles y restablecer contraseñas |
+| **Técnico** | Registrar trabajos, completar pendientes y avisos, y cambiar su propia contraseña |
+
+Siempre debe quedar **al menos un administrador activo**: la aplicación impide
+quitarle el rol o desactivarlo al último que queda.
+
+### Gestión desde el PC
+
+- **Alta**: `Herramientas` > `👥 Gestión de usuarios` > rellena usuario, nombre,
+  contraseña y rol > "➕ Añadir". Si dejas marcado "Pedir cambio al entrar", la
+  persona tendrá que definir su propia contraseña en el primer acceso.
+- **Baja**: se hace de forma **lógica** (el usuario queda inactivo). Nunca se
+  borra, para no romper la autoría de los trabajos que ya hizo.
+- **Restablecer contraseña**: útil cuando alguien la olvida. Al cambiarla se
+  cierran automáticamente todas las sesiones abiertas de esa persona en el móvil.
+- **Cambiar la propia contraseña**: `Herramientas` > `🔑 Cambiar mi contraseña`.
+
+### Autoría de los trabajos
+
+Cada registro guarda el técnico que lo hizo, tanto si se creó en el PC como si
+llegó del móvil. Los registros anteriores a la implantación del sistema de
+usuarios quedaron marcados como **`Histórico`**.
+
+En el móvil, la atribución la decide **siempre el servidor** a partir del token
+de la sesión, nunca un dato enviado por la app. Un dispositivo no puede firmar
+trabajos en nombre de otra persona.
+
+### Sesión en el móvil
+
+El técnico inicia sesión una vez y el token queda guardado en el dispositivo. La
+sesión se cierra sola si el administrador desactiva al usuario o le restablece la
+contraseña; en ese caso la app vuelve a la pantalla de acceso **sin perder los
+registros que aún estén pendientes de subir**.
 
 ---
 
@@ -251,8 +309,16 @@ MantPro utiliza un sistema de sincronización basado en:
 
 1. **Servidor Flask** integrado en la app de escritorio
 2. **Códigos QR** para conexión rápida y segura
-3. **API REST** para comunicación entre dispositivos
+3. **API REST autenticada por token**: todos los endpoints de datos exigen una
+   sesión válida; si el token deja de valer, el servidor responde `401` y el
+   móvil vuelve al login
 4. **WiFi local** - sin necesidad de internet
+5. **Sincronización completa al abrir la app**, en segundo plano y sin bloquear
+   la interfaz
+
+> ⚠️ El tráfico viaja por **HTTP dentro de la red local**. El sistema de usuarios
+> aporta trazabilidad (saber quién hizo cada trabajo), no protección frente a
+> alguien con acceso a esa misma red.
 
 ### Configuración de Red
 
@@ -270,9 +336,23 @@ Para que la sincronización funcione:
 - Prueba a desactivar temporalmente el firewall del PC
 - Regenera el código QR y vuelve a escanearlo
 
+**No puedo iniciar sesión desde el móvil:**
+- Comprueba que MantPro está abierto en el PC: el login se valida contra él
+- Verifica el usuario y la contraseña con el administrador; puede restablecerla
+- Si el PC ha cambiado de IP, vuelve a escanear el QR desde el propio login ("Vincular otro PC")
+
+**La app me ha devuelto a la pantalla de acceso:**
+- Es normal si el administrador ha restablecido tu contraseña o ha desactivado tu usuario
+- Tus registros sin subir **no se pierden**: vuelve a entrar y se sincronizan
+
+**He olvidado la contraseña de administrador:**
+- Otro administrador puede restablecerla desde `Herramientas` > `👥 Gestión de usuarios`
+- Si no hay ningún otro administrador, hay que restablecerla directamente sobre
+  la tabla `usuarios` de la base de datos
+
 **Las fotos no se sincronizan:**
 - Verifica que hay espacio suficiente en el disco del PC
-- Comprueba los permisos de la carpeta `fotos_mantenimiento`
+- Comprueba los permisos de la carpeta `fotos_recibidas`
 - Asegúrate de que la foto se guardó correctamente en el móvil
 
 **No me llega la notificación diaria de avisos pendientes (Android):**
@@ -289,28 +369,48 @@ Para que la sincronización funcione:
 ```
 MantPro/
 ├── main.py                      # Aplicación principal de escritorio
+├── usuarios.py                  # Usuarios, contraseñas, roles y sesiones
+├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
+├── idiomas.py                   # Traducciones del escritorio (ES / EN / EU)
 ├── requirements.txt             # Dependencias Python
 ├── logo.png                     # Logo de la aplicación
 ├── README.md                    # Este archivo
-├── fotos_mantenimiento/         # Carpeta de imágenes
+├── fotos_recibidas/             # Carpeta de imágenes
 ├── mantenimiento.db             # Base de datos SQLite
-├── mantenimiento_app/            # Aplicación móvil Flutter
+├── mantenimiento_app/           # Aplicación móvil Flutter
 │   ├── lib/main.dart            # Código principal móvil
+│   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
 ├── backups/                     # Backups de base de datos
 └── docs/                        # Documentación adicional
 ```
 
+> Los datos (base de datos, fotos y backups) no viven necesariamente junto al
+> código: si no existe `mantenimiento.db` en la carpeta actual, la aplicación usa
+> `~/.local/share/MantPro` en Linux o `%APPDATA%\MantPro` en Windows.
+
 ### Base de Datos
 
 La aplicación utiliza SQLite con las siguientes tablas:
 
-- **`tareas`**: Registro de intervenciones realizadas (fecha, descripción, tags)
-- **`pendientes`**: Tareas pendientes de realizar (título, detalles)
+- **`tareas`**: Registro de intervenciones realizadas (fecha, descripción, tags,
+  fotos y **quién lo realizó**: `usuario_id` y `usuario_nombre`)
+- **`pendientes`**: Tareas pendientes de realizar (título, detalles y
+  **técnico asignado**: `asignado_a` y `asignado_nombre`)
+- **`usuarios`**: Personas que usan la aplicación (login, nombre, hash de la
+  contraseña, rol y si está activo)
+- **`sesiones`**: Tokens de los móviles vinculados, con su fecha de caducidad
 - **`avisos_recurrentes`**: Avisos de mantenimiento que se repiten automáticamente
 - **`dias_especiales`**: Festivos, vacaciones y días marcados en el calendario
 - **`config`**: Configuración interna de la aplicación (logo, provincia, etc.)
+
+Las contraseñas se guardan con **PBKDF2-SHA256** (200.000 iteraciones y salt por
+usuario), nunca en claro. Las tablas y columnas nuevas se crean solas al
+arrancar, sin perder los datos existentes.
+
+> 🔐 `mantenimiento.db` contiene hashes de contraseñas y tokens de sesión.
+> Está en `.gitignore` por algo: no la subas nunca al repositorio.
 
 ---
 

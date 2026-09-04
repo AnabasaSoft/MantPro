@@ -24,6 +24,10 @@ import 'i18n/strings.dart';
 /// true = hay sesión iniciada. AuthGate lo escucha para mostrar login o app.
 final ValueNotifier<bool> sesionNotifier = ValueNotifier(false);
 
+/// Se incrementa cada vez que termina una sincronización completa con el PC.
+/// Cada pestaña lo escucha para recargar su caché sin que el usuario haga nada.
+final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
+
 /// t() con texto por defecto, por si la clave aún no está en i18n/strings.dart.
 String tt(String clave, String defecto) {
   final v = t(clave);
@@ -392,7 +396,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '2.7.5';
+const String kAppVersion = '2.7.4';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -609,6 +613,8 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _indiceActual = 0;
+  /// Muestra una barrita de progreso mientras se traen los datos al arrancar.
+  bool _sincronizandoInicial = false;
   void _irAPestana(int index) => setState(() => _indiceActual = index);
   late final List<Widget> _pantallas;
 
@@ -624,6 +630,27 @@ class _MainScreenState extends State<MainScreen> {
     ];
     // Comprobamos si hay una versión nueva en GitHub (como mucho una vez al día, sin molestar).
     WidgetsBinding.instance.addPostFrameCallback((_) => comprobarActualizacionGitHub(context));
+    // Y traemos de una vez los datos de TODAS las pestañas, sin esperar a que
+    // el usuario entre en cada una.
+    _sincronizarAlArrancar();
+  }
+
+  /// Sincronización completa en segundo plano nada más abrir la app.
+  /// Si no hay cobertura falla en silencio: se sigue trabajando con la caché.
+  Future<void> _sincronizarAlArrancar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ip = prefs.getString('pc_ip_url');
+    if (ip == null || !AuthService.autenticado) return;
+
+    if (mounted) setState(() => _sincronizandoInicial = true);
+    try {
+      await SincronizadorGlobal.sincronizarTodo(ip);
+    } catch (_) {
+      // Sin conexión con el PC: no molestamos, las pestañas usan su caché.
+    }
+    // Avisamos a las pestañas de que la caché ya está fresca.
+    datosSincronizadosNotifier.value++;
+    if (mounted) setState(() => _sincronizandoInicial = false);
   }
 
   Future<void> _cerrarSesion() async {
@@ -689,6 +716,16 @@ class _MainScreenState extends State<MainScreen> {
             appBar: AppBar(title: Text(titulo), actions: [
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
+              if (_sincronizandoInicial)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Center(
+                    child: SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                  ),
+                ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.account_circle),
                 tooltip: AuthService.nombre ?? '',
@@ -746,6 +783,15 @@ class _TabDashboardState extends State<TabDashboard> {
   void initState() {
     super.initState();
     _inicializarDatos();
+    datosSincronizadosNotifier.addListener(_alSincronizar);
+  }
+
+  void _alSincronizar() { if (mounted) _inicializarDatos(); }
+
+  @override
+  void dispose() {
+    datosSincronizadosNotifier.removeListener(_alSincronizar);
+    super.dispose();
   }
 
   Future<void> _inicializarDatos() async {
@@ -899,7 +945,9 @@ class _TabDashboardState extends State<TabDashboard> {
 class TabMisRegistros extends StatefulWidget { const TabMisRegistros({super.key}); @override State<TabMisRegistros> createState() => _TabMisRegistrosState(); }
 class _TabMisRegistrosState extends State<TabMisRegistros> {
   List<Registro> _pendientes = []; bool _cargando = false; String? _urlPC;
-  @override void initState() { super.initState(); _inicializar(); }
+  @override void initState() { super.initState(); _inicializar(); datosSincronizadosNotifier.addListener(_alSincronizar); }
+  void _alSincronizar() { if (mounted) _inicializar(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); super.dispose(); }
   Future<void> _inicializar() async {
     final prefs = await SharedPreferences.getInstance();
     final String? datosJson = prefs.getString('registros_pendientes');
@@ -1036,7 +1084,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   Map<String, String> _fotosLocales = {};
   bool _cargando = false; String? _urlPC;
 
-  @override void initState() { super.initState(); _cargarCache(); }
+  @override void initState() { super.initState(); _cargarCache(); datosSincronizadosNotifier.addListener(_alSincronizar); }
+  void _alSincronizar() { if (mounted) _cargarCache(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); super.dispose(); }
   Future<void> _cargarCache() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -1414,7 +1464,9 @@ class _TabAvisosState extends State<TabAvisos> {
   List<String> _colaRestaurar = [];
   bool _cargando = false; String? _urlPC;
 
-  @override void initState() { super.initState(); _inicializar(); }
+  @override void initState() { super.initState(); _inicializar(); datosSincronizadosNotifier.addListener(_alSincronizar); }
+  void _alSincronizar() { if (mounted) _inicializar(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); super.dispose(); }
   Future<void> _inicializar() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
@@ -1563,11 +1615,13 @@ class _TabHistorialState extends State<TabHistorial> {
   @override void initState() {
     super.initState();
     _inicializarHistorial();
+    datosSincronizadosNotifier.addListener(_alSincronizar);
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 400) _cargarMas();
     });
   }
-  @override void dispose() { _scrollCtrl.dispose(); super.dispose(); }
+  void _alSincronizar() { if (mounted) _inicializarHistorial(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); _scrollCtrl.dispose(); super.dispose(); }
   Future<void> _inicializarHistorial() async {
     await _actualizarAnios();
     final prefs = await SharedPreferences.getInstance();
