@@ -2858,16 +2858,31 @@ class MaintenanceApp(QMainWindow):
         try:
             datos = self.db.obtener_todas_cronologico()
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f, delimiter=';'); writer.writerow(["ID", "Fecha", "Descripción", "Tags", "Nombre Foto"])
+                writer = csv.writer(f, delimiter=';')
+                # Nuevos encabezados sin Tags, añadiendo Foto Antes y Foto Después
+                writer.writerow(["ID", "Fecha", "Descripción", "Foto Antes", "Foto Después"])
                 for tarea in datos:
-                    # Limpiamos FOTO y REF también aquí para que quede perfecto
+                    # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
+                    try:
+                        fecha_obj = datetime.strptime(tarea[1], "%Y-%m-%d")
+                        fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+                    except:
+                        fecha_formateada = tarea[1]
+
+                    # Limpiamos FOTO y REF de la descripción
                     desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
                     desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
-                    nombre_foto = "NO"
+                    # Extraer nombres de fotos
+                    foto_antes = "-"
                     m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
-                    if m: nombre_foto = m.group(1).split("]")[0].strip()
-                    writer.writerow([tarea[0], tarea[1], desc_limpia, tarea[3], nombre_foto])
+                    if m: foto_antes = m.group(1).split("]")[0].strip()
+
+                    foto_despues = "-"
+                    m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
+                    if m_d: foto_despues = m_d.group(1).split("]")[0].strip()
+
+                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, foto_antes, foto_despues])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -2878,31 +2893,100 @@ class MaintenanceApp(QMainWindow):
         archivo = self.guardar_archivo_dialogo(t("title_exportar_excel"), nombre_defecto, "Excel (*.xlsx)")
         if not archivo: return
         try:
-            workbook = xlsxwriter.Workbook(archivo); worksheet = workbook.add_worksheet("Registro")
-            bold = workbook.add_format({'bold': True, 'bg_color': '#3daee9', 'color': 'white', 'border': 1})
-            wrap = workbook.add_format({'text_wrap': True, 'valign': 'top', 'border': 1}); center = workbook.add_format({'valign': 'top', 'align': 'center', 'border': 1})
-            headers = ["ID", "Fecha", "Descripción", "Tags", "FOTO"]
-            for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
-            worksheet.set_column('A:A', 5); worksheet.set_column('B:B', 12); worksheet.set_column('C:C', 50); worksheet.set_column('D:D', 15); worksheet.set_column('E:E', 20)
-            datos = self.db.obtener_todas_cronologico(); row = 1
-            for tarea in datos:
-                worksheet.write(row, 0, tarea[0], center); worksheet.write(row, 1, tarea[1], center)
+            workbook = xlsxwriter.Workbook(archivo)
+            worksheet = workbook.add_worksheet("Registro")
 
-                # Limpieza de FOTO y REF
+            # Estilos profesionales
+            bold = workbook.add_format({'bold': True, 'bg_color': '#3daee9', 'color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            wrap = workbook.add_format({'text_wrap': True, 'valign': 'top', 'border': 1})
+            center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
+
+            # Nuevos encabezados
+            headers = ["ID", "Fecha", "Descripción", "Foto Antes", "Foto Después"]
+            for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
+
+            # Ajuste de anchura de columnas
+            worksheet.set_column('A:A', 5)
+            worksheet.set_column('B:B', 12)
+            worksheet.set_column('C:C', 60) # Descripción ancha
+            worksheet.set_column('D:D', 25) # Foto Antes
+            worksheet.set_column('E:E', 25) # Foto Después
+
+            # --- FUNCIÓN INTERNA PARA CALCULAR LA ESCALA PERFECTA ---
+            def obtener_opciones_img(ruta_img):
+                pix = QPixmap(ruta_img)
+                if pix.isNull() or pix.width() == 0 or pix.height() == 0:
+                    return None
+
+                # Tamaño máximo deseado en píxeles (para que quepa justo en la celda)
+                max_w = 160.0
+                max_h = 100.0
+
+                # Calcular escala manteniendo la proporción real de la foto
+                scale = min(max_w / pix.width(), max_h / pix.height())
+
+                return {
+                    'x_scale': scale,
+                    'y_scale': scale,
+                    'x_offset': 5,
+                    'y_offset': 5,
+                    'object_position': 1
+                }
+
+            datos = self.db.obtener_todas_cronologico()
+            row = 1
+            for tarea in datos:
+                # Convertir formato de fecha
+                try:
+                    fecha_obj = datetime.strptime(tarea[1], "%Y-%m-%d")
+                    fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+                except:
+                    fecha_formateada = tarea[1]
+
+                worksheet.write(row, 0, tarea[0], center)
+                worksheet.write(row, 1, fecha_formateada, center)
+
+                # Limpieza de texto
                 desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
                 desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
-                worksheet.write(row, 2, desc_limpia, wrap); worksheet.write(row, 3, tarea[3], wrap)
+                worksheet.write(row, 2, desc_limpia, wrap)
+
+                # Incrustar FOTO ANTES
                 m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
                 if m:
-                    nombre = m.group(1).split("]")[0].strip(); ruta = os.path.join(self.carpeta_fotos, nombre)
+                    nombre = m.group(1).split("]")[0].strip()
+                    ruta = os.path.join(self.carpeta_fotos, nombre)
                     if os.path.exists(ruta):
-                        try: worksheet.insert_image(row, 4, ruta, {'x_scale': 0.1, 'y_scale': 0.1, 'object_position': 1}); worksheet.set_row(row, 80)
-                        except: worksheet.write(row, 4, "Err Img", center)
+                        opc = obtener_opciones_img(ruta)
+                        if opc:
+                            try: worksheet.insert_image(row, 3, ruta, opc)
+                            except: worksheet.write(row, 3, "Err Img", center)
+                        else:
+                            worksheet.write(row, 3, "Err Img", center)
+                    else: worksheet.write(row, 3, "No File", center)
+                else: worksheet.write(row, 3, "-", center)
+
+                # Incrustar FOTO DESPUÉS
+                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
+                if m_d:
+                    nombre_d = m_d.group(1).split("]")[0].strip()
+                    ruta_d = os.path.join(self.carpeta_fotos, nombre_d)
+                    if os.path.exists(ruta_d):
+                        opc = obtener_opciones_img(ruta_d)
+                        if opc:
+                            try: worksheet.insert_image(row, 4, ruta_d, opc)
+                            except: worksheet.write(row, 4, "Err Img", center)
+                        else:
+                            worksheet.write(row, 4, "Err Img", center)
                     else: worksheet.write(row, 4, "No File", center)
                 else: worksheet.write(row, 4, "-", center)
+
+                worksheet.set_row(row, 90) # Altura de fila fija
                 row += 1
-            workbook.close(); QMessageBox.information(self, t("title_exportado"), t("msg_excel_guardado"))
+
+            workbook.close()
+            QMessageBox.information(self, t("title_exportado"), t("msg_excel_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
     def init_dashboard_tab(self):
