@@ -132,7 +132,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "2.7.5"
+APP_VERSION = "2.7.4"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -921,6 +921,7 @@ class ServidorSincronizacion(QThread):
         # 2. API COMPLETAR (Anti-Duplicados)
         # ---------------------------------------------------------
         @self.app.route('/api/completar_aviso', methods=['POST'])
+        @requiere_token
         def api_completar_aviso():
             print("\n" + "="*40)
             print(">>> RECIBIDA PETICIÓN: COMPLETAR AVISO")
@@ -972,8 +973,10 @@ class ServidorSincronizacion(QThread):
 
                 if not existe:
                     print("Insertando nueva tarea en historial...")
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags) VALUES (?,?,?)',
-                              (fecha_final, desc_historial, tags_historial))
+                    usuario_aviso = g.usuario_mantpro
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, usuario_id, usuario_nombre) VALUES (?,?,?,?,?)',
+                              (fecha_final, desc_historial, tags_historial,
+                               usuario_aviso['id'], usuario_aviso['nombre']))
                 else:
                     print("La tarea ya existe en el historial. Saltando insert.")
 
@@ -1004,6 +1007,7 @@ class ServidorSincronizacion(QThread):
                 return str(e), 404
 
         @self.app.route('/api/historial_todo', methods=['GET'])
+        @requiere_token
         def api_historial_todo():
             # Versión ligera y SIN LIMIT, usada solo por la herramienta de "reenviar fotos"
             # del móvil para poder revisar TODO el histórico, no solo los últimos 50.
@@ -1025,6 +1029,7 @@ class ServidorSincronizacion(QThread):
             except Exception as e: return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/editar_historial', methods=['POST'])
+        @requiere_token
         def api_editar_historial():
             try:
                 id_t = request.form.get('id')
@@ -1065,6 +1070,7 @@ class ServidorSincronizacion(QThread):
             except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/restaurar_foto', methods=['POST'])
+        @requiere_token
         def api_restaurar_foto():
             # Endpoint de reparación manual: sube una foto (antes o después) para un registro
             # existente SIN tocar el resto de la descripción ni la otra foto.
@@ -1106,6 +1112,7 @@ class ServidorSincronizacion(QThread):
             except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/descompletar_aviso', methods=['POST'])
+        @requiere_token
         def api_descompletar_aviso():
             try:
                 id_aviso = request.form.get('id')
