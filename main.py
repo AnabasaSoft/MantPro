@@ -9,7 +9,7 @@ import threading
 import re
 import csv
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, g
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as PDFImage
 from reportlab.lib import colors
@@ -20,6 +20,18 @@ import qrcode
 from io import BytesIO
 import idiomas
 from idiomas import t
+
+# --- Sistema de usuarios (login, roles, atribución de trabajos) ---
+import usuarios
+from dialogos_usuarios import (DialogoLogin, DialogoGestionUsuarios,
+                               DialogoCambioPassword)
+
+
+def tt(clave, defecto):
+    """t() con texto por defecto: si la clave aún no está en idiomas.py,
+    devuelve el literal en castellano en vez del nombre de la clave."""
+    valor = t(clave)
+    return defecto if valor == clave else valor
 
 # ==========================================
 # IMPORTS CORREGIDOS (PyQt6)
@@ -120,7 +132,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "2.7.4"
+APP_VERSION = "2.7.5"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -245,10 +257,12 @@ class GeneradorPDFThread(QThread):
                 elements.append(Paragraph(trabajo["titulo"], styles['Title']))
                 elements.append(Spacer(1, 12))
 
-                data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
+                data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), tt("hdr_realizado_por", "Realizado por"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
                 style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
-                for fecha, desc, tags in trabajo["datos"]:
+                for fila_pdf in trabajo["datos"]:
+                    fecha, desc, tags = fila_pdf[0], fila_pdf[1], fila_pdf[2]
+                    autor = fila_pdf[3] if len(fila_pdf) > 3 and fila_pdf[3] else usuarios.ETIQUETA_HISTORICO
                     try:
                         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
                         fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
@@ -290,10 +304,10 @@ class GeneradorPDFThread(QThread):
                     desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
-                    data_tabla.append([fecha_formateada, p_desc, img_obj, img_obj_d])
+                    data_tabla.append([fecha_formateada, p_desc, Paragraph(autor, style_cell), img_obj, img_obj_d])
 
                 ancho_foto = 3.5 * cm
-                tabla_pdf = Table(data_tabla, colWidths=[2.2*cm, 8.5*cm, ancho_foto, ancho_foto])
+                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 6.6*cm, 2.4*cm, ancho_foto, ancho_foto])
                 tabla_pdf.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -455,11 +469,77 @@ class ServidorSincronizacion(QThread):
         self.db_path = db_path
         self.app = Flask(__name__)
         self.server_port = 5000
+        usuarios.configurar_db(db_path)
+
+        # --- AUTENTICACIÓN POR TOKEN ---------------------------------------
+        def _token_peticion():
+            cabecera = request.headers.get('Authorization', '')
+            if cabecera.startswith('Bearer '):
+                return cabecera[7:].strip()
+            return request.headers.get('X-MantPro-Token', '')
+
+        def _usuario_peticion():
+            """Devuelve el usuario del token, o None si no es válido."""
+            return usuarios.usuario_por_token(_token_peticion())
+
+        def requiere_token(func):
+            from functools import wraps
+
+            @wraps(func)
+            def envoltorio(*args, **kwargs):
+                u = _usuario_peticion()
+                if u is None:
+                    return jsonify({
+                        "status": "error",
+                        "error": "token_invalido",
+                        "message": "Sesión no válida. Vuelve a iniciar sesión."
+                    }), 401
+                g.usuario_mantpro = u
+                return func(*args, **kwargs)
+            return envoltorio
+
+        self._usuario_peticion = _usuario_peticion
+
+        @self.app.route('/api/login', methods=['POST'])
+        def api_login():
+            datos = request.get_json(silent=True) or request.form
+            login_usuario = (datos.get('login') or '').strip()
+            password = datos.get('password') or ''
+            dispositivo = (datos.get('dispositivo') or '')[:120]
+            if not login_usuario or not password:
+                return jsonify({"status": "error", "message": "Faltan datos"}), 400
+            usuario = usuarios.autenticar(login_usuario, password)
+            if usuario is None:
+                return jsonify({"status": "error", "error": "credenciales",
+                                "message": "Usuario o contraseña incorrectos."}), 401
+            token = usuarios.crear_token(usuario['id'], dispositivo)
+            return jsonify({"status": "ok", "token": token, "usuario": {
+                "id": usuario['id'], "login": usuario['login'],
+                "nombre": usuario['nombre'], "rol": usuario['rol']}})
+
+        @self.app.route('/api/logout', methods=['POST'])
+        @requiere_token
+        def api_logout():
+            usuarios.revocar_token(_token_peticion())
+            return jsonify({"status": "ok"})
+
+        @self.app.route('/api/yo', methods=['GET'])
+        @requiere_token
+        def api_yo():
+            return jsonify({"status": "ok", "usuario": g.usuario_mantpro})
+
+        @self.app.route('/api/ping', methods=['GET'])
+        def api_ping():
+            # Sin token: sirve para comprobar conectividad y si el PC ya pide login
+            return jsonify({"status": "ok", "auth": True, "version_api": 2})
+        # -------------------------------------------------------------------
 
         # --- RUTAS EXISTENTES ---
         @self.app.route('/api/upload', methods=['POST'])
+        @requiere_token
         def api_upload():
             try:
+                usuario = g.usuario_mantpro
                 titulo = request.form.get('titulo', 'Sin Título')
                 detalles = request.form.get('detalles', '')
                 tags = request.form.get('tags', 'General')
@@ -488,8 +568,9 @@ class ServidorSincronizacion(QThread):
                 # Usamos el bloque with para asegurar el guardado
                 with get_db_connection(self.db_path) as conn:
                     cursor = conn.cursor()
-                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto) VALUES (?,?,?,?,?)',
-                                   (fecha_final, desc_final, tags, raw_desc, filename))
+                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
+                                   (fecha_final, desc_final, tags, raw_desc, filename,
+                                    usuario['id'], usuario['nombre']))
                     conn.commit()
 
                 # Emitimos la señal pasando el título correcto para la notificación
@@ -500,19 +581,30 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/pendientes', methods=['GET'])
+        @requiere_token
         def api_get_pendientes():
             try:
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
-                c.execute('SELECT id, titulo, detalles FROM pendientes ORDER BY id DESC')
-                datos = [{"id": r[0], "titulo": r[1], "detalles": r[2]} for r in c.fetchall()]
+                u = g.usuario_mantpro
+                solo_mios = request.args.get('solo_mios', '') in ('1', 'true', 'True')
+                if solo_mios:
+                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,'') "
+                              "FROM pendientes WHERE asignado_a = ? ORDER BY id DESC", (u['id'],))
+                else:
+                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,'') "
+                              "FROM pendientes ORDER BY id DESC")
+                datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
+                          "asignado_a": r[3], "asignado": r[4]} for r in c.fetchall()]
                 conn.close()
                 return jsonify(datos)
             except Exception as e: return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/completar_pendiente', methods=['POST'])
+        @requiere_token
         def api_completar_pendiente():
             try:
+                usuario = g.usuario_mantpro
                 id_pend = request.form.get('id')
                 titulo = request.form.get('titulo') or "Sin Título"
                 detalles = request.form.get('detalles', '')
@@ -540,8 +632,9 @@ class ServidorSincronizacion(QThread):
                     c = conn.cursor()
                     c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
                     # Usamos el INSERT completo para alimentar todas las columnas
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto) VALUES (?,?,?,?,?)',
-                              (fecha_final, desc_final, tags, raw_desc, filename))
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
+                              (fecha_final, desc_final, tags, raw_desc, filename,
+                               usuario['id'], usuario['nombre']))
                     conn.commit()
 
                 self.pendiente_actualizado.emit()
@@ -551,6 +644,7 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/agregar_pendiente', methods=['POST'])
+        @requiere_token
         def api_agregar_pendiente():
             print(">>> PETICIÓN: AGREGAR PENDIENTE")
             try:
@@ -564,7 +658,10 @@ class ServidorSincronizacion(QThread):
                 # Timeout de 10s para esperar si la BD está ocupada
                 conn = sqlite3.connect(self.db_path, timeout=10)
                 c = conn.cursor()
-                c.execute('INSERT INTO pendientes (titulo, detalles) VALUES (?,?)', (titulo, detalles))
+                # Un pendiente creado desde el móvil queda asignado a quien lo crea
+                usuario = g.usuario_mantpro
+                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre) VALUES (?,?,?,?)',
+                          (titulo, detalles, usuario['id'], usuario['nombre']))
                 conn.commit()
                 conn.close()
 
@@ -576,6 +673,7 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/editar_pendiente', methods=['POST'])
+        @requiere_token
         def api_editar_pendiente():
             try:
                 id_p = request.form.get('id')
@@ -602,6 +700,7 @@ class ServidorSincronizacion(QThread):
             except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/eliminar_pendiente', methods=['POST'])
+        @requiere_token
         def api_eliminar_pendiente():
             # (Mantener código original)
             try:
@@ -620,6 +719,7 @@ class ServidorSincronizacion(QThread):
         # ==========================================
 
         @self.app.route('/api/dashboard', methods=['GET'])
+        @requiere_token
         def api_dashboard():
             try:
                 conn = sqlite3.connect(self.db_path)
@@ -652,6 +752,7 @@ class ServidorSincronizacion(QThread):
             except Exception as e: return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/historial', methods=['GET'])
+        @requiere_token
         def api_historial():
             try:
                 query = request.args.get('q', '').lower()
@@ -671,7 +772,7 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
 
                 mes = request.args.get('mes', '')
-                sql = "SELECT id, fecha, descripcion, tags FROM tareas WHERE 1=1"
+                sql = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas WHERE 1=1"
                 params = []
 
                 if query:
@@ -713,7 +814,8 @@ class ServidorSincronizacion(QThread):
                         "tags": r[3],
                         "foto": foto,
                         "foto_d": foto_d,
-                        "raw_desc": desc # Necesario para editar
+                        "raw_desc": desc, # Necesario para editar
+                        "usuario": r[4] if len(r) > 4 else ""
                     })
                 conn.close()
                 return jsonify({"items": resultados, "has_more": hay_mas, "page": page})
@@ -723,6 +825,7 @@ class ServidorSincronizacion(QThread):
         # 1. API AVISOS (Lógica corregida: Acepta retrasos)
         # ---------------------------------------------------------
         @self.app.route('/api/avisos', methods=['GET'])
+        @requiere_token
         def api_avisos():
             try:
                 conn = sqlite3.connect(self.db_path)
@@ -1073,6 +1176,9 @@ class GestorBaseDatos:
         # La lógica de DATA_DIR se calcula arriba globalmente
         self.db_name = os.path.join(DATA_DIR, "mantenimiento.db")
         self.inicializar_tablas()
+        # Tablas de usuarios/sesiones + columnas de autoría (idempotente)
+        usuarios.configurar_db(self.db_name)
+        usuarios.inicializar()
 
     def conectar(self):
         return sqlite3.connect(self.db_name)
@@ -1152,13 +1258,21 @@ class GestorBaseDatos:
             conn.commit(); conn.close(); return True
         except: return False
 
-    def agregar_tarea(self, f, d, t):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('INSERT INTO tareas (fecha,descripcion,tags) VALUES (?,?,?)',(f,d,t)); conn.commit(); conn.close(); return True
-        except: return False
+    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None):
+        """Guarda un registro atribuido al usuario que ha iniciado sesión."""
+        if usuario_id is None: usuario_id = usuarios.id_actual()
+        if usuario_nombre is None: usuario_nombre = usuarios.nombre_actual()
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre) VALUES (?,?,?,?,?)',
+                      (f, d, t, usuario_id, usuario_nombre))
+            conn.commit(); conn.close(); return True
+        except Exception as e:
+            print(f"Error agregar_tarea: {e}"); return False
     def obtener_todas_cronologico(self):
         try:
             conn=self.conectar(); c=conn.cursor()
-            c.execute('SELECT id,fecha,descripcion,tags FROM tareas ORDER BY fecha DESC, id DESC')
+            c.execute("SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,'') FROM tareas ORDER BY fecha DESC, id DESC")
             return c.fetchall()
         except: return []
     def obtener_tareas_por_fecha(self,f):
@@ -1176,7 +1290,7 @@ class GestorBaseDatos:
     def buscar_tareas_avanzado(self, texto, fecha=None):
         try:
             conn = self.conectar(); c = conn.cursor(); param_texto = f"%{texto}%"
-            query = "SELECT id, fecha, descripcion, tags FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
+            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
             parametros = [param_texto, param_texto]
             if fecha: query += " AND fecha = ?"; parametros.append(fecha)
             query += " ORDER BY fecha DESC, id DESC"; c.execute(query, parametros); return c.fetchall()
@@ -1199,12 +1313,28 @@ class GestorBaseDatos:
     def obtener_dias_especiales(self):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT fecha,tipo FROM dias_especiales'); return {r[0]:r[1] for r in c.fetchall()}
         except: return {}
-    def agregar_pendiente(self,t,d):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('INSERT INTO pendientes (titulo,detalles) VALUES (?,?)',(t,d)); conn.commit(); conn.close(); return True
-        except: return False
+    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre) VALUES (?,?,?,?)',
+                      (t, d, asignado_a, asignado_nombre))
+            conn.commit(); conn.close(); return True
+        except Exception as e:
+            print(f"Error agregar_pendiente: {e}"); return False
     def obtener_pendientes(self):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT id,titulo,detalles FROM pendientes ORDER BY id DESC'); return c.fetchall()
+        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre)."""
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,'') FROM pendientes ORDER BY id DESC")
+            return c.fetchall()
         except: return []
+    def asignar_pendiente(self, id_p, asignado_a, asignado_nombre):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute('UPDATE pendientes SET asignado_a=?, asignado_nombre=? WHERE id=?',
+                      (asignado_a, asignado_nombre, id_p))
+            conn.commit(); conn.close(); return True
+        except: return False
     def borrar_pendiente(self,i):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('DELETE FROM pendientes WHERE id=?',(i,)); conn.commit(); conn.close(); return True
         except: return False
@@ -1722,6 +1852,19 @@ class DialogoExportarPDF(QDialog):
         h.addWidget(QLabel(t("lbl_de"))); h.addWidget(self.d_inicio); h.addWidget(QLabel(t("lbl_a"))); h.addWidget(self.d_fin)
         gl.addLayout(h); gl.addSpacing(10)
 
+        fila_u = QHBoxLayout()
+        fila_u.addWidget(QLabel(tt("hdr_realizado_por", "Realizado por") + ":"))
+        self.combo_usuario = QComboBox()
+        self.combo_usuario.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        try:
+            for u in usuarios.listar_usuarios():
+                self.combo_usuario.addItem(u["nombre"], u["nombre"])
+            self.combo_usuario.addItem(usuarios.ETIQUETA_HISTORICO, usuarios.ETIQUETA_HISTORICO)
+        except Exception:
+            pass
+        fila_u.addWidget(self.combo_usuario, 1)
+        gl.addLayout(fila_u)
+
         g.setLayout(gl); l.addWidget(g)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
@@ -1735,12 +1878,15 @@ class DialogoExportarPDF(QDialog):
         self.d_fin.setEnabled(estado)
 
     def get_data(self):
+        usuario = self.combo_usuario.currentData()
+        if usuario == "TODOS": usuario = None
         if self.rb_todo.isChecked():
-            return "TODO", None, None
+            return "TODO", None, None, usuario
         elif self.rb_meses.isChecked():
-            return "MESES", None, None
+            return "MESES", None, None, usuario
         else:
-            return "RANGO", self.d_inicio.date().toString("yyyy-MM-dd"), self.d_fin.date().toString("yyyy-MM-dd")
+            return ("RANGO", self.d_inicio.date().toString("yyyy-MM-dd"),
+                    self.d_fin.date().toString("yyyy-MM-dd"), usuario)
 
 def traducir_tags_bd(tags_bd):
     traducciones = {
@@ -1813,6 +1959,11 @@ class MaintenanceApp(QMainWindow):
              icon = QIcon(icon_path)
              self.setWindowIcon(icon)
              QApplication.instance().setWindowIcon(icon)
+        try:
+            if usuarios.SESION_ACTUAL:
+                self.setWindowTitle(f"{self.windowTitle()}  —  👤 {usuarios.SESION_ACTUAL['nombre']}")
+        except Exception:
+            pass
 
         self.crear_menu()
         self.aplicar_estilo_visual()
@@ -1950,7 +2101,10 @@ class MaintenanceApp(QMainWindow):
         pm_foto = QPixmap(16, 16); pm_foto.fill(QColor("#3daee9")); icon_foto = QIcon(pm_foto)
         pm_vacio = QPixmap(16, 16); pm_vacio.fill(Qt.GlobalColor.transparent); icon_vacio = QIcon(pm_vacio)
 
-        for r, (id_t, fecha, desc, tags) in enumerate(data):
+        for r, fila in enumerate(data):
+            id_t, fecha, desc, tags = fila[0], fila[1], fila[2], fila[3]
+            autor = fila[4] if len(fila) > 4 else ""
+            if not autor: autor = usuarios.ETIQUETA_HISTORICO
             # LIMPIEZA VISUAL (FOTO Y REF)
             desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
             desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
@@ -1973,11 +2127,15 @@ class MaintenanceApp(QMainWindow):
                 item_d.setIcon(icon_vacio)
 
             item_t = QTableWidgetItem(traducir_tags_bd(tags))
+            item_u = QTableWidgetItem(autor)
 
             if color_bg:
-                item_f.setBackground(color_bg); item_d.setBackground(color_bg); item_t.setBackground(color_bg)
+                item_f.setBackground(color_bg); item_d.setBackground(color_bg)
+                item_t.setBackground(color_bg); item_u.setBackground(color_bg)
 
             table.setItem(r, 0, item_f); table.setItem(r, 1, item_d); table.setItem(r, 2, item_t)
+            if table.columnCount() > 3:
+                table.setItem(r, 3, item_u)
 
     def search(self):
         texto = self.s_in.text().strip(); fecha = None
@@ -2004,6 +2162,8 @@ class MaintenanceApp(QMainWindow):
     def refresh_history(self):
         datos = self.db.obtener_todas_cronologico()
         self.fill_t(self.h_table, datos)
+        self.recargar_combo_historial()
+        self.aplicar_filtros_historial()
 
         # Construir árbol de fechas dinámico
         self.tree_history.clear()
@@ -2146,6 +2306,12 @@ class MaintenanceApp(QMainWindow):
 
         fm.addSeparator()
         tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=self.limpiar_fotos_huerfanas))
+        tm.addSeparator()
+        tm.addAction(QAction(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"),
+                             self, triggered=self.cambiar_mi_password))
+        if usuarios.es_admin():
+            tm.addAction(QAction(tt("menu_usuarios", "👥 Gestión de usuarios"),
+                                 self, triggered=self.gestionar_usuarios))
         hm = mb.addMenu(t("menu_ayuda"))
         hm.addAction(QAction(t("menu_buscar_actualizaciones"), self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
         hm.addAction(QAction(t("menu_acerca_de"), self, triggered=self.mostrar_about))
@@ -2542,9 +2708,18 @@ class MaintenanceApp(QMainWindow):
         right_panel = QVBoxLayout(right_widget)
         right_panel.setContentsMargins(0, 0, 0, 0)
 
+        fila_usuario = QHBoxLayout()
+        fila_usuario.addWidget(QLabel(tt("hdr_realizado_por", "Realizado por") + ":"))
+        self.combo_filtro_historial = QComboBox()
+        self.combo_filtro_historial.currentIndexChanged.connect(self.aplicar_filtros_historial)
+        fila_usuario.addWidget(self.combo_filtro_historial, 1)
+        right_panel.addLayout(fila_usuario)
+
         self.h_table = QTableWidget()
         self.configurar_deseleccion(self.h_table)
         self.setup_table(self.h_table)
+        # La columna TAGS se sigue guardando y coloreando las filas, pero no se muestra
+        self.h_table.setColumnHidden(2, True)
         self.h_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.h_table))
         right_panel.addWidget(self.h_table)
 
@@ -2564,19 +2739,55 @@ class MaintenanceApp(QMainWindow):
         self.tab_history.setLayout(l)
 
     def on_tree_history_clicked(self, item, column):
-        filtro = item.data(0, Qt.ItemDataRole.UserRole)
+        self._filtro_fecha_historial = item.data(0, Qt.ItemDataRole.UserRole)
+        self.aplicar_filtros_historial()
+
+    def aplicar_filtros_historial(self, *_):
+        """Combina el filtro de fecha (árbol) con el de técnico (combo)."""
+        filtro_fecha = getattr(self, '_filtro_fecha_historial', "TODO") or "TODO"
+        filtro_usuario = self.combo_filtro_historial.currentData() if hasattr(self, 'combo_filtro_historial') else "TODOS"
+        visibles = 0
+
         for row in range(self.h_table.rowCount()):
             item_fecha = self.h_table.item(row, 0)
             if not item_fecha: continue
-            fecha_str = item_fecha.text()
             mostrar = True
 
-            if filtro != "TODO":
-                # El filtro puede ser "2026" (año) o "2026-07" (año-mes)
-                if not fecha_str.startswith(filtro):
+            # El filtro puede ser "2026" (año) o "2026-07" (año-mes)
+            if filtro_fecha != "TODO" and not item_fecha.text().startswith(filtro_fecha):
+                mostrar = False
+
+            if mostrar and filtro_usuario not in (None, "TODOS"):
+                item_usuario = self.h_table.item(row, 3)
+                if not item_usuario or item_usuario.text() != filtro_usuario:
                     mostrar = False
 
             self.h_table.setRowHidden(row, not mostrar)
+            if mostrar: visibles += 1
+
+        if filtro_usuario not in (None, "TODOS"):
+            self.statusBar().showMessage(t("msg_mostrando_resultados").format(n=visibles), 3000)
+
+    def recargar_combo_historial(self):
+        """Rellena el combo con los autores que aparecen realmente en el histórico."""
+        if not hasattr(self, 'combo_filtro_historial'): return
+        anterior = self.combo_filtro_historial.currentData()
+        nombres = set()
+        try:
+            conn = self.db.conectar(); c = conn.cursor()
+            c.execute("SELECT DISTINCT COALESCE(usuario_nombre,'') FROM tareas")
+            nombres = {r[0] for r in c.fetchall() if r[0]}
+            conn.close()
+        except Exception:
+            pass
+        self.combo_filtro_historial.blockSignals(True)
+        self.combo_filtro_historial.clear()
+        self.combo_filtro_historial.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        for n in sorted(nombres):
+            self.combo_filtro_historial.addItem(n, n)
+        idx = self.combo_filtro_historial.findData(anterior)
+        self.combo_filtro_historial.setCurrentIndex(idx if idx >= 0 else 0)
+        self.combo_filtro_historial.blockSignals(False)
     def init_search_tab(self):
         l = QVBoxLayout(); sl = QHBoxLayout()
         self.s_in = QLineEdit(); self.s_in.setPlaceholderText(t("ph_buscar_texto")); self.s_in.textChanged.connect(self.search); sl.addWidget(self.s_in)
@@ -2588,18 +2799,49 @@ class MaintenanceApp(QMainWindow):
         fl.addStretch(); l.addLayout(fl)
         self.s_table = QTableWidget(); self.setup_table(self.s_table); self.configurar_deseleccion(self.s_table); self.s_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.s_table)); l.addWidget(self.s_table)
         bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar"), clicked=lambda: self.edit_rec(self.s_table))); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=lambda: self.del_rec(self.s_table))); l.addLayout(bl); self.tab_search.setLayout(l)
+    def _llenar_combo_usuarios(self, combo, incluir_todos=False, incluir_sin_asignar=False):
+        """Rellena un combo con los usuarios activos, conservando la selección."""
+        anterior = combo.currentData()
+        combo.blockSignals(True)
+        combo.clear()
+        if incluir_todos:
+            combo.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        if incluir_sin_asignar:
+            combo.addItem(tt("lbl_sin_asignar", "Sin asignar"), None)
+        for u in usuarios.listar_usuarios(incluir_inactivos=False):
+            combo.addItem(u["nombre"], u["id"])
+        idx = combo.findData(anterior)
+        combo.setCurrentIndex(idx if idx >= 0 else 0)
+        combo.blockSignals(False)
+
     def init_todo_tab(self):
         l = QHBoxLayout(); ll = QVBoxLayout(); ll.addWidget(QLabel(t("lbl_lista_pendientes")))
+        fila_filtro = QHBoxLayout()
+        fila_filtro.addWidget(QLabel(tt("lbl_ver_de", "Ver los de") + ":"))
+        self.combo_filtro_todos = QComboBox()
+        self._llenar_combo_usuarios(self.combo_filtro_todos, incluir_todos=True, incluir_sin_asignar=True)
+        self.combo_filtro_todos.currentIndexChanged.connect(self.refresh_todos)
+        fila_filtro.addWidget(self.combo_filtro_todos, 1)
+        ll.addLayout(fila_filtro)
         self.todo_list = QListWidget(); self.configurar_deseleccion(self.todo_list); self.todo_list.setAlternatingRowColors(True)
         self.todo_list.itemDoubleClicked.connect(self.edit_todo); ll.addWidget(self.todo_list); l.addLayout(ll, 60)
         rl = QVBoxLayout(); g = QGroupBox(t("lbl_nuevo_trabajo")); f = QVBoxLayout()
         self.in_todo_t = QLineEdit(); self.in_todo_t.setPlaceholderText(t("ph_titulo")); f.addWidget(self.in_todo_t)
         self.in_todo_d = QTextEdit(); self.in_todo_d.setPlaceholderText(t("ph_detalles")); self.in_todo_d.setMaximumHeight(100); self.in_todo_d.setStyleSheet("QTextEdit { color: #e0e0e0; background-color: #1e1e1e; border: 1px solid #555; }"); f.addWidget(self.in_todo_d)
+        fila_asig = QHBoxLayout()
+        fila_asig.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"))
+        self.combo_asignar = QComboBox()
+        self._llenar_combo_usuarios(self.combo_asignar, incluir_sin_asignar=True)
+        fila_asig.addWidget(self.combo_asignar, 1)
+        f.addLayout(fila_asig)
         f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
         ga = QGroupBox(t("lbl_acciones")); fa = QVBoxLayout()
         b_ok = QPushButton(t("btn_completar"), clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
         b_edit = QPushButton(t("btn_editar"), clicked=self.edit_todo); b_edit.setStyleSheet("background-color:#2980b9; color: white;"); fa.addWidget(b_edit)
-        b_del = QPushButton(t("btn_eliminar"), clicked=self.del_todo); b_del.setStyleSheet("background-color:#c0392b; color: white;"); fa.addWidget(b_del); ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
+        b_del = QPushButton(t("btn_eliminar"), clicked=self.del_todo); b_del.setStyleSheet("background-color:#c0392b; color: white;"); fa.addWidget(b_del)
+        b_asig = QPushButton(tt("btn_reasignar", "👤 Reasignar"), clicked=self.reasignar_todo)
+        b_asig.setStyleSheet("background-color:#8e44ad; color: white;"); fa.addWidget(b_asig)
+        ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
 
     # --- LÓGICA GENERAL ---
     def go_today(self): self.calendar.setSelectedDate(QDate.currentDate()); self.update_calendar_list()
@@ -2627,7 +2869,8 @@ class MaintenanceApp(QMainWindow):
         self.refresh_dashboard(); self.pintar_calendario(); self.update_calendar_list()
         self.refresh_history(); self.search(); self.refresh_todos(); self.refresh_avisos()
     def setup_table(self, tabla_widget):
-        tabla_widget.setColumnCount(3); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tabla_widget.setColumnCount(4); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
+        tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     def configurar_deseleccion(self, widget):
         clase_base = type(widget)
         def click_inteligente(event):
@@ -2716,16 +2959,55 @@ class MaintenanceApp(QMainWindow):
 
     def add_todo(self):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
-        if tit and self.db.agregar_pendiente(tit, d): self.in_todo_t.clear(); self.in_todo_d.clear(); self.refresh_todos()
+        uid = self.combo_asignar.currentData()
+        nombre = self.combo_asignar.currentText() if uid is not None else None
+        if tit and self.db.agregar_pendiente(tit, d, uid, nombre):
+            self.in_todo_t.clear(); self.in_todo_d.clear(); self.refresh_todos()
+            if hasattr(self, 'servidor') and self.servidor:
+                self.servidor.pendiente_actualizado.emit()
 
-    def refresh_todos(self):
+    def reasignar_todo(self):
+        """Cambia el técnico asignado del pendiente seleccionado."""
+        row = self.todo_list.currentRow()
+        if row < 0: return
+        item = self.todo_list.item(row)
+        pid = item.data(Qt.ItemDataRole.UserRole)
+        if pid is None: return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tt("btn_reasignar", "Reasignar"))
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"))
+        combo = QComboBox()
+        self._llenar_combo_usuarios(combo, incluir_sin_asignar=True)
+        idx = combo.findData(item.data(Qt.ItemDataRole.UserRole + 3))
+        if idx >= 0: combo.setCurrentIndex(idx)
+        lay.addWidget(combo)
+        caja = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.accepted.connect(dlg.accept); caja.rejected.connect(dlg.reject)
+        lay.addWidget(caja)
+        if dlg.exec() != QDialog.DialogCode.Accepted: return
+
+        uid = combo.currentData()
+        nombre = combo.currentText() if uid is not None else None
+        if self.db.asignar_pendiente(pid, uid, nombre):
+            self.refresh_todos()
+            if hasattr(self, 'servidor') and self.servidor:
+                self.servidor.pendiente_actualizado.emit()
+
+    def refresh_todos(self, *_):
         self.todo_list.clear()
         ps = self.db.obtener_pendientes()
+
+        # Filtro por técnico asignado
+        filtro = self.combo_filtro_todos.currentData() if hasattr(self, 'combo_filtro_todos') else "TODOS"
+        if filtro != "TODOS":
+            ps = [p for p in ps if p[3] == filtro]
 
         if not ps:
             self.todo_list.addItem(t("msg_nada"))
 
-        for i, tit, d in ps:
+        for i, tit, d, asig_id, asig_nombre in ps:
             # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
             d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
             d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
@@ -2740,12 +3022,16 @@ class MaintenanceApp(QMainWindow):
             if tiene_foto:
                 texto_visual += "  (📸 Foto)"
 
+            if asig_nombre:
+                texto_visual += f"\n   👤 {asig_nombre}"
+
             it = QListWidgetItem(texto_visual)
 
             # Guardamos los datos originales (sucios) por debajo para la lógica
             it.setData(Qt.ItemDataRole.UserRole, i)
             it.setData(Qt.ItemDataRole.UserRole + 1, t)
             it.setData(Qt.ItemDataRole.UserRole + 2, d)
+            it.setData(Qt.ItemDataRole.UserRole + 3, asig_id)
 
             if tiene_foto:
                 it.setToolTip("📸 Tiene foto adjunta")
@@ -2860,7 +3146,7 @@ class MaintenanceApp(QMainWindow):
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Foto Antes y Foto Después
-                writer.writerow(["ID", "Fecha", "Descripción", "Foto Antes", "Foto Después"])
+                writer.writerow(["ID", "Fecha", "Descripción", tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
                     try:
@@ -2882,7 +3168,8 @@ class MaintenanceApp(QMainWindow):
                     m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
                     if m_d: foto_despues = m_d.group(1).split("]")[0].strip()
 
-                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, foto_antes, foto_despues])
+                    autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
+                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, autor, foto_antes, foto_despues])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -3088,7 +3375,10 @@ class MaintenanceApp(QMainWindow):
     def exportar_pdf(self):
         dlg = DialogoExportarPDF(self)
         if not dlg.exec(): return
-        modo, inicio, fin = dlg.get_data()
+        modo, inicio, fin, filtro_usuario = dlg.get_data()
+        sufijo_u = f" — {filtro_usuario}" if filtro_usuario else ""
+        cond_u = " AND usuario_nombre = ?" if filtro_usuario else ""
+        param_u = [filtro_usuario] if filtro_usuario else []
 
         try:
             conn = self.db.conectar()
@@ -3096,25 +3386,29 @@ class MaintenanceApp(QMainWindow):
             lista_trabajos = []
 
             if modo == "RANGO" and inicio and fin:
-                c.execute("SELECT fecha, descripcion, tags FROM tareas WHERE fecha BETWEEN ? AND ? ORDER BY fecha DESC, id DESC", (inicio, fin))
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas "
+                          "WHERE fecha BETWEEN ? AND ?" + cond_u + " ORDER BY fecha DESC, id DESC",
+                          [inicio, fin] + param_u)
                 datos = c.fetchall()
                 if not datos: return
                 nombre_defecto = f"Reporte_Mantenimiento_{inicio}_a_{fin}.pdf"
                 archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
                 if not archivo: return
-                lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({inicio} a {fin})", "datos": datos})
+                lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({inicio} a {fin}){sufijo_u}", "datos": datos})
 
             elif modo == "TODO":
-                c.execute("SELECT fecha, descripcion, tags FROM tareas ORDER BY fecha DESC, id DESC")
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas "
+                          "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
                 nombre_defecto = f"Reporte_Histórico_Completo_{datetime.now().strftime('%Y%m%d')}.pdf"
                 archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
                 if not archivo: return
-                lista_trabajos.append({"archivo": archivo, "titulo": "Reporte Histórico Completo", "datos": datos})
+                lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte Histórico Completo{sufijo_u}", "datos": datos})
 
             elif modo == "MESES":
-                c.execute("SELECT fecha, descripcion, tags FROM tareas ORDER BY fecha DESC, id DESC")
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas "
+                          "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
 
@@ -3134,7 +3428,7 @@ class MaintenanceApp(QMainWindow):
 
                 for mes, datos_mes in datos_por_mes.items():
                     archivo = os.path.join(carpeta_destino, f"Reporte_Mantenimiento_{mes}.pdf")
-                    lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({mes})", "datos": datos_mes})
+                    lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({mes}){sufijo_u}", "datos": datos_mes})
 
             conn.close()
         except Exception as e:
@@ -3169,6 +3463,21 @@ class MaintenanceApp(QMainWindow):
             QMessageBox.information(self, t("title_exito"), mensaje)
         else:
             QMessageBox.critical(self, t("title_error_pdf"), mensaje)
+
+    def gestionar_usuarios(self):
+        if not usuarios.es_admin():
+            QMessageBox.warning(self, t("title_error"),
+                                tt("msg_solo_admin", "Solo un administrador puede gestionar usuarios."))
+            return
+        DialogoGestionUsuarios(self).exec()
+        if hasattr(self, 'combo_asignar'):
+            self._llenar_combo_usuarios(self.combo_asignar, incluir_sin_asignar=True)
+            self._llenar_combo_usuarios(self.combo_filtro_todos, incluir_todos=True, incluir_sin_asignar=True)
+
+    def cambiar_mi_password(self):
+        if not usuarios.SESION_ACTUAL:
+            return
+        DialogoCambioPassword(self, usuarios.SESION_ACTUAL).exec()
 
     def guardar_archivo_dialogo(self, titulo, nombre_defecto, filtro):
         dialogo = QFileDialog(self, titulo); dialogo.setAcceptMode(QFileDialog.AcceptMode.AcceptSave); dialogo.setFileMode(QFileDialog.FileMode.AnyFile); dialogo.setNameFilter(filtro); dialogo.selectFile(nombre_defecto)
@@ -3320,6 +3629,23 @@ if __name__ == "__main__":
         print(f"✅ Base de datos verificada en: {ruta_db}")
     except Exception as e:
         print(f"❌ Error verificando BD: {e}")
+
+    # --- 2b. SISTEMA DE USUARIOS + LOGIN OBLIGATORIO ---
+    try:
+        usuarios.configurar_db(ruta_db)
+        primer_arranque = usuarios.inicializar()
+        if primer_arranque:
+            QMessageBox.information(
+                None, "MantPro",
+                "Se ha creado el usuario administrador inicial.\n\n"
+                "Usuario: admin\nContraseña: admin\n\n"
+                "Se te pedirá cambiarla al entrar.")
+    except Exception as e:
+        print(f"❌ Error inicializando usuarios: {e}")
+
+    dlg_login = DialogoLogin(ruta_logo=ruta_logo if os.path.exists(ruta_logo) else None)
+    if dlg_login.exec() != QDialog.DialogCode.Accepted:
+        sys.exit(0)
 
     # --- 3. INSTANCIAR VENTANA PRINCIPAL ---
     try:

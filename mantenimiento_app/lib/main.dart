@@ -16,6 +16,305 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'i18n/strings.dart';
 
+
+// ==========================================================================
+// SESIÓN DE USUARIO (login contra el PC, token persistente)
+// ==========================================================================
+
+/// true = hay sesión iniciada. AuthGate lo escucha para mostrar login o app.
+final ValueNotifier<bool> sesionNotifier = ValueNotifier(false);
+
+/// t() con texto por defecto, por si la clave aún no está en i18n/strings.dart.
+String tt(String clave, String defecto) {
+  final v = t(clave);
+  return v == clave ? defecto : v;
+}
+
+class AuthService {
+  static String? token;
+  static String? nombre;
+  static String? login;
+  static String? rol;
+  static int? usuarioId;
+
+  static bool get autenticado => token != null && token!.isNotEmpty;
+
+  /// Carga la sesión guardada (llamar también en tareas de segundo plano).
+  static Future<void> cargar() async {
+    final prefs = await SharedPreferences.getInstance();
+    token = prefs.getString('auth_token');
+    nombre = prefs.getString('auth_nombre');
+    login = prefs.getString('auth_login');
+    rol = prefs.getString('auth_rol');
+    usuarioId = prefs.getInt('auth_id');
+  }
+
+  /// Solo Authorization: NO fijamos Content-Type para no romper los
+  /// envíos multipart ni los form-urlencoded que ya usa la app.
+  static Map<String, String> cabeceras() =>
+      token != null ? {'Authorization': 'Bearer $token'} : {};
+
+  static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
+    try {
+      final res = await http.post(
+        Uri.parse('http://$ip/api/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'login': usuario,
+          'password': password,
+          'dispositivo': 'Android',
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final datos = json.decode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 && datos['status'] == 'ok') {
+        final prefs = await SharedPreferences.getInstance();
+        token = datos['token'];
+        nombre = datos['usuario']['nombre'];
+        login = datos['usuario']['login'];
+        rol = datos['usuario']['rol'];
+        usuarioId = datos['usuario']['id'];
+        await prefs.setInt('auth_id', usuarioId ?? 0);
+        await prefs.setString('auth_token', token!);
+        await prefs.setString('auth_nombre', nombre ?? '');
+        await prefs.setString('auth_login', login ?? '');
+        await prefs.setString('auth_rol', rol ?? 'tecnico');
+        sesionNotifier.value = true;
+        return null;
+      }
+      return datos['message'] ?? tt('login_error', 'Usuario o contraseña incorrectos.');
+    } catch (e) {
+      return tt('login_sin_conexion',
+          'No se pudo conectar con el PC. Comprueba la WiFi y que MantPro esté abierto.');
+    }
+  }
+
+  /// Borra la sesión local. NO borra los registros pendientes de enviar.
+  static Future<void> cerrarSesion({String? ip}) async {
+    if (ip != null && token != null) {
+      try {
+        await http.post(Uri.parse('http://$ip/api/logout'), headers: cabeceras())
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {}
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('auth_nombre');
+    await prefs.remove('auth_login');
+    await prefs.remove('auth_rol');
+    await prefs.remove('auth_id');
+    token = null; nombre = null; login = null; rol = null; usuarioId = null;
+    sesionNotifier.value = false;
+  }
+}
+
+/// Si el PC responde 401, el token ya no vale: cerramos sesión y volvemos al login.
+Future<void> comprobar401(int codigo) async {
+  if (codigo == 401) {
+    await AuthService.cerrarSesion();
+  }
+}
+
+/// GET autenticado contra el PC.
+Future<http.Response> httpGetAuth(Uri url, {Map<String, String>? headers}) async {
+  final res = await http.get(url, headers: {...AuthService.cabeceras(), ...?headers});
+  await comprobar401(res.statusCode);
+  return res;
+}
+
+/// POST autenticado contra el PC (mantiene el body form-urlencoded existente).
+Future<http.Response> httpPostAuth(Uri url, {Object? body, Map<String, String>? headers}) async {
+  final res = await http.post(url, body: body, headers: {...AuthService.cabeceras(), ...?headers});
+  await comprobar401(res.statusCode);
+  return res;
+}
+
+// ==========================================================================
+// PANTALLAS DE ACCESO
+// ==========================================================================
+
+/// Decide qué mostrar: vinculación con el PC, login, o la app.
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _cargando = true;
+  String? _ip;
+
+  @override
+  void initState() {
+    super.initState();
+    _preparar();
+  }
+
+  Future<void> _preparar() async {
+    final prefs = await SharedPreferences.getInstance();
+    await AuthService.cargar();
+    if (!mounted) return;
+    setState(() {
+      _ip = prefs.getString('pc_ip_url');
+      _cargando = false;
+    });
+    sesionNotifier.value = AuthService.autenticado;
+  }
+
+  Future<void> _vincular() async {
+    final c = await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    if (c != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pc_ip_url', c);
+      if (mounted) setState(() => _ip = c);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_cargando) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: sesionNotifier,
+      builder: (context, haySesion, _) {
+        if (haySesion) return const MainScreen();
+        return LoginScreen(
+          ip: _ip,
+          onVincular: _vincular,
+        );
+      },
+    );
+  }
+}
+
+class LoginScreen extends StatefulWidget {
+  final String? ip;
+  final VoidCallback onVincular;
+  const LoginScreen({super.key, required this.ip, required this.onVincular});
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _usuario = TextEditingController();
+  final _password = TextEditingController();
+  bool _cargando = false;
+  bool _oculta = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _usuario.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _entrar() async {
+    if (widget.ip == null) {
+      setState(() => _error = tt('login_sin_pc',
+          'Primero vincula el móvil con el PC escaneando el QR.'));
+      return;
+    }
+    if (_usuario.text.trim().isEmpty || _password.text.isEmpty) {
+      setState(() => _error = tt('login_vacio', 'Introduce usuario y contraseña.'));
+      return;
+    }
+    setState(() { _cargando = true; _error = null; });
+    final error = await AuthService.iniciarSesion(
+        widget.ip!, _usuario.text.trim(), _password.text);
+    if (!mounted) return;
+    setState(() { _cargando = false; _error = error; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.build_circle, size: 88, color: tema.colorScheme.primary),
+                const SizedBox(height: 16),
+                Text('MantPro', style: tema.textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                Text(
+                  tt('login_subtitulo', 'Identifícate para registrar tus trabajos'),
+                  style: tema.textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 28),
+                TextField(
+                  controller: _usuario,
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: tt('login_usuario', 'Usuario'),
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _password,
+                  obscureText: _oculta,
+                  onSubmitted: (_) => _entrar(),
+                  decoration: InputDecoration(
+                    labelText: tt('login_password', 'Contraseña'),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(_oculta ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _oculta = !_oculta),
+                    ),
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_error!,
+                      style: TextStyle(color: tema.colorScheme.error),
+                      textAlign: TextAlign.center),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _cargando ? null : _entrar,
+                    child: _cargando
+                        ? const SizedBox(width: 20, height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(tt('login_entrar', 'ENTRAR')),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: _cargando ? null : widget.onVincular,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: Text(widget.ip == null
+                      ? tt('btn_vincular_pc', 'Vincular PC')
+                      : tt('btn_vincular_otro_pc', 'Vincular otro PC')),
+                ),
+                Text(
+                  widget.ip == null
+                      ? tt('login_pc_no_vinculado', 'Sin PC vinculado')
+                      : 'PC: ${widget.ip}',
+                  style: tema.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // --- GESTOR DE TEMA GLOBAL ---
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 // Tamaño de página usado en los refrescos de historial en segundo plano (fuera de la pestaña Historial)
@@ -93,7 +392,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '2.7.4';
+const String kAppVersion = '2.7.5';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -176,6 +475,8 @@ void main() async {
   final bool isDark = prefs.getBool('is_dark_mode') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   await cargarIdiomaGuardado();
+  await AuthService.cargar();
+  sesionNotifier.value = AuthService.autenticado;
   runApp(const MyApp());
 }
 
@@ -191,7 +492,7 @@ class MyApp extends StatelessWidget {
           valueListenable: themeNotifier,
           builder: (_, mode, __) {
             return MaterialApp(
-              home: const MainScreen(),
+              home: const AuthGate(),
               debugShowCheckedModeBanner: false,
               title: "MantPro Móvil",
               themeMode: mode,
@@ -270,8 +571,23 @@ class Registro {
 class PendientePC {
   int id;
   String titulo, detalles;
-  PendientePC({required this.id, required this.titulo, required this.detalles});
-  factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(id: json['id'], titulo: json['titulo'], detalles: json['detalles']);
+  /// Técnico al que el PC ha asignado este trabajo (null = sin asignar).
+  int? asignadoA;
+  String? asignado;
+  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado});
+  factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
+        id: json['id'],
+        titulo: json['titulo'],
+        detalles: json['detalles'],
+        asignadoA: json['asignado_a'],
+        asignado: (json['asignado'] as String?)?.isEmpty == true ? null : json['asignado'],
+      );
+  Map<String, dynamic> toJson() => {
+        'id': id, 'titulo': titulo, 'detalles': detalles,
+        'asignado_a': asignadoA, 'asignado': asignado,
+      };
+  /// true si el trabajo es del usuario que tiene la sesión abierta.
+  bool get esMio => asignadoA != null && asignadoA == AuthService.usuarioId;
 }
 
 class AvisoPC {
@@ -308,6 +624,24 @@ class _MainScreenState extends State<MainScreen> {
     ];
     // Comprobamos si hay una versión nueva en GitHub (como mucho una vez al día, sin molestar).
     WidgetsBinding.instance.addPostFrameCallback((_) => comprobarActualizacionGitHub(context));
+  }
+
+  Future<void> _cerrarSesion() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tt('btn_cerrar_sesion', 'Cerrar sesión')),
+        content: Text(tt('msg_cerrar_sesion',
+            'Los registros que aún no se hayan enviado al PC se conservan en el móvil.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('btn_no'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t('btn_si'))),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    final prefs = await SharedPreferences.getInstance();
+    await AuthService.cerrarSesion(ip: prefs.getString('pc_ip_url'));
   }
 
   void _toggleTheme() async {
@@ -355,6 +689,22 @@ class _MainScreenState extends State<MainScreen> {
             appBar: AppBar(title: Text(titulo), actions: [
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.account_circle),
+                tooltip: AuthService.nombre ?? '',
+                onSelected: (v) { if (v == 'salir') _cerrarSesion(); },
+                itemBuilder: (_) => [
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: Text('👤 ${AuthService.nombre ?? ''}',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'salir',
+                    child: Text(tt('btn_cerrar_sesion', 'Cerrar sesión')),
+                  ),
+                ],
+              ),
             ]),
             body: _pantallas[_indiceActual],
             bottomNavigationBar: BottomNavigationBar(
@@ -453,7 +803,7 @@ class _TabDashboardState extends State<TabDashboard> {
     if (!mounted) return;
     setState(() { _cargando = true; _conexionActiva = false; });
     try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         setState(() { _stats = json.decode(res.body); _conexionActiva = true; });
         final prefs = await SharedPreferences.getInstance();
@@ -471,7 +821,7 @@ class _TabDashboardState extends State<TabDashboard> {
     if (_urlPC == null) { _abrirQR(); return; }
     setState(() => _cargando = true);
     try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         setState(() { _stats = json.decode(res.body); _conexionActiva = true; _cargando = false; });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_conexion_recuperada")), duration: const Duration(seconds: 2)));
@@ -576,6 +926,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     for (var item in _pendientes) {
       try {
         var req = http.MultipartRequest('POST', uri);
+        req.headers.addAll(AuthService.cabeceras());
         req.fields['titulo'] = item.titulo;
         req.fields['detalles'] = item.detalles;
         req.fields['tags'] = item.tags;
@@ -599,7 +950,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
       if (enviados.isNotEmpty) {
         // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
         try {
-          final resH = await http.get(Uri.parse("http://$urlUsar/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+          final resH = await httpGetAuth(Uri.parse("http://$urlUsar/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
           if (resH.statusCode == 200) {
             final body = json.decode(resH.body);
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -664,6 +1015,19 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
 // ==========================================
 class TabPendientesPC extends StatefulWidget { const TabPendientesPC({super.key}); @override State<TabPendientesPC> createState() => _TabPendientesPCState(); }
 class _TabPendientesPCState extends State<TabPendientesPC> {
+  /// Filtro local: mostrar solo los trabajos asignados a mí en el PC.
+  bool _soloMios = false;
+
+  /// Lista visible según el filtro (los de la cola de salida se ven siempre).
+  List<PendientePC> get _listaVisible =>
+      _soloMios ? _listaPC.where((p) => p.esMio).toList() : _listaPC;
+
+  Future<void> _cambiarFiltro(bool valor) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('pendientes_solo_mios', valor);
+    setState(() => _soloMios = valor);
+  }
+
   List<PendientePC> _listaPC = [];
   List<Map<String, dynamic>> _colaSalida = [];
   List<Map<String, dynamic>> _colaNuevos = [];
@@ -682,6 +1046,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (prefs.getString('cola_nuevos') != null) _colaNuevos = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_nuevos')!));
       if (prefs.getString('cola_ediciones') != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_ediciones')!));
       if (prefs.getString('cola_borrados') != null) _colaBorrados = List<int>.from(json.decode(prefs.getString('cola_borrados')!));
+      _soloMios = prefs.getBool('pendientes_solo_mios') ?? false;
       if (prefs.getString('fotos_locales_map') != null) _fotosLocales = Map<String, String>.from(json.decode(prefs.getString('fotos_locales_map')!));
     });
       _aplicarEdicionesVisuales();
@@ -689,7 +1054,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   }
   Future<void> _guardarCache() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('trabajos_pc', json.encode(_listaPC.map((p) => {'id': p.id, 'titulo': p.titulo, 'detalles': p.detalles}).toList()));
+    await prefs.setString('trabajos_pc', json.encode(_listaPC.map((p) => p.toJson()).toList()));
     await prefs.setString('cola_salida', json.encode(_colaSalida));
     await prefs.setString('cola_nuevos', json.encode(_colaNuevos));
     await prefs.setString('cola_ediciones', json.encode(_colaEdiciones));
@@ -699,7 +1064,11 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   void _aplicarEdicionesVisuales() {
     for (var edicion in _colaEdiciones) {
       int index = _listaPC.indexWhere((p) => p.id.toString() == edicion['id']);
-      if (index != -1) _listaPC[index] = PendientePC(id: _listaPC[index].id, titulo: edicion['titulo'], detalles: edicion['detalles']);
+      if (index != -1) {
+        _listaPC[index] = PendientePC(
+          id: _listaPC[index].id, titulo: edicion['titulo'], detalles: edicion['detalles'],
+          asignadoA: _listaPC[index].asignadoA, asignado: _listaPC[index].asignado);
+      }
     }
   }
   Future<String?> _descargarYCachearFoto(String nombreFoto) async {
@@ -707,7 +1076,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       final dir = await getApplicationDocumentsDirectory(); final fp = path.join(dir.path, nombreFoto);
       if (File(fp).existsSync()) return fp;
       if (_urlPC != null) {
-        final res = await http.get(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
+        final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
         if (res.statusCode == 200) { await File(fp).writeAsBytes(res.bodyBytes); return fp; }
       }
     } catch (e) { /* */ } return null;
@@ -736,7 +1105,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
     if (bo.isNotEmpty || no.isNotEmpty || eo.isNotEmpty || so.isNotEmpty) {
       try {
-        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+        final resH = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
         if (resH.statusCode == 200) {
           final body = json.decode(resH.body);
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -755,7 +1124,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     }
     // --------------------------------------------------------------------------
     try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         List<PendientePC> nuevos = d.map((i) => PendientePC.fromJson(i)).toList();
@@ -770,10 +1139,11 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     } catch (e) { /* */ }
     if (!silencioso && mounted) setState(() => _cargando = false);
   }
-  Future<bool> _apiPost(String ep, Map<String, String> b) async { try { return (await http.post(Uri.parse("http://$_urlPC/api/$ep"), body: b)).statusCode == 200; } catch (e) { return false; } }
+  Future<bool> _apiPost(String ep, Map<String, String> b) async { try { return (await httpPostAuth(Uri.parse("http://$_urlPC/api/$ep"), body: b)).statusCode == 200; } catch (e) { return false; } }
   Future<bool> _apiMultipart(String ep, Map<String, dynamic> d) async {
     try {
       var r = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/$ep"));
+      r.headers.addAll(AuthService.cabeceras());
       if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
       r.fields['titulo'] = d['titulo'];
       r.fields['detalles'] = d['detalles'];
@@ -868,7 +1238,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
           _colaEdiciones.add(mapTempEdit);
           int i = _listaPC.indexWhere((x) => x.id == p.id);
-          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles);
+          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles, asignadoA: p.asignadoA, asignado: p.asignado);
         });
           _guardarCache();
           _sincronizarTodo(silencioso: true);
@@ -877,11 +1247,31 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   }
   @override Widget build(BuildContext context) {
     bool off = _urlPC == null;
+    final lista = _listaVisible;
     return Scaffold(
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(children: [
+              ChoiceChip(
+                label: Text(tt('filtro_todos', 'Todos')),
+                selected: !_soloMios,
+                onSelected: (_) => _cambiarFiltro(false),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                avatar: const Icon(Icons.person, size: 18),
+                label: Text(tt('filtro_solo_mios', 'Solo míos')),
+                selected: _soloMios,
+                onSelected: (_) => _cambiarFiltro(true),
+              ),
+              const Spacer(),
+              Text('${lista.length}', style: const TextStyle(color: Colors.grey)),
+            ]),
+          ),
           Expanded(
-            child: _listaPC.isEmpty
+            child: lista.isEmpty
             ? RefreshIndicator(
               onRefresh: () => _sincronizarTodo(),
               child: ListView(children: [
@@ -889,7 +1279,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                 Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey),
                   const SizedBox(height: 10),
-                  Text(t("msg_no_hay_pendientes")),
+                  Text(_soloMios
+                      ? tt("msg_no_hay_pendientes_mios", "No tienes trabajos asignados")
+                      : t("msg_no_hay_pendientes")),
                   if (off) TextButton.icon(icon: const Icon(Icons.qr_code), label: Text(t("btn_vincular_pc")), onPressed: _escanearQR)
                 ]))
               ]))
@@ -897,7 +1289,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
               onRefresh: () => _sincronizarTodo(),
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: _listaPC.length + _colaSalida.length,
+                itemCount: lista.length + _colaSalida.length,
                 itemBuilder: (ctx, i) {
                   if (i < _colaSalida.length) {
                     final cItem = _colaSalida[i];
@@ -928,7 +1320,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                       )
                     );
                   }
-                  final item = _listaPC[i - _colaSalida.length];
+                  final item = lista[i - _colaSalida.length];
                   String? fl = _obtenerRutaFoto(item);
                   String? fs = _obtenerFotoServer(item);
                   String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
@@ -945,7 +1337,27 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                     child: ListTile(
                       leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: ico),
                       title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
+                          if (item.asignado != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Row(children: [
+                                Icon(Icons.person, size: 14,
+                                    color: item.esMio ? Colors.green : Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(item.asignado!,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: item.esMio ? Colors.green : Colors.grey,
+                                        fontWeight: item.esMio ? FontWeight.bold : FontWeight.normal)),
+                              ]),
+                            ),
+                        ],
+                      ),
                       onTap: () => _abrirGestionar(item),
                       trailing: ed ? const Icon(Icons.cloud_upload, color: Colors.orange) : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id))
                     )
@@ -1050,8 +1462,8 @@ class _TabAvisosState extends State<TabAvisos> {
     if (!mounted) return;
     setState(() => _cargando = true);
 
-    List<String> ro = []; for (var id in _colaRestaurar) { try { if ((await http.post(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { if ((await http.post(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<String> ro = []; for (var id in _colaRestaurar) { try { if ((await httpPostAuth(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { if ((await httpPostAuth(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -1059,7 +1471,7 @@ class _TabAvisosState extends State<TabAvisos> {
 
       // --- NUEVO: Descargar el nuevo historial en segundo plano al marcar avisos ---
       try {
-        final resH = await http.get(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+        final resH = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
         if (resH.statusCode == 200) {
           final body = json.decode(resH.body);
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -1078,7 +1490,7 @@ class _TabAvisosState extends State<TabAvisos> {
       // -----------------------------------------------------------------------------
     }
     try {
-      final res = await http.get(Uri.parse("http://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         setState(() => _avisos = d.map((x) => AvisoPC.fromJson(x)).toList());
@@ -1179,6 +1591,7 @@ class _TabHistorialState extends State<TabHistorial> {
     for (var e in _colaEdiciones) {
       try {
         var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/editar_historial"));
+        req.headers.addAll(AuthService.cabeceras());
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
@@ -1225,7 +1638,7 @@ class _TabHistorialState extends State<TabHistorial> {
   // Descarga una página del historial (page=0 es la más reciente) y cachea sus fotos localmente.
   Future<List<Registro>> _descargarPagina(String q, int pagina) async {
     String fDate = _filtroAno != "TODO" ? (_filtroMes != "TODO" ? "$_filtroAno-$_filtroMes" : _filtroAno) : "";
-    final res = await http.get(Uri.parse("http://$_urlPC/api/historial?q=$q&mes=$fDate&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
+    final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial?q=$q&mes=$fDate&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
     if (res.statusCode != 200) return [];
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
@@ -1233,8 +1646,8 @@ class _TabHistorialState extends State<TabHistorial> {
     List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'])).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
-      if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
-      if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await http.get(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
+      if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
+      if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
     }
     return nuevos;
   }
@@ -1303,6 +1716,7 @@ class _TabHistorialState extends State<TabHistorial> {
   Future<bool> _subirFotoRestaurar(String id, String tipo, String rutaLocal) async {
     try {
       var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/restaurar_foto"));
+      req.headers.addAll(AuthService.cabeceras());
       req.fields['id'] = id; req.fields['tipo'] = tipo;
       req.files.add(await http.MultipartFile.fromPath(tipo == 'antes' ? 'foto' : 'foto_despues', rutaLocal));
       final r = await req.send();
@@ -1315,7 +1729,7 @@ class _TabHistorialState extends State<TabHistorial> {
     int enviadas = 0, revisados = 0;
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final res = await http.get(Uri.parse("http://$_urlPC/api/historial_todo")).timeout(const Duration(seconds: 20));
+      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial_todo")).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         for (var item in d) {
@@ -1415,9 +1829,9 @@ class _FormScreenState extends State<FormScreen> {
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
   Future<void> _cam() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _img = n); } }
-  Future<void> _down() async { String? sn = widget.serverImageName ?? widget.registroExistente?.serverImageName; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
+  Future<void> _down() async { String? sn = widget.serverImageName ?? widget.registroExistente?.serverImageName; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
   Future<void> _camDespues() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_d_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _imgDespues = n); } }
-  Future<void> _downDespues() async { String? sn = widget.serverImageNameDespues ?? widget.registroExistente?.serverImageNameDespues; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await http.get(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _imgDespues = fp); } } }
+  Future<void> _downDespues() async { String? sn = widget.serverImageNameDespues ?? widget.registroExistente?.serverImageNameDespues; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _imgDespues = fp); } } }
   @override Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(title: Text(widget.esHistorial ? t("lbl_editar") : t("lbl_nuevo"))), body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       if(!widget.esHistorial) TextField(controller: _t, decoration: InputDecoration(labelText: t("lbl_titulo"))), const SizedBox(height: 15),
@@ -1466,6 +1880,9 @@ class _ImageEditorScreenState extends State<ImageEditorScreen> {
 class SincronizadorGlobal {
   static Future<void> sincronizarTodo(String ip) async {
     final prefs = await SharedPreferences.getInstance();
+    // La sincronización puede lanzarse fuera de la UI: recargamos el token.
+    if (!AuthService.autenticado) await AuthService.cargar();
+    if (!AuthService.autenticado) return; // sin sesión no se envía nada
 
     // 1. MIS REGISTROS
     final String? datosJson = prefs.getString('registros_pendientes');
@@ -1476,6 +1893,7 @@ class SincronizadorGlobal {
       for (var item in pendientes) {
         try {
           var req = http.MultipartRequest('POST', Uri.parse("http://$ip/api/upload"));
+          req.headers.addAll(AuthService.cabeceras());
           req.fields['titulo'] = item.titulo;
           req.fields['detalles'] = item.detalles;
           req.fields['tags'] = item.tags;
@@ -1499,12 +1917,13 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> colaEdiciones = prefs.getString('cola_ediciones') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_ediciones')!)) : [];
     List<Map<String, dynamic>> colaSalida = prefs.getString('cola_salida') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_salida')!)) : [];
 
-    List<int> bo = []; for (var id in colaBorrados) { try { if ((await http.post(Uri.parse("http://$ip/api/eliminar_pendiente"), body: {'id': id.toString()})).statusCode == 200) bo.add(id); } catch(e){} }
+    List<int> bo = []; for (var id in colaBorrados) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/eliminar_pendiente"), body: {'id': id.toString()})).statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
 
     Future<bool> apiMultipart(String ep, Map<String, dynamic> d) async {
       try {
         var r = http.MultipartRequest('POST', Uri.parse("http://$ip/api/$ep"));
+        r.headers.addAll(AuthService.cabeceras());
         if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
         r.fields['titulo'] = d['titulo'];
         r.fields['detalles'] = d['detalles'];
@@ -1531,7 +1950,7 @@ class SincronizadorGlobal {
     await prefs.setString('cola_salida', json.encode(colaSalida));
 
     try {
-      final res = await http.get(Uri.parse("http://$ip/api/pendientes")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) { await prefs.setString('trabajos_pc', res.body); }
     } catch (e) {}
 
@@ -1541,8 +1960,8 @@ class SincronizadorGlobal {
     if (cc != null) { colaCompletados = (json.decode(cc) as List<dynamic>).map((e) => Map<String, String>.from(e)).toList(); }
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
-    List<String> ro = []; for (var id in colaRestaurar) { try { if ((await http.post(Uri.parse("http://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { if ((await http.post(Uri.parse("http://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) {} }
+    List<String> ro = []; for (var id in colaRestaurar) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -1550,7 +1969,7 @@ class SincronizadorGlobal {
     await prefs.setString('avisos_cola_restaurar', json.encode(colaRestaurar));
 
     try {
-      final res = await http.get(Uri.parse("http://$ip/api/avisos")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/avisos")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) { await prefs.setString('avisos_cache', res.body); }
     } catch (e) {}
 
@@ -1560,6 +1979,7 @@ class SincronizadorGlobal {
     for (var e in histEdiciones) {
       try {
         var req = http.MultipartRequest('POST', Uri.parse("http://$ip/api/editar_historial"));
+        req.headers.addAll(AuthService.cabeceras());
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
@@ -1570,7 +1990,7 @@ class SincronizadorGlobal {
     await prefs.setString('historial_cola_ediciones', json.encode(histEdiciones));
 
     try {
-      final resH = await http.get(Uri.parse("http://$ip/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+      final resH = await httpGetAuth(Uri.parse("http://$ip/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
       if (resH.statusCode == 200) {
         final body = json.decode(resH.body);
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -1589,7 +2009,7 @@ class SincronizadorGlobal {
 
     // 5. DASHBOARD
     try {
-      final res = await http.get(Uri.parse("http://$ip/api/dashboard")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/dashboard")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) { await prefs.setString('dashboard_cache', res.body); }
     } catch (e) {}
   }

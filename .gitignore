@@ -12,6 +12,11 @@ mantenimiento.db
 *.json
 *.bak
 
+# Copias sueltas de la BD (mantenimiento_old.db, *.db-journal, etc.)
+*.db-journal
+*.db-wal
+*.sqlite*
+
 # Carpetas de contenido generado por el uso
 fotos_recibidas/
 backups/
