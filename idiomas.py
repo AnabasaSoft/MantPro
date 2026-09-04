@@ -60,6 +60,7 @@ TRADUCCIONES = {
         "menu_csv": "📄 CSV",
         "menu_excel": "📊 Excel",
         "menu_salir": "Salir",
+        "btn_guardar_form": "Guardar",
 
         # --- Menú Herramientas ---
         "menu_herramientas": "&Herramientas",
@@ -316,6 +317,7 @@ TRADUCCIONES = {
         "menu_csv": "📄 CSV",
         "menu_excel": "📊 Excel",
         "menu_salir": "Exit",
+        "btn_guardar_form": "Save",
 
         # --- Tools menu ---
         "menu_herramientas": "&Tools",
@@ -569,6 +571,7 @@ TRADUCCIONES = {
         "menu_csv": "📄 CSV",
         "menu_excel": "📊 Excel",
         "menu_salir": "Irten",
+        "btn_guardar_form": "Gorde",
         "menu_herramientas": "&Tresnak",
         "menu_sync_qr": "📲 Sinkronizatu Appa (QR)",
         "menu_gestionar_dias": "Kudeatu Egunak / Jaiegunak",
