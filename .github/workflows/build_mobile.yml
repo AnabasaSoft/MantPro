@@ -53,8 +53,8 @@ jobs:
         path: mantenimiento_app/build/app/outputs/flutter-apk/MantPro.apk
 
     - name: Publicar en Release (Solo si hay Tag)
-    uses: softprops/action-gh-release@v2
-    if: startsWith(github.ref, 'refs/tags/')
-    with:
-      files: mantenimiento_app/build/app/outputs/flutter-apk/MantPro.apk
-      fail_on_unmatched_files: true
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: mantenimiento_app/build/app/outputs/flutter-apk/MantPro.apk
+        fail_on_unmatched_files: true
