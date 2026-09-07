@@ -143,6 +143,21 @@ def inicializar():
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id)")
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS auditoria (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            fecha       TEXT    NOT NULL,
+            usuario_id  INTEGER,
+            usuario_nombre TEXT,
+            tarea_id    INTEGER,
+            accion      TEXT    NOT NULL,
+            detalle     TEXT,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_auditoria_tarea ON auditoria(tarea_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria(fecha DESC)")
+
     # --- columnas nuevas en tablas existentes ---
     if _tabla_existe(con, "tareas"):
         cols = _columnas(con, "tareas")
@@ -399,5 +414,45 @@ def sesiones_de(usuario_id):
         "SELECT dispositivo, creado, expira FROM sesiones WHERE usuario_id = ? "
         "ORDER BY creado DESC", (usuario_id,)
     ).fetchall()
+    con.close()
+    return [dict(f) for f in filas]
+
+
+# ---------------------------------------------------------------- auditoría
+
+def registrar_auditoria(usuario_id, tarea_id, accion, detalle=""):
+    """Apunta una acción (editar/borrar) sobre un registro del historial."""
+    try:
+        con = _conn()
+        nombre = ""
+        if usuario_id:
+            fila = con.execute("SELECT nombre FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
+            nombre = fila["nombre"] if fila else ""
+        con.execute(
+            "INSERT INTO auditoria (fecha, usuario_id, usuario_nombre, tarea_id, accion, detalle) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (datetime.now().isoformat(timespec="seconds"), usuario_id, nombre,
+             tarea_id, accion, (detalle or "")[:500]),
+        )
+        con.commit()
+        con.close()
+    except Exception as e:
+        print(f"Error registrar_auditoria: {e}")
+
+
+def obtener_auditoria(usuario_id=None, accion=None, tarea_id=None, limite=200):
+    """Devuelve los registros de auditoría, los más recientes primero."""
+    con = _conn()
+    sql = "SELECT * FROM auditoria WHERE 1=1"
+    params = []
+    if usuario_id is not None:
+        sql += " AND usuario_id = ?"; params.append(usuario_id)
+    if accion is not None:
+        sql += " AND accion = ?"; params.append(accion)
+    if tarea_id is not None:
+        sql += " AND tarea_id = ?"; params.append(tarea_id)
+    sql += " ORDER BY id DESC LIMIT ?"
+    params.append(limite)
+    filas = con.execute(sql, params).fetchall()
     con.close()
     return [dict(f) for f in filas]

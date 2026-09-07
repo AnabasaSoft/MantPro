@@ -62,7 +62,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHeaderView, QDialog, QDialogButtonBox, QAbstractItemView,
                              QListWidgetItem, QStyleFactory, QComboBox, QGroupBox, QCheckBox,
                              QCompleter, QFileDialog, QScrollArea, QSizePolicy, QGridLayout,
-                             QSpinBox, QRadioButton, QProgressBar, QTreeView, QMenu, QSplashScreen,
+                             QSpinBox, QRadioButton, QProgressBar, QProgressDialog, QTreeView, QMenu, QSplashScreen,
                              QTreeWidget, QTreeWidgetItem, QSplitter)
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
@@ -151,7 +151,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "2.7.5"
+APP_VERSION = "2.7.6"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -1304,14 +1304,36 @@ class GestorBaseDatos:
     def obtener_tareas_por_fecha(self,f):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT id,descripcion,tags FROM tareas WHERE fecha=?',(f,)); return c.fetchall()
         except: return []
-    def borrar_tarea(self,i):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('DELETE FROM tareas WHERE id=?',(i,)); conn.commit(); conn.close(); return True
+    def borrar_tarea(self, i):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute("SELECT fecha, descripcion, COALESCE(usuario_nombre,'') FROM tareas WHERE id=?", (i,))
+            fila = c.fetchone()
+            detalle = ""
+            if fila:
+                desc_corta = fila[1][:80].split("\n")[0]
+                detalle = f"Registro del {fila[0]}: {desc_corta} (autor original: {fila[2] or 'Histórico'})"
+            c.execute('DELETE FROM tareas WHERE id=?', (i,))
+            conn.commit(); conn.close()
+            usuarios.registrar_auditoria(usuarios.id_actual(), i, "borrar", detalle)
+            return True
+        except Exception as e:
+            print(f"Error borrar_tarea: {e}"); return False
+    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            if usuario_id is not None:
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=? WHERE id=?',
+                          (f, d, t, usuario_id, usuario_nombre, i))
+            else:
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=? WHERE id=?', (f, d, t, i))
+            conn.commit(); conn.close(); return True
         except: return False
-    def actualizar_tarea(self,i,f,d,t):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('UPDATE tareas SET fecha=?,descripcion=?,tags=? WHERE id=?',(f,d,t,i)); conn.commit(); conn.close(); return True
-        except: return False
-    def obtener_tarea_por_id(self,i):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT id,fecha,descripcion,tags FROM tareas WHERE id=?',(i,)); return c.fetchone()
+    def obtener_tarea_por_id(self, i):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,'') FROM tareas WHERE id=?", (i,))
+            return c.fetchone()
         except: return None
     def buscar_tareas_avanzado(self, texto, fecha=None):
         try:
@@ -1622,16 +1644,38 @@ class DialogoSeleccionRegion(QDialog):
         return nombre, datos["iso"], datos["parent"]
 
 class EditDialog(QDialog):
-    def __init__(self, parent=None, fecha="", desc="", tags=""):
+    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre=""):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
         self.ref_oculta = ""
+        self._usuario_id_original = usuario_id
+        self._usuario_nombre_original = usuario_nombre
         self.setWindowTitle(t("title_editar_registro"))
-        self.resize(600, 600)
+        self.resize(600, 650)
         l = QVBoxLayout()
         self.de = QDateEdit(); self.de.setDate(QDate.fromString(fecha, "yyyy-MM-dd")); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd")
         l.addWidget(QLabel(t("lbl_fecha"))); l.addWidget(self.de)
+
+        # --- Combo de técnico (solo editable por admin) ---
+        fila_autor = QHBoxLayout()
+        fila_autor.addWidget(QLabel(tt("hdr_realizado_por", "Realizado por") + ":"))
+        self.combo_autor = QComboBox()
+        self.combo_autor.addItem(usuarios.ETIQUETA_HISTORICO, None)
+        for u in usuarios.listar_usuarios(incluir_inactivos=True):
+            self.combo_autor.addItem(u["nombre"], u["id"])
+        idx = self.combo_autor.findData(usuario_id)
+        if idx >= 0:
+            self.combo_autor.setCurrentIndex(idx)
+        elif usuario_nombre:
+            idx_nombre = self.combo_autor.findText(usuario_nombre)
+            if idx_nombre >= 0: self.combo_autor.setCurrentIndex(idx_nombre)
+        if not usuarios.es_admin():
+            self.combo_autor.setEnabled(False)
+            self.combo_autor.setToolTip(tt("msg_solo_admin_autor", "Solo un administrador puede cambiar el autor"))
+        fila_autor.addWidget(self.combo_autor, 1)
+        l.addLayout(fila_autor)
+
         texto_limpio, nombre_foto, nombre_foto_d, ref_encontrada = self.separar_datos(desc)
         self.foto_filename = nombre_foto
         self.foto_despues_filename = nombre_foto_d
@@ -1752,7 +1796,9 @@ class EditDialog(QDialog):
         if self.chk_prev.isChecked(): final_tags.append("Preventivo")
         manual = self.tag.text().strip()
         if manual: final_tags.append(manual)
-        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags))
+        usuario_id = self.combo_autor.currentData()
+        usuario_nombre = self.combo_autor.currentText() if usuario_id is not None else usuarios.ETIQUETA_HISTORICO
+        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre)
 
 class DialogoEditarPendiente(QDialog):
     def __init__(self, parent=None, titulo="", detalles="", ruta_foto=""):
@@ -2338,6 +2384,8 @@ class MaintenanceApp(QMainWindow):
         if usuarios.es_admin():
             tm.addAction(QAction(tt("menu_usuarios", "👥 Gestión de usuarios"),
                                  self, triggered=self.gestionar_usuarios))
+            tm.addAction(QAction(tt("menu_auditoria", "📋 Registro de cambios"),
+                                 self, triggered=self.ver_auditoria))
         hm = mb.addMenu(t("menu_ayuda"))
         hm.addAction(QAction(t("menu_buscar_actualizaciones"), self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
         hm.addAction(QAction(t("menu_acerca_de"), self, triggered=self.mostrar_about))
@@ -2746,6 +2794,10 @@ class MaintenanceApp(QMainWindow):
         self.setup_table(self.h_table)
         # La columna TAGS se sigue guardando y coloreando las filas, pero no se muestra
         self.h_table.setColumnHidden(2, True)
+        # Selección múltiple (Ctrl+Click, Shift+Click) + menú contextual
+        self.h_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.h_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.h_table.customContextMenuRequested.connect(self._menu_contextual_historial)
         self.h_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.h_table))
         right_panel.addWidget(self.h_table)
 
@@ -2911,8 +2963,13 @@ class MaintenanceApp(QMainWindow):
     def proc_edit(self, i):
         d = self.db.obtener_tarea_por_id(i)
         if d:
-            dlg = EditDialog(self, d[1], d[2], d[3])
-            if dlg.exec(): nuevos_datos = dlg.get_data(); self.db.actualizar_tarea(i, *nuevos_datos); self.refresh_all()
+            uid = d[4] if len(d) > 4 else None
+            unombre = d[5] if len(d) > 5 else ""
+            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre)
+            if dlg.exec():
+                fecha, desc, tags, nuevo_uid, nuevo_nombre = dlg.get_data()
+                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre)
+                self.refresh_all()
 
     def del_rec(self, tabla_widget):
         r = tabla_widget.currentRow()
@@ -3489,6 +3546,187 @@ class MaintenanceApp(QMainWindow):
             QMessageBox.information(self, t("title_exito"), mensaje)
         else:
             QMessageBox.critical(self, t("title_error_pdf"), mensaje)
+
+    def _menu_contextual_historial(self, pos):
+        """Menú con clic derecho sobre la tabla del historial."""
+        seleccion = self.h_table.selectionModel().selectedRows()
+        if not seleccion:
+            return
+
+        menu = QMenu(self)
+
+        n = len(seleccion)
+        if n == 1:
+            menu.addAction(t("btn_editar"), lambda: self.edit_rec(self.h_table))
+
+        # Cambiar autor (admin)
+        if usuarios.es_admin():
+            texto = tt("ctx_cambiar_autor", "👤 Cambiar autor") if n == 1 else \
+                    tt("ctx_cambiar_autor_n", "👤 Cambiar autor ({n} registros)").format(n=n)
+            menu.addAction(texto, lambda: self._reasignar_masivo(seleccion))
+
+        if n == 1:
+            menu.addSeparator()
+            menu.addAction(t("btn_borrar_seleccionado"), lambda: self.del_rec(self.h_table))
+
+        menu.exec(self.h_table.viewport().mapToGlobal(pos))
+
+    def _reasignar_masivo(self, seleccion):
+        """Cambia el autor de uno o varios registros del historial."""
+        if not usuarios.es_admin():
+            return
+
+        ids = []
+        for idx in seleccion:
+            item = self.h_table.item(idx.row(), 0)
+            if item:
+                ids.append(item.data(Qt.ItemDataRole.UserRole))
+        if not ids:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tt("ctx_cambiar_autor", "Cambiar autor"))
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel(
+            tt("lbl_nuevo_autor", "Nuevo autor para {n} registro(s):").format(n=len(ids))))
+
+        combo = QComboBox()
+        combo.addItem(usuarios.ETIQUETA_HISTORICO, None)
+        for u in usuarios.listar_usuarios(incluir_inactivos=True):
+            combo.addItem(u["nombre"], u["id"])
+        lay.addWidget(combo)
+
+        caja = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
+        caja.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        caja.accepted.connect(dlg.accept)
+        caja.rejected.connect(dlg.reject)
+        lay.addWidget(caja)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        nuevo_uid = combo.currentData()
+        nuevo_nombre = combo.currentText() if nuevo_uid is not None else usuarios.ETIQUETA_HISTORICO
+
+        # --- Diálogo de progreso modal (bloquea la ventana principal) ---
+        progreso = QProgressDialog(
+            tt("msg_reasignando", "Reasignando registros…"), None, 0, len(ids), self)
+        progreso.setWindowTitle(tt("ctx_cambiar_autor", "Cambiar autor"))
+        progreso.setWindowModality(Qt.WindowModality.ApplicationModal)
+        progreso.setMinimumDuration(0)
+        progreso.setCancelButton(None)  # Sin botón de cancelar
+        progreso.setAutoClose(False)
+        progreso.setValue(0)
+        QApplication.processEvents()
+
+        try:
+            conn = self.db.conectar()
+            c = conn.cursor()
+            auditorias = []
+            for i, tarea_id in enumerate(ids):
+                c.execute("SELECT COALESCE(usuario_nombre,'') FROM tareas WHERE id=?", (tarea_id,))
+                fila = c.fetchone()
+                anterior = fila[0] if fila and fila[0] else usuarios.ETIQUETA_HISTORICO
+                if anterior != nuevo_nombre:
+                    c.execute("UPDATE tareas SET usuario_id=?, usuario_nombre=? WHERE id=?",
+                              (nuevo_uid, nuevo_nombre, tarea_id))
+                    auditorias.append((tarea_id, f"autor: {anterior} → {nuevo_nombre}"))
+                progreso.setValue(i + 1)
+                progreso.setLabelText(
+                    tt("msg_reasignando_n", "Reasignando {i} de {n}…").format(i=i + 1, n=len(ids)))
+                QApplication.processEvents()
+            conn.commit()
+            conn.close()
+
+            # Auditoría DESPUÉS de cerrar la conexión (evita deadlock en SQLite)
+            progreso.setLabelText(tt("msg_guardando_auditoria", "Guardando registro de cambios…"))
+            progreso.setMaximum(len(auditorias))
+            progreso.setValue(0)
+            QApplication.processEvents()
+            for i, (tarea_id, detalle) in enumerate(auditorias):
+                usuarios.registrar_auditoria(usuarios.id_actual(), tarea_id, "editar", detalle)
+                progreso.setValue(i + 1)
+                if i % 10 == 0:
+                    QApplication.processEvents()
+        except Exception as e:
+            progreso.close()
+            QMessageBox.critical(self, t("title_error"), str(e))
+            return
+
+        progreso.close()
+        self.refresh_all()
+        self.statusBar().showMessage(
+            tt("msg_autor_cambiado", "{n} registro(s) reasignado(s) a {nombre}").format(
+                n=len(ids), nombre=nuevo_nombre), 4000)
+
+    def ver_auditoria(self):
+        if not usuarios.es_admin():
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tt("menu_auditoria", "Registro de cambios"))
+        dlg.resize(900, 500)
+        lay = QVBoxLayout(dlg)
+
+        fila = QHBoxLayout()
+        fila.addWidget(QLabel(tt("hdr_realizado_por", "Realizado por") + ":"))
+        combo_u = QComboBox()
+        combo_u.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        for u in usuarios.listar_usuarios(incluir_inactivos=True):
+            combo_u.addItem(u["nombre"], u["id"])
+        fila.addWidget(combo_u)
+
+        fila.addWidget(QLabel(tt("lbl_accion", "Acción") + ":"))
+        combo_a = QComboBox()
+        combo_a.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        combo_a.addItem(tt("accion_editar", "Editar"), "editar")
+        combo_a.addItem(tt("accion_borrar", "Borrar"), "borrar")
+        fila.addWidget(combo_a)
+        lay.addLayout(fila)
+
+        tabla = QTableWidget(0, 5)
+        tabla.setHorizontalHeaderLabels([
+            tt("lbl_fecha_hora", "Fecha y hora"),
+            tt("hdr_realizado_por", "Realizado por"),
+            tt("lbl_accion", "Acción"),
+            "ID",
+            tt("lbl_detalle", "Detalle"),
+        ])
+        tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        tabla.setColumnWidth(0, 150)
+        tabla.setColumnWidth(1, 160)
+        tabla.setColumnWidth(2, 100)
+        tabla.setColumnWidth(3, 45)
+        tabla.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        tabla.setAlternatingRowColors(True)
+        lay.addWidget(tabla)
+
+        def refrescar(*_):
+            uid = combo_u.currentData()
+            accion = combo_a.currentData()
+            registros = usuarios.obtener_auditoria(
+                usuario_id=uid if uid != "TODOS" else None,
+                accion=accion if accion != "TODOS" else None,
+                limite=500)
+            tabla.setRowCount(len(registros))
+            for fila_n, r in enumerate(registros):
+                tabla.setItem(fila_n, 0, QTableWidgetItem(r["fecha"]))
+                tabla.setItem(fila_n, 1, QTableWidgetItem(r["usuario_nombre"]))
+                accion_txt = {"editar": "✏️ Editado", "borrar": "🗑️ Borrado"}.get(r["accion"], r["accion"])
+                tabla.setItem(fila_n, 2, QTableWidgetItem(accion_txt))
+                tabla.setItem(fila_n, 3, QTableWidgetItem(str(r["tarea_id"])))
+                tabla.setItem(fila_n, 4, QTableWidgetItem(r["detalle"]))
+
+        combo_u.currentIndexChanged.connect(refrescar)
+        combo_a.currentIndexChanged.connect(refrescar)
+        refrescar()
+
+        cerrar = QPushButton(t("cerrar"))
+        cerrar.clicked.connect(dlg.accept)
+        lay.addWidget(cerrar)
+        dlg.exec()
 
     def gestionar_usuarios(self):
         if not usuarios.es_admin():
