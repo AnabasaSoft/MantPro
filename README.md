@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
 </p>
 
@@ -483,31 +483,45 @@ HTTPS).
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+Este proyecto está bajo la **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+Ver el archivo `LICENSE` para el texto completo.
+
+Copyright (C) 2026 AnabasaSoft
+
+### Qué significa en la práctica
+
+- ✅ Puedes **usar** MantPro libremente, también en tu empresa y con fines comerciales
+- ✅ Puedes **estudiar, modificar y redistribuir** el código
+- ⚠️ Si distribuyes una versión modificada, debes publicarla **también bajo AGPL-3.0**
+- ⚠️ Si ofreces MantPro (o un derivado) **como servicio a través de una red**, debes
+  poner el código fuente a disposición de quienes lo usen, aunque no distribuyas
+  ningún ejecutable. Esta es la diferencia clave respecto a la GPL v3
+- ⚠️ Debes mantener los avisos de copyright y licencia
+
+### Aviso de licencia
 
 ```
-MIT License
+MantPro - Sistema de Mantenimiento Preventivo
+Copyright (C) 2026 AnabasaSoft
 
-Copyright (c) 2026 AnabasaSoft
+Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo
+los términos de la Licencia Pública General Affero de GNU publicada por la
+Free Software Foundation, ya sea la versión 3 de la Licencia o (a tu
+elección) cualquier versión posterior.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Este programa se distribuye con la esperanza de que sea útil, pero SIN
+NINGUNA GARANTÍA; ni siquiera la garantía implícita de COMERCIABILIDAD o
+IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública
+General Affero de GNU para más detalles.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Deberías haber recibido una copia de la Licencia Pública General Affero de
+GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 ```
+
+> **Nota sobre licencias comerciales**: AnabasaSoft es el titular único del
+> copyright de MantPro y, por tanto, puede ofrecer el mismo código bajo
+> condiciones distintas a la AGPL. Si necesitas integrar MantPro en un producto
+> propietario, ponte en contacto.
 
 ---
 
