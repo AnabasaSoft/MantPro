@@ -55,3 +55,4 @@ Logo.jpg
 #Otros archivos
 *.pdf
 *.sh
+bump_version.py
