@@ -456,14 +456,14 @@ Estado actual y siguientes pasos previstos.
 - **Pendientes asignados**: el PC asigna cada trabajo a un técnico y el móvil
   puede filtrar por "Solo míos".
 - **Filtro por técnico** en el histórico y en la exportación a PDF.
+- **Auditoría de ediciones**: se registra quién edita o borra un trabajo (no
+  solo quién lo creó), consultable desde "Registro de cambios".
 
 ### 🔜 Siguientes pasos
 
 - [ ] **Sesiones activas**: listar los móviles vinculados a cada usuario y poder
       revocar uno concreto (hoy solo se puede desactivar al usuario entero,
       lo que invalida todos sus dispositivos a la vez).
-- [ ] **Auditoría de ediciones**: registrar quién edita o borra un trabajo, no
-      solo quién lo creó.
 - [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
 - [ ] **Filtro por técnico en CSV y Excel** (por ahora solo está en el PDF).
 - [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la

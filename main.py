@@ -68,7 +68,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QPropertyAnimation, QEasingCurve, QTimer)
 
-from PyQt6.QtGui import (QAction, QIcon, QColor, QBrush, QTextCharFormat,
+from PyQt6.QtGui import (QAction, QActionGroup, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel)
 
 # Función auxiliar para conectar de forma SEGURA
@@ -151,7 +151,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.0.1"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -1295,10 +1295,16 @@ class GestorBaseDatos:
             conn.commit(); conn.close(); return True
         except Exception as e:
             print(f"Error agregar_tarea: {e}"); return False
-    def obtener_todas_cronologico(self):
+    def obtener_todas_cronologico(self, filtro_usuario=None):
         try:
             conn=self.conectar(); c=conn.cursor()
-            c.execute("SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,'') FROM tareas ORDER BY fecha DESC, id DESC")
+            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,'') FROM tareas"
+            params = []
+            if filtro_usuario:
+                sql += " WHERE usuario_nombre = ?"
+                params.append(filtro_usuario)
+            sql += " ORDER BY fecha DESC, id DESC"
+            c.execute(sql, params)
             return c.fetchall()
         except: return []
     def obtener_tareas_por_fecha(self,f):
@@ -1960,6 +1966,33 @@ class DialogoExportarPDF(QDialog):
             return ("RANGO", self.d_inicio.date().toString("yyyy-MM-dd"),
                     self.d_fin.date().toString("yyyy-MM-dd"), usuario)
 
+class DialogoFiltroTecnico(QDialog):
+    def __init__(self, parent=None, titulo=None):
+        super().__init__(parent)
+        self.setWindowTitle(titulo or tt("title_filtrar_tecnico", "Filtrar por Técnico"))
+        l = QVBoxLayout()
+        fila = QHBoxLayout()
+        fila.addWidget(QLabel(tt("hdr_realizado_por", "Realizado por") + ":"))
+        self.combo_usuario = QComboBox()
+        self.combo_usuario.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        try:
+            for u in usuarios.listar_usuarios():
+                self.combo_usuario.addItem(u["nombre"], u["nombre"])
+            self.combo_usuario.addItem(usuarios.ETIQUETA_HISTORICO, usuarios.ETIQUETA_HISTORICO)
+        except Exception:
+            pass
+        fila.addWidget(self.combo_usuario, 1)
+        l.addLayout(fila)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
+        b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def get_filtro(self):
+        usuario = self.combo_usuario.currentData()
+        return None if usuario == "TODOS" else usuario
+
 def traducir_tags_bd(tags_bd):
     traducciones = {
         "Urgente": t("tag_urgente"),
@@ -2037,6 +2070,7 @@ class MaintenanceApp(QMainWindow):
         except Exception:
             pass
 
+        self._tema_actual = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro")
         self.crear_menu()
         self.aplicar_estilo_visual()
         cw = QWidget(); self.setCentralWidget(cw); ml = QVBoxLayout(); ml.setContentsMargins(10, 10, 10, 10); cw.setLayout(ml)
@@ -2386,6 +2420,22 @@ class MaintenanceApp(QMainWindow):
                                  self, triggered=self.gestionar_usuarios))
             tm.addAction(QAction(tt("menu_auditoria", "📋 Registro de cambios"),
                                  self, triggered=self.ver_auditoria))
+        # --- Menú de tema visual ---
+        vm = mb.addMenu(tt("menu_tema", "Apariencia"))
+        self._acciones_tema = {}
+        grupo_tema = QActionGroup(self)
+        for nombre, etiqueta in [("oscuro", tt("tema_oscuro", "🌙 Oscuro (por defecto)")),
+                                  ("claro", tt("tema_claro", "☀️ Claro")),
+                                  ("retro", tt("tema_retro", "🖥️ Clásico (Windows 98)"))]:
+            act = QAction(etiqueta, self, checkable=True)
+            act.setData(nombre)
+            act.triggered.connect(lambda checked, n=nombre: self.aplicar_estilo_visual(n))
+            grupo_tema.addAction(act)
+            vm.addAction(act)
+            self._acciones_tema[nombre] = act
+            if nombre == self._tema_actual:
+                act.setChecked(True)
+
         hm = mb.addMenu(t("menu_ayuda"))
         hm.addAction(QAction(t("menu_buscar_actualizaciones"), self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
         hm.addAction(QAction(t("menu_acerca_de"), self, triggered=self.mostrar_about))
@@ -2451,8 +2501,155 @@ class MaintenanceApp(QMainWindow):
         self.pintar_calendario()
         self.update_calendar_list()
 
-    def aplicar_estilo_visual(self):
+    def aplicar_estilo_visual(self, tema=None):
+        if tema is None:
+            tema = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro")
+        self._tema_actual = tema
+
+        QSettings("MyCompany", "MantenimientoApp").setValue("tema", tema)
+
+        if tema == "retro":
+            self._aplicar_tema_retro()
+        elif tema == "claro":
+            self._aplicar_tema_claro()
+        else:
+            self._aplicar_tema_oscuro()
+
+        # Actualizar checks del menú si existe
+        if hasattr(self, '_acciones_tema'):
+            for nombre, act in self._acciones_tema.items():
+                act.setChecked(nombre == tema)
+
+    def _aplicar_tema_retro(self):
+        """Estilo clásico inspirado en Windows 98 / 2000."""
         QApplication.setStyle(QStyleFactory.create("Fusion"))
+        from PyQt6.QtGui import QPalette, QColor
+        pal = QPalette()
+        # Fondo gris clásico
+        pal.setColor(QPalette.ColorRole.Window, QColor(212, 208, 200))
+        pal.setColor(QPalette.ColorRole.WindowText, QColor(0, 0, 0))
+        pal.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
+        pal.setColor(QPalette.ColorRole.AlternateBase, QColor(230, 228, 224))
+        pal.setColor(QPalette.ColorRole.Text, QColor(0, 0, 0))
+        pal.setColor(QPalette.ColorRole.Button, QColor(212, 208, 200))
+        pal.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
+        # Selección azul oscuro
+        pal.setColor(QPalette.ColorRole.Highlight, QColor(0, 0, 128))
+        pal.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+        # Bordes
+        pal.setColor(QPalette.ColorRole.Light, QColor(255, 255, 255))
+        pal.setColor(QPalette.ColorRole.Dark, QColor(128, 128, 128))
+        pal.setColor(QPalette.ColorRole.Mid, QColor(160, 160, 160))
+        pal.setColor(QPalette.ColorRole.Shadow, QColor(64, 64, 64))
+        # Tooltips
+        pal.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 225))
+        pal.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
+        # Disabled
+        pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor(128, 128, 128))
+        pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(128, 128, 128))
+        pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(128, 128, 128))
+
+        QApplication.instance().setPalette(pal)
+        self.setStyleSheet("""
+        QMainWindow, QWidget { font-family: "Tahoma", "MS Sans Serif", sans-serif; font-size: 13px; }
+        QMenuBar { background-color: #d4d0c8; border-bottom: 1px solid #808080; }
+        QMenuBar::item:selected { background-color: #000080; color: white; }
+        QMenu { background-color: #d4d0c8; border: 2px outset #d4d0c8; }
+        QMenu::item:selected { background-color: #000080; color: white; }
+        QTabWidget::pane { border: 2px inset #808080; background: #d4d0c8; }
+        QTabBar::tab { background: #d4d0c8; border: 1px outset #d4d0c8; padding: 4px 14px; margin-right: 1px; }
+        QTabBar::tab:selected { background: #d4d0c8; border-bottom: none; font-weight: bold; }
+        QTabBar::tab:!selected { margin-top: 2px; }
+        QPushButton { background-color: #d4d0c8; border: 2px outset #d4d0c8; padding: 4px 12px; min-height: 20px; }
+        QPushButton:pressed { border-style: inset; }
+        QPushButton:hover { background-color: #e4e0d8; }
+        QLineEdit, QTextEdit, QDateEdit, QSpinBox { background-color: white; border: 2px inset #808080; padding: 2px; }
+        QTableWidget, QTreeView, QListWidget, QListView { background-color: white; border: 2px inset #808080; gridline-color: #c0c0c0; }
+        QHeaderView::section { background-color: #d4d0c8; border: 1px outset #d4d0c8; padding: 4px; font-weight: bold; }
+        QGroupBox { border: 2px groove #d4d0c8; margin-top: 8px; padding-top: 12px; }
+        QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; }
+        QComboBox { background-color: white; border: 2px inset #808080; padding: 2px; }
+        QComboBox::drop-down { border-left: 1px solid #808080; background: #d4d0c8; width: 18px; }
+        QCheckBox::indicator, QRadioButton::indicator { width: 13px; height: 13px; }
+        QProgressBar { border: 2px inset #808080; background: white; text-align: center; }
+        QProgressBar::chunk { background-color: #000080; }
+        QScrollBar:vertical { background: #d4d0c8; width: 16px; border: 1px solid #808080; }
+        QScrollBar::handle:vertical { background: #d4d0c8; border: 1px outset #d4d0c8; min-height: 20px; }
+        QScrollBar:horizontal { background: #d4d0c8; height: 16px; border: 1px solid #808080; }
+        QScrollBar::handle:horizontal { background: #d4d0c8; border: 1px outset #d4d0c8; min-width: 20px; }
+        QStatusBar { background: #d4d0c8; border-top: 1px solid #808080; }
+        QCalendarWidget QAbstractItemView:enabled { background-color: white; color: black; selection-background-color: #000080; selection-color: white; }
+        QSplitter::handle { background: #d4d0c8; }
+        QDialog { background-color: #d4d0c8; }
+        """)
+
+    def _aplicar_tema_claro(self):
+        """Tema claro moderno."""
+        QApplication.setStyle(QStyleFactory.create("Fusion"))
+        from PyQt6.QtGui import QPalette, QColor
+        pal = QPalette()
+        pal.setColor(QPalette.ColorRole.Window, QColor(243, 243, 243))
+        pal.setColor(QPalette.ColorRole.WindowText, QColor(30, 30, 30))
+        pal.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
+        pal.setColor(QPalette.ColorRole.AlternateBase, QColor(238, 238, 238))
+        pal.setColor(QPalette.ColorRole.Text, QColor(30, 30, 30))
+        pal.setColor(QPalette.ColorRole.Button, QColor(230, 230, 230))
+        pal.setColor(QPalette.ColorRole.ButtonText, QColor(30, 30, 30))
+        pal.setColor(QPalette.ColorRole.Highlight, QColor(0, 120, 212))
+        pal.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+        pal.setColor(QPalette.ColorRole.Light, QColor(255, 255, 255))
+        pal.setColor(QPalette.ColorRole.Dark, QColor(180, 180, 180))
+        pal.setColor(QPalette.ColorRole.Mid, QColor(200, 200, 200))
+        pal.setColor(QPalette.ColorRole.Shadow, QColor(120, 120, 120))
+        pal.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 255))
+        pal.setColor(QPalette.ColorRole.ToolTipText, QColor(30, 30, 30))
+        pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor(160, 160, 160))
+        pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(160, 160, 160))
+        pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(160, 160, 160))
+        QApplication.instance().setPalette(pal)
+        self.setStyleSheet("""
+        QMainWindow, QWidget { font-family: "Segoe UI", sans-serif; font-size: 14px; }
+        QMenuBar { background-color: #f3f3f3; border-bottom: 1px solid #d0d0d0; }
+        QMenuBar::item:selected { background-color: #0078d4; color: white; border-radius: 3px; }
+        QMenu { background-color: #ffffff; border: 1px solid #d0d0d0; }
+        QMenu::item { padding: 6px 24px; }
+        QMenu::item:selected { background-color: #0078d4; color: white; border-radius: 3px; }
+        QTabWidget::pane { border: 1px solid #d0d0d0; background: #f3f3f3; border-radius: 4px; }
+        QTabBar::tab { background: #e6e6e6; color: #444; padding: 8px 20px; border-top-left-radius: 4px; border-top-right-radius: 4px; margin-right: 2px; }
+        QTabBar::tab:selected { background: #0078d4; color: white; font-weight: bold; }
+        QTabBar::tab:hover:!selected { background: #d4d4d4; }
+        QPushButton { background-color: #e6e6e6; border: 1px solid #c0c0c0; border-radius: 5px; padding: 6px 14px; }
+        QPushButton:hover { background-color: #d4d4d4; border-color: #0078d4; }
+        QPushButton:pressed { background-color: #0078d4; color: white; }
+        QLineEdit, QTextEdit, QDateEdit, QSpinBox { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; padding: 4px; }
+        QLineEdit:focus, QTextEdit:focus { border-color: #0078d4; }
+        QTableWidget, QTreeView, QListWidget, QListView { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; gridline-color: #e0e0e0; selection-background-color: #0078d4; selection-color: white; }
+        QHeaderView::section { background-color: #e6e6e6; border: none; border-right: 1px solid #d0d0d0; border-bottom: 1px solid #d0d0d0; padding: 6px; font-weight: bold; color: #333; }
+        QGroupBox { border: 1px solid #d0d0d0; border-radius: 6px; margin-top: 8px; padding-top: 14px; }
+        QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 6px; color: #0078d4; }
+        QComboBox { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; padding: 4px; }
+        QComboBox::drop-down { border-left: 1px solid #d0d0d0; background: #e6e6e6; width: 20px; border-radius: 0 4px 4px 0; }
+        QProgressBar { border: 1px solid #c0c0c0; border-radius: 4px; background: white; text-align: center; }
+        QProgressBar::chunk { background-color: #0078d4; border-radius: 3px; }
+        QScrollBar:vertical { background: #f3f3f3; width: 12px; border: none; }
+        QScrollBar::handle:vertical { background: #c0c0c0; border-radius: 6px; min-height: 24px; }
+        QScrollBar::handle:vertical:hover { background: #a0a0a0; }
+        QScrollBar:horizontal { background: #f3f3f3; height: 12px; border: none; }
+        QScrollBar::handle:horizontal { background: #c0c0c0; border-radius: 6px; min-width: 24px; }
+        QScrollBar::handle:horizontal:hover { background: #a0a0a0; }
+        QStatusBar { background: #f3f3f3; border-top: 1px solid #d0d0d0; color: #555; }
+        QCalendarWidget QAbstractItemView:enabled { background-color: white; color: #1e1e1e; selection-background-color: #0078d4; selection-color: white; }
+        QSplitter::handle { background: #d0d0d0; }
+        QDialog { background-color: #f3f3f3; }
+        QCheckBox::indicator:unchecked { border: 1px solid #999; background: white; border-radius: 2px; }
+        QCheckBox::indicator:checked { background: #0078d4; border: 1px solid #0078d4; border-radius: 2px; }
+        """)
+
+    def _aplicar_tema_oscuro(self):
+        """Tema oscuro original de MantPro."""
+        QApplication.setStyle(QStyleFactory.create("Fusion"))
+        # Limpiar la paleta retro si venimos de ella
+        QApplication.instance().setPalette(QApplication.style().standardPalette())
         self.setStyleSheet("""
         QMainWindow, QWidget { background-color: #2b2b2b; color: #e0e0e0; font-family: "Segoe UI", sans-serif; font-size: 14px; }
         QTabWidget::pane { border: 1px solid #444; background: #2b2b2b; border-radius: 4px; }
@@ -2957,12 +3154,30 @@ class MaintenanceApp(QMainWindow):
         widget.mousePressEvent = click_inteligente
 
     def edit_cal(self, i): self.proc_edit(i.data(Qt.ItemDataRole.UserRole))
+    def _es_mi_registro(self, tarea_id):
+        """Comprueba si el registro pertenece al usuario actual."""
+        d = self.db.obtener_tarea_por_id(tarea_id)
+        if not d:
+            return False
+        uid_registro = d[4] if len(d) > 4 else None
+        return uid_registro == usuarios.id_actual()
+
+    def _puede_modificar(self, tarea_id):
+        """Admin puede todo; técnico solo sus registros."""
+        if usuarios.es_admin():
+            return True
+        return self._es_mi_registro(tarea_id)
+
     def edit_rec(self, tabla_widget):
         r = tabla_widget.currentRow()
         if r >= 0: self.proc_edit(tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole))
     def proc_edit(self, i):
         d = self.db.obtener_tarea_por_id(i)
         if d:
+            if not self._puede_modificar(i):
+                QMessageBox.information(self, t("aviso"),
+                    tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
+                return
             uid = d[4] if len(d) > 4 else None
             unombre = d[5] if len(d) > 5 else ""
             dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre)
@@ -2975,6 +3190,10 @@ class MaintenanceApp(QMainWindow):
         r = tabla_widget.currentRow()
         if r >= 0:
             i = tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole)
+            if not self._puede_modificar(i):
+                QMessageBox.information(self, t("aviso"),
+                    tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
+                return
             d = self.db.obtener_tarea_por_id(i)
             if d:
                 # --- DIÁLOGO ESPAÑOL ---
@@ -3181,12 +3400,12 @@ class MaintenanceApp(QMainWindow):
 
     def realizar_backup(self):
         self.limpiar_fotos_huerfanas(silencioso=True)
-        folder_backups = "backups"
-        if not os.path.exists(folder_backups): os.makedirs(folder_backups)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         nombre_zip = f"backup_completo_{timestamp}.zip"
-        # Usamos self.carpeta_backups para seguir la lógica de directorios
-        ruta_zip = os.path.join(self.carpeta_backups, nombre_zip)
+        # Sugerimos la carpeta de backups habitual, pero el usuario puede elegir otra ubicación
+        ruta_sugerida = os.path.join(self.carpeta_backups, nombre_zip)
+        ruta_zip = self.guardar_archivo_dialogo(t("title_guardar_backup"), ruta_sugerida, "Archivos ZIP (*.zip)")
+        if not ruta_zip: return
         try:
             with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
@@ -3196,7 +3415,7 @@ class MaintenanceApp(QMainWindow):
                             ruta_archivo = os.path.join(root, file)
                             ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
                             zipf.write(ruta_archivo, arcname=ruta_en_zip)
-            QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=nombre_zip))
+            QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=os.path.basename(ruta_zip)))
         except Exception as e: QMessageBox.critical(self, t("title_error_backup"), str(e))
 
     def restaurar_backup(self):
@@ -3221,11 +3440,15 @@ class MaintenanceApp(QMainWindow):
             except Exception as e: QMessageBox.critical(self, t("title_error_restauracion"), t("msg_zip_corrupto").format(error=str(e)))
 
     def exportar_csv(self):
-        nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}.csv"
+        dlg = DialogoFiltroTecnico(self, t("title_exportar_csv"))
+        if not dlg.exec(): return
+        filtro_usuario = dlg.get_filtro()
+        sufijo = f"_{re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario)}" if filtro_usuario else ""
+        nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}{sufijo}.csv"
         archivo = self.guardar_archivo_dialogo(t("title_exportar_csv"), nombre_defecto, "CSV (*.csv)")
         if not archivo: return
         try:
-            datos = self.db.obtener_todas_cronologico()
+            datos = self.db.obtener_todas_cronologico(filtro_usuario)
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Foto Antes y Foto Después
@@ -3259,7 +3482,11 @@ class MaintenanceApp(QMainWindow):
     def exportar_excel(self):
         try: import xlsxwriter
         except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
-        nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}.xlsx"
+        dlg = DialogoFiltroTecnico(self, t("title_exportar_excel"))
+        if not dlg.exec(): return
+        filtro_usuario = dlg.get_filtro()
+        sufijo = f"_{re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario)}" if filtro_usuario else ""
+        nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}{sufijo}.xlsx"
         archivo = self.guardar_archivo_dialogo(t("title_exportar_excel"), nombre_defecto, "Excel (*.xlsx)")
         if not archivo: return
         try:
@@ -3272,15 +3499,16 @@ class MaintenanceApp(QMainWindow):
             center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
 
             # Nuevos encabezados
-            headers = ["ID", "Fecha", "Descripción", "Foto Antes", "Foto Después"]
+            headers = ["ID", "Fecha", "Descripción", tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"]
             for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
 
             # Ajuste de anchura de columnas
             worksheet.set_column('A:A', 5)
             worksheet.set_column('B:B', 12)
             worksheet.set_column('C:C', 60) # Descripción ancha
-            worksheet.set_column('D:D', 25) # Foto Antes
-            worksheet.set_column('E:E', 25) # Foto Después
+            worksheet.set_column('D:D', 20) # Realizado por
+            worksheet.set_column('E:E', 25) # Foto Antes
+            worksheet.set_column('F:F', 25) # Foto Después
 
             # --- FUNCIÓN INTERNA PARA CALCULAR LA ESCALA PERFECTA ---
             def obtener_opciones_img(ruta_img):
@@ -3303,7 +3531,7 @@ class MaintenanceApp(QMainWindow):
                     'object_position': 1
                 }
 
-            datos = self.db.obtener_todas_cronologico()
+            datos = self.db.obtener_todas_cronologico(filtro_usuario)
             row = 1
             for tarea in datos:
                 # Convertir formato de fecha
@@ -3322,6 +3550,9 @@ class MaintenanceApp(QMainWindow):
 
                 worksheet.write(row, 2, desc_limpia, wrap)
 
+                autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
+                worksheet.write(row, 3, autor, center)
+
                 # Incrustar FOTO ANTES
                 m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
                 if m:
@@ -3330,12 +3561,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta):
                         opc = obtener_opciones_img(ruta)
                         if opc:
-                            try: worksheet.insert_image(row, 3, ruta, opc)
-                            except: worksheet.write(row, 3, "Err Img", center)
+                            try: worksheet.insert_image(row, 4, ruta, opc)
+                            except: worksheet.write(row, 4, "Err Img", center)
                         else:
-                            worksheet.write(row, 3, "Err Img", center)
-                    else: worksheet.write(row, 3, "No File", center)
-                else: worksheet.write(row, 3, "-", center)
+                            worksheet.write(row, 4, "Err Img", center)
+                    else: worksheet.write(row, 4, "No File", center)
+                else: worksheet.write(row, 4, "-", center)
 
                 # Incrustar FOTO DESPUÉS
                 m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
@@ -3345,12 +3576,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta_d):
                         opc = obtener_opciones_img(ruta_d)
                         if opc:
-                            try: worksheet.insert_image(row, 4, ruta_d, opc)
-                            except: worksheet.write(row, 4, "Err Img", center)
+                            try: worksheet.insert_image(row, 5, ruta_d, opc)
+                            except: worksheet.write(row, 5, "Err Img", center)
                         else:
-                            worksheet.write(row, 4, "Err Img", center)
-                    else: worksheet.write(row, 4, "No File", center)
-                else: worksheet.write(row, 4, "-", center)
+                            worksheet.write(row, 5, "Err Img", center)
+                    else: worksheet.write(row, 5, "No File", center)
+                else: worksheet.write(row, 5, "-", center)
 
                 worksheet.set_row(row, 90) # Altura de fila fija
                 row += 1
@@ -3362,7 +3593,7 @@ class MaintenanceApp(QMainWindow):
     def init_dashboard_tab(self):
         l = QVBoxLayout()
         h_cards = QHBoxLayout()
-        style_card = "QGroupBox { border: 1px solid #444; border-radius: 8px; background-color: #333; margin-top: 10px; font-weight: bold; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; } QLabel { font-size: 24px; font-weight: bold; }"
+        style_card = "QGroupBox { border-radius: 8px; margin-top: 10px; font-weight: bold; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; } QLabel { font-size: 24px; font-weight: bold; }"
         self.card_avisos = QGroupBox(t("lbl_avisos_pendientes")); self.card_avisos.setStyleSheet(style_card)
         l_c1 = QVBoxLayout(); self.lbl_count_avisos = QLabel("0"); self.lbl_count_avisos.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l_c1.addWidget(self.lbl_count_avisos); self.card_avisos.setLayout(l_c1); h_cards.addWidget(self.card_avisos)
@@ -3378,11 +3609,11 @@ class MaintenanceApp(QMainWindow):
         self.dash_table = QTableWidget(); self.setup_table(self.dash_table); self.configurar_deseleccion(self.dash_table); self.dash_table.setRowCount(15); self.dash_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.dash_table)); v_list.addWidget(self.dash_table)
         h_split.addLayout(v_list, 80)
         v_stats = QVBoxLayout(); v_stats.addWidget(QLabel(t("lbl_distribucion")))
-        self.group_stats = QGroupBox(); self.group_stats.setStyleSheet("QGroupBox { border: 1px solid #444; background: #252525; border-radius: 6px; }")
+        self.group_stats = QGroupBox(); self.group_stats.setStyleSheet("QGroupBox { border-radius: 6px; }")
         layout_stats = QVBoxLayout(); layout_stats.setSpacing(10); layout_stats.setContentsMargins(5, 10, 5, 5)
         def crear_barra(titulo, color):
-            lbl = QLabel(titulo); lbl.setStyleSheet("font-size: 12px; color: #ccc;")
-            bar = QProgressBar(); bar.setStyleSheet(f"QProgressBar {{ border: 1px solid #555; border-radius: 4px; text-align: center; background: #333; height: 18px; font-size: 11px; }} QProgressBar::chunk {{ background-color: {color}; border-radius: 3px; }}"); bar.setValue(0)
+            lbl = QLabel(titulo); lbl.setStyleSheet("font-size: 12px;")
+            bar = QProgressBar(); bar.setStyleSheet(f"QProgressBar {{ border-radius: 4px; text-align: center; height: 18px; font-size: 11px; }} QProgressBar::chunk {{ background-color: {color}; border-radius: 3px; }}"); bar.setValue(0)
             return lbl, bar
         self.lbl_elec, self.bar_elec = crear_barra(f"⚡ {t('tag_electrico')}", "#3daee9"); layout_stats.addWidget(self.lbl_elec); layout_stats.addWidget(self.bar_elec)
         self.lbl_mec, self.bar_mec = crear_barra(f"⚙️ {t('tag_mecanico')}", "#e67e22"); layout_stats.addWidget(self.lbl_mec); layout_stats.addWidget(self.bar_mec)
@@ -3554,10 +3785,15 @@ class MaintenanceApp(QMainWindow):
             return
 
         menu = QMenu(self)
-
         n = len(seleccion)
+
         if n == 1:
-            menu.addAction(t("btn_editar"), lambda: self.edit_rec(self.h_table))
+            tarea_id = self.h_table.item(seleccion[0].row(), 0).data(Qt.ItemDataRole.UserRole)
+            puede = self._puede_modificar(tarea_id)
+            act_editar = menu.addAction(t("btn_editar"), lambda: self.edit_rec(self.h_table))
+            act_editar.setEnabled(puede)
+            if not puede:
+                act_editar.setToolTip(tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
 
         # Cambiar autor (admin)
         if usuarios.es_admin():
@@ -3567,7 +3803,8 @@ class MaintenanceApp(QMainWindow):
 
         if n == 1:
             menu.addSeparator()
-            menu.addAction(t("btn_borrar_seleccionado"), lambda: self.del_rec(self.h_table))
+            act_borrar = menu.addAction(t("btn_borrar_seleccionado"), lambda: self.del_rec(self.h_table))
+            act_borrar.setEnabled(puede)
 
         menu.exec(self.h_table.viewport().mapToGlobal(pos))
 
@@ -3918,6 +4155,7 @@ if __name__ == "__main__":
         print(f"Error crítico al arrancar la aplicación: {e}")
         import traceback
         traceback.print_exc()
+        sys.exit(1)
 
     # --- 4. SPLASH SCREEN ESTÁTICO (Compatible con Wayland) ---
     if os.path.exists(ruta_logo):
