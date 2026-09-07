@@ -21,6 +21,7 @@ mantenimiento.db
 fotos_recibidas/
 backups/
 backups_auto/
+.serena
 
 # --- FLUTTER (DENTRO DE TU CARPETA MANTENIMIENTO_APP) ---
 # Compilados y temporales de Flutter
