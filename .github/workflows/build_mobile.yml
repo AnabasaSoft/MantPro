@@ -2,7 +2,6 @@ name: Compilar Móvil (Android APK)
 
 on:
   push:
-    #branches: [ "main" ]
     tags: [ "v*" ]
   workflow_dispatch:
 
@@ -13,7 +12,6 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
 
-    # Esto hace que todos los comandos 'run' empiecen ya dentro de esa carpeta
     defaults:
       run:
         working-directory: ./mantenimiento_app
@@ -35,11 +33,23 @@ jobs:
     - name: Instalar Dependencias Flutter
       run: flutter pub get
 
+    - name: Preparar firma de la APK
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+        cat > android/key.properties << EOF
+        storePassword=$KEYSTORE_PASSWORD
+        keyPassword=$KEYSTORE_PASSWORD
+        keyAlias=$KEY_ALIAS
+        storeFile=$(pwd)/android/app/release.jks
+        EOF
+
     - name: Construir APK (Release)
       run: flutter build apk --release --no-tree-shake-icons
 
-    # --- CORRECCIÓN AQUÍ ---
-    # Como ya estamos en 'mantenimiento_app', entramos directamente en 'build/...'
     - name: Renombrar APK a MantPro.apk
       run: |
         cd build/app/outputs/flutter-apk/
@@ -49,7 +59,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: MantPro-Android-APK
-        # Para las acciones 'uses', la ruta SIEMPRE es desde la raíz del repositorio
         path: mantenimiento_app/build/app/outputs/flutter-apk/MantPro.apk
 
     - name: Publicar en Release (Solo si hay Tag)
