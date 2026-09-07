@@ -3443,7 +3443,8 @@ class MaintenanceApp(QMainWindow):
         dlg = DialogoFiltroTecnico(self, t("title_exportar_csv"))
         if not dlg.exec(): return
         filtro_usuario = dlg.get_filtro()
-        sufijo = f"_{re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario)}" if filtro_usuario else ""
+        nombre_limpio = re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario) if filtro_usuario else ""
+        sufijo = f"_{nombre_limpio}" if nombre_limpio else ""
         nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}{sufijo}.csv"
         archivo = self.guardar_archivo_dialogo(t("title_exportar_csv"), nombre_defecto, "CSV (*.csv)")
         if not archivo: return
@@ -3485,7 +3486,8 @@ class MaintenanceApp(QMainWindow):
         dlg = DialogoFiltroTecnico(self, t("title_exportar_excel"))
         if not dlg.exec(): return
         filtro_usuario = dlg.get_filtro()
-        sufijo = f"_{re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario)}" if filtro_usuario else ""
+        nombre_limpio = re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario) if filtro_usuario else ""
+        sufijo = f"_{nombre_limpio}" if nombre_limpio else ""
         nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}{sufijo}.xlsx"
         archivo = self.guardar_archivo_dialogo(t("title_exportar_excel"), nombre_defecto, "Excel (*.xlsx)")
         if not archivo: return
