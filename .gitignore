@@ -33,6 +33,11 @@ mantenimiento_app/.flutter-plugins-dependencies
 mantenimiento_app/android/local.properties
 mantenimiento_app/android/.gradle/
 
+# Firma de la APK (contiene contraseñas y claves privadas)
+*.jks
+*.keystore
+mantenimiento_app/android/key.properties
+
 
 # Todo el FLUTTER menos android
 mantenimiento_app/ios
