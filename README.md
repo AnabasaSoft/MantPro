@@ -54,18 +54,21 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 
 - **👥 Gestión de Usuarios**: Login con usuario y contraseña, roles de administrador y técnico, alta y baja de usuarios, y restablecimiento de contraseñas
 - **✍️ Autoría de los Trabajos**: Cada intervención guarda quién la realizó, visible en el historial y en los informes
+- **🔒 Permisos por Registro**: un técnico solo puede editar o borrar sus propios trabajos; un administrador puede gestionar cualquiera, incluida la reasignación del autor de uno o varios registros a la vez
+- **📋 Auditoría de Cambios**: registro de quién edita o borra cada trabajo (no solo quién lo creó), consultable y filtrable por técnico y por tipo de acción desde "Registro de cambios" (solo administradores)
+- **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia"
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
 - **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
 - **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
 - **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
-- **👤 Filtro por Técnico**: Filtra el historial y los informes PDF por la persona que hizo el trabajo
-- **📦 Backup/Restore**: Exportación e importación de base de datos completa
+- **👤 Filtro por Técnico**: Filtra el historial y las exportaciones (PDF, CSV y Excel) por la persona que hizo el trabajo
+- **📦 Backup/Restore**: Exportación e importación de base de datos completa, eligiendo dónde guardar cada copia de seguridad
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
 - **⚠️ Avisos Recurrentes**: Avisos de mantenimiento que se repiten automáticamente
-- **📊 Exportación**: A PDF, CSV y Excel
+- **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico
 
 ### 📱 Aplicación Móvil (Android)
 
@@ -113,6 +116,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
   - ReportLab
   - qrcode
   - requests
+  - xlsxwriter
   - sqlite3 (incluido en Python)
 
 ### Aplicación Móvil
@@ -265,8 +269,8 @@ Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSof
 
 | Rol | Puede hacer |
 |-----|-------------|
-| **Administrador** | Todo lo del técnico, más dar de alta y de baja usuarios, cambiar roles y restablecer contraseñas |
-| **Técnico** | Registrar trabajos, completar pendientes y avisos, y cambiar su propia contraseña |
+| **Administrador** | Todo lo del técnico, más dar de alta y de baja usuarios, cambiar roles, restablecer contraseñas, editar o borrar **cualquier** registro del historial, reasignar el autor de uno o varios registros a la vez, y consultar el registro de auditoría de cambios |
+| **Técnico** | Registrar trabajos, completar pendientes y avisos, editar o borrar **solo sus propios** registros del historial, y cambiar su propia contraseña |
 
 Siempre debe quedar **al menos un administrador activo**: la aplicación impide
 quitarle el rol o desactivarlo al último que queda.
@@ -291,6 +295,19 @@ usuarios quedaron marcados como **`Histórico`**.
 En el móvil, la atribución la decide **siempre el servidor** a partir del token
 de la sesión, nunca un dato enviado por la app. Un dispositivo no puede firmar
 trabajos en nombre de otra persona.
+
+Desde el PC, un técnico solo puede editar o borrar sus propios registros del
+historial; un administrador puede hacerlo con cualquiera. Con clic derecho sobre
+una o varias filas del historial (selección múltiple con Ctrl/Shift), un
+administrador puede además **reasignar el autor** en bloque, quedando cada
+cambio anotado en el registro de auditoría.
+
+### Registro de cambios (auditoría)
+
+Cada vez que se edita o se borra un trabajo queda constancia de quién lo hizo,
+cuándo y qué cambió. Los administradores pueden consultarlo desde
+`Herramientas` > `📋 Registro de cambios`, con filtros por técnico y por tipo de
+acción (editar/borrar).
 
 ### Sesión en el móvil
 
@@ -403,6 +420,8 @@ La aplicación utiliza SQLite con las siguientes tablas:
 - **`sesiones`**: Tokens de los móviles vinculados, con su fecha de caducidad
 - **`avisos_recurrentes`**: Avisos de mantenimiento que se repiten automáticamente
 - **`dias_especiales`**: Festivos, vacaciones y días marcados en el calendario
+- **`auditoria`**: Historial de quién edita o borra cada trabajo, con fecha,
+  acción y detalle
 - **`config`**: Configuración interna de la aplicación (logo, provincia, etc.)
 
 Las contraseñas se guardan con **PBKDF2-SHA256** (200.000 iteraciones y salt por
@@ -429,9 +448,10 @@ arrancar, sin perder los datos existentes.
 - [X] Implementar notificaciones push para recordatorios
 - [ ] Añadir gráficas de estadísticas más detalladas
 - [ ] Integración con calendario de Google
-- [X] Modo oscuro
+- [X] Modo oscuro (y modo claro, y tema retro estilo Windows 98)
 - [X] Multi-idioma (Español, Inglés, Euskara)
 - [X] Exportación a Excel
+- [X] Registro de auditoría de ediciones y borrados
 - [ ] API para integración con otros sistemas
 - [ ] Firma digital de trabajos completados
 
@@ -455,9 +475,19 @@ Estado actual y siguientes pasos previstos.
   locales pendientes de enviar.
 - **Pendientes asignados**: el PC asigna cada trabajo a un técnico y el móvil
   puede filtrar por "Solo míos".
-- **Filtro por técnico** en el histórico y en la exportación a PDF.
+- **Filtro por técnico** en el histórico y en la exportación a PDF, CSV y Excel.
 - **Auditoría de ediciones**: se registra quién edita o borra un trabajo (no
-  solo quién lo creó), consultable desde "Registro de cambios".
+  solo quién lo creó), consultable y filtrable por técnico/acción desde
+  "Registro de cambios".
+- **Permisos por registro**: un técnico solo puede editar o borrar sus propios
+  trabajos; un administrador puede gestionar cualquiera y reasignar el autor
+  de uno o varios registros a la vez (selección múltiple + menú contextual).
+- **Temas visuales**: modo oscuro (por defecto), claro o clásico estilo
+  Windows 98, seleccionable desde el menú "Apariencia" y recordado entre
+  sesiones.
+- **Backup a demanda con selección de destino**: al generar una copia de
+  seguridad manual se puede elegir dónde guardarla, en vez de ir siempre a la
+  carpeta `backups` por defecto.
 
 ### 🔜 Siguientes pasos
 
@@ -465,11 +495,12 @@ Estado actual y siguientes pasos previstos.
       revocar uno concreto (hoy solo se puede desactivar al usuario entero,
       lo que invalida todos sus dispositivos a la vez).
 - [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
-- [ ] **Filtro por técnico en CSV y Excel** (por ahora solo está en el PDF).
 - [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
       oficina, sin depender de estar en la misma WiFi que el PC.
-- [ ] **Firma digital de trabajos completados**, apoyada en el sistema de
-      usuarios.
+- [ ] **Firma digital de trabajos completados**: capturar en el móvil, con el
+      dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
+      finalizado, y adjuntarla al registro apoyándose en el sistema de
+      usuarios ya existente.
 
 ### 🔒 Nota sobre seguridad
 
