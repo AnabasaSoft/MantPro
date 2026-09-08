@@ -146,9 +146,9 @@ Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https:
 
 Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la clave GPG oficial de AnabasaSoft. Para verificarlos antes de instalar:
 
-1. Importa la clave pública (incluida en cada release como `anabasasoft_public.asc`):
+1. Importa la clave pública del repositorio ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)):
    ```bash
-   gpg --import anabasasoft_public.asc
+   curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc | gpg --import
    ```
 
 2. Verifica el paquete:

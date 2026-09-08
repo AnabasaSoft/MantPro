@@ -200,4 +200,3 @@ jobs:
           MantPro-Linux-x86_64.AppImage
           *.deb
           *.rpm
-          firma/anabasasoft_public.asc
