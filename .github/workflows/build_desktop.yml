@@ -78,8 +78,17 @@ jobs:
     - name: Instalar librerías del sistema y FPM
       run: |
         sudo apt-get update
-        sudo apt-get install -y libfuse2 file build-essential ruby ruby-dev rubygems rpm
+        sudo apt-get install -y libfuse2 file build-essential ruby ruby-dev rubygems rpm dpkg-sig gnupg
         sudo gem install fpm
+
+    - name: Importar clave GPG de firma
+      run: |
+        echo "${{ secrets.GPG_PRIVATE_KEY_BASE64 }}" | base64 -d | gpg --batch --import
+        cat > ~/.rpmmacros <<EOF
+        %_signature gpg
+        %_gpg_name ${{ secrets.GPG_KEY_ID }}
+        %__gpg_sign_cmd %{__gpg} gpg --force-v3-sigs --digest-algo sha256 --batch --no-armor --pinentry-mode loopback --no-secmem-warning -u "%{_gpg_name}" -sbo %{__signature_filename} --digest-algo sha256 %{__plaintext_filename}
+        EOF
 
     - name: Instalar Dependencias Python
       run: |
@@ -175,6 +184,12 @@ jobs:
           --rpm-rpmbuild-define '_build_id_links none' \
           -C LinuxPkg .
 
+    # --- PASO 5b: FIRMAR DEB Y RPM ---
+    - name: Firmar paquetes DEB y RPM
+      run: |
+        dpkg-sig --sign builder -k "${{ secrets.GPG_KEY_ID }}" *.deb
+        rpm --addsign *.rpm
+
     # --- PASO 6: PUBLICAR TODO EN RELEASE ---
     - name: Publicar Linux en Release
       uses: softprops/action-gh-release@v1
@@ -185,3 +200,4 @@ jobs:
           MantPro-Linux-x86_64.AppImage
           *.deb
           *.rpm
+          firma/anabasasoft_public.asc
