@@ -26,6 +26,7 @@
 - [Instalación](#-instalación)
 - [Uso](#-uso)
 - [Usuarios y Acceso](#-usuarios-y-acceso)
+- [Stock de Almacén](#-stock-de-almacén)
 - [Sincronización PC-Móvil](#-sincronización-pc-móvil)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Contribuir](#-contribuir)
@@ -67,7 +68,8 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📦 Backup/Restore**: Exportación e importación de base de datos completa, eligiendo dónde guardar cada copia de seguridad
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
-- **⚠️ Avisos Recurrentes**: Avisos de mantenimiento que se repiten automáticamente
+- **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente
+- **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
 - **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico
 
 ### 📱 Aplicación Móvil (Android)
@@ -92,7 +94,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 
 <p align="center">
   <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="Capturas/Avisos.png" alt="Avisos" width="45%"/>
+  <img src="Capturas/Avisos.png" alt="Recordatorios" width="45%"/>
 </p>
 
 ### Aplicación Móvil
@@ -354,6 +356,57 @@ registros que aún estén pendientes de subir**.
 
 ---
 
+## 📦 Stock de Almacén
+
+> Disponible **solo en la aplicación de escritorio**. Vive en su propia base de
+> datos (`almacen.db`), independiente de la de los trabajos de mantenimiento.
+
+### Estructura del almacén
+
+El almacén se organiza en tres niveles, inspirados en las convenciones
+habituales de codificación de ubicaciones de almacén:
+
+```
+Estantería → Balda → Sección
+```
+
+- Al crear una estantería se define el **número de baldas**, el **número de
+  secciones por balda** (0 = sin secciones predefinidas, se pueden añadir
+  luego) y si tiene **hueco en el suelo** bajo la balda inferior, que se
+  gestiona como una balda especial ("Suelo")
+- Las baldas se numeran de abajo a arriba empezando en 1, para poder añadir
+  baldas nuevas sin tener que renumerar las existentes
+- No se puede eliminar una estantería, balda o sección mientras contenga
+  material ubicado
+
+La estructura se gestiona desde el botón **"⚙️ Configurar almacén"** de la
+pestaña "📦 Stock de almacén", visible **solo para administradores**.
+
+### Materiales
+
+- Alta y edición con código (opcional), nombre, descripción, unidad, stock
+  mínimo, ubicación (estantería / balda / sección) y **foto adjunta**
+- Búsqueda por **nombre, código, descripción o ubicación**
+- Los materiales por debajo de su stock mínimo se resaltan en rojo en la tabla
+
+### Entradas y salidas
+
+- **Cualquier usuario** puede registrar entradas y salidas de stock; solo la
+  configuración de la estructura del almacén está restringida a administradores
+- Cada movimiento queda registrado con fecha, cantidad, usuario y un motivo
+  opcional, visible en el historial junto a cada material
+- Las salidas no pueden dejar el stock en negativo
+
+### Alertas de stock bajo mínimo
+
+La pestaña **"⚠️ Stock bajo mínimo"** muestra, en una vista aparte, los
+materiales sin stock o por debajo del mínimo establecido. El propio título de
+la pestaña indica cuántos materiales están en alerta, y desde ahí se puede
+saltar directamente al material en "Stock de almacén" o registrar una entrada
+sin cambiar de pestaña.
+
+---
+
 ## 🔄 Sincronización PC-Móvil
 
 ### Cómo Funciona
@@ -424,12 +477,14 @@ MantPro/
 ├── main.py                      # Aplicación principal de escritorio
 ├── usuarios.py                  # Usuarios, contraseñas, roles y sesiones
 ├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
+├── almacen.py                   # Stock de almacén: estructura, materiales y movimientos
 ├── idiomas.py                   # Traducciones del escritorio (ES / EN / EU)
 ├── requirements.txt             # Dependencias Python
 ├── logo.png                     # Logo de la aplicación
 ├── README.md                    # Este archivo
 ├── fotos_recibidas/             # Carpeta de imágenes
-├── mantenimiento.db             # Base de datos SQLite
+├── mantenimiento.db             # Base de datos SQLite (trabajos de mantenimiento)
+├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
 ├── mantenimiento_app/           # Aplicación móvil Flutter
 │   ├── lib/main.dart            # Código principal móvil
 │   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
@@ -467,6 +522,21 @@ arrancar, sin perder los datos existentes.
 > 🔐 `mantenimiento.db` contiene hashes de contraseñas y tokens de sesión.
 > Está en `.gitignore` por algo: no la subas nunca al repositorio.
 
+El stock de almacén vive en su propia base de datos, **`almacen.db`**, separada
+a propósito de la de los trabajos:
+
+- **`estanterias`**: nombre y si tiene hueco en el suelo
+- **`baldas`**: baldas de cada estantería, numeradas de abajo a arriba (la
+  balda `0` representa el hueco de suelo)
+- **`secciones`**: subdivisiones dentro de cada balda
+- **`materiales`**: código, nombre, descripción, unidad, stock actual, stock
+  mínimo, ubicación (sección) y foto
+- **`movimientos`**: histórico de entradas y salidas, con fecha, cantidad,
+  usuario y motivo
+
+Se crea automáticamente en el primer arranque y se incluye en los backups
+(manuales y automáticos al cerrar la app) junto con `mantenimiento.db`.
+
 ---
 
 ## 🤝 Contribuir
@@ -488,6 +558,7 @@ arrancar, sin perder los datos existentes.
 - [X] Multi-idioma (Español, Inglés, Euskara)
 - [X] Exportación a Excel
 - [X] Registro de auditoría de ediciones y borrados
+- [X] Control de stock de material de almacén
 - [ ] API para integración con otros sistemas
 - [ ] Firma digital de trabajos completados
 
@@ -524,6 +595,11 @@ Estado actual y siguientes pasos previstos.
 - **Backup a demanda con selección de destino**: al generar una copia de
   seguridad manual se puede elegir dónde guardarla, en vez de ir siempre a la
   carpeta `backups` por defecto.
+- **Control de stock de almacén**: estructura configurable de estanterías,
+  baldas y secciones (solo administradores), ficha de materiales con foto,
+  entradas y salidas con historial (cualquier usuario) y una pestaña dedicada
+  a los materiales sin stock o por debajo de su mínimo. Solo en la app de
+  escritorio, con base de datos propia (`almacen.db`).
 
 ### 🔜 Siguientes pasos
 
