@@ -66,7 +66,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QTreeWidget, QTreeWidgetItem, QSplitter)
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
-                          QPropertyAnimation, QEasingCurve, QTimer)
+                          QPropertyAnimation, QEasingCurve, QTimer,
+                          QTranslator, QLibraryInfo)
 
 from PyQt6.QtGui import (QAction, QActionGroup, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel)
@@ -115,6 +116,17 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+def instalar_traductor_qt(app, codigo_idioma):
+    """Traduce los textos propios de Qt (menú contextual de cortar/copiar/pegar,
+    botones de QMessageBox, etc.) al idioma de la app. Sin esto, esos textos
+    siempre salen en inglés aunque el resto de la interfaz esté en español.
+    El euskara no tiene traducción oficial en Qt, así que se queda en inglés."""
+    traductor = QTranslator(app)
+    ruta_traducciones = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+    if traductor.load(f"qtbase_{codigo_idioma}", ruta_traducciones):
+        app.installTranslator(traductor)
+        app._traductor_qt = traductor  # evitar que el GC lo destruya
+
 def obtener_ruta_datos():
     """
     Determina dónde leer/escribir datos.
@@ -151,7 +163,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.0.1"
+APP_VERSION = "3.0.2"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -2184,7 +2196,11 @@ class MaintenanceApp(QMainWindow):
             # --------------------------------
 
             it = QListWidgetItem(f"{texto_limpio} | {traducir_tags_bd(tarea[2])}")
-            if self._hay_foto_disponible(tarea[1]): it.setIcon(QIcon.fromTheme("camera-photo")); it.setToolTip("Tiene foto adjunta")
+            if self._hay_foto_disponible(tarea[1]):
+                # Icono propio (no del tema del sistema): algunos temas de iconos SVG
+                # provocan el warning "qt.svg: Invalid path data" con QIcon.fromTheme.
+                pm_foto = QPixmap(16, 16); pm_foto.fill(QColor("#3daee9"))
+                it.setIcon(QIcon(pm_foto)); it.setToolTip("Tiene foto adjunta")
             it.setData(Qt.ItemDataRole.UserRole, tarea[0])
             self.task_list.addItem(it)
 
@@ -2362,10 +2378,23 @@ class MaintenanceApp(QMainWindow):
                 QMessageBox.information(self, t("title_actualizado"), t("msg_ya_actualizado").format(v=APP_VERSION))
 
     def crear_menu(self):
-        mb = self.menuBar(); fm = mb.addMenu(t("menu_archivo"))
-        fm.addAction(QAction(t("menu_backup"), self, triggered=self.realizar_backup))
-        fm.addAction(QAction(t("menu_restaurar"), self, triggered=self.restaurar_backup))
-        fm.addSeparator()
+        mb = self.menuBar()
+
+        # --- MENÚ SESIÓN (delante de Archivo) ---
+        sm = mb.addMenu(tt("menu_sesion", "&Sesión"))
+        sm.addAction(QAction(tt("menu_cambiar_usuario", "🔁 Cambiar de usuario"),
+                             self, triggered=self.cerrar_sesion))
+        sm.addAction(QAction(tt("menu_cerrar_sesion", "🚪 Cerrar sesión"),
+                             self, triggered=self.cerrar_sesion))
+        sm.addSeparator()
+        sm.addAction(QAction(t("menu_salir"), self, triggered=self.close))
+        # ------------------------------------------
+
+        fm = mb.addMenu(t("menu_archivo"))
+        if usuarios.es_admin():
+            fm.addAction(QAction(t("menu_backup"), self, triggered=self.realizar_backup))
+            fm.addAction(QAction(t("menu_restaurar"), self, triggered=self.restaurar_backup))
+            fm.addSeparator()
 
         # --- SUBMENÚ PDF ---
         menu_pdf = fm.addMenu(t("menu_opciones_pdf"))
@@ -2387,16 +2416,16 @@ class MaintenanceApp(QMainWindow):
 
         fm.addAction(QAction(t("menu_csv"), self, triggered=self.exportar_csv))
         fm.addAction(QAction(t("menu_excel"), self, triggered=self.exportar_excel))
-        fm.addSeparator(); fm.addAction(QAction(t("menu_salir"), self, triggered=self.close))
         tm = mb.addMenu(t("menu_herramientas"))
         act_sync = QAction(t("menu_sync_qr"), self); act_sync.triggered.connect(self.mostrar_dialogo_qr); tm.addAction(act_sync)
-        tm.addAction(QAction(t("menu_gestionar_dias"), self, triggered=self.gest_dias));
+        if usuarios.es_admin():
+            tm.addAction(QAction(t("menu_gestionar_dias"), self, triggered=self.gest_dias));
 
-        # --- OPCIÓN DE PAÍS / PROVINCIA ---
-        act_prov = QAction(t("menu_pais_region"), self)
-        act_prov.triggered.connect(self.cambiar_pais_region)
-        tm.addAction(act_prov)
-        # ---------------------------------
+            # --- OPCIÓN DE PAÍS / PROVINCIA ---
+            act_prov = QAction(t("menu_pais_region"), self)
+            act_prov.triggered.connect(self.cambiar_pais_region)
+            tm.addAction(act_prov)
+            # ---------------------------------
 
         # --- SUBMENÚ DE IDIOMA ---
         menu_idioma = tm.addMenu(t("menu_idioma"))
@@ -2411,8 +2440,9 @@ class MaintenanceApp(QMainWindow):
         # -------------------------
 
         fm.addSeparator()
-        tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=self.limpiar_fotos_huerfanas))
-        tm.addSeparator()
+        if usuarios.es_admin():
+            tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=self.limpiar_fotos_huerfanas))
+            tm.addSeparator()
         tm.addAction(QAction(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"),
                              self, triggered=self.cambiar_mi_password))
         if usuarios.es_admin():
@@ -3982,6 +4012,44 @@ class MaintenanceApp(QMainWindow):
             return
         DialogoCambioPassword(self, usuarios.SESION_ACTUAL).exec()
 
+    def cerrar_sesion(self):
+        """Cierra la sesión actual y vuelve al login sin salir de la aplicación.
+        Si se cancela el login, se cierra la aplicación como al pulsar 'Salir'."""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(tt("title_cerrar_sesion", "Cerrar sesión"))
+        msg.setText(tt("msg_confirmar_cerrar_sesion",
+                        "¿Seguro que quieres cerrar la sesión actual?"))
+        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() != btn_si:
+            return
+
+        usuarios.SESION_ACTUAL = None
+        self.hide()
+
+        ruta_logo = resource_path("AnabasaSoft.png")
+        dlg_login = DialogoLogin(ruta_logo=ruta_logo if os.path.exists(ruta_logo) else None)
+        if dlg_login.exec() != QDialog.DialogCode.Accepted:
+            self.close()
+            return
+
+        self._refrescar_tras_cambio_usuario()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def _refrescar_tras_cambio_usuario(self):
+        """Reconstruye el menú (permisos según rol) y el título tras un login en caliente."""
+        self.menuBar().clear()
+        self.crear_menu()
+        titulo_base = t("title_control_mantenimiento")
+        if usuarios.SESION_ACTUAL:
+            titulo_base += f"  —  👤 {usuarios.SESION_ACTUAL['nombre']}"
+        self.setWindowTitle(titulo_base)
+        self.refresh_all()
+
     def guardar_archivo_dialogo(self, titulo, nombre_defecto, filtro):
         dialogo = QFileDialog(self, titulo); dialogo.setAcceptMode(QFileDialog.AcceptMode.AcceptSave); dialogo.setFileMode(QFileDialog.FileMode.AnyFile); dialogo.setNameFilter(filtro); dialogo.selectFile(nombre_defecto)
         dialogo.setOption(QFileDialog.Option.DontUseNativeDialog, True); dialogo.setLabelText(QFileDialog.DialogLabel.Accept, t("btn_guardar_form")); dialogo.setLabelText(QFileDialog.DialogLabel.Reject, t("btn_cancelar"))
@@ -4145,6 +4213,21 @@ if __name__ == "__main__":
                 "Se te pedirá cambiarla al entrar.")
     except Exception as e:
         print(f"❌ Error inicializando usuarios: {e}")
+
+    # --- 2c. IDIOMA GUARDADO + TRADUCCIÓN DE LOS TEXTOS PROPIOS DE QT ---
+    # Se lee ya aquí (antes del login) para que el menú contextual de cortar/
+    # copiar/pegar y los botones de los QMessageBox salgan en el idioma correcto
+    # desde la primera pantalla, no solo tras abrir la ventana principal.
+    try:
+        conn_idioma = sqlite3.connect(ruta_db)
+        fila_idioma = conn_idioma.execute(
+            "SELECT valor FROM config WHERE clave = 'idioma'").fetchone()
+        conn_idioma.close()
+        idioma_guardado = fila_idioma[0] if fila_idioma else "es"
+    except Exception:
+        idioma_guardado = "es"
+    idiomas.set_idioma(idioma_guardado)
+    instalar_traductor_qt(app, idiomas.get_idioma())
 
     dlg_login = DialogoLogin(ruta_logo=ruta_logo if os.path.exists(ruta_logo) else None)
     if dlg_login.exec() != QDialog.DialogCode.Accepted:
