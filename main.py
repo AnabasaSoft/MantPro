@@ -45,6 +45,9 @@ import usuarios
 from dialogos_usuarios import (DialogoLogin, DialogoGestionUsuarios,
                                DialogoCambioPassword)
 
+# --- Control de stock de almacén (BD propia, independiente de los trabajos) ---
+import almacen
+
 
 def tt(clave, defecto):
     """t() con texto por defecto: si la clave aún no está en idiomas.py,
@@ -62,8 +65,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHeaderView, QDialog, QDialogButtonBox, QAbstractItemView,
                              QListWidgetItem, QStyleFactory, QComboBox, QGroupBox, QCheckBox,
                              QCompleter, QFileDialog, QScrollArea, QSizePolicy, QGridLayout,
-                             QSpinBox, QRadioButton, QProgressBar, QProgressDialog, QTreeView, QMenu, QSplashScreen,
-                             QTreeWidget, QTreeWidgetItem, QSplitter)
+                             QSpinBox, QDoubleSpinBox, QRadioButton, QProgressBar, QProgressDialog, QTreeView, QMenu, QSplashScreen,
+                             QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog)
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QPropertyAnimation, QEasingCurve, QTimer,
@@ -163,7 +166,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.0.3"
+APP_VERSION = "3.5.0"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -1217,6 +1220,10 @@ class GestorBaseDatos:
         # Tablas de usuarios/sesiones + columnas de autoría (idempotente)
         usuarios.configurar_db(self.db_name)
         usuarios.inicializar()
+        # Stock de almacén: base de datos propia, separada de la de trabajos
+        self.db_almacen_name = os.path.join(DATA_DIR, "almacen.db")
+        almacen.configurar_db(self.db_almacen_name)
+        almacen.inicializar()
 
     def conectar(self):
         return sqlite3.connect(self.db_name)
@@ -1661,6 +1668,348 @@ class DialogoSeleccionRegion(QDialog):
         datos = PROVINCIAS_ESPAÑA.get(nombre)
         return nombre, datos["iso"], datos["parent"]
 
+# ==========================================
+# DIÁLOGOS DE STOCK DE ALMACÉN
+# ==========================================
+class DialogoNuevaEstanteria(QDialog):
+    """Alta de una estantería nueva: nombre, número de baldas y si tiene hueco de suelo."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tt("title_nueva_estanteria", "Nueva estantería"))
+        self.resize(380, 220)
+        l = QVBoxLayout()
+        l.addWidget(QLabel(tt("lbl_nombre_estanteria", "Nombre de la estantería")))
+        self.campo_nombre = QLineEdit(); self.campo_nombre.setPlaceholderText(tt("ph_nombre_estanteria", "ej. Estantería A"))
+        l.addWidget(self.campo_nombre)
+        l.addWidget(QLabel(tt("lbl_num_baldas", "Número de baldas")))
+        self.spin_baldas = QSpinBox(); self.spin_baldas.setRange(1, 30); self.spin_baldas.setValue(3)
+        l.addWidget(self.spin_baldas)
+        l.addWidget(QLabel(tt("lbl_num_secciones", "Número de secciones por balda")))
+        self.spin_secciones = QSpinBox(); self.spin_secciones.setRange(0, 30); self.spin_secciones.setValue(0)
+        self.spin_secciones.setToolTip(tt("tt_num_secciones", "0 = sin secciones predefinidas (se pueden añadir después)"))
+        l.addWidget(self.spin_secciones)
+        self.chk_hueco_suelo = QCheckBox(tt("txt_hueco_suelo", "Tiene hueco en el suelo (bajo la balda inferior)"))
+        l.addWidget(self.chk_hueco_suelo)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def get_data(self):
+        return (self.campo_nombre.text().strip(), self.spin_baldas.value(),
+                self.chk_hueco_suelo.isChecked(), self.spin_secciones.value())
+
+
+class DialogoConfigurarAlmacen(QDialog):
+    """Gestión de la estructura del almacén: estanterías > baldas > secciones. Solo admin."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tt("title_configurar_almacen", "Configurar almacén"))
+        self.resize(560, 520)
+        l = QVBoxLayout()
+
+        self.arbol = QTreeWidget(); self.arbol.setHeaderHidden(True)
+        l.addWidget(self.arbol)
+
+        h1 = QHBoxLayout()
+        btn_add_est = QPushButton(tt("btn_anadir_estanteria", "➕ Añadir estantería")); btn_add_est.clicked.connect(self.anadir_estanteria)
+        btn_del_est = QPushButton(tt("btn_eliminar_estanteria", "🗑️ Eliminar estantería")); btn_del_est.clicked.connect(self.eliminar_estanteria)
+        h1.addWidget(btn_add_est); h1.addWidget(btn_del_est)
+        l.addLayout(h1)
+
+        h2 = QHBoxLayout()
+        btn_add_balda = QPushButton(tt("btn_anadir_balda", "➕ Añadir balda")); btn_add_balda.clicked.connect(self.anadir_balda)
+        btn_del_balda = QPushButton(tt("btn_eliminar_balda", "🗑️ Eliminar balda")); btn_del_balda.clicked.connect(self.eliminar_balda)
+        h2.addWidget(btn_add_balda); h2.addWidget(btn_del_balda)
+        l.addLayout(h2)
+
+        h3 = QHBoxLayout()
+        btn_add_sec = QPushButton(tt("btn_anadir_seccion", "➕ Añadir sección")); btn_add_sec.clicked.connect(self.anadir_seccion)
+        btn_del_sec = QPushButton(tt("btn_eliminar_seccion", "🗑️ Eliminar sección")); btn_del_sec.clicked.connect(self.eliminar_seccion)
+        h3.addWidget(btn_add_sec); h3.addWidget(btn_del_sec)
+        l.addLayout(h3)
+
+        btn_cerrar = QPushButton(t("btn_cerrar")); btn_cerrar.clicked.connect(self.accept)
+        l.addWidget(btn_cerrar)
+        self.setLayout(l)
+        self.refrescar()
+
+    def refrescar(self):
+        self.arbol.clear()
+        for est in almacen.listar_estructura():
+            item_est = QTreeWidgetItem([f"🗄️ {est['nombre']}"])
+            item_est.setData(0, Qt.ItemDataRole.UserRole, ("estanteria", est["id"]))
+            for balda in est["baldas"]:
+                nombre_balda = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt("txt_balda_num", "Balda {n}").format(n=balda["numero"])
+                item_balda = QTreeWidgetItem([f"📚 {nombre_balda}"])
+                item_balda.setData(0, Qt.ItemDataRole.UserRole, ("balda", balda["id"]))
+                for sec in balda["secciones"]:
+                    item_sec = QTreeWidgetItem([f"📦 {sec['nombre']}"])
+                    item_sec.setData(0, Qt.ItemDataRole.UserRole, ("seccion", sec["id"]))
+                    item_balda.addChild(item_sec)
+                item_est.addChild(item_balda)
+            self.arbol.addTopLevelItem(item_est)
+        self.arbol.expandAll()
+
+    def _seleccion(self):
+        item = self.arbol.currentItem()
+        if not item: return None, None
+        return item.data(0, Qt.ItemDataRole.UserRole)
+
+    def anadir_estanteria(self):
+        dlg = DialogoNuevaEstanteria(self)
+        if dlg.exec():
+            nombre, num_baldas, hueco_suelo, num_secciones = dlg.get_data()
+            if not nombre:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_obligatorio", "El nombre es obligatorio.")); return
+            almacen.crear_estanteria(nombre, num_baldas, hueco_suelo, num_secciones)
+            self.refrescar()
+
+    def eliminar_estanteria(self):
+        tipo, id_ = self._seleccion()
+        if tipo != "estanteria":
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_estanteria_requerida", "Selecciona una estantería.")); return
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_eliminar_estanteria", "¿Eliminar esta estantería y toda su estructura?")) != QMessageBox.StandardButton.Yes:
+            return
+        ok, error = almacen.eliminar_estanteria(id_)
+        if not ok:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
+        self.refrescar()
+
+    def anadir_balda(self):
+        tipo, id_ = self._seleccion()
+        estanteria_id = None
+        item = self.arbol.currentItem()
+        if tipo == "estanteria":
+            estanteria_id = id_
+        elif tipo == "balda":
+            estanteria_id = item.parent().data(0, Qt.ItemDataRole.UserRole)[1]
+        else:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_estanteria_requerida", "Selecciona una estantería.")); return
+        almacen.anadir_balda(estanteria_id)
+        self.refrescar()
+
+    def eliminar_balda(self):
+        tipo, id_ = self._seleccion()
+        if tipo != "balda":
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_balda_requerida", "Selecciona una balda.")); return
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_eliminar_balda", "¿Eliminar esta balda y sus secciones?")) != QMessageBox.StandardButton.Yes:
+            return
+        ok, error = almacen.eliminar_balda(id_)
+        if not ok:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
+        self.refrescar()
+
+    def anadir_seccion(self):
+        tipo, id_ = self._seleccion()
+        if tipo != "balda":
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_balda_requerida", "Selecciona una balda.")); return
+        nombre, ok = QInputDialog.getText(self, tt("title_nueva_seccion", "Nueva sección"), tt("lbl_nombre_seccion", "Nombre de la sección"))
+        if ok and nombre.strip():
+            almacen.crear_seccion(id_, nombre.strip())
+            self.refrescar()
+
+    def eliminar_seccion(self):
+        tipo, id_ = self._seleccion()
+        if tipo != "seccion":
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_seccion_requerida", "Selecciona una sección.")); return
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_eliminar_seccion", "¿Eliminar esta sección?")) != QMessageBox.StandardButton.Yes:
+            return
+        ok, error = almacen.eliminar_seccion(id_)
+        if not ok:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
+        self.refrescar()
+
+
+class DialogoEditarMaterial(QDialog):
+    """Alta/edición de un material del almacén, con ubicación y foto opcional."""
+    def __init__(self, parent=None, material=None):
+        super().__init__(parent)
+        self.material = material
+        self.es_nuevo = material is None
+        self.ruta_foto_seleccionada = ""
+        self.foto_nombre_existente = material.get("foto") if material else None
+        self.setWindowTitle(tt("title_nuevo_material", "Nuevo material") if self.es_nuevo else tt("title_editar_material", "Editar material"))
+        self.resize(480, 620)
+        l = QVBoxLayout()
+
+        l.addWidget(QLabel(tt("lbl_codigo", "Código (opcional)")))
+        self.campo_codigo = QLineEdit(material.get("codigo") or "" if material else "")
+        l.addWidget(self.campo_codigo)
+
+        l.addWidget(QLabel(tt("lbl_nombre_material", "Nombre del material")))
+        self.campo_nombre = QLineEdit(material.get("nombre") or "" if material else "")
+        l.addWidget(self.campo_nombre)
+
+        l.addWidget(QLabel(tt("lbl_descripcion", "Descripción")))
+        self.campo_desc = QTextEdit(material.get("descripcion") or "" if material else "")
+        self.campo_desc.setMaximumHeight(70)
+        l.addWidget(self.campo_desc)
+
+        h_um = QHBoxLayout()
+        v1 = QVBoxLayout(); v1.addWidget(QLabel(tt("lbl_unidad", "Unidad")))
+        self.campo_unidad = QLineEdit(material.get("unidad") or "" if material else "")
+        self.campo_unidad.setPlaceholderText(tt("ph_unidad", "ej. uds, m, kg..."))
+        v1.addWidget(self.campo_unidad); h_um.addLayout(v1)
+        v2 = QVBoxLayout(); v2.addWidget(QLabel(tt("lbl_stock_minimo", "Stock mínimo")))
+        self.spin_minimo = QDoubleSpinBox(); self.spin_minimo.setRange(0, 999999); self.spin_minimo.setDecimals(2)
+        self.spin_minimo.setValue(material.get("stock_minimo") or 0 if material else 0)
+        v2.addWidget(self.spin_minimo); h_um.addLayout(v2)
+        l.addLayout(h_um)
+
+        if self.es_nuevo:
+            l.addWidget(QLabel(tt("lbl_stock_inicial", "Stock inicial")))
+            self.spin_inicial = QDoubleSpinBox(); self.spin_inicial.setRange(0, 999999); self.spin_inicial.setDecimals(2)
+            l.addWidget(self.spin_inicial)
+
+        l.addWidget(QLabel(tt("lbl_ubicacion", "Ubicación")))
+        self.combo_estanteria = QComboBox(); self.combo_balda = QComboBox(); self.combo_seccion = QComboBox()
+        l.addWidget(QLabel(tt("lbl_estanteria", "Estantería"))); l.addWidget(self.combo_estanteria)
+        l.addWidget(QLabel(tt("lbl_balda", "Balda"))); l.addWidget(self.combo_balda)
+        l.addWidget(QLabel(tt("lbl_seccion", "Sección"))); l.addWidget(self.combo_seccion)
+        self._estructura = almacen.listar_estructura()
+        self.combo_estanteria.addItem(tt("txt_sin_ubicacion", "— Sin ubicación —"), None)
+        for est in self._estructura:
+            self.combo_estanteria.addItem(est["nombre"], est["id"])
+        self.combo_estanteria.currentIndexChanged.connect(self._actualizar_baldas)
+        self.combo_balda.currentIndexChanged.connect(self._actualizar_secciones)
+        self._actualizar_baldas()
+
+        l.addWidget(QLabel(tt("lbl_foto_adjunta", "Foto adjunta")))
+        self.lbl_preview = QLabel(tt("lbl_sin_foto", "Sin foto")); self.lbl_preview.setFixedSize(200, 150)
+        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
+        h_center = QHBoxLayout(); h_center.addWidget(self.lbl_preview); h_center.addStretch()
+        l.addLayout(h_center)
+        h_foto = QHBoxLayout()
+        btn_cambiar = QPushButton(t("btn_cambiar_foto")); btn_cambiar.clicked.connect(self.seleccionar_foto)
+        btn_borrar = QPushButton(t("btn_borrar_foto")); btn_borrar.clicked.connect(self.borrar_foto)
+        h_foto.addWidget(btn_cambiar); h_foto.addWidget(btn_borrar)
+        l.addLayout(h_foto)
+
+        # Preselección de ubicación si estamos editando
+        if material and material.get("seccion_id"):
+            self._preseleccionar_ubicacion(material["seccion_id"])
+
+        self._actualizar_preview_inicial()
+
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def _actualizar_baldas(self):
+        self.combo_balda.clear()
+        est_id = self.combo_estanteria.currentData()
+        est = next((e for e in self._estructura if e["id"] == est_id), None)
+        if est:
+            for balda in est["baldas"]:
+                nombre = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt("txt_balda_num", "Balda {n}").format(n=balda["numero"])
+                self.combo_balda.addItem(nombre, balda["id"])
+        self._actualizar_secciones()
+
+    def _actualizar_secciones(self):
+        self.combo_seccion.clear()
+        est_id = self.combo_estanteria.currentData()
+        balda_id = self.combo_balda.currentData()
+        est = next((e for e in self._estructura if e["id"] == est_id), None)
+        if est:
+            balda = next((b for b in est["baldas"] if b["id"] == balda_id), None)
+            if balda:
+                for sec in balda["secciones"]:
+                    self.combo_seccion.addItem(sec["nombre"], sec["id"])
+
+    def _preseleccionar_ubicacion(self, seccion_id):
+        for est in self._estructura:
+            for balda in est["baldas"]:
+                for sec in balda["secciones"]:
+                    if sec["id"] == seccion_id:
+                        idx_est = self.combo_estanteria.findData(est["id"])
+                        if idx_est >= 0: self.combo_estanteria.setCurrentIndex(idx_est)
+                        idx_balda = self.combo_balda.findData(balda["id"])
+                        if idx_balda >= 0: self.combo_balda.setCurrentIndex(idx_balda)
+                        idx_sec = self.combo_seccion.findData(sec["id"])
+                        if idx_sec >= 0: self.combo_seccion.setCurrentIndex(idx_sec)
+                        return
+
+    def _actualizar_preview_inicial(self):
+        if self.foto_nombre_existente:
+            carpeta_fotos = self.parent().carpeta_fotos if self.parent() else ""
+            ruta = os.path.join(carpeta_fotos, self.foto_nombre_existente)
+            if os.path.exists(ruta):
+                self.ruta_foto_seleccionada = ruta
+                self._refrescar_preview()
+
+    def _refrescar_preview(self):
+        if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
+            pix = QPixmap(self.ruta_foto_seleccionada)
+            if not pix.isNull():
+                self.lbl_preview.setPixmap(pix.scaled(self.lbl_preview.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.lbl_preview.setStyleSheet("border: 2px solid #3daee9; background-color: #000;")
+        else:
+            self.lbl_preview.setPixmap(QPixmap()); self.lbl_preview.setText(tt("lbl_sin_foto", "Sin foto"))
+            self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
+
+    def seleccionar_foto(self):
+        dlg = DialogoSelectorFoto(self)
+        if dlg.exec() and dlg.selectedFiles():
+            self.ruta_foto_seleccionada = dlg.selectedFiles()[0]
+            self._refrescar_preview()
+
+    def borrar_foto(self):
+        self.ruta_foto_seleccionada = ""
+        self.foto_nombre_existente = None
+        self._refrescar_preview()
+
+    def _validar_aceptar(self):
+        if not self.campo_nombre.text().strip():
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_material_obligatorio", "El nombre del material es obligatorio."))
+            return
+        self.accept()
+
+    def get_data(self):
+        return {
+            "codigo": self.campo_codigo.text().strip(),
+            "nombre": self.campo_nombre.text().strip(),
+            "descripcion": self.campo_desc.toPlainText().strip(),
+            "unidad": self.campo_unidad.text().strip(),
+            "stock_minimo": self.spin_minimo.value(),
+            "stock_inicial": self.spin_inicial.value() if self.es_nuevo else 0,
+            "seccion_id": self.combo_seccion.currentData(),
+            "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
+            "foto_nombre_existente": self.foto_nombre_existente,
+        }
+
+
+class DialogoMovimientoStock(QDialog):
+    """Registro rápido de una entrada o salida de stock para un material."""
+    def __init__(self, parent=None, material=None, tipo="entrada"):
+        super().__init__(parent)
+        self.tipo = tipo
+        titulo = tt("title_entrada_stock", "Entrada de stock") if tipo == "entrada" else tt("title_salida_stock", "Salida de stock")
+        self.setWindowTitle(titulo)
+        self.resize(380, 260)
+        l = QVBoxLayout()
+        info = QLabel(f"<b>{material['nombre']}</b><br>{tt('lbl_stock_actual', 'Stock actual')}: {material['stock_actual']} {material.get('unidad') or ''}")
+        info.setWordWrap(True)
+        l.addWidget(info)
+        l.addWidget(QLabel(tt("lbl_cantidad", "Cantidad")))
+        self.spin_cantidad = QDoubleSpinBox(); self.spin_cantidad.setRange(0.01, 999999); self.spin_cantidad.setDecimals(2); self.spin_cantidad.setValue(1)
+        l.addWidget(self.spin_cantidad)
+        l.addWidget(QLabel(tt("lbl_motivo", "Motivo (opcional)")))
+        self.campo_motivo = QLineEdit()
+        ph = tt("ph_motivo_entrada", "ej. Compra, devolución...") if tipo == "entrada" else tt("ph_motivo_salida", "ej. Usado en trabajo...")
+        self.campo_motivo.setPlaceholderText(ph)
+        l.addWidget(self.campo_motivo)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def get_data(self):
+        return self.spin_cantidad.value(), self.campo_motivo.text().strip()
+
+
 class EditDialog(QDialog):
     def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre=""):
         super().__init__(parent)
@@ -2094,6 +2443,8 @@ class MaintenanceApp(QMainWindow):
         self.tab_history = QWidget(); self.init_history_tab(); self.tabs.addTab(self.tab_history, t("tab_historial"))
         self.tab_search = QWidget(); self.init_search_tab(); self.tabs.addTab(self.tab_search, t("tab_buscador"))
         self.tab_todo = QWidget(); self.init_todo_tab(); self.tabs.addTab(self.tab_todo, t("tab_pendientes"))
+        self.tab_stock = QWidget(); self.init_stock_tab(); self.tabs.addTab(self.tab_stock, tt("tab_stock", "📦 Stock de almacén"))
+        self.tab_stock_alertas = QWidget(); self.init_stock_alertas_tab(); self.tabs.addTab(self.tab_stock_alertas, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo"))
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
         # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
@@ -2119,6 +2470,7 @@ class MaintenanceApp(QMainWindow):
 
             with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
+                if os.path.exists(self.db.db_almacen_name): zipf.write(self.db.db_almacen_name, arcname=os.path.basename(self.db.db_almacen_name))
                 if os.path.exists(self.carpeta_fotos):
                     for root, dirs, files in os.walk(self.carpeta_fotos):
                         for file in files:
@@ -3148,6 +3500,230 @@ class MaintenanceApp(QMainWindow):
         b_asig.setStyleSheet("background-color:#8e44ad; color: white;"); fa.addWidget(b_asig)
         ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
 
+    # ==========================================
+    # STOCK DE ALMACÉN
+    # ==========================================
+    def init_stock_tab(self):
+        l = QVBoxLayout()
+
+        barra = QHBoxLayout()
+        self.stock_buscar = QLineEdit(); self.stock_buscar.setPlaceholderText(tt("ph_buscar_material", "Buscar material..."))
+        self.stock_buscar.textChanged.connect(self.refresh_stock)
+        barra.addWidget(self.stock_buscar, 1)
+        btn_add = QPushButton(tt("btn_add_material", "➕ Añadir material")); btn_add.clicked.connect(self.stock_anadir_material)
+        btn_edit = QPushButton(tt("btn_editar_material", "✏️ Editar")); btn_edit.clicked.connect(self.stock_editar_material)
+        btn_del = QPushButton(tt("btn_borrar_material", "🗑️ Eliminar")); btn_del.setStyleSheet("background-color:#c0392b; color:white;"); btn_del.clicked.connect(self.stock_borrar_material)
+        btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;"); btn_entrada.clicked.connect(lambda: self.stock_registrar_movimiento("entrada"))
+        btn_salida = QPushButton(tt("btn_salida_stock", "📤 Salida")); btn_salida.setStyleSheet("background-color:#d35400; color:white;"); btn_salida.clicked.connect(lambda: self.stock_registrar_movimiento("salida"))
+        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida): barra.addWidget(b)
+        self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
+        self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
+        barra.addWidget(self.btn_configurar_almacen)
+        l.addLayout(barra)
+
+        split = QSplitter(Qt.Orientation.Vertical)
+        self.tabla_stock = QTableWidget(0, 6)
+        self.tabla_stock.setHorizontalHeaderLabels([
+            tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_ubicacion", "UBICACIÓN"),
+            tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")])
+        self.tabla_stock.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabla_stock.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.tabla_stock.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla_stock.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.tabla_stock.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla_stock.setAlternatingRowColors(True)
+        self.tabla_stock.itemSelectionChanged.connect(self.refresh_historial_stock)
+        self.tabla_stock.itemDoubleClicked.connect(lambda _: self.stock_editar_material())
+        split.addWidget(self.tabla_stock)
+
+        panel_hist = QWidget(); vh = QVBoxLayout(panel_hist)
+        vh.addWidget(QLabel(tt("lbl_historial_movimientos", "Historial de movimientos")))
+        self.lista_historial_stock = QListWidget()
+        vh.addWidget(self.lista_historial_stock)
+        split.addWidget(panel_hist)
+        split.setStretchFactor(0, 3); split.setStretchFactor(1, 1)
+        l.addWidget(split)
+
+        self.tab_stock.setLayout(l)
+
+    def init_stock_alertas_tab(self):
+        l = QVBoxLayout()
+        l.addWidget(QLabel(tt("lbl_stock_bajo_minimo", "Materiales sin stock o por debajo del mínimo establecido")))
+        self.tabla_stock_alertas = QTableWidget(0, 6)
+        self.tabla_stock_alertas.setHorizontalHeaderLabels([
+            tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_ubicacion", "UBICACIÓN"),
+            tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")])
+        self.tabla_stock_alertas.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabla_stock_alertas.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.tabla_stock_alertas.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla_stock_alertas.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.tabla_stock_alertas.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla_stock_alertas.setAlternatingRowColors(True)
+        self.tabla_stock_alertas.itemDoubleClicked.connect(lambda _: self.stock_alerta_ir_a_material())
+        l.addWidget(self.tabla_stock_alertas)
+
+        barra = QHBoxLayout()
+        btn_ir = QPushButton(tt("btn_ir_a_material", "🔎 Ver en Stock de almacén")); btn_ir.clicked.connect(self.stock_alerta_ir_a_material)
+        btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;")
+        btn_entrada.clicked.connect(self.stock_alerta_entrada)
+        barra.addWidget(btn_ir); barra.addWidget(btn_entrada)
+        l.addLayout(barra)
+
+        self.tab_stock_alertas.setLayout(l)
+
+    def _material_seleccionado_alerta(self):
+        fila = self.tabla_stock_alertas.currentRow()
+        if fila < 0: return None
+        return self.tabla_stock_alertas.item(fila, 0).data(Qt.ItemDataRole.UserRole)
+
+    def refresh_stock_alertas(self):
+        if not hasattr(self, "tabla_stock_alertas"): return
+        materiales = almacen.materiales_bajo_minimo()
+        self.tabla_stock_alertas.setRowCount(len(materiales))
+        for fila, m in enumerate(materiales):
+            ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+            valores = [m.get("codigo") or "", m["nombre"], ubicacion,
+                       f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
+            color = QColor("#c0392b") if m["stock_actual"] <= 0 else QColor("#e67e22")
+            for col, val in enumerate(valores):
+                item = QTableWidgetItem(val)
+                if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
+                item.setForeground(QBrush(color))
+                self.tabla_stock_alertas.setItem(fila, col, item)
+        if hasattr(self, "tabs") and hasattr(self, "tab_stock_alertas"):
+            idx = self.tabs.indexOf(self.tab_stock_alertas)
+            if idx >= 0:
+                sufijo = f" ({len(materiales)})" if materiales else ""
+                self.tabs.setTabText(idx, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo") + sufijo)
+
+    def stock_alerta_ir_a_material(self):
+        material_id = self._material_seleccionado_alerta()
+        if not material_id: return
+        m = almacen.obtener_material(material_id)
+        if not m: return
+        self.tabs.setCurrentWidget(self.tab_stock)
+        self.stock_buscar.setText(m.get("codigo") or m["nombre"])
+        self.refresh_stock()
+        for fila in range(self.tabla_stock.rowCount()):
+            if self.tabla_stock.item(fila, 0).data(Qt.ItemDataRole.UserRole) == material_id:
+                self.tabla_stock.selectRow(fila); break
+
+    def stock_alerta_entrada(self):
+        material_id = self._material_seleccionado_alerta()
+        if not material_id: return
+        m = almacen.obtener_material(material_id)
+        if not m: return
+        dlg = DialogoMovimientoStock(self, m, "entrada")
+        if dlg.exec():
+            cantidad, motivo = dlg.get_data()
+            almacen.registrar_movimiento(material_id, "entrada", cantidad,
+                                          usuarios.id_actual(), usuarios.nombre_actual(), motivo)
+            self.refresh_stock(); self.refresh_stock_alertas()
+
+    def _material_seleccionado(self):
+        fila = self.tabla_stock.currentRow()
+        if fila < 0: return None
+        return self.tabla_stock.item(fila, 0).data(Qt.ItemDataRole.UserRole)
+
+    def refresh_stock(self):
+        if not hasattr(self, "tabla_stock"): return
+        texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
+        materiales = almacen.listar_materiales(texto or None)
+        self.tabla_stock.setRowCount(len(materiales))
+        for fila, m in enumerate(materiales):
+            ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+            valores = [m.get("codigo") or "", m["nombre"], ubicacion,
+                       f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
+            for col, val in enumerate(valores):
+                item = QTableWidgetItem(val)
+                if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
+                if m["stock_actual"] < m["stock_minimo"]:
+                    item.setForeground(QBrush(QColor("#e74c3c")))
+                self.tabla_stock.setItem(fila, col, item)
+        if hasattr(self, "btn_configurar_almacen"):
+            self.btn_configurar_almacen.setVisible(usuarios.es_admin())
+        self.refresh_historial_stock()
+        self.refresh_stock_alertas()
+
+    def refresh_historial_stock(self):
+        if not hasattr(self, "lista_historial_stock"): return
+        self.lista_historial_stock.clear()
+        material_id = self._material_seleccionado()
+        if not material_id: return
+        for mov in almacen.obtener_movimientos(material_id, limite=20):
+            icono = "📥" if mov["tipo"] == "entrada" else "📤"
+            texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
+            if mov.get("motivo"): texto += f"   ({mov['motivo']})"
+            self.lista_historial_stock.addItem(texto)
+
+    def _guardar_foto_material(self, ruta_origen):
+        if not ruta_origen: return None
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nuevo = f"almacen_{ts}{os.path.splitext(ruta_origen)[1]}"
+        destino = os.path.join(self.carpeta_fotos, nuevo)
+        try:
+            shutil.copy2(ruta_origen, destino)
+            return nuevo
+        except Exception:
+            return None
+
+    def stock_anadir_material(self):
+        dlg = DialogoEditarMaterial(self)
+        if dlg.exec():
+            d = dlg.get_data()
+            if not d["nombre"]: return
+            foto_guardada = self._guardar_foto_material(d["ruta_foto_seleccionada"])
+            almacen.crear_material(d["codigo"], d["nombre"], d["descripcion"], d["unidad"], d["stock_minimo"],
+                                    d["seccion_id"], foto_guardada, d["stock_inicial"],
+                                    usuarios.id_actual(), usuarios.nombre_actual())
+            self.refresh_stock()
+
+    def stock_editar_material(self):
+        material_id = self._material_seleccionado()
+        if not material_id:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
+        material = almacen.obtener_material(material_id)
+        dlg = DialogoEditarMaterial(self, material)
+        if dlg.exec():
+            d = dlg.get_data()
+            if not d["nombre"]: return
+            if not d["ruta_foto_seleccionada"]:
+                foto_final = None
+            elif os.path.dirname(os.path.abspath(d["ruta_foto_seleccionada"])) == os.path.abspath(self.carpeta_fotos):
+                foto_final = os.path.basename(d["ruta_foto_seleccionada"])
+            else:
+                foto_final = self._guardar_foto_material(d["ruta_foto_seleccionada"])
+            almacen.actualizar_material(material_id, d["codigo"], d["nombre"], d["descripcion"], d["unidad"],
+                                         d["stock_minimo"], d["seccion_id"], foto_final)
+            self.refresh_stock()
+
+    def stock_borrar_material(self):
+        material_id = self._material_seleccionado()
+        if not material_id:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_borrar_material", "¿Eliminar este material del almacén? Se perderá su historial de movimientos.")) != QMessageBox.StandardButton.Yes:
+            return
+        almacen.borrar_material(material_id)
+        self.refresh_stock()
+
+    def stock_registrar_movimiento(self, tipo):
+        material_id = self._material_seleccionado()
+        if not material_id:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
+        material = almacen.obtener_material(material_id)
+        dlg = DialogoMovimientoStock(self, material, tipo)
+        if dlg.exec():
+            cantidad, motivo = dlg.get_data()
+            ok, error = almacen.registrar_movimiento(material_id, tipo, cantidad, usuarios.id_actual(), usuarios.nombre_actual(), motivo)
+            if not ok:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_stock_insuficiente", "No hay stock suficiente para esta salida."))
+            self.refresh_stock()
+
+    def stock_configurar_almacen(self):
+        if not usuarios.es_admin(): return
+        DialogoConfigurarAlmacen(self).exec()
+        self.refresh_stock()
+
     # --- LÓGICA GENERAL ---
     def go_today(self): self.calendar.setSelectedDate(QDate.currentDate()); self.update_calendar_list()
     def gest_dias(self, c=False): DialogoDiasEspeciales(self.db, self.gestor_festivos, self).exec(); self.pintar_calendario()
@@ -3172,7 +3748,7 @@ class MaintenanceApp(QMainWindow):
 
     def refresh_all(self):
         self.refresh_dashboard(); self.pintar_calendario(); self.update_calendar_list()
-        self.refresh_history(); self.search(); self.refresh_todos(); self.refresh_avisos()
+        self.refresh_history(); self.search(); self.refresh_todos(); self.refresh_avisos(); self.refresh_stock()
     def setup_table(self, tabla_widget):
         tabla_widget.setColumnCount(4); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
         tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -3439,6 +4015,7 @@ class MaintenanceApp(QMainWindow):
         try:
             with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
+                if os.path.exists(self.db.db_almacen_name): zipf.write(self.db.db_almacen_name, arcname=os.path.basename(self.db.db_almacen_name))
                 if os.path.exists(self.carpeta_fotos):
                     for root, dirs, files in os.walk(self.carpeta_fotos):
                         for file in files:
