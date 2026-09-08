@@ -146,21 +146,34 @@ Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https:
 
 Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la clave GPG oficial de AnabasaSoft. Para verificarlos antes de instalar:
 
-1. Descarga la clave pública del repositorio ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)):
+1. Descarga la clave pública del repositorio ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) a un fichero (**no uses `curl | rpm --import -`**, algunas versiones de `rpm` no admiten leer la clave por la entrada estándar y fallan con `falló la lectura para importar`):
    ```bash
-   curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o anabasasoft_public.asc
+   curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
    ```
 
-2. Importa la clave y verifica el paquete:
+2. Importa la clave (solo hace falta una vez por equipo):
+   ```bash
+   # Fedora, openSUSE, RHEL... (paquete .rpm)
+   sudo rpm --import /tmp/anabasasoft_public.asc
+
+   # Debian, Ubuntu... (paquete .deb, requiere dpkg-sig)
+   gpg --import /tmp/anabasasoft_public.asc
+   ```
+
+3. Comprueba que la clave se ha importado correctamente:
+   ```bash
+   rpm -qa gpg-pubkey* --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+   ```
+
+4. Verifica la firma del paquete descargado:
    ```bash
    # RPM
-   sudo rpm --import anabasasoft_public.asc
    rpm --checksig mantpro-*.rpm
 
-   # DEB (requiere dpkg-sig)
-   gpg --import anabasasoft_public.asc
+   # DEB
    dpkg-sig --verify mantpro_*.deb
    ```
+   Una firma correcta muestra `OK` en la línea de la firma (en vez de `NOKEY` o `MISSING KEYS`).
 
 Una firma válida confirma que el paquete procede de AnabasaSoft y no ha sido modificado.
 
