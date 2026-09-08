@@ -75,8 +75,25 @@ class DialogoLogin(QDialog):
             layout.addWidget(logo)
 
         formulario = QFormLayout()
-        self.campo_login = QLineEdit()
-        self.campo_login.setPlaceholderText(t("login_usuario", "Usuario"))
+        self.campo_login = QComboBox()
+        self.campo_login.setEditable(True)
+        self.campo_login.lineEdit().setPlaceholderText(t("login_usuario", "Usuario"))
+        try:
+            activos = usuarios.listar_usuarios(incluir_inactivos=False)
+        except Exception:
+            activos = []
+        for u in activos:
+            self.campo_login.addItem(u["login"])
+        ultimo = usuarios.obtener_ultimo_usuario()
+        if ultimo:
+            indice = self.campo_login.findText(ultimo)
+            if indice >= 0:
+                self.campo_login.setCurrentIndex(indice)
+            else:
+                self.campo_login.setCurrentText(ultimo)
+        else:
+            self.campo_login.setCurrentText("")
+
         self.campo_password = QLineEdit()
         self.campo_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.campo_password.setPlaceholderText(t("login_password", "Contraseña"))
@@ -101,10 +118,13 @@ class DialogoLogin(QDialog):
         self.boton_entrar.clicked.connect(self._intentar)
         self.boton_salir.clicked.connect(self.reject)
         self.campo_password.returnPressed.connect(self._intentar)
-        self.campo_login.returnPressed.connect(self.campo_password.setFocus)
+        self.campo_login.lineEdit().returnPressed.connect(self.campo_password.setFocus)
+
+        if ultimo:
+            self.campo_password.setFocus()
 
     def _intentar(self):
-        login = self.campo_login.text().strip()
+        login = self.campo_login.currentText().strip()
         password = self.campo_password.text()
         if not login or not password:
             self.aviso.setText(t("login_vacio", "Introduce usuario y contraseña."))
@@ -127,6 +147,7 @@ class DialogoLogin(QDialog):
 
         self.usuario = usuario
         usuarios.SESION_ACTUAL = usuario
+        usuarios.guardar_ultimo_usuario(usuario["login"])
         self.accept()
 
 

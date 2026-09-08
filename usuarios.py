@@ -264,6 +264,33 @@ def listar_usuarios(incluir_inactivos=True):
     ]
 
 
+def guardar_ultimo_usuario(login):
+    """Recuerda el último login usado, para preseleccionarlo en el desplegable de acceso."""
+    try:
+        con = _conn()
+        con.execute(
+            "CREATE TABLE IF NOT EXISTS config (clave TEXT PRIMARY KEY, valor TEXT)")
+        con.execute(
+            "INSERT OR REPLACE INTO config (clave, valor) VALUES ('ultimo_usuario', ?)",
+            (login,))
+        con.commit()
+        con.close()
+    except sqlite3.Error:
+        pass
+
+
+def obtener_ultimo_usuario():
+    """Devuelve el login recordado de la última sesión, o None si no hay ninguno."""
+    try:
+        con = _conn()
+        fila = con.execute(
+            "SELECT valor FROM config WHERE clave = 'ultimo_usuario'").fetchone()
+        con.close()
+        return fila["valor"] if fila else None
+    except sqlite3.Error:
+        return None
+
+
 def crear_usuario(login, nombre, password, rol="tecnico", debe_cambiar=True):
     """Devuelve (ok, mensaje)."""
     login = (login or "").strip()
