@@ -415,7 +415,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.0.2';
+const String kAppVersion = '3.0.3';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
