@@ -139,7 +139,29 @@ Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https:
 - **Linux**: 
   - Descarga el binario ejecutable y dale permisos de ejecución: `chmod +x mantpro`
   - O usa el **AppImage** (sin instalación): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
+  - Los paquetes **`.deb`** y **`.rpm`** están firmados digitalmente con GPG (ver [Verificar la firma de los paquetes](#-verificar-la-firma-de-los-paquetes-linux))
   - **Arch Linux**: Disponible en AUR: `yay -S mantpro` o `paru -S mantpro`
+
+#### 🔏 Verificar la firma de los paquetes (Linux)
+
+Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la clave GPG oficial de AnabasaSoft. Para verificarlos antes de instalar:
+
+1. Importa la clave pública (incluida en cada release como `anabasasoft_public.asc`):
+   ```bash
+   gpg --import anabasasoft_public.asc
+   ```
+
+2. Verifica el paquete:
+   ```bash
+   # RPM
+   rpm --import anabasasoft_public.asc
+   rpm --checksig mantpro-*.rpm
+
+   # DEB (requiere dpkg-sig)
+   dpkg-sig --verify mantpro_*.deb
+   ```
+
+Una firma válida confirma que el paquete procede de AnabasaSoft y no ha sido modificado.
 
 #### Opción 2: Instalación desde Código Fuente
 
