@@ -76,13 +76,13 @@ const Map<String, Map<String, String>> _traducciones = {
     "tab_inicio": "Inicio",
     "tab_local": "Local",
     "tab_pendientes": "Pendientes",
-    "tab_avisos": "Avisos",
+    "tab_avisos": "Recordatorios",
     "tab_historial": "Historial",
     "titulo_dashboard": "Dashboard",
     "titulo_local": "Mis Registros Locales",
     "titulo_pendientes": "Pendientes",
-    "titulo_avisos": "Avisos Recurrentes",
-    "titulo_historial": "Historial Completo",
+    "titulo_avisos": "Recordatorios",
+    "titulo_historial": "Historial",
     "dlg_idioma_titulo": "Idioma",
     "tag_urgente": "Urgente",
     "tag_electrico": "Eléctrico",
@@ -153,6 +153,11 @@ const Map<String, Map<String, String>> _traducciones = {
     "filtro_todos": "Todos",
     "filtro_solo_mios": "Solo míos",
     "msg_no_hay_pendientes_mios": "No tienes trabajos asignados",
+    "lbl_materiales_usados": "Materiales usados",
+    "btn_anadir_material": "Añadir material",
+    "msg_sin_materiales": "No se ha usado ningún material",
+    "lbl_cantidad": "Cantidad",
+    "hint_buscar_material": "Buscar material...",
   },
   "en": {
     // --- Listas, Estados y Notificaciones ---
@@ -265,6 +270,11 @@ const Map<String, Map<String, String>> _traducciones = {
     "filtro_todos": "All",
     "filtro_solo_mios": "Only mine",
     "msg_no_hay_pendientes_mios": "You have no assigned jobs",
+    "lbl_materiales_usados": "Materials used",
+    "btn_anadir_material": "Add material",
+    "msg_sin_materiales": "No material was used",
+    "lbl_cantidad": "Quantity",
+    "hint_buscar_material": "Search material...",
   },
   "eu": {
     "hdr_fecha": "DATA",
@@ -374,7 +384,12 @@ const Map<String, Map<String, String>> _traducciones = {
     "lbl_titulo": "Izenburua",
     "lbl_detalles": "Xehetasunak",
     "lbl_antes": "AURREKOA",
-    "lbl_despues": "ONDORENGOA"
+    "lbl_despues": "ONDORENGOA",
+    "lbl_materiales_usados": "Erabilitako materiala",
+    "btn_anadir_material": "Materiala gehitu",
+    "msg_sin_materiales": "Ez da materialik erabili",
+    "lbl_cantidad": "Kopurua",
+    "hint_buscar_material": "Materiala bilatu..."
   },
 };
 

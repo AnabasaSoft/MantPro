@@ -559,6 +559,7 @@ class Registro {
   String? imagePathDespues;
   String? serverImageNameDespues;
   String? fecha; // Nuevo campo fecha
+  List<Map<String, dynamic>> materiales; // [{material_id, nombre, cantidad}]
 
   Registro({
     this.id,
@@ -569,8 +570,9 @@ class Registro {
     this.serverImageName,
     this.imagePathDespues,
     this.serverImageNameDespues,
-    this.fecha
-  });
+    this.fecha,
+    List<Map<String, dynamic>>? materiales
+  }) : materiales = materiales ?? [];
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -581,7 +583,8 @@ class Registro {
     'serverImageName': serverImageName,
     'imagePathDespues': imagePathDespues,
     'serverImageNameDespues': serverImageNameDespues,
-    'fecha': fecha
+    'fecha': fecha,
+    'materiales': materiales
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -593,7 +596,11 @@ class Registro {
     serverImageName: json['serverImageName'],
     imagePathDespues: json['imagePathDespues'],
     serverImageNameDespues: json['serverImageNameDespues'],
-    fecha: json['fecha']
+    fecha: json['fecha'],
+    materiales: json['materiales'] != null
+        ? List<Map<String, dynamic>>.from(
+            (json['materiales'] as List).map((e) => Map<String, dynamic>.from(e)))
+        : []
   );
 }
 
@@ -1008,6 +1015,8 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         if (item.fecha != null) req.fields['fecha'] = item.fecha!;
         // ------------------
 
+        if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
+
         if (item.imagePath != null && File(item.imagePath!).existsSync()) {
           req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
         }
@@ -1228,6 +1237,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
       // ---------------------
 
+      if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
+
       if (d['imagePath'] != null && File(d['imagePath']).existsSync()) {
         r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
       }
@@ -1252,11 +1263,13 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       tags: item['tags'] ?? "General",
       imagePath: item['imagePath'],
       imagePathDespues: item['imagePathDespues'],
-      fecha: item['fecha']
+      fecha: item['fecha'],
+      materiales: item['materiales'] != null ? List<Map<String, dynamic>>.from(item['materiales']) : []
     );
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       registroExistente: reg,
       esHistorial: true,
+      urlPC: _urlPC,
       onSave: (r) {
         setState(() {
           _colaSalida[index] = {
@@ -1266,7 +1279,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             'tags': r.tags,
             'imagePath': r.imagePath,
             'imagePathDespues': r.imagePathDespues,
-            'fecha': r.fecha
+            'fecha': r.fecha,
+            'materiales': r.materiales
           };
         });
         _guardarCache();
@@ -1291,7 +1305,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'tags': r.tags,
           'imagePath': r.imagePath,
           'imagePathDespues': r.imagePathDespues,
-          'fecha': r.fecha
+          'fecha': r.fecha,
+          'materiales': r.materiales
         };
         // ---------------------
 
@@ -1884,9 +1899,15 @@ class FormScreen extends StatefulWidget { final Function(Registro) onSave; final
 class _FormScreenState extends State<FormScreen> {
   final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
+  List<Map<String, dynamic>> _materiales = [];
   @override void initState() { super.initState();
     if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
-    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); }
+  }
+  Future<void> _anadirMaterial() async {
+    if (widget.urlPC == null) return;
+    final resultado = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => _DialogoSeleccionarMaterial(urlPC: widget.urlPC!));
+    if (resultado != null) setState(() => _materiales.add(resultado));
   }
   void _save(bool end) {
     if (_t.text.isEmpty && !widget.esHistorial) return;
@@ -1903,7 +1924,7 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, materiales: _materiales);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -1917,6 +1938,20 @@ class _FormScreenState extends State<FormScreen> {
         TextField(controller: _d, maxLines: 5, decoration: InputDecoration(labelText: t("lbl_detalles"))), const SizedBox(height: 15),
         Wrap(spacing: 8, children: [FilterChip(label: Text('🚨 ${t("tag_urgente")}'), selected: _u, onSelected: (v)=>setState(()=>_u=v)), FilterChip(label: Text('⚡ ${t("tag_electrico")}'), selected: _e, onSelected: (v)=>setState(()=>_e=v)), FilterChip(label: Text('⚙️ ${t("tag_mecanico")}'), selected: _m, onSelected: (v)=>setState(()=>_m=v)), FilterChip(label: Text('🛡️ ${t("tag_preventivo")}'), selected: _p, onSelected: (v)=>setState(()=>_p=v))]),
         TextField(controller: _tag, decoration: InputDecoration(labelText: t("lbl_tags_extra"))), const SizedBox(height: 15), const Divider(),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(t("lbl_materiales_usados"), style: const TextStyle(fontWeight: FontWeight.bold)),
+          if (widget.urlPC != null) TextButton.icon(icon: const Icon(Icons.add), label: Text(t("btn_anadir_material")), onPressed: _anadirMaterial),
+        ]),
+        if (_materiales.isEmpty)
+          Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Align(alignment: Alignment.centerLeft, child: Text(t("msg_sin_materiales"), style: const TextStyle(color: Colors.grey))))
+        else Column(children: _materiales.asMap().entries.map((e) => ListTile(
+          dense: true, contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.inventory_2_outlined),
+          title: Text(e.value['nombre']?.toString() ?? ''),
+          subtitle: Text('${e.value['cantidad']} ${e.value['unidad'] ?? ''}'.trim()),
+          trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => _materiales.removeAt(e.key))),
+        )).toList()),
+        const SizedBox(height: 15), const Divider(),
         Row(
           children: [
             Expanded(child: Column(children: [
@@ -1943,6 +1978,96 @@ class _FormScreenState extends State<FormScreen> {
     ])));
   }
 }
+/// Diálogo para buscar un material del almacén y fijar la cantidad usada.
+/// Devuelve un mapa {material_id, nombre, unidad, cantidad} al cerrarse, o
+/// null si se cancela.
+class _DialogoSeleccionarMaterial extends StatefulWidget {
+  final String urlPC;
+  const _DialogoSeleccionarMaterial({required this.urlPC});
+  @override
+  State<_DialogoSeleccionarMaterial> createState() => _DialogoSeleccionarMaterialState();
+}
+class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial> {
+  final _buscarCtrl = TextEditingController();
+  List<Map<String, dynamic>> _resultados = [];
+  Map<String, dynamic>? _seleccionado;
+  final _cantidadCtrl = TextEditingController(text: '1');
+  bool _buscando = false;
+
+  Future<void> _buscar(String q) async {
+    setState(() => _buscando = true);
+    try {
+      final res = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/stock/materiales?q=${Uri.encodeQueryComponent(q)}")).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        _resultados = List<Map<String, dynamic>>.from(data['materiales'] ?? []);
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _buscando = false);
+  }
+
+  @override
+  void initState() { super.initState(); _buscar(''); }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_seleccionado != null) {
+      return AlertDialog(
+        title: Text(_seleccionado!['nombre']?.toString() ?? ''),
+        content: TextField(
+          controller: _cantidadCtrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(labelText: t("lbl_cantidad"), suffixText: _seleccionado!['unidad']?.toString() ?? ''),
+        ),
+        actions: [
+          TextButton(onPressed: () => setState(() => _seleccionado = null), child: const Text('←')),
+          ElevatedButton(
+            onPressed: () {
+              final cantidad = double.tryParse(_cantidadCtrl.text.replaceAll(',', '.')) ?? 0;
+              if (cantidad <= 0) return;
+              Navigator.pop(context, {
+                'material_id': _seleccionado!['id'],
+                'nombre': _seleccionado!['nombre'],
+                'unidad': _seleccionado!['unidad'],
+                'cantidad': cantidad,
+              });
+            },
+            child: Text(t("btn_anadir_material")),
+          ),
+        ],
+      );
+    }
+    return AlertDialog(
+      title: TextField(
+        controller: _buscarCtrl,
+        autofocus: true,
+        decoration: InputDecoration(hintText: t("hint_buscar_material"), prefixIcon: const Icon(Icons.search)),
+        onChanged: _buscar,
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: 300,
+        child: _buscando
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: _resultados.length,
+                itemBuilder: (_, i) {
+                  final m = _resultados[i];
+                  return ListTile(
+                    leading: const Icon(Icons.inventory_2_outlined),
+                    title: Text(m['nombre']?.toString() ?? ''),
+                    subtitle: Text('${m['stock_actual']} ${m['unidad'] ?? ''}'.trim()),
+                    onTap: () => setState(() => _seleccionado = m),
+                  );
+                },
+              ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t("btn_cancelar_mayus")))],
+    );
+  }
+}
+
 class QRScanScreen extends StatefulWidget { const QRScanScreen({super.key}); @override State<QRScanScreen> createState() => _QRScanScreenState(); }
 class _QRScanScreenState extends State<QRScanScreen> {
   bool _s = false;
@@ -1977,6 +2102,7 @@ class SincronizadorGlobal {
           req.fields['detalles'] = item.detalles;
           req.fields['tags'] = item.tags;
           if (item.fecha != null) req.fields['fecha'] = item.fecha!;
+          if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
           if (item.imagePath != null && File(item.imagePath!).existsSync()) {
             req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
           }
@@ -2008,6 +2134,7 @@ class SincronizadorGlobal {
         r.fields['detalles'] = d['detalles'];
         if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
         if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
+        if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
         if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
         if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
         return (await r.send()).statusCode == 200;

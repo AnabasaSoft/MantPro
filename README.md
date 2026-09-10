@@ -111,14 +111,15 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 
 <p align="center">
   <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="Capturas/Avisos.png" alt="Recordatorios" width="45%"/>
+  <img src="Capturas/Almacen.png" alt="Gestión de Almacén" width="45%"/>
 </p>
 
 ### Aplicación Móvil
 
 <p align="center">
-  <img src="Capturas/mobile-home.jpg" alt="Inicio Móvil" width="45%"/>
-  <img src="Capturas/mobile-pendientes.jpg" alt="Trabajos Pendientes" width="45%"/>
+  <img src="Capturas/Dashboard-movil.jpg" alt="Dashboard Móvil" width="30%"/>
+  <img src="Capturas/Almacen-movil.jpg" alt="Almacén Móvil" width="30%"/>
+  <img src="Capturas/Historial-movil.jpg" alt="Historial Móvil" width="30%"/>
 </p>
 
 ---
