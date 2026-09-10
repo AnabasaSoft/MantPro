@@ -44,7 +44,7 @@ from idiomas import t
 # --- Sistema de usuarios (login, roles, atribución de trabajos) ---
 import usuarios
 from dialogos_usuarios import (DialogoLogin, DialogoGestionUsuarios,
-                               DialogoCambioPassword)
+                               DialogoCambioPassword, DialogoSesiones)
 
 # --- Control de stock de almacén (BD propia, independiente de los trabajos) ---
 import almacen
@@ -167,7 +167,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.7.2"
+APP_VERSION = "3.7.3"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -3044,6 +3044,8 @@ class MaintenanceApp(QMainWindow):
         if usuarios.es_admin():
             tm.addAction(QAction(tt("menu_usuarios", "👥 Gestión de usuarios"),
                                  self, triggered=self.gestionar_usuarios))
+            tm.addAction(QAction(tt("menu_sesiones", "🔐 Sesiones de dispositivos"),
+                                 self, triggered=self.gestionar_sesiones))
             tm.addAction(QAction(tt("menu_auditoria", "📋 Registro de cambios"),
                                  self, triggered=self.ver_auditoria))
         # --- Menú de tema visual ---
@@ -4885,6 +4887,13 @@ class MaintenanceApp(QMainWindow):
         if hasattr(self, 'combo_asignar'):
             self._llenar_combo_usuarios(self.combo_asignar, incluir_sin_asignar=True)
             self._llenar_combo_usuarios(self.combo_filtro_todos, incluir_todos=True, incluir_sin_asignar=True)
+
+    def gestionar_sesiones(self):
+        if not usuarios.es_admin():
+            QMessageBox.warning(self, t("title_error"),
+                                tt("msg_solo_admin", "Solo un administrador puede gestionar usuarios."))
+            return
+        DialogoSesiones(self).exec()
 
     def cambiar_mi_password(self):
         if not usuarios.SESION_ACTUAL:

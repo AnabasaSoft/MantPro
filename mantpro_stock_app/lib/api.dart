@@ -4,6 +4,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'modelos.dart';
@@ -27,6 +28,23 @@ final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
 String tt(String clave, String defecto) {
   final v = t(clave);
   return v == clave ? defecto : v;
+}
+
+/// Modelo del móvil (p.ej. "Samsung SM-G991B"), para distinguir sesiones en
+/// "Sesiones de dispositivos" cuando hay varios móviles con la misma app.
+Future<String> _nombreDispositivo() async {
+  try {
+    final infoPlugin = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final info = await infoPlugin.androidInfo;
+      return '${info.manufacturer} ${info.model}'.trim();
+    }
+    if (Platform.isIOS) {
+      final info = await infoPlugin.iosInfo;
+      return info.name.isNotEmpty ? info.name : info.utsname.machine;
+    }
+  } catch (_) {}
+  return 'Android';
 }
 
 class AuthService {
@@ -64,7 +82,7 @@ class AuthService {
         body: json.encode({
           'login': usuario,
           'password': password,
-          'dispositivo': 'Android (Stock)',
+          'dispositivo': '${await _nombreDispositivo()} (Stock)',
         }),
       ).timeout(const Duration(seconds: 10));
 

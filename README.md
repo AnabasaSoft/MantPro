@@ -87,6 +87,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
+- **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén))
 
 ### 📦 Aplicación Móvil de Stock (Android)
 
@@ -325,13 +326,21 @@ Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/An
 
 ### Roles
 
+Un mismo usuario puede tener **uno o varios roles a la vez** (por ejemplo,
+técnico y almacén). Roles disponibles:
+
 | Rol | Puede hacer |
 |-----|-------------|
-| **Administrador** | Todo lo del técnico, más dar de alta y de baja usuarios, cambiar roles, restablecer contraseñas, editar o borrar **cualquier** registro del historial, reasignar el autor de uno o varios registros a la vez, y consultar el registro de auditoría de cambios |
+| **Administrador** | Todo lo del técnico y lo de almacén, más dar de alta y de baja usuarios, cambiar roles, restablecer contraseñas, editar o borrar **cualquier** registro del historial, reasignar el autor de uno o varios registros a la vez, y consultar el registro de auditoría de cambios |
 | **Técnico** | Registrar trabajos, completar pendientes y avisos, editar o borrar **solo sus propios** registros del historial, y cambiar su propia contraseña |
+| **Almacén** | Dar de alta o editar materiales y registrar entradas/salidas de stock desde la app móvil **MantPro Stock** |
 
 Siempre debe quedar **al menos un administrador activo**: la aplicación impide
 quitarle el rol o desactivarlo al último que queda.
+
+> Desde la aplicación de escritorio, cualquier usuario (sea cual sea su rol)
+> puede registrar movimientos de stock; el rol **Almacén** es lo que habilita
+> esa misma gestión (altas, ediciones y movimientos) desde el móvil.
 
 ### Gestión desde el PC
 
@@ -421,10 +430,26 @@ pestaña "📦 Stock de almacén", visible **solo para administradores**.
   configuración de la estructura del almacén está restringida a administradores
 - Cada movimiento queda registrado con fecha, cantidad, usuario y un motivo
   opcional, visible en el historial junto a cada material
-- Las salidas no pueden dejar el stock en negativo
+- Las salidas registradas a mano (PC o `mantpro_stock_app`) no pueden dejar
+  el stock en negativo
 - Cambiar la ubicación de un material también queda registrado en su
   historial, como un movimiento de tipo **traslado** (de qué sección a qué
   sección)
+
+### Material usado en un trabajo (MantPro)
+
+Al completar un trabajo desde la app **MantPro** (móvil), se puede añadir el
+material que se ha empleado buscándolo por nombre o código e indicando la
+cantidad. Al guardar el trabajo, ese material se descuenta automáticamente
+del almacén, con el motivo "Usado en trabajo: ..." para mantener la
+trazabilidad.
+
+A diferencia de las salidas manuales, **este descuento sí puede dejar el
+stock en negativo**: el material ya se ha usado físicamente para hacer el
+trabajo aunque no hubiera stock registrado suficiente, así que bloquear el
+movimiento no tendría sentido. El stock negativo se verá tanto en el PC
+como en `mantpro_stock_app`, y sirve como aviso de que hay que comprobar y
+reponer ese material cuanto antes.
 
 ### Alertas de stock bajo mínimo
 
@@ -606,8 +631,8 @@ Estado actual y siguientes pasos previstos.
 ### ✅ Hecho
 
 - **Gestión de usuarios**: login con usuario y contraseña en PC y móvil, roles
-  (administrador / técnico), alta y baja lógica de usuarios, cambio y
-  restablecimiento de contraseña.
+  múltiples por usuario (administrador / técnico / almacén), alta y baja
+  lógica de usuarios, cambio y restablecimiento de contraseña.
 - **Autoría de los trabajos**: cada registro guarda quién lo realizó. Los
   registros anteriores al sistema de usuarios quedan marcados como `Histórico`.
 - **Sesión persistente en el móvil**: el técnico inicia sesión una vez y el
