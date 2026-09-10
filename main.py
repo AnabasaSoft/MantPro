@@ -27,6 +27,7 @@ import socket
 import threading
 import re
 import csv
+import logging
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, g
 from reportlab.lib.pagesizes import A4
@@ -166,7 +167,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.5.0"
+APP_VERSION = "3.6.0"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -496,6 +497,7 @@ class DialogoQR(QDialog):
 class ServidorSincronizacion(QThread):
     registro_recibido = pyqtSignal(str, str, str, str, str)
     pendiente_actualizado = pyqtSignal()
+    stock_actualizado = pyqtSignal()
 
     def __init__(self, carpeta_destino, db_path):
         super().__init__()
@@ -549,7 +551,8 @@ class ServidorSincronizacion(QThread):
             token = usuarios.crear_token(usuario['id'], dispositivo)
             return jsonify({"status": "ok", "token": token, "usuario": {
                 "id": usuario['id'], "login": usuario['login'],
-                "nombre": usuario['nombre'], "rol": usuario['rol']}})
+                "nombre": usuario['nombre'], "rol": usuario['rol'],
+                "roles": usuario['roles']}})
 
         @self.app.route('/api/logout', methods=['POST'])
         @requiere_token
@@ -1184,6 +1187,138 @@ class ServidorSincronizacion(QThread):
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 
+        # --- API DE STOCK (app MantPro Stock) ------------------------------
+        # Lectura: cualquier usuario autenticado. Alta/edición/movimientos:
+        # solo admin o rol "almacen" (usuarios.puede_gestionar_almacen).
+        def requiere_almacen(func):
+            from functools import wraps
+
+            @wraps(func)
+            def envoltorio(*args, **kwargs):
+                if not usuarios.puede_gestionar_almacen(g.usuario_mantpro):
+                    return jsonify({
+                        "status": "error", "error": "sin_permiso",
+                        "message": "Tu usuario no puede gestionar el almacén."
+                    }), 403
+                return func(*args, **kwargs)
+            return envoltorio
+
+        @self.app.route('/api/stock/estructura', methods=['GET'])
+        @requiere_token
+        def api_stock_estructura():
+            return jsonify({"status": "ok", "estanterias": almacen.listar_estructura()})
+
+        @self.app.route('/api/stock/materiales', methods=['GET'])
+        @requiere_token
+        def api_stock_materiales():
+            filtro = request.args.get('q') or None
+            materiales = almacen.listar_materiales(filtro)
+            for m in materiales:
+                m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+            return jsonify({"status": "ok", "materiales": materiales})
+
+        @self.app.route('/api/stock/bajo_minimo', methods=['GET'])
+        @requiere_token
+        def api_stock_bajo_minimo():
+            materiales = almacen.materiales_bajo_minimo()
+            for m in materiales:
+                m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+            return jsonify({"status": "ok", "materiales": materiales})
+
+        @self.app.route('/api/stock/material/<int:material_id>', methods=['GET'])
+        @requiere_token
+        def api_stock_material(material_id):
+            material = almacen.obtener_material(material_id)
+            if material is None:
+                return jsonify({"status": "error", "message": "Material no encontrado"}), 404
+            material["ubicacion"] = almacen.obtener_ubicacion_texto(material.get("seccion_id"))
+            material["movimientos"] = almacen.obtener_movimientos(material_id, limite=20)
+            return jsonify({"status": "ok", "material": material})
+
+        @self.app.route('/api/stock/material', methods=['POST'])
+        @requiere_token
+        @requiere_almacen
+        def api_stock_crear_material():
+            try:
+                usuario = g.usuario_mantpro
+                datos = request.form
+                nombre = (datos.get('nombre') or '').strip()
+                if not nombre:
+                    return jsonify({"status": "error", "message": "El nombre del material es obligatorio."}), 400
+                seccion_id = datos.get('seccion_id')
+                seccion_id = int(seccion_id) if seccion_id else None
+                filename, _ = self._procesar_foto(request, 'foto')
+                material_id = almacen.crear_material(
+                    datos.get('codigo', ''), nombre, datos.get('descripcion', ''),
+                    datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
+                    seccion_id, filename or None, float(datos.get('stock_inicial') or 0),
+                    usuario['id'], usuario['nombre'])
+                self.stock_actualizado.emit()
+                return jsonify({"status": "ok", "id": material_id})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/stock/material/<int:material_id>', methods=['POST'])
+        @requiere_token
+        @requiere_almacen
+        def api_stock_editar_material(material_id):
+            try:
+                material = almacen.obtener_material(material_id)
+                if material is None:
+                    return jsonify({"status": "error", "message": "Material no encontrado"}), 404
+                datos = request.form
+                nombre = (datos.get('nombre') or '').strip()
+                if not nombre:
+                    return jsonify({"status": "error", "message": "El nombre del material es obligatorio."}), 400
+                seccion_id = datos.get('seccion_id')
+                seccion_id = int(seccion_id) if seccion_id else None
+
+                foto_final = material.get('foto')
+                filename, _ = self._procesar_foto(request, 'foto')
+                if filename:
+                    foto_final = filename
+                elif datos.get('borrar_foto') == '1':
+                    foto_final = None
+
+                usuario = g.usuario_mantpro
+                almacen.actualizar_material(
+                    material_id, datos.get('codigo', ''), nombre, datos.get('descripcion', ''),
+                    datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
+                    seccion_id, foto_final, usuario['id'], usuario['nombre'])
+                self.stock_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/stock/material/<int:material_id>/movimiento', methods=['POST'])
+        @requiere_token
+        @requiere_almacen
+        def api_stock_movimiento(material_id):
+            try:
+                usuario = g.usuario_mantpro
+                datos = request.form
+                tipo = datos.get('tipo')
+                if tipo not in ('entrada', 'salida'):
+                    return jsonify({"status": "error", "message": "Tipo de movimiento no válido."}), 400
+                try:
+                    cantidad = float(datos.get('cantidad') or 0)
+                except ValueError:
+                    cantidad = 0
+                if cantidad <= 0:
+                    return jsonify({"status": "error", "message": "La cantidad debe ser mayor que 0."}), 400
+                ok, error = almacen.registrar_movimiento(
+                    material_id, tipo, cantidad, usuario['id'], usuario['nombre'],
+                    datos.get('motivo', ''))
+                if not ok:
+                    mensaje = ("No hay stock suficiente para esta salida."
+                               if error == "stock_insuficiente" else "Material no encontrado")
+                    return jsonify({"status": "error", "error": error, "message": mensaje}), 400
+                self.stock_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+        # -------------------------------------------------------------------
+
     def _procesar_foto(self, req, key='foto'):
         if key in req.files:
             file = req.files[key]
@@ -1205,6 +1340,10 @@ class ServidorSincronizacion(QThread):
         except: return "127.0.0.1"
 
     def run(self):
+        # Silencia el log de peticiones HTTP de Werkzeug (una línea por cada
+        # sincronización del móvil): con la app ya probada no aporta nada y
+        # solo llena la consola.
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
         self.app.run(host='0.0.0.0', port=self.server_port, debug=False, use_reloader=False)
 
 # ==========================================
@@ -1690,6 +1829,19 @@ class DialogoNuevaEstanteria(QDialog):
         l.addWidget(self.spin_secciones)
         self.chk_hueco_suelo = QCheckBox(tt("txt_hueco_suelo", "Tiene hueco en el suelo (bajo la balda inferior)"))
         l.addWidget(self.chk_hueco_suelo)
+
+        l.addWidget(QLabel(tt("lbl_estilo_baldas", "Numerar las baldas con")))
+        self.combo_estilo_baldas = QComboBox()
+        self.combo_estilo_baldas.addItem(tt("txt_numeros", "Números (1, 2, 3...)"), "numero")
+        self.combo_estilo_baldas.addItem(tt("txt_letras", "Letras (A, B, C...)"), "letra")
+        l.addWidget(self.combo_estilo_baldas)
+
+        l.addWidget(QLabel(tt("lbl_estilo_secciones", "Nombrar las secciones con")))
+        self.combo_estilo_secciones = QComboBox()
+        self.combo_estilo_secciones.addItem(tt("txt_letras", "Letras (A, B, C...)"), "letra")
+        self.combo_estilo_secciones.addItem(tt("txt_numeros", "Números (1, 2, 3...)"), "numero")
+        l.addWidget(self.combo_estilo_secciones)
+
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
@@ -1697,7 +1849,8 @@ class DialogoNuevaEstanteria(QDialog):
 
     def get_data(self):
         return (self.campo_nombre.text().strip(), self.spin_baldas.value(),
-                self.chk_hueco_suelo.isChecked(), self.spin_secciones.value())
+                self.chk_hueco_suelo.isChecked(), self.spin_secciones.value(),
+                self.combo_estilo_baldas.currentData(), self.combo_estilo_secciones.currentData())
 
 
 class DialogoConfigurarAlmacen(QDialog):
@@ -1740,7 +1893,8 @@ class DialogoConfigurarAlmacen(QDialog):
             item_est = QTreeWidgetItem([f"🗄️ {est['nombre']}"])
             item_est.setData(0, Qt.ItemDataRole.UserRole, ("estanteria", est["id"]))
             for balda in est["baldas"]:
-                nombre_balda = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt("txt_balda_num", "Balda {n}").format(n=balda["numero"])
+                nombre_balda = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt(
+                    "txt_balda_num", "Balda {n}").format(n=almacen.texto_balda(balda["numero"], est.get("estilo_baldas", "numero")))
                 item_balda = QTreeWidgetItem([f"📚 {nombre_balda}"])
                 item_balda.setData(0, Qt.ItemDataRole.UserRole, ("balda", balda["id"]))
                 for sec in balda["secciones"]:
@@ -1759,10 +1913,10 @@ class DialogoConfigurarAlmacen(QDialog):
     def anadir_estanteria(self):
         dlg = DialogoNuevaEstanteria(self)
         if dlg.exec():
-            nombre, num_baldas, hueco_suelo, num_secciones = dlg.get_data()
+            nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones = dlg.get_data()
             if not nombre:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_obligatorio", "El nombre es obligatorio.")); return
-            almacen.crear_estanteria(nombre, num_baldas, hueco_suelo, num_secciones)
+            almacen.crear_estanteria(nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones)
             self.refrescar()
 
     def eliminar_estanteria(self):
@@ -1819,6 +1973,59 @@ class DialogoConfigurarAlmacen(QDialog):
         if not ok:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
         self.refrescar()
+
+
+class DialogoSeleccionarUbicacion(QDialog):
+    """Elige estantería/balda/sección de destino, sin más datos, para mover uno o varios materiales a la vez."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tt("title_mover_material", "Mover a..."))
+        self.resize(360, 200)
+        l = QVBoxLayout()
+        self.combo_estanteria = QComboBox(); self.combo_balda = QComboBox(); self.combo_seccion = QComboBox()
+        l.addWidget(QLabel(tt("lbl_estanteria", "Estantería"))); l.addWidget(self.combo_estanteria)
+        l.addWidget(QLabel(tt("lbl_balda", "Balda"))); l.addWidget(self.combo_balda)
+        l.addWidget(QLabel(tt("lbl_seccion", "Sección"))); l.addWidget(self.combo_seccion)
+        self._estructura = almacen.listar_estructura()
+        for est in self._estructura:
+            self.combo_estanteria.addItem(est["nombre"], est["id"])
+        self.combo_estanteria.currentIndexChanged.connect(self._actualizar_baldas)
+        self.combo_balda.currentIndexChanged.connect(self._actualizar_secciones)
+        self._actualizar_baldas()
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def _actualizar_baldas(self):
+        self.combo_balda.clear()
+        est_id = self.combo_estanteria.currentData()
+        est = next((e for e in self._estructura if e["id"] == est_id), None)
+        if est:
+            for balda in est["baldas"]:
+                nombre = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt(
+                    "txt_balda_num", "Balda {n}").format(n=almacen.texto_balda(balda["numero"], est.get("estilo_baldas", "numero")))
+                self.combo_balda.addItem(nombre, balda["id"])
+        self._actualizar_secciones()
+
+    def _actualizar_secciones(self):
+        self.combo_seccion.clear()
+        est_id = self.combo_estanteria.currentData()
+        balda_id = self.combo_balda.currentData()
+        est = next((e for e in self._estructura if e["id"] == est_id), None)
+        if est:
+            balda = next((b for b in est["baldas"] if b["id"] == balda_id), None)
+            if balda:
+                for sec in balda["secciones"]:
+                    self.combo_seccion.addItem(sec["nombre"], sec["id"])
+
+    def _validar_aceptar(self):
+        if self.combo_seccion.currentData() is None:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_selecciona_seccion", "Selecciona una sección del almacén.")); return
+        self.accept()
+
+    def get_seccion_id(self):
+        return self.combo_seccion.currentData()
 
 
 class DialogoEditarMaterial(QDialog):
@@ -1904,7 +2111,8 @@ class DialogoEditarMaterial(QDialog):
         est = next((e for e in self._estructura if e["id"] == est_id), None)
         if est:
             for balda in est["baldas"]:
-                nombre = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt("txt_balda_num", "Balda {n}").format(n=balda["numero"])
+                nombre = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt(
+                    "txt_balda_num", "Balda {n}").format(n=almacen.texto_balda(balda["numero"], est.get("estilo_baldas", "numero")))
                 self.combo_balda.addItem(nombre, balda["id"])
         self._actualizar_secciones()
 
@@ -2413,6 +2621,8 @@ class MaintenanceApp(QMainWindow):
         self.server_thread = ServidorSincronizacion(self.carpeta_fotos, self.db.db_name)
         self.server_thread.registro_recibido.connect(self.on_registro_recibido)
         self.server_thread.pendiente_actualizado.connect(self.refresh_all)
+        self.server_thread.stock_actualizado.connect(self.refresh_stock)
+        self.server_thread.stock_actualizado.connect(self.refresh_stock_alertas)
         self.server_thread.start()
         self.setWindowTitle(t("title_control_mantenimiento"))
         self.resize(1100, 750)
@@ -3512,7 +3722,7 @@ class MaintenanceApp(QMainWindow):
         barra.addWidget(self.stock_buscar, 1)
         btn_add = QPushButton(tt("btn_add_material", "➕ Añadir material")); btn_add.clicked.connect(self.stock_anadir_material)
         btn_edit = QPushButton(tt("btn_editar_material", "✏️ Editar")); btn_edit.clicked.connect(self.stock_editar_material)
-        btn_del = QPushButton(tt("btn_borrar_material", "🗑️ Eliminar")); btn_del.setStyleSheet("background-color:#c0392b; color:white;"); btn_del.clicked.connect(self.stock_borrar_material)
+        btn_del = QPushButton(tt("btn_borrar_material", "🗑️ Eliminar")); btn_del.setStyleSheet("background-color:#c0392b; color:white;"); btn_del.clicked.connect(lambda: self.stock_borrar_material())
         btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;"); btn_entrada.clicked.connect(lambda: self.stock_registrar_movimiento("entrada"))
         btn_salida = QPushButton(tt("btn_salida_stock", "📤 Salida")); btn_salida.setStyleSheet("background-color:#d35400; color:white;"); btn_salida.clicked.connect(lambda: self.stock_registrar_movimiento("salida"))
         for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida): barra.addWidget(b)
@@ -3529,11 +3739,13 @@ class MaintenanceApp(QMainWindow):
         self.tabla_stock.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_stock.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.tabla_stock.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.tabla_stock.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.tabla_stock.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tabla_stock.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla_stock.setAlternatingRowColors(True)
         self.tabla_stock.itemSelectionChanged.connect(self.refresh_historial_stock)
         self.tabla_stock.itemDoubleClicked.connect(lambda _: self.stock_editar_material())
+        self.tabla_stock.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tabla_stock.customContextMenuRequested.connect(self._menu_contextual_stock)
         split.addWidget(self.tabla_stock)
 
         panel_hist = QWidget(); vh = QVBoxLayout(panel_hist)
@@ -3571,6 +3783,15 @@ class MaintenanceApp(QMainWindow):
 
         self.tab_stock_alertas.setLayout(l)
 
+    @staticmethod
+    def _color_stock(actual, minimo):
+        """Rojo por debajo del mínimo, verde por encima, color por defecto si coincide."""
+        if actual < minimo:
+            return QColor("#e74c3c")
+        if actual > minimo:
+            return QColor("#27ae60")
+        return None
+
     def _material_seleccionado_alerta(self):
         fila = self.tabla_stock_alertas.currentRow()
         if fila < 0: return None
@@ -3584,11 +3805,11 @@ class MaintenanceApp(QMainWindow):
             ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
-            color = QColor("#c0392b") if m["stock_actual"] <= 0 else QColor("#e67e22")
+            color = self._color_stock(m["stock_actual"], m["stock_minimo"])
             for col, val in enumerate(valores):
                 item = QTableWidgetItem(val)
                 if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
-                item.setForeground(QBrush(color))
+                if col == 3 and color is not None: item.setForeground(QBrush(color))
                 self.tabla_stock_alertas.setItem(fila, col, item)
         if hasattr(self, "tabs") and hasattr(self, "tab_stock_alertas"):
             idx = self.tabs.indexOf(self.tab_stock_alertas)
@@ -3625,6 +3846,30 @@ class MaintenanceApp(QMainWindow):
         if fila < 0: return None
         return self.tabla_stock.item(fila, 0).data(Qt.ItemDataRole.UserRole)
 
+    def _materiales_seleccionados(self):
+        filas = {i.row() for i in self.tabla_stock.selectedIndexes()}
+        return [self.tabla_stock.item(f, 0).data(Qt.ItemDataRole.UserRole) for f in sorted(filas)]
+
+    def _menu_contextual_stock(self, pos):
+        ids = self._materiales_seleccionados()
+        if not ids: return
+        menu = QMenu(self)
+        if len(ids) == 1:
+            accion_editar = menu.addAction(tt("btn_editar_material", "✏️ Editar"))
+            accion_entrada = menu.addAction(tt("btn_entrada_stock", "📥 Entrada"))
+            accion_salida = menu.addAction(tt("btn_salida_stock", "📤 Salida"))
+            menu.addSeparator()
+        accion_mover = menu.addAction(tt("btn_mover_material", "📦 Mover a..."))
+        accion_borrar = menu.addAction(tt("btn_borrar_material", "🗑️ Eliminar"))
+        elegida = menu.exec(self.tabla_stock.viewport().mapToGlobal(pos))
+        if elegida is None: return
+        if len(ids) == 1:
+            if elegida == accion_editar: self.stock_editar_material()
+            elif elegida == accion_entrada: self.stock_registrar_movimiento("entrada")
+            elif elegida == accion_salida: self.stock_registrar_movimiento("salida")
+        if elegida == accion_mover: self.stock_mover_materiales(ids)
+        elif elegida == accion_borrar: self.stock_borrar_material(ids)
+
     def refresh_stock(self):
         if not hasattr(self, "tabla_stock"): return
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
@@ -3634,11 +3879,11 @@ class MaintenanceApp(QMainWindow):
             ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
+            color = self._color_stock(m["stock_actual"], m["stock_minimo"])
             for col, val in enumerate(valores):
                 item = QTableWidgetItem(val)
                 if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
-                if m["stock_actual"] < m["stock_minimo"]:
-                    item.setForeground(QBrush(QColor("#e74c3c")))
+                if col == 3 and color is not None: item.setForeground(QBrush(color))
                 self.tabla_stock.setItem(fila, col, item)
         if hasattr(self, "btn_configurar_almacen"):
             self.btn_configurar_almacen.setVisible(usuarios.es_admin())
@@ -3651,9 +3896,12 @@ class MaintenanceApp(QMainWindow):
         material_id = self._material_seleccionado()
         if not material_id: return
         for mov in almacen.obtener_movimientos(material_id, limite=20):
-            icono = "📥" if mov["tipo"] == "entrada" else "📤"
-            texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
-            if mov.get("motivo"): texto += f"   ({mov['motivo']})"
+            if mov["tipo"] == "traslado":
+                texto = f"🔀 {mov['fecha']}   {mov.get('motivo') or ''}   —   {mov.get('usuario_nombre') or ''}"
+            else:
+                icono = "📥" if mov["tipo"] == "entrada" else "📤"
+                texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
+                if mov.get("motivo"): texto += f"   ({mov['motivo']})"
             self.lista_historial_stock.addItem(texto)
 
     def _guardar_foto_material(self, ruta_origen):
@@ -3694,16 +3942,36 @@ class MaintenanceApp(QMainWindow):
             else:
                 foto_final = self._guardar_foto_material(d["ruta_foto_seleccionada"])
             almacen.actualizar_material(material_id, d["codigo"], d["nombre"], d["descripcion"], d["unidad"],
-                                         d["stock_minimo"], d["seccion_id"], foto_final)
+                                         d["stock_minimo"], d["seccion_id"], foto_final,
+                                         usuarios.id_actual(), usuarios.nombre_actual())
             self.refresh_stock()
 
-    def stock_borrar_material(self):
-        material_id = self._material_seleccionado()
-        if not material_id:
+    def stock_borrar_material(self, ids=None):
+        ids = ids if ids is not None else self._materiales_seleccionados()
+        if not ids:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
-        if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_borrar_material", "¿Eliminar este material del almacén? Se perderá su historial de movimientos.")) != QMessageBox.StandardButton.Yes:
+        mensaje = (tt("msg_confirmar_borrar_material", "¿Eliminar este material del almacén? Se perderá su historial de movimientos.")
+                   if len(ids) == 1 else
+                   tt("msg_confirmar_borrar_materiales", "¿Eliminar estos {n} materiales del almacén? Se perderá su historial de movimientos.").format(n=len(ids)))
+        if QMessageBox.question(self, tt("aviso", "Aviso"), mensaje) != QMessageBox.StandardButton.Yes:
             return
-        almacen.borrar_material(material_id)
+        for material_id in ids:
+            almacen.borrar_material(material_id)
+        self.refresh_stock()
+
+    def stock_mover_materiales(self, ids=None):
+        ids = ids if ids is not None else self._materiales_seleccionados()
+        if not ids:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
+        dlg = DialogoSeleccionarUbicacion(self)
+        if not dlg.exec(): return
+        seccion_id = dlg.get_seccion_id()
+        for material_id in ids:
+            m = almacen.obtener_material(material_id)
+            if not m: continue
+            almacen.actualizar_material(material_id, m.get("codigo") or "", m["nombre"], m.get("descripcion") or "",
+                                         m.get("unidad") or "", m.get("stock_minimo") or 0, seccion_id, m.get("foto"),
+                                         usuarios.id_actual(), usuarios.nombre_actual())
         self.refresh_stock()
 
     def stock_registrar_movimiento(self, tipo):

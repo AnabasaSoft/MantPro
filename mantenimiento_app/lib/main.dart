@@ -58,6 +58,7 @@ class AuthService {
   static String? nombre;
   static String? login;
   static String? rol;
+  static List<String> roles = [];
   static int? usuarioId;
 
   static bool get autenticado => token != null && token!.isNotEmpty;
@@ -69,6 +70,7 @@ class AuthService {
     nombre = prefs.getString('auth_nombre');
     login = prefs.getString('auth_login');
     rol = prefs.getString('auth_rol');
+    roles = prefs.getStringList('auth_roles') ?? (rol != null ? [rol!] : []);
     usuarioId = prefs.getInt('auth_id');
   }
 
@@ -96,12 +98,15 @@ class AuthService {
         nombre = datos['usuario']['nombre'];
         login = datos['usuario']['login'];
         rol = datos['usuario']['rol'];
+        roles = (datos['usuario']['roles'] as List?)?.map((r) => r.toString()).toList() ??
+            [rol ?? 'tecnico'];
         usuarioId = datos['usuario']['id'];
         await prefs.setInt('auth_id', usuarioId ?? 0);
         await prefs.setString('auth_token', token!);
         await prefs.setString('auth_nombre', nombre ?? '');
         await prefs.setString('auth_login', login ?? '');
         await prefs.setString('auth_rol', rol ?? 'tecnico');
+        await prefs.setStringList('auth_roles', roles);
         sesionNotifier.value = true;
         return null;
       }
@@ -125,8 +130,9 @@ class AuthService {
     await prefs.remove('auth_nombre');
     await prefs.remove('auth_login');
     await prefs.remove('auth_rol');
+    await prefs.remove('auth_roles');
     await prefs.remove('auth_id');
-    token = null; nombre = null; login = null; rol = null; usuarioId = null;
+    token = null; nombre = null; login = null; rol = null; roles = []; usuarioId = null;
     sesionNotifier.value = false;
   }
 }
@@ -415,7 +421,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.5.0';
+const String kAppVersion = '3.6.0';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 

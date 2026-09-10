@@ -1,4 +1,4 @@
-package com.example.mantenimiento_app
+package com.anabasasoft.mantpro_stock
 
 import io.flutter.embedding.android.FlutterActivity
 

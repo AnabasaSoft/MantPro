@@ -45,7 +45,9 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
   - Binario ejecutable de Linux
   - AppImage portable
   - También disponible en **AUR** (Arch User Repository)
-- **Android**: Archivo `.apk` para instalación directa
+- **Android**: Archivos `.apk` para instalación directa
+  - `MantPro.apk`: app de trabajos de mantenimiento
+  - `MantProStock.apk`: app de stock de almacén
 
 ---
 
@@ -86,6 +88,21 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
 
+### 📦 Aplicación Móvil de Stock (Android)
+
+Aplicación independiente (`mantpro_stock_app`), pensada para consultar y mover
+stock de almacén desde el móvil sin necesidad de la app de trabajos.
+
+- **🔐 Acceso con Usuario**: usa el mismo sistema de usuarios y sesión que la app de trabajos
+- **🗂️ Navegación del Almacén**: árbol de estanterías > baldas > secciones, igual que en el PC
+- **🔎 Búsqueda de Materiales**: por nombre, código, descripción o ubicación
+- **➕➖ Entradas y Salidas**: registra movimientos de stock desde el móvil, con motivo opcional
+- **🔀 Traslados**: mover un material de sección queda reflejado en su historial de movimientos
+- **🎨 Aviso Visual de Stock**: cantidad en rojo por debajo del mínimo, en verde por encima y en el color por defecto si coincide exactamente
+- **⚠️ Stock Bajo Mínimo**: pestaña dedicada a los materiales en alerta
+- **🔄 Auto-actualización**: la pantalla se refresca sola al detectar cambios, tanto si el cambio se hizo en el propio móvil como en el PC
+- **🔌 Modo Offline**: consulta con la última información sincronizada si no hay conexión con el PC
+
 ---
 
 ## 📸 Capturas de Pantalla
@@ -122,6 +139,8 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
   - sqlite3 (incluido en Python)
 
 ### Aplicación Móvil
+
+Aplica tanto a `mantenimiento_app` (trabajos) como a `mantpro_stock_app` (stock):
 
 - **Flutter**: 3.0 o superior
 - **Dart SDK**: 2.17 o superior
@@ -207,13 +226,13 @@ Una firma válida confirma que el paquete procede de AnabasaSoft y no ha sido mo
 
 #### Opción 1: Descarga Directa (Recomendado)
 
-Descarga el archivo `.apk` desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) e instálalo en tu dispositivo Android.
+Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) e instálalo en tu dispositivo Android: `MantPro.apk` para trabajos, `MantProStock.apk` para el stock de almacén. Son apps independientes y puedes instalar una, otra o ambas.
 
 **Nota**: Es posible que necesites habilitar "Orígenes desconocidos" en la configuración de seguridad de tu dispositivo.
 
 #### Opción 2: Compilar desde Código Fuente
 
-1. **Navegar al directorio móvil**:
+1. **Navegar al directorio móvil** (`mantenimiento_app` para trabajos, `mantpro_stock_app` para stock):
    ```bash
    cd mantenimiento_app
    ```
@@ -358,8 +377,10 @@ registros que aún estén pendientes de subir**.
 
 ## 📦 Stock de Almacén
 
-> Disponible **solo en la aplicación de escritorio**. Vive en su propia base de
-> datos (`almacen.db`), independiente de la de los trabajos de mantenimiento.
+> Gestión completa desde la aplicación de escritorio, con consulta y
+> movimientos también disponibles desde el móvil (`mantpro_stock_app`). Vive
+> en su propia base de datos (`almacen.db`), independiente de la de los
+> trabajos de mantenimiento.
 
 ### Estructura del almacén
 
@@ -387,15 +408,22 @@ pestaña "📦 Stock de almacén", visible **solo para administradores**.
 - Alta y edición con código (opcional), nombre, descripción, unidad, stock
   mínimo, ubicación (estantería / balda / sección) y **foto adjunta**
 - Búsqueda por **nombre, código, descripción o ubicación**
-- Los materiales por debajo de su stock mínimo se resaltan en rojo en la tabla
+- El stock se resalta en **rojo** por debajo del mínimo, en **verde** por
+  encima y en el color por defecto si coincide exactamente con el mínimo,
+  tanto en el PC como en el móvil
+- Seleccionando varios materiales a la vez (Ctrl/Shift + clic derecho) en el
+  PC se pueden **mover de ubicación** o **eliminar** en bloque
 
-### Entradas y salidas
+### Entradas, salidas y traslados
 
 - **Cualquier usuario** puede registrar entradas y salidas de stock; solo la
   configuración de la estructura del almacén está restringida a administradores
 - Cada movimiento queda registrado con fecha, cantidad, usuario y un motivo
   opcional, visible en el historial junto a cada material
 - Las salidas no pueden dejar el stock en negativo
+- Cambiar la ubicación de un material también queda registrado en su
+  historial, como un movimiento de tipo **traslado** (de qué sección a qué
+  sección)
 
 ### Alertas de stock bajo mínimo
 
@@ -485,8 +513,14 @@ MantPro/
 ├── fotos_recibidas/             # Carpeta de imágenes
 ├── mantenimiento.db             # Base de datos SQLite (trabajos de mantenimiento)
 ├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
-├── mantenimiento_app/           # Aplicación móvil Flutter
+├── mantenimiento_app/           # Aplicación móvil Flutter (trabajos)
 │   ├── lib/main.dart            # Código principal móvil
+│   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
+│   ├── pubspec.yaml             # Dependencias Flutter
+│   └── android/                 # Configuración Android
+├── mantpro_stock_app/           # Aplicación móvil Flutter (stock de almacén)
+│   ├── lib/modelos.dart         # Modelos de datos y regla de color de stock
+│   ├── lib/pantallas/           # Pantallas: almacén, artículo, búsqueda, bajo mínimo...
 │   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
@@ -597,9 +631,12 @@ Estado actual y siguientes pasos previstos.
   carpeta `backups` por defecto.
 - **Control de stock de almacén**: estructura configurable de estanterías,
   baldas y secciones (solo administradores), ficha de materiales con foto,
-  entradas y salidas con historial (cualquier usuario) y una pestaña dedicada
-  a los materiales sin stock o por debajo de su mínimo. Solo en la app de
-  escritorio, con base de datos propia (`almacen.db`).
+  entradas y salidas con historial (cualquier usuario), traslados entre
+  ubicaciones registrados en el historial, selección múltiple con menú
+  contextual para mover o eliminar en bloque, y una pestaña dedicada a los
+  materiales sin stock o por debajo de su mínimo. Con base de datos propia
+  (`almacen.db`) y app móvil independiente (`mantpro_stock_app`) para
+  consultar y mover stock desde el teléfono.
 
 ### 🔜 Siguientes pasos
 
