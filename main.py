@@ -33,7 +33,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as PDFImage
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 import zipfile
 import qrcode
@@ -296,8 +296,14 @@ class GeneradorPDFThread(QThread):
                 elements.append(Paragraph(trabajo["titulo"], styles['Title']))
                 elements.append(Spacer(1, 12))
 
-                data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
                 style_cell = styles["BodyText"]; style_cell.fontSize = 9
+                style_header = ParagraphStyle("CabeceraTabla", parent=style_cell, textColor=colors.whitesmoke, fontName="Helvetica-Bold", fontSize=9)
+
+                def cab(texto):
+                    return Paragraph(texto, style_header)
+
+                data_tabla = [[cab(t("hdr_fecha")), cab(t("hdr_descripcion")), cab(tt("hdr_maquina", "Máquina")),
+                               cab(tt("hdr_realizado_por", "Realizado por")), cab(t("hdr_foto_antes")), cab(t("hdr_foto_despues"))]]
 
                 for fila_pdf in trabajo["datos"]:
                     fecha, desc, tags = fila_pdf[0], fila_pdf[1], fila_pdf[2]
@@ -344,10 +350,10 @@ class GeneradorPDFThread(QThread):
                     desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
-                    data_tabla.append([fecha_formateada, p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), img_obj, img_obj_d])
+                    data_tabla.append([Paragraph(fecha_formateada, style_cell), p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), img_obj, img_obj_d])
 
-                ancho_foto = 3.2 * cm
-                tabla_pdf = Table(data_tabla, colWidths=[1.8*cm, 5.0*cm, 2.2*cm, 2.0*cm, ancho_foto, ancho_foto])
+                ancho_foto = 3.0 * cm
+                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.8*cm, 2.4*cm, 2.6*cm, ancho_foto, ancho_foto])
                 tabla_pdf.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
