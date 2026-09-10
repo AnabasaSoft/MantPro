@@ -49,6 +49,9 @@ from dialogos_usuarios import (DialogoLogin, DialogoGestionUsuarios,
 # --- Control de stock de almacén (BD propia, independiente de los trabajos) ---
 import almacen
 
+# --- Listado de maquinaria y su histórico de trabajos ---
+import maquinas
+
 
 def tt(clave, defecto):
     """t() con texto por defecto: si la clave aún no está en idiomas.py,
@@ -167,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.7.4"
+APP_VERSION = "3.8.0"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -265,11 +268,12 @@ class ChequeadorActualizaciones(QThread):
 class GeneradorPDFThread(QThread):
     resultado = pyqtSignal(bool, str)
 
-    def __init__(self, lista_trabajos, carpeta_fotos):
+    def __init__(self, lista_trabajos, carpeta_fotos, mapa_maquinas=None):
         super().__init__()
         # Recibe una lista de diccionarios: [{"archivo": ruta, "titulo": tit, "datos": [...]}]
         self.lista_trabajos = lista_trabajos
         self.carpeta_fotos = carpeta_fotos
+        self.mapa_maquinas = mapa_maquinas or {}
 
     def run(self):
         try:
@@ -292,12 +296,13 @@ class GeneradorPDFThread(QThread):
                 elements.append(Paragraph(trabajo["titulo"], styles['Title']))
                 elements.append(Spacer(1, 12))
 
-                data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), tt("hdr_realizado_por", "Realizado por"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
+                data_tabla = [[t("hdr_fecha"), t("hdr_descripcion"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), t("hdr_foto_antes"), t("hdr_foto_despues")]]
                 style_cell = styles["BodyText"]; style_cell.fontSize = 9
 
                 for fila_pdf in trabajo["datos"]:
                     fecha, desc, tags = fila_pdf[0], fila_pdf[1], fila_pdf[2]
                     autor = fila_pdf[3] if len(fila_pdf) > 3 and fila_pdf[3] else usuarios.ETIQUETA_HISTORICO
+                    maquina_nombre = self.mapa_maquinas.get(fila_pdf[4], "-") if len(fila_pdf) > 4 and fila_pdf[4] else "-"
                     try:
                         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
                         fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
@@ -339,10 +344,10 @@ class GeneradorPDFThread(QThread):
                     desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
-                    data_tabla.append([fecha_formateada, p_desc, Paragraph(autor, style_cell), img_obj, img_obj_d])
+                    data_tabla.append([fecha_formateada, p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), img_obj, img_obj_d])
 
-                ancho_foto = 3.5 * cm
-                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 6.6*cm, 2.4*cm, ancho_foto, ancho_foto])
+                ancho_foto = 3.2 * cm
+                tabla_pdf = Table(data_tabla, colWidths=[1.8*cm, 5.0*cm, 2.2*cm, 2.0*cm, ancho_foto, ancho_foto])
                 tabla_pdf.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -593,6 +598,13 @@ class ServidorSincronizacion(QThread):
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 raw_desc = ruta_local if ruta_local else detalles
 
+                # --- Máquina vinculada (opcional, enviada por la app móvil) ---
+                maquina_id_raw = request.form.get('maquina_id')
+                try:
+                    maquina_id = int(maquina_id_raw) if maquina_id_raw else None
+                except (TypeError, ValueError):
+                    maquina_id = None
+
                 # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
                 desc_final = titulo
                 if detalles:
@@ -605,9 +617,9 @@ class ServidorSincronizacion(QThread):
                 # Usamos el bloque with para asegurar el guardado
                 with get_db_connection(self.db_path) as conn:
                     cursor = conn.cursor()
-                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
+                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, maquina_id) VALUES (?,?,?,?,?,?,?,?)',
                                    (fecha_final, desc_final, tags, raw_desc, filename,
-                                    usuario['id'], usuario['nombre']))
+                                    usuario['id'], usuario['nombre'], maquina_id))
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo)
@@ -618,6 +630,14 @@ class ServidorSincronizacion(QThread):
             except Exception as e:
                 print(f"Error api_upload: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/maquinas', methods=['GET'])
+        @requiere_token
+        def api_maquinas():
+            try:
+                return jsonify(maquinas.listar_maquinas())
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/pendientes', methods=['GET'])
         @requiere_token
@@ -813,7 +833,7 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
 
                 mes = request.args.get('mes', '')
-                sql = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas WHERE 1=1"
+                sql = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE 1=1"
                 params = []
 
                 if query:
@@ -832,6 +852,7 @@ class ServidorSincronizacion(QThread):
                 filas = c.fetchall()
                 hay_mas = len(filas) > limit
                 filas = filas[:limit]
+                nombres_maquinas = {m["id"]: m["nombre"] for m in maquinas.listar_maquinas()}
                 # Procesamos para extraer nombre de foto si existe
                 resultados = []
                 for r in filas:
@@ -848,6 +869,7 @@ class ServidorSincronizacion(QThread):
                     desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
                     desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
+                    maquina_id = r[5] if len(r) > 5 else None
                     resultados.append({
                         "id": r[0],
                         "fecha": r[1],
@@ -856,7 +878,9 @@ class ServidorSincronizacion(QThread):
                         "foto": foto,
                         "foto_d": foto_d,
                         "raw_desc": desc, # Necesario para editar
-                        "usuario": r[4] if len(r) > 4 else ""
+                        "usuario": r[4] if len(r) > 4 else "",
+                        "maquina_id": maquina_id,
+                        "maquina_nombre": nombres_maquinas.get(maquina_id, "") if maquina_id else ""
                     })
                 conn.close()
                 return jsonify({"items": resultados, "has_more": hay_mas, "page": page})
@@ -1102,7 +1126,15 @@ class ServidorSincronizacion(QThread):
                 if foto_final_d:
                     desc_final += f"\n[FOTO_DESPUES: {foto_final_d}]"
 
-                c.execute("UPDATE tareas SET descripcion=?, tags=? WHERE id=?", (desc_final, tags, id_t))
+                if 'maquina_id' in request.form:
+                    maquina_id_raw = request.form.get('maquina_id')
+                    try:
+                        maquina_id = int(maquina_id_raw) if maquina_id_raw else None
+                    except (TypeError, ValueError):
+                        maquina_id = None
+                    c.execute("UPDATE tareas SET descripcion=?, tags=?, maquina_id=? WHERE id=?", (desc_final, tags, maquina_id, id_t))
+                else:
+                    c.execute("UPDATE tareas SET descripcion=?, tags=? WHERE id=?", (desc_final, tags, id_t))
                 conn.commit()
                 conn.close()
 
@@ -1397,6 +1429,9 @@ class GestorBaseDatos:
         self.db_almacen_name = os.path.join(DATA_DIR, "almacen.db")
         almacen.configurar_db(self.db_almacen_name)
         almacen.inicializar()
+        # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
+        maquinas.configurar_db(self.db_name)
+        maquinas.inicializar()
 
     def conectar(self):
         return sqlite3.connect(self.db_name)
@@ -1476,21 +1511,21 @@ class GestorBaseDatos:
             conn.commit(); conn.close(); return True
         except: return False
 
-    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None):
+    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None):
         """Guarda un registro atribuido al usuario que ha iniciado sesión."""
         if usuario_id is None: usuario_id = usuarios.id_actual()
         if usuario_nombre is None: usuario_nombre = usuarios.nombre_actual()
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre) VALUES (?,?,?,?,?)',
-                      (f, d, t, usuario_id, usuario_nombre))
+            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id) VALUES (?,?,?,?,?,?)',
+                      (f, d, t, usuario_id, usuario_nombre, maquina_id))
             conn.commit(); conn.close(); return True
         except Exception as e:
             print(f"Error agregar_tarea: {e}"); return False
     def obtener_todas_cronologico(self, filtro_usuario=None):
         try:
             conn=self.conectar(); c=conn.cursor()
-            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,'') FROM tareas"
+            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id FROM tareas"
             params = []
             if filtro_usuario:
                 sql += " WHERE usuario_nombre = ?"
@@ -1517,20 +1552,20 @@ class GestorBaseDatos:
             return True
         except Exception as e:
             print(f"Error borrar_tarea: {e}"); return False
-    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None):
+    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None):
         try:
             conn = self.conectar(); c = conn.cursor()
             if usuario_id is not None:
-                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=? WHERE id=?',
-                          (f, d, t, usuario_id, usuario_nombre, i))
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=?, maquina_id=? WHERE id=?',
+                          (f, d, t, usuario_id, usuario_nombre, maquina_id, i))
             else:
-                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=? WHERE id=?', (f, d, t, i))
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, maquina_id=? WHERE id=?', (f, d, t, maquina_id, i))
             conn.commit(); conn.close(); return True
         except: return False
     def obtener_tarea_por_id(self, i):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,'') FROM tareas WHERE id=?", (i,))
+            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE id=?", (i,))
             return c.fetchone()
         except: return None
     def buscar_tareas_avanzado(self, texto, fecha=None):
@@ -1701,6 +1736,27 @@ def _estilo_label_dialogo():
     adaptado al tema para que no queden en gris clarito sobre fondo claro."""
     oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
     return f"font-weight: bold; font-size: 14px; color: {'#ccc' if oscuro else '#444'};"
+
+
+def _poblar_combo_maquinas(combo, seleccion_id=None):
+    """Rellena un QComboBox con el árbol de máquinas (indentado por nivel) y una
+    primera opción de 'sin máquina', dejando seleccionada la máquina indicada."""
+    combo.clear()
+    combo.addItem(tt("lbl_sin_maquina", "— Sin máquina —"), None)
+    todas = maquinas.listar_maquinas()
+    por_padre = {}
+    for m in todas:
+        por_padre.setdefault(m["padre_id"], []).append(m)
+
+    def anadir(padre_id, nivel):
+        for m in por_padre.get(padre_id, []):
+            combo.addItem(("    " * nivel) + m["nombre"], m["id"])
+            anadir(m["id"], nivel + 1)
+
+    anadir(None, 0)
+    idx = combo.findData(seleccion_id)
+    if idx >= 0:
+        combo.setCurrentIndex(idx)
 
 
 class LabelArrastrable(QLabel):
@@ -2087,6 +2143,114 @@ class DialogoSeleccionarUbicacion(QDialog):
         return self.combo_seccion.currentData()
 
 
+class DialogoEditarMaquina(QDialog):
+    """Alta/edición de una máquina del listado de maquinaria."""
+    def __init__(self, parent=None, maquina=None, padre_sugerido=None, excluir_ids=None):
+        super().__init__(parent)
+        self.maquina = maquina
+        self.es_nueva = maquina is None
+        self.excluir_ids = excluir_ids or set()
+        self.ruta_foto_seleccionada = ""
+        self.foto_nombre_existente = maquina.get("foto") if maquina else None
+        self.setWindowTitle(tt("title_nueva_maquina", "Nueva máquina") if self.es_nueva else tt("title_editar_maquina", "Editar máquina"))
+        self.resize(420, 460)
+        l = QVBoxLayout()
+
+        l.addWidget(QLabel(tt("lbl_nombre_maquina", "Nombre de la máquina")))
+        self.campo_nombre = QLineEdit(maquina["nombre"] if maquina else "")
+        l.addWidget(self.campo_nombre)
+
+        l.addWidget(QLabel(tt("lbl_maquina_padre", "Máquina superior (opcional)")))
+        self.combo_padre = QComboBox()
+        self.combo_padre.addItem(tt("txt_ninguna", "— Ninguna —"), None)
+        todas = maquinas.listar_maquinas()
+        por_padre = {}
+        for m in todas:
+            por_padre.setdefault(m["padre_id"], []).append(m)
+
+        def anadir(padre_id, nivel):
+            for m in por_padre.get(padre_id, []):
+                if m["id"] in self.excluir_ids:
+                    continue
+                self.combo_padre.addItem(("    " * nivel) + m["nombre"], m["id"])
+                anadir(m["id"], nivel + 1)
+
+        anadir(None, 0)
+        seleccion = maquina["padre_id"] if maquina else padre_sugerido
+        idx = self.combo_padre.findData(seleccion)
+        if idx >= 0:
+            self.combo_padre.setCurrentIndex(idx)
+        l.addWidget(self.combo_padre)
+
+        l.addWidget(QLabel(tt("lbl_notas", "Notas")))
+        self.campo_notas = QTextEdit(maquina.get("notas") or "" if maquina else "")
+        self.campo_notas.setMaximumHeight(100)
+        l.addWidget(self.campo_notas)
+
+        l.addWidget(QLabel(tt("lbl_foto_adjunta", "Foto adjunta")))
+        self.lbl_preview = QLabel(tt("lbl_sin_foto", "Sin foto")); self.lbl_preview.setFixedSize(200, 150)
+        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
+        h_center = QHBoxLayout(); h_center.addWidget(self.lbl_preview); h_center.addStretch()
+        l.addLayout(h_center)
+        h_foto = QHBoxLayout()
+        btn_cambiar = QPushButton(t("btn_cambiar_foto")); btn_cambiar.clicked.connect(self.seleccionar_foto)
+        btn_borrar = QPushButton(t("btn_borrar_foto")); btn_borrar.clicked.connect(self.borrar_foto)
+        h_foto.addWidget(btn_cambiar); h_foto.addWidget(btn_borrar)
+        l.addLayout(h_foto)
+
+        self._actualizar_preview_inicial()
+
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def _actualizar_preview_inicial(self):
+        if self.foto_nombre_existente:
+            carpeta_fotos = self.parent().carpeta_fotos if self.parent() else ""
+            ruta = os.path.join(carpeta_fotos, self.foto_nombre_existente)
+            if os.path.exists(ruta):
+                self.ruta_foto_seleccionada = ruta
+                self._refrescar_preview()
+
+    def _refrescar_preview(self):
+        if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
+            pix = QPixmap(self.ruta_foto_seleccionada)
+            if not pix.isNull():
+                self.lbl_preview.setPixmap(pix.scaled(self.lbl_preview.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.lbl_preview.setStyleSheet("border: 2px solid #3daee9; background-color: #000;")
+        else:
+            self.lbl_preview.setPixmap(QPixmap()); self.lbl_preview.setText(tt("lbl_sin_foto", "Sin foto"))
+            self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
+
+    def seleccionar_foto(self):
+        dlg = DialogoSelectorFoto(self)
+        if dlg.exec() and dlg.selectedFiles():
+            self.ruta_foto_seleccionada = dlg.selectedFiles()[0]
+            self._refrescar_preview()
+
+    def borrar_foto(self):
+        self.ruta_foto_seleccionada = ""
+        self.foto_nombre_existente = None
+        self._refrescar_preview()
+
+    def _validar_aceptar(self):
+        if not self.campo_nombre.text().strip():
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_maquina_obligatorio", "El nombre de la máquina es obligatorio."))
+            return
+        self.accept()
+
+    def get_data(self):
+        return {
+            "nombre": self.campo_nombre.text().strip(),
+            "padre_id": self.combo_padre.currentData(),
+            "notas": self.campo_notas.toPlainText().strip(),
+            "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
+            "foto_nombre_existente": self.foto_nombre_existente,
+        }
+
+
 class DialogoEditarMaterial(QDialog):
     """Alta/edición de un material del almacén, con ubicación y foto opcional."""
     def __init__(self, parent=None, material=None):
@@ -2278,7 +2442,7 @@ class DialogoMovimientoStock(QDialog):
 
 
 class EditDialog(QDialog):
-    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre=""):
+    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
@@ -2309,6 +2473,14 @@ class EditDialog(QDialog):
             self.combo_autor.setToolTip(tt("msg_solo_admin_autor", "Solo un administrador puede cambiar el autor"))
         fila_autor.addWidget(self.combo_autor, 1)
         l.addLayout(fila_autor)
+
+        # --- Combo de máquina vinculada ---
+        fila_maquina = QHBoxLayout()
+        fila_maquina.addWidget(QLabel(tt("lbl_maquina", "Máquina") + ":"))
+        self.combo_maquina = QComboBox()
+        _poblar_combo_maquinas(self.combo_maquina, maquina_id)
+        fila_maquina.addWidget(self.combo_maquina, 1)
+        l.addLayout(fila_maquina)
 
         texto_limpio, nombre_foto, nombre_foto_d, ref_encontrada = self.separar_datos(desc)
         self.foto_filename = nombre_foto
@@ -2432,7 +2604,8 @@ class EditDialog(QDialog):
         if manual: final_tags.append(manual)
         usuario_id = self.combo_autor.currentData()
         usuario_nombre = self.combo_autor.currentText() if usuario_id is not None else usuarios.ETIQUETA_HISTORICO
-        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre)
+        maquina_id = self.combo_maquina.currentData()
+        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id)
 
 class DialogoEditarPendiente(QDialog):
     def __init__(self, parent=None, titulo="", detalles="", ruta_foto=""):
@@ -2716,6 +2889,7 @@ class MaintenanceApp(QMainWindow):
         self.tab_history = QWidget(); self.init_history_tab(); self.tabs.addTab(self.tab_history, t("tab_historial"))
         self.tab_search = QWidget(); self.init_search_tab(); self.tabs.addTab(self.tab_search, t("tab_buscador"))
         self.tab_todo = QWidget(); self.init_todo_tab(); self.tabs.addTab(self.tab_todo, t("tab_pendientes"))
+        self.tab_maquinas = QWidget(); self.init_maquinas_tab(); self.tabs.addTab(self.tab_maquinas, tt("tab_maquinas", "🏭 Máquinas"))
         self.tab_stock = QWidget(); self.init_stock_tab(); self.tabs.addTab(self.tab_stock, tt("tab_stock", "📦 Stock de almacén"))
         self.tab_stock_alertas = QWidget(); self.init_stock_alertas_tab(); self.tabs.addTab(self.tab_stock_alertas, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo"))
         self.tabs.currentChanged.connect(self.on_tab_changed)
@@ -3391,6 +3565,12 @@ class MaintenanceApp(QMainWindow):
         h_qr = QHBoxLayout(); h_qr.addWidget(QLabel(t("lbl_detalles"))); h_qr.addStretch()
         b_qr = QPushButton(t("btn_sincronizar_app")); b_qr.setStyleSheet("background-color: #d35400; color: white; padding: 4px 8px;"); b_qr.clicked.connect(self.mostrar_dialogo_qr); h_qr.addWidget(b_qr); l.addLayout(h_qr)
         self.idet = QTextEdit(); l.addWidget(self.idet)
+        fila_maquina_entry = QHBoxLayout()
+        fila_maquina_entry.addWidget(QLabel(tt("lbl_maquina", "Máquina") + ":"))
+        self.combo_maquina_entry = QComboBox()
+        _poblar_combo_maquinas(self.combo_maquina_entry)
+        fila_maquina_entry.addWidget(self.combo_maquina_entry, 1)
+        l.addLayout(fila_maquina_entry)
         l.addWidget(QLabel(t("lbl_etiquetas_rapidas")))
         h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
@@ -3450,11 +3630,13 @@ class MaintenanceApp(QMainWindow):
         if self.chk_prev.isChecked(): lista_tags.append("Preventivo")
         manuales = self.itag.text().strip()
         if manuales: lista_tags.append(manuales)
-        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags)):
+        maquina_id = self.combo_maquina_entry.currentData()
+        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id):
             self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)
             self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False)
+            self.combo_maquina_entry.setCurrentIndex(0)
             self.borrar_foto_entry(); self.borrar_foto_entry_d(); self.refresh_all(); self.setup_autocompletado()
     def setup_autocompletado(self):
         d = self.db.obtener_todas_las_descripciones()
@@ -3805,6 +3987,189 @@ class MaintenanceApp(QMainWindow):
         ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
 
     # ==========================================
+    # MÁQUINAS
+    # ==========================================
+    def init_maquinas_tab(self):
+        l = QVBoxLayout()
+        h_tools = QHBoxLayout()
+        b_nueva = QPushButton(tt("btn_nueva_maquina", "➕ Nueva máquina")); b_nueva.clicked.connect(self._maquina_nueva)
+        b_nueva_sub = QPushButton(tt("btn_nueva_submaquina", "➕ Nueva submáquina")); b_nueva_sub.clicked.connect(self._maquina_nueva_sub)
+        b_editar = QPushButton(tt("btn_editar_maquina", "✏️ Editar")); b_editar.clicked.connect(self._maquina_editar)
+        b_eliminar = QPushButton(tt("btn_eliminar_maquina", "🗑️ Eliminar")); b_eliminar.setStyleSheet("background-color:#c0392b; color: white;"); b_eliminar.clicked.connect(self._maquina_eliminar)
+        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar]: h_tools.addWidget(b)
+        h_tools.addStretch()
+        l.addLayout(h_tools)
+
+        h_cuerpo = QHBoxLayout()
+        self.arbol_maquinas = QTreeWidget()
+        self.arbol_maquinas.setColumnCount(2)
+        self.arbol_maquinas.setHeaderLabels([tt("hdr_maquina", "Máquina"), tt("hdr_trabajos", "Trabajos")])
+        self.arbol_maquinas.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.arbol_maquinas.itemExpanded.connect(self._maquina_item_expandido)
+        self.arbol_maquinas.itemDoubleClicked.connect(self._maquina_item_doble_click)
+        self.arbol_maquinas.currentItemChanged.connect(self._maquina_mostrar_foto_seleccionada)
+        h_cuerpo.addWidget(self.arbol_maquinas, 65)
+
+        v_foto = QVBoxLayout()
+        v_foto.addWidget(QLabel(tt("lbl_foto_maquina", "Foto de la máquina")))
+        self.lbl_foto_maquina = QLabel(tt("lbl_sin_foto", "Sin foto"))
+        self.lbl_foto_maquina.setMinimumSize(220, 220)
+        self.lbl_foto_maquina.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
+        v_foto.addWidget(self.lbl_foto_maquina)
+        v_foto.addStretch()
+        h_cuerpo.addLayout(v_foto, 35)
+
+        l.addLayout(h_cuerpo)
+        self.tab_maquinas.setLayout(l)
+        self.refrescar_arbol_maquinas()
+
+    def _maquina_mostrar_foto_seleccionada(self, *args):
+        item = self.arbol_maquinas.currentItem()
+        datos = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        ruta = None
+        if datos and datos.get("tipo") == "maquina":
+            maquina = maquinas.obtener_maquina(datos["id"])
+            if maquina and maquina.get("foto"):
+                ruta = os.path.join(self.carpeta_fotos, maquina["foto"])
+        if ruta and os.path.exists(ruta):
+            pix = QPixmap(ruta)
+            if not pix.isNull():
+                self.lbl_foto_maquina.setPixmap(pix.scaled(self.lbl_foto_maquina.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+                self.lbl_foto_maquina.setStyleSheet("border: 2px solid #3daee9; background-color: #000;")
+                return
+        self.lbl_foto_maquina.setPixmap(QPixmap()); self.lbl_foto_maquina.setText(tt("lbl_sin_foto", "Sin foto"))
+        self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
+
+    def refrescar_arbol_maquinas(self):
+        item_actual = self.arbol_maquinas.currentItem()
+        id_seleccionado = item_actual.data(0, Qt.ItemDataRole.UserRole)["id"] if item_actual else None
+        self.arbol_maquinas.clear()
+        todas = maquinas.listar_maquinas()
+        por_padre = {}
+        for m in todas:
+            por_padre.setdefault(m["padre_id"], []).append(m)
+        for m in por_padre.get(None, []):
+            item = self._crear_nodo_maquina(m)
+            self.arbol_maquinas.addTopLevelItem(item)
+            if id_seleccionado == m["id"]:
+                self.arbol_maquinas.setCurrentItem(item)
+
+    def _crear_nodo_maquina(self, maquina):
+        total = maquinas.contar_trabajos(maquina["id"])
+        item = QTreeWidgetItem([maquina["nombre"], str(total)])
+        item.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "maquina", "id": maquina["id"], "cargado": False})
+        item.addChild(QTreeWidgetItem([""]))  # hijo ficticio para mostrar la flecha de expandir
+        return item
+
+    def _maquina_item_expandido(self, item):
+        datos = item.data(0, Qt.ItemDataRole.UserRole)
+        if not datos or datos.get("cargado"):
+            return
+        item.takeChildren()
+        tipo = datos["tipo"]
+        if tipo == "maquina":
+            por_padre = {}
+            for m in maquinas.listar_maquinas():
+                por_padre.setdefault(m["padre_id"], []).append(m)
+            for sub in por_padre.get(datos["id"], []):
+                item.addChild(self._crear_nodo_maquina(sub))
+            for anio, cnt in maquinas.anios_de_maquina(datos["id"]):
+                nodo = QTreeWidgetItem([anio, str(cnt)])
+                nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "anio", "id": datos["id"], "anio": anio, "cargado": False})
+                nodo.addChild(QTreeWidgetItem([""]))
+                item.addChild(nodo)
+        elif tipo == "anio":
+            for mes, cnt in maquinas.meses_de_maquina_anio(datos["id"], datos["anio"]):
+                nombre_mes = tt(f"mes_{mes}", mes)
+                nodo = QTreeWidgetItem([nombre_mes, str(cnt)])
+                nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "mes", "id": datos["id"], "anio": datos["anio"], "mes": mes, "cargado": False})
+                nodo.addChild(QTreeWidgetItem([""]))
+                item.addChild(nodo)
+        elif tipo == "mes":
+            for trabajo in maquinas.trabajos_de_maquina_anio_mes(datos["id"], datos["anio"], datos["mes"]):
+                resumen = trabajo["descripcion"].splitlines()[0] if trabajo["descripcion"] else ""
+                nodo = QTreeWidgetItem([f"{trabajo['fecha']} — {resumen}", ""])
+                nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "trabajo", "id": trabajo["id"], "cargado": True})
+                item.addChild(nodo)
+        datos["cargado"] = True
+        item.setData(0, Qt.ItemDataRole.UserRole, datos)
+
+    def _maquina_item_doble_click(self, item, columna):
+        datos = item.data(0, Qt.ItemDataRole.UserRole)
+        if datos and datos.get("tipo") == "trabajo":
+            self.proc_edit(datos["id"])
+        elif datos and datos.get("tipo") == "maquina":
+            self._maquina_editar()
+
+    def _guardar_foto_maquina(self, ruta_origen):
+        if not ruta_origen: return None
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nuevo = f"maquina_{ts}{os.path.splitext(ruta_origen)[1]}"
+        destino = os.path.join(self.carpeta_fotos, nuevo)
+        try:
+            shutil.copy2(ruta_origen, destino)
+            return nuevo
+        except Exception:
+            return None
+
+    def _resolver_foto_maquina(self, datos):
+        if not datos["ruta_foto_seleccionada"]:
+            return None
+        if os.path.dirname(os.path.abspath(datos["ruta_foto_seleccionada"])) == os.path.abspath(self.carpeta_fotos):
+            return os.path.basename(datos["ruta_foto_seleccionada"])
+        return self._guardar_foto_maquina(datos["ruta_foto_seleccionada"])
+
+    def _maquina_nueva(self):
+        dlg = DialogoEditarMaquina(self)
+        if dlg.exec():
+            datos = dlg.get_data()
+            foto = self._resolver_foto_maquina(datos)
+            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto)
+            self.refrescar_arbol_maquinas()
+
+    def _maquina_nueva_sub(self):
+        item = self.arbol_maquinas.currentItem()
+        datos_item = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if not datos_item or datos_item.get("tipo") != "maquina":
+            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_maquina", "Selecciona primero la máquina superior."))
+            return
+        dlg = DialogoEditarMaquina(self, padre_sugerido=datos_item["id"])
+        if dlg.exec():
+            datos = dlg.get_data()
+            foto = self._resolver_foto_maquina(datos)
+            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto)
+            self.refrescar_arbol_maquinas()
+
+    def _maquina_editar(self):
+        item = self.arbol_maquinas.currentItem()
+        datos_item = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if not datos_item or datos_item.get("tipo") != "maquina":
+            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_maquina", "Selecciona primero una máquina."))
+            return
+        maquina = maquinas.obtener_maquina(datos_item["id"])
+        excluir = set(maquinas.descendientes_ids(datos_item["id"]))
+        dlg = DialogoEditarMaquina(self, maquina=maquina, excluir_ids=excluir)
+        if dlg.exec():
+            datos = dlg.get_data()
+            foto = self._resolver_foto_maquina(datos)
+            maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto)
+            self.refrescar_arbol_maquinas()
+            self._maquina_mostrar_foto_seleccionada()
+
+    def _maquina_eliminar(self):
+        item = self.arbol_maquinas.currentItem()
+        datos_item = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if not datos_item or datos_item.get("tipo") != "maquina":
+            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_maquina", "Selecciona primero una máquina."))
+            return
+        if QMessageBox.question(self, t("aviso"),
+                tt("msg_confirmar_eliminar_maquina", "¿Eliminar esta máquina y sus submáquinas?\nLos trabajos ya registrados no se borrarán, quedarán sin máquina asignada.")
+                ) == QMessageBox.StandardButton.Yes:
+            maquinas.borrar_maquina(datos_item["id"])
+            self.refrescar_arbol_maquinas()
+
+    # ==========================================
     # STOCK DE ALMACÉN
     # ==========================================
     def init_stock_tab(self):
@@ -4111,6 +4476,8 @@ class MaintenanceApp(QMainWindow):
     def refresh_all(self):
         self.refresh_dashboard(); self.pintar_calendario(); self.update_calendar_list()
         self.refresh_history(); self.search(); self.refresh_todos(); self.refresh_avisos(); self.refresh_stock()
+        if hasattr(self, 'arbol_maquinas'):
+            self.refrescar_arbol_maquinas()
     def setup_table(self, tabla_widget):
         tabla_widget.setColumnCount(4); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
         tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -4148,11 +4515,14 @@ class MaintenanceApp(QMainWindow):
                 return
             uid = d[4] if len(d) > 4 else None
             unombre = d[5] if len(d) > 5 else ""
-            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre)
+            maquina_id = d[6] if len(d) > 6 else None
+            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id)
             if dlg.exec():
-                fecha, desc, tags, nuevo_uid, nuevo_nombre = dlg.get_data()
-                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre)
+                fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id = dlg.get_data()
+                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id)
                 self.refresh_all()
+                if hasattr(self, 'arbol_maquinas'):
+                    self.refrescar_arbol_maquinas()
 
     def del_rec(self, tabla_widget):
         r = tabla_widget.currentRow()
@@ -4419,10 +4789,11 @@ class MaintenanceApp(QMainWindow):
         if not archivo: return
         try:
             datos = self.db.obtener_todas_cronologico(filtro_usuario)
+            mapa_maquinas = maquinas.mapa_rutas_completas()
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
-                # Nuevos encabezados sin Tags, añadiendo Foto Antes y Foto Después
-                writer.writerow(["ID", "Fecha", "Descripción", tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"])
+                # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
+                writer.writerow(["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
                     try:
@@ -4445,7 +4816,8 @@ class MaintenanceApp(QMainWindow):
                     if m_d: foto_despues = m_d.group(1).split("]")[0].strip()
 
                     autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
-                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, autor, foto_antes, foto_despues])
+                    maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
+                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -4470,16 +4842,17 @@ class MaintenanceApp(QMainWindow):
             center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
 
             # Nuevos encabezados
-            headers = ["ID", "Fecha", "Descripción", tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"]
+            headers = ["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"]
             for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
 
             # Ajuste de anchura de columnas
             worksheet.set_column('A:A', 5)
             worksheet.set_column('B:B', 12)
             worksheet.set_column('C:C', 60) # Descripción ancha
-            worksheet.set_column('D:D', 20) # Realizado por
-            worksheet.set_column('E:E', 25) # Foto Antes
-            worksheet.set_column('F:F', 25) # Foto Después
+            worksheet.set_column('D:D', 25) # Máquina
+            worksheet.set_column('E:E', 20) # Realizado por
+            worksheet.set_column('F:F', 25) # Foto Antes
+            worksheet.set_column('G:G', 25) # Foto Después
 
             # --- FUNCIÓN INTERNA PARA CALCULAR LA ESCALA PERFECTA ---
             def obtener_opciones_img(ruta_img):
@@ -4503,6 +4876,7 @@ class MaintenanceApp(QMainWindow):
                 }
 
             datos = self.db.obtener_todas_cronologico(filtro_usuario)
+            mapa_maquinas = maquinas.mapa_rutas_completas()
             row = 1
             for tarea in datos:
                 # Convertir formato de fecha
@@ -4521,8 +4895,11 @@ class MaintenanceApp(QMainWindow):
 
                 worksheet.write(row, 2, desc_limpia, wrap)
 
+                maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
+                worksheet.write(row, 3, maquina_nombre, center)
+
                 autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
-                worksheet.write(row, 3, autor, center)
+                worksheet.write(row, 4, autor, center)
 
                 # Incrustar FOTO ANTES
                 m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
@@ -4532,12 +4909,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta):
                         opc = obtener_opciones_img(ruta)
                         if opc:
-                            try: worksheet.insert_image(row, 4, ruta, opc)
-                            except: worksheet.write(row, 4, "Err Img", center)
+                            try: worksheet.insert_image(row, 5, ruta, opc)
+                            except: worksheet.write(row, 5, "Err Img", center)
                         else:
-                            worksheet.write(row, 4, "Err Img", center)
-                    else: worksheet.write(row, 4, "No File", center)
-                else: worksheet.write(row, 4, "-", center)
+                            worksheet.write(row, 5, "Err Img", center)
+                    else: worksheet.write(row, 5, "No File", center)
+                else: worksheet.write(row, 5, "-", center)
 
                 # Incrustar FOTO DESPUÉS
                 m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
@@ -4547,12 +4924,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta_d):
                         opc = obtener_opciones_img(ruta_d)
                         if opc:
-                            try: worksheet.insert_image(row, 5, ruta_d, opc)
-                            except: worksheet.write(row, 5, "Err Img", center)
+                            try: worksheet.insert_image(row, 6, ruta_d, opc)
+                            except: worksheet.write(row, 6, "Err Img", center)
                         else:
-                            worksheet.write(row, 5, "Err Img", center)
-                    else: worksheet.write(row, 5, "No File", center)
-                else: worksheet.write(row, 5, "-", center)
+                            worksheet.write(row, 6, "Err Img", center)
+                    else: worksheet.write(row, 6, "No File", center)
+                else: worksheet.write(row, 6, "-", center)
 
                 worksheet.set_row(row, 90) # Altura de fila fija
                 row += 1
@@ -4671,7 +5048,7 @@ class MaintenanceApp(QMainWindow):
             lista_trabajos = []
 
             if modo == "RANGO" and inicio and fin:
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
                           "WHERE fecha BETWEEN ? AND ?" + cond_u + " ORDER BY fecha DESC, id DESC",
                           [inicio, fin] + param_u)
                 datos = c.fetchall()
@@ -4682,7 +5059,7 @@ class MaintenanceApp(QMainWindow):
                 lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({inicio} a {fin}){sufijo_u}", "datos": datos})
 
             elif modo == "TODO":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
@@ -4692,7 +5069,7 @@ class MaintenanceApp(QMainWindow):
                 lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte Histórico Completo{sufijo_u}", "datos": datos})
 
             elif modo == "MESES":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
@@ -4736,7 +5113,7 @@ class MaintenanceApp(QMainWindow):
         self.progreso_pdf.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
 
         # Iniciar Hilo
-        self.hilo_pdf = GeneradorPDFThread(lista_trabajos, self.carpeta_fotos)
+        self.hilo_pdf = GeneradorPDFThread(lista_trabajos, self.carpeta_fotos, maquinas.mapa_rutas_completas())
         self.hilo_pdf.resultado.connect(self.pdf_finalizado)
         self.hilo_pdf.start()
 

@@ -439,7 +439,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.7.4';
+const String kAppVersion = '3.8.0';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -569,6 +569,51 @@ class MyApp extends StatelessWidget {
 // ==========================================
 // 1. MODELOS DE DATOS
 // ==========================================
+/// Caché local del listado de máquinas del PC, para poder elegir a qué
+/// máquina se vincula un trabajo aunque no haya conexión en ese momento.
+class MaquinasCache {
+  static const _clave = 'maquinas_cache';
+
+  static Future<List<Map<String, dynamic>>> obtener() async {
+    final prefs = await SharedPreferences.getInstance();
+    final datos = prefs.getString(_clave);
+    if (datos == null) return [];
+    try {
+      return List<Map<String, dynamic>>.from(
+          (json.decode(datos) as List).map((e) => Map<String, dynamic>.from(e)));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> sincronizar(String ip) async {
+    try {
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/maquinas")).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_clave, res.body);
+      }
+    } catch (_) {}
+  }
+
+  /// Construye la lista indentada (nombre visible, id) para un desplegable.
+  static List<MapEntry<String, int?>> arbol(List<Map<String, dynamic>> planas) {
+    final porPadre = <dynamic, List<Map<String, dynamic>>>{};
+    for (var m in planas) {
+      porPadre.putIfAbsent(m['padre_id'], () => []).add(m);
+    }
+    final resultado = <MapEntry<String, int?>>[MapEntry(t("lbl_sin_maquina"), null)];
+    void anadir(dynamic padreId, int nivel) {
+      for (var m in (porPadre[padreId] ?? [])) {
+        resultado.add(MapEntry(("    " * nivel) + m['nombre'], m['id']));
+        anadir(m['id'], nivel + 1);
+      }
+    }
+    anadir(null, 0);
+    return resultado;
+  }
+}
+
 class Registro {
   int? id;
   String titulo, detalles, tags;
@@ -577,6 +622,8 @@ class Registro {
   String? imagePathDespues;
   String? serverImageNameDespues;
   String? fecha; // Nuevo campo fecha
+  int? maquinaId;
+  String? maquinaNombre;
   List<Map<String, dynamic>> materiales; // [{material_id, nombre, cantidad}]
 
   Registro({
@@ -589,6 +636,8 @@ class Registro {
     this.imagePathDespues,
     this.serverImageNameDespues,
     this.fecha,
+    this.maquinaId,
+    this.maquinaNombre,
     List<Map<String, dynamic>>? materiales
   }) : materiales = materiales ?? [];
 
@@ -602,6 +651,8 @@ class Registro {
     'imagePathDespues': imagePathDespues,
     'serverImageNameDespues': serverImageNameDespues,
     'fecha': fecha,
+    'maquinaId': maquinaId,
+    'maquinaNombre': maquinaNombre,
     'materiales': materiales
   };
 
@@ -615,6 +666,8 @@ class Registro {
     imagePathDespues: json['imagePathDespues'],
     serverImageNameDespues: json['serverImageNameDespues'],
     fecha: json['fecha'],
+    maquinaId: json['maquinaId'],
+    maquinaNombre: json['maquinaNombre'],
     materiales: json['materiales'] != null
         ? List<Map<String, dynamic>>.from(
             (json['materiales'] as List).map((e) => Map<String, dynamic>.from(e)))
@@ -1034,6 +1087,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         // ------------------
 
         if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
+        if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
 
         if (item.imagePath != null && File(item.imagePath!).existsSync()) {
           req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
@@ -1056,7 +1110,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc']
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
             }).toList();
             final prefs = await SharedPreferences.getInstance();
             List<Map<String, dynamic>> cacheH = [];
@@ -1213,7 +1267,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
           }).toList();
           List<Map<String, dynamic>> cacheH = [];
           final actual = prefs.getString('historial_cache');
@@ -1587,7 +1641,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
           }).toList();
           List<Map<String, dynamic>> cacheH = [];
           final actual = prefs.getString('historial_cache');
@@ -1695,7 +1749,7 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   Future<void> _guardarCola() async { final p = await SharedPreferences.getInstance(); await p.setString('historial_cola_ediciones', json.encode(_colaEdiciones)); }
   void _aplicarCambiosVisuales() {
-    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues); }
+    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues, maquinaId: e.containsKey('maquinaId') ? e['maquinaId'] : _registros[i].maquinaId); }
   }
   Future<void> _sincronizarEdiciones() async {
     if (_urlPC == null || _colaEdiciones.isEmpty) return;
@@ -1705,6 +1759,7 @@ class _TabHistorialState extends State<TabHistorial> {
         var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/editar_historial"));
         req.headers.addAll(AuthService.cabeceras());
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
+        if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if ((await req.send()).statusCode == 200) ok.add(e);
@@ -1755,7 +1810,7 @@ class _TabHistorialState extends State<TabHistorial> {
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'])).toList();
+    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'])).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
       if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
@@ -1867,8 +1922,9 @@ class _TabHistorialState extends State<TabHistorial> {
     String? lp; String? lpD; var ep = _colaEdiciones.firstWhere((e) => e['id'] == r.id.toString(), orElse: () => {});
     if (ep.isNotEmpty && ep['fotoPath'] != null) lp = ep['fotoPath']; else if (r.serverImageName != null) { final fp = await _localPath(r.serverImageName!); if (File(fp).existsSync()) lp = fp; }
     if (ep.isNotEmpty && ep['fotoPathDespues'] != null) lpD = ep['fotoPathDespues']; else if (r.serverImageNameDespues != null) { final fpD = await _localPath(r.serverImageNameDespues!); if (File(fpD).existsSync()) lpD = fpD; }
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, serverImageName: r.serverImageName, serverImageNameDespues: r.serverImageNameDespues, registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp, imagePathDespues: lpD), esHistorial: true, onSave: (re) async {
-      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues};
+    int? maquinaIdInicial = (ep.isNotEmpty && ep.containsKey('maquinaId')) ? ep['maquinaId'] : r.maquinaId;
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, serverImageName: r.serverImageName, serverImageNameDespues: r.serverImageNameDespues, registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp, imagePathDespues: lpD, maquinaId: maquinaIdInicial), esHistorial: true, onSave: (re) async {
+      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId};
       int i = _colaEdiciones.indexWhere((e) => e['id'] == r.id.toString()); if (i != -1) _colaEdiciones[i] = ne; else _colaEdiciones.add(ne);
       await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_guardado"))));
     })));
@@ -1918,9 +1974,18 @@ class _FormScreenState extends State<FormScreen> {
   final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
   List<Map<String, dynamic>> _materiales = [];
+  int? _maquinaId;
+  List<MapEntry<String, int?>> _arbolMaquinas = MaquinasCache.arbol([]);
   @override void initState() { super.initState();
     if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
-    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _maquinaId = r.maquinaId; }
+    _cargarMaquinas();
+  }
+  Future<void> _cargarMaquinas() async {
+    if (widget.urlPC != null) await MaquinasCache.sincronizar(widget.urlPC!);
+    final planas = await MaquinasCache.obtener();
+    if (!mounted) return;
+    setState(() => _arbolMaquinas = MaquinasCache.arbol(planas));
   }
   Future<void> _anadirMaterial() async {
     if (widget.urlPC == null) return;
@@ -1942,7 +2007,7 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, materiales: _materiales);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, materiales: _materiales);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -1955,7 +2020,15 @@ class _FormScreenState extends State<FormScreen> {
       if(!widget.esHistorial) TextField(controller: _t, decoration: InputDecoration(labelText: t("lbl_titulo"))), const SizedBox(height: 15),
         TextField(controller: _d, maxLines: 5, decoration: InputDecoration(labelText: t("lbl_detalles"))), const SizedBox(height: 15),
         Wrap(spacing: 8, children: [FilterChip(label: Text('🚨 ${t("tag_urgente")}'), selected: _u, onSelected: (v)=>setState(()=>_u=v)), FilterChip(label: Text('⚡ ${t("tag_electrico")}'), selected: _e, onSelected: (v)=>setState(()=>_e=v)), FilterChip(label: Text('⚙️ ${t("tag_mecanico")}'), selected: _m, onSelected: (v)=>setState(()=>_m=v)), FilterChip(label: Text('🛡️ ${t("tag_preventivo")}'), selected: _p, onSelected: (v)=>setState(()=>_p=v))]),
-        TextField(controller: _tag, decoration: InputDecoration(labelText: t("lbl_tags_extra"))), const SizedBox(height: 15), const Divider(),
+        TextField(controller: _tag, decoration: InputDecoration(labelText: t("lbl_tags_extra"))), const SizedBox(height: 15),
+        DropdownButtonFormField<int?>(
+          value: _arbolMaquinas.any((e) => e.value == _maquinaId) ? _maquinaId : null,
+          decoration: InputDecoration(labelText: t("lbl_maquina")),
+          isExpanded: true,
+          items: _arbolMaquinas.map((e) => DropdownMenuItem<int?>(value: e.value, child: Text(e.key))).toList(),
+          onChanged: (v) => setState(() => _maquinaId = v),
+        ),
+        const SizedBox(height: 15), const Divider(),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(t("lbl_materiales_usados"), style: const TextStyle(fontWeight: FontWeight.bold)),
           if (widget.urlPC != null) TextButton.icon(icon: const Icon(Icons.add), label: Text(t("btn_anadir_material")), onPressed: _anadirMaterial),
@@ -2142,6 +2215,9 @@ class SincronizadorGlobal {
     if (!AuthService.autenticado) await AuthService.cargar();
     if (!AuthService.autenticado) return; // sin sesión no se envía nada
 
+    // 0. LISTADO DE MÁQUINAS (para poder elegirlas al registrar/editar trabajos)
+    await MaquinasCache.sincronizar(ip);
+
     // 1. MIS REGISTROS
     final String? datosJson = prefs.getString('registros_pendientes');
     if (datosJson != null) {
@@ -2157,6 +2233,7 @@ class SincronizadorGlobal {
           req.fields['tags'] = item.tags;
           if (item.fecha != null) req.fields['fecha'] = item.fecha!;
           if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
+        if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
           if (item.imagePath != null && File(item.imagePath!).existsSync()) {
             req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
           }
@@ -2241,6 +2318,7 @@ class SincronizadorGlobal {
         var req = http.MultipartRequest('POST', Uri.parse("http://$ip/api/editar_historial"));
         req.headers.addAll(AuthService.cabeceras());
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
+        if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if ((await req.send()).statusCode == 200) hok.add(e);
@@ -2256,7 +2334,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         List<Map<String, dynamic>> nuevosH = dH.map((i) => {
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc']
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
         }).toList();
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');
