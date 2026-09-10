@@ -167,7 +167,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.7.3"
+APP_VERSION = "3.7.4"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -426,7 +426,7 @@ class DialogoSelectorFoto(QDialog):
         self.preview_lbl = QLabel(t("lbl_seleccionar_archivo"))
         self.preview_lbl.setFixedWidth(500)
         self.preview_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_lbl.setStyleSheet("border: 2px solid #555; background-color: #222; color: #aaa;")
+        self.preview_lbl.setStyleSheet(_estilo_zona_arrastre())
 
         btn_ok = QPushButton(t("btn_elegir_foto"))
         btn_ok.setMinimumHeight(45)
@@ -1678,6 +1678,31 @@ class GestorFestivos:
                 os.remove(archivo)
             except: pass
 
+def _estilo_zona_arrastre(activo=False):
+    """Estilo de las zonas de 'arrastra una foto aquí', adaptado al tema actual
+    (oscuro/claro/retro), para no quedar siempre en negro en temas claros."""
+    oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+    if activo:
+        return ("border: 2px dashed #3daee9; background: #333; color: #3daee9;" if oscuro
+                else "border: 2px dashed #0078d4; background: #eaf3fb; color: #0078d4;")
+    return ("border: 2px dashed #666; color: #888; background: #2b2b2b;" if oscuro
+            else "border: 2px dashed #999; color: #666; background: #f0f0f0;")
+
+
+def _estilo_check_etiqueta():
+    """Estilo de los checkboxes de 'Etiquetas rápidas' (Urgente/Eléctrico/...),
+    adaptado al tema actual para que el texto no quede gris clarito sobre fondo claro."""
+    oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+    return "font-weight: bold; color: #bbb;" if oscuro else "font-weight: bold; color: #555;"
+
+
+def _estilo_label_dialogo():
+    """Estilo de las etiquetas de campo de formularios de diálogo (p.ej. AvisoEditDialog),
+    adaptado al tema para que no queden en gris clarito sobre fondo claro."""
+    oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+    return f"font-weight: bold; font-size: 14px; color: {'#ccc' if oscuro else '#444'};"
+
+
 class LabelArrastrable(QLabel):
     archivo_soltado = pyqtSignal(str)
     def __init__(self, parent=None):
@@ -1685,11 +1710,11 @@ class LabelArrastrable(QLabel):
         self.setAcceptDrops(True)
         self.setText(t("lbl_arrastra_foto"))
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setStyleSheet("border: 2px dashed #666; color: #888; background: #2b2b2b;")
+        self.setStyleSheet(_estilo_zona_arrastre())
     def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls(): self.setStyleSheet("border: 2px dashed #3daee9; background: #333; color: #3daee9;"); event.accept()
+        if event.mimeData().hasUrls(): self.setStyleSheet(_estilo_zona_arrastre(activo=True)); event.accept()
         else: event.ignore()
-    def dragLeaveEvent(self, event): self.setStyleSheet("border: 2px dashed #666; color: #888; background: #2b2b2b;")
+    def dragLeaveEvent(self, event): self.setStyleSheet(_estilo_zona_arrastre())
     def dropEvent(self, event):
         urls = event.mimeData().urls()
         if urls:
@@ -2119,7 +2144,7 @@ class DialogoEditarMaterial(QDialog):
         l.addWidget(QLabel(tt("lbl_foto_adjunta", "Foto adjunta")))
         self.lbl_preview = QLabel(tt("lbl_sin_foto", "Sin foto")); self.lbl_preview.setFixedSize(200, 150)
         self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
+        self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
         h_center = QHBoxLayout(); h_center.addWidget(self.lbl_preview); h_center.addStretch()
         l.addLayout(h_center)
         h_foto = QHBoxLayout()
@@ -2190,7 +2215,7 @@ class DialogoEditarMaterial(QDialog):
                 self.lbl_preview.setStyleSheet("border: 2px solid #3daee9; background-color: #000;")
         else:
             self.lbl_preview.setPixmap(QPixmap()); self.lbl_preview.setText(tt("lbl_sin_foto", "Sin foto"))
-            self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
+            self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
 
     def seleccionar_foto(self):
         dlg = DialogoSelectorFoto(self)
@@ -2356,7 +2381,7 @@ class EditDialog(QDialog):
                 self.lbl_foto.setPixmap(QPixmap(ruta).scaled(self.lbl_foto.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
             else: self.lbl_foto.setText(f"Error: {self.foto_filename}")
-        else: self.lbl_foto.setText(t("lbl_arrastra_click")); self.lbl_foto.setStyleSheet("border: 2px dashed #666; color: #888;")
+        else: self.lbl_foto.setText(t("lbl_arrastra_click")); self.lbl_foto.setStyleSheet(_estilo_zona_arrastre())
 
         if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename:
             ruta_d = os.path.join(self.carpeta_fotos, self.foto_despues_filename)
@@ -2364,7 +2389,7 @@ class EditDialog(QDialog):
                 self.lbl_foto_d.setPixmap(QPixmap(ruta_d).scaled(self.lbl_foto_d.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto_d.setStyleSheet("border: 2px solid #2ecc71;")
             else: self.lbl_foto_d.setText(f"Error: {self.foto_despues_filename}")
-        else: self.lbl_foto_d.setText(t("lbl_arrastra_click")); self.lbl_foto_d.setStyleSheet("border: 2px dashed #666; color: #888;")
+        else: self.lbl_foto_d.setText(t("lbl_arrastra_click")); self.lbl_foto_d.setStyleSheet(_estilo_zona_arrastre())
 
     def abrir_o_buscar(self, event):
         if self.foto_filename and os.path.exists(os.path.join(self.carpeta_fotos, self.foto_filename)): VisorFoto(os.path.join(self.carpeta_fotos, self.foto_filename), self).exec()
@@ -2420,7 +2445,7 @@ class DialogoEditarPendiente(QDialog):
         l.addWidget(QLabel(t("lbl_detalles"))); self.d = QTextEdit(); self.d.setText(detalles); self.d.setMaximumHeight(100); l.addWidget(self.d)
         l.addWidget(QLabel(t("lbl_foto_adjunta")))
         self.lbl_preview = QLabel(t("lbl_sin_foto")); self.lbl_preview.setFixedSize(400, 300)
-        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet("border: 2px dashed #555; background-color: #222; color: #aaa;")
+        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
         h_center = QHBoxLayout(); h_center.addStretch(); h_center.addWidget(self.lbl_preview); h_center.addStretch(); l.addLayout(h_center)
         h_btns = QHBoxLayout(); self.lbl_nombre = QLabel(""); self.lbl_nombre.setStyleSheet("color: #777; font-size: 10px;"); h_btns.addWidget(self.lbl_nombre); h_btns.addStretch()
         btn_ver = QPushButton(t("btn_ver_grande")); btn_ver.clicked.connect(self.ver_grande); h_btns.addWidget(btn_ver)
@@ -2453,7 +2478,11 @@ class CompleteDialog(QDialog):
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
         self.setWindowTitle(f"Completar: {titulo}"); self.resize(500, 550); l = QVBoxLayout()
-        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{detalles}</i>"); lbl_info.setWordWrap(True); lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;"); l.addWidget(lbl_info)
+        oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{detalles}</i>"); lbl_info.setWordWrap(True)
+        lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;" if oscuro
+                                else "background-color: #eee; padding: 10px; border-radius: 5px; color: #333;")
+        l.addWidget(lbl_info)
         l.addWidget(QLabel(t("lbl_fecha_finalizacion"))); self.de = QDateEdit(); self.de.setDate(QDate.currentDate()); self.de.setCalendarPopup(True); self.de.setDisplayFormat("yyyy-MM-dd"); l.addWidget(self.de)
         self.lbl_foto = LabelArrastrable(); self.lbl_foto.setFixedHeight(180); self.lbl_foto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_foto.mousePressEvent = self.click_foto; self.lbl_foto.archivo_soltado.connect(self.procesar_foto); l.addWidget(self.lbl_foto)
@@ -2461,7 +2490,7 @@ class CompleteDialog(QDialog):
         l.addWidget(QLabel(t("lbl_etiquetas_rapidas"))); h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
         self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
-        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet("font-weight: bold; color: #bbb;"); h_tags.addWidget(c)
+        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet(_estilo_check_etiqueta()); h_tags.addWidget(c)
         l.addLayout(h_tags)
         l.addWidget(QLabel(t("lbl_otros_tags"))); self.tag = QLineEdit(); self.tag.setPlaceholderText(t("ph_ejemplo_tags")); l.addWidget(self.tag)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
@@ -2494,7 +2523,7 @@ class AvisoEditDialog(QDialog):
     def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 450)
-        l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = "font-weight: bold; font-size: 14px; color: #ccc;"
+        l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = _estilo_label_dialogo()
         l.addWidget(QLabel(t("lbl_titulo_aviso"), styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
         l.addWidget(QLabel(t("lbl_fecha_inicio"), styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
         if inicio: self.inicio.setDate(QDate.fromString(inicio, "yyyy-MM-dd"))
@@ -2829,11 +2858,16 @@ class MaintenanceApp(QMainWindow):
 
             desc_visual = desc_limpia.replace("\n", "  ➜  ")
 
-            tags_lower = tags.lower(); color_bg = None
-            if any(x in tags_lower for x in ["urgente", "avería", "rotura", "fallo", "paro"]): color_bg = QColor("#5a2d2d")
-            elif any(x in tags_lower for x in ["preventivo", "revisión", "ok", "limpieza"]): color_bg = QColor("#2d4a2d")
-            elif "eléctrico" in tags_lower or "cuadro" in tags_lower: color_bg = QColor("#2d3b5a")
-            elif "mecánico" in tags_lower: color_bg = QColor("#5a4a2d")
+            oscuro = self._tema_actual == "oscuro"
+            tags_lower = tags.lower(); color_bg = None; color_fg = None
+            if any(x in tags_lower for x in ["urgente", "avería", "rotura", "fallo", "paro"]):
+                color_bg = QColor("#4a2424" if oscuro else "#f2b8bd"); color_fg = QColor("#ffffff" if oscuro else "#58151c")
+            elif any(x in tags_lower for x in ["preventivo", "revisión", "ok", "limpieza"]):
+                color_bg = QColor("#213c21" if oscuro else "#a3d9ac"); color_fg = QColor("#ffffff" if oscuro else "#1e4620")
+            elif "eléctrico" in tags_lower or "cuadro" in tags_lower:
+                color_bg = QColor("#555" if oscuro else "#e0e0e0"); color_fg = QColor("#ffffff" if oscuro else "#333333")
+            elif "mecánico" in tags_lower:
+                color_bg = QColor("#5a4a2d" if oscuro else "#fff3cd"); color_fg = QColor("#ffffff" if oscuro else "#5c4813")
 
             item_f = QTableWidgetItem(fecha); item_f.setData(Qt.ItemDataRole.UserRole, id_t)
             item_d = QTableWidgetItem(desc_visual); item_d.setToolTip(desc_limpia)
@@ -2850,6 +2884,8 @@ class MaintenanceApp(QMainWindow):
             if color_bg:
                 item_f.setBackground(color_bg); item_d.setBackground(color_bg)
                 item_t.setBackground(color_bg); item_u.setBackground(color_bg)
+                item_f.setForeground(color_fg); item_d.setForeground(color_fg)
+                item_t.setForeground(color_fg); item_u.setForeground(color_fg)
 
             table.setItem(r, 0, item_f); table.setItem(r, 1, item_d); table.setItem(r, 2, item_t)
             if table.columnCount() > 3:
@@ -3148,6 +3184,24 @@ class MaintenanceApp(QMainWindow):
             for nombre, act in self._acciones_tema.items():
                 act.setChecked(nombre == tema)
 
+        # Repintar las tablas con colores por etiqueta/estado, ya que sus celdas
+        # se colorean con QColor fijos en el momento de rellenarlas y no se
+        # actualizan solas al cambiar de tema.
+        if hasattr(self, 'dash_table'):
+            self.refresh_dashboard()
+        if hasattr(self, 'h_table'):
+            self.refresh_history()
+        if hasattr(self, 's_table'):
+            self.search()
+        if hasattr(self, 'table_avisos'):
+            self.refresh_avisos()
+
+        # Repintar las zonas de "arrastra una foto aquí" si no tienen foto puesta
+        if hasattr(self, 'lbl_entry_foto') and not getattr(self, 'entry_foto_filename', None):
+            self.lbl_entry_foto.setStyleSheet(_estilo_zona_arrastre())
+        if hasattr(self, 'lbl_entry_foto_d') and not getattr(self, 'entry_foto_despues_filename', None):
+            self.lbl_entry_foto_d.setStyleSheet(_estilo_zona_arrastre())
+
     def _aplicar_tema_retro(self):
         """Estilo clásico inspirado en Windows 98 / 2000."""
         QApplication.setStyle(QStyleFactory.create("Fusion"))
@@ -3341,14 +3395,14 @@ class MaintenanceApp(QMainWindow):
         h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
         self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
-        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet("font-weight: bold; color: #bbb;"); h_tags.addWidget(c)
+        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet(_estilo_check_etiqueta()); h_tags.addWidget(c)
         l.addLayout(h_tags)
         self.itag = QLineEdit(); self.itag.setPlaceholderText(t("ph_otras_etiquetas")); l.addWidget(self.itag)
         b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
     def borrar_foto_entry(self):
-        self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText(t("lbl_arrastra_foto")); self.lbl_entry_foto.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto.hide()
+        self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText(t("lbl_arrastra_foto")); self.lbl_entry_foto.setStyleSheet(_estilo_zona_arrastre()); self.btn_del_foto.hide()
     def borrar_foto_entry_d(self):
-        self.entry_foto_despues_filename = None; self.lbl_entry_foto_d.setPixmap(QPixmap()); self.lbl_entry_foto_d.setText(t("lbl_arrastra_despues")); self.lbl_entry_foto_d.setStyleSheet("border: 2px dashed #666; color: #888; background: #252525;"); self.btn_del_foto_d.hide()
+        self.entry_foto_despues_filename = None; self.lbl_entry_foto_d.setPixmap(QPixmap()); self.lbl_entry_foto_d.setText(t("lbl_arrastra_despues")); self.lbl_entry_foto_d.setStyleSheet(_estilo_zona_arrastre()); self.btn_del_foto_d.hide()
 
     def buscar_foto_entry_click_d(self, e):
         if self.entry_foto_despues_filename:
@@ -3495,25 +3549,29 @@ class MaintenanceApp(QMainWindow):
             cl.addWidget(chk)
             self.table_avisos.setCellWidget(r, 0, cw)
 
-            # Colores
-            color = QColor("#555")
+            # Colores (grises adaptados al tema; verde/rojo son ya bastante
+            # saturados como para funcionar bien en cualquier tema)
+            oscuro = self._tema_actual == "oscuro"
+            color = QColor("#555" if oscuro else "#e0e0e0")
+            color_fg = QColor("#ffffff" if oscuro else "#333333")
             estado_txt = t("estado_futuro")
 
             if es_activo:
                 if completado:
-                    color = QColor("#27ae60") # Verde
+                    color = QColor("#27ae60"); color_fg = QColor("#ffffff") # Verde
                     estado_txt = t("estado_ok")
                 else:
-                    color = QColor("#e74c3c") # Rojo
+                    color = QColor("#cb4335"); color_fg = QColor("#ffffff") # Rojo (un poco más oscuro)
                     estado_txt = t("estado_pendiente")
             elif completado:
-                 color = QColor("#27ae60")
+                 color = QColor("#27ae60"); color_fg = QColor("#ffffff")
                  estado_txt = t("estado_ok")
 
             # Rellenar fila
             item_t = QTableWidgetItem(tit)
             item_t.setData(Qt.ItemDataRole.UserRole, aid)
             item_t.setBackground(color)
+            item_t.setForeground(color_fg)
 
             self.table_avisos.setItem(r, 1, item_t)
             self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
@@ -3698,7 +3756,7 @@ class MaintenanceApp(QMainWindow):
         self.s_date = QDateEdit(); self.s_date.setCalendarPopup(True); self.s_date.setDate(QDate.currentDate()); self.s_date.setDisplayFormat("yyyy-MM-dd"); self.s_date.setEnabled(False); self.s_date.dateChanged.connect(self.search); sl.addWidget(self.s_date); l.addLayout(sl)
         fl = QHBoxLayout(); fl.setSpacing(20)
         self.chk_s_urg = QCheckBox(f"🚨 {t('tag_urgente')}"); self.chk_s_elec = QCheckBox(f"⚡ {t('tag_electrico')}"); self.chk_s_mec = QCheckBox(f"⚙️ {t('tag_mecanico')}"); self.chk_s_prev = QCheckBox(f"🛡️ {t('tag_preventivo')}")
-        for chk in [self.chk_s_urg, self.chk_s_elec, self.chk_s_mec, self.chk_s_prev]: chk.setStyleSheet("font-weight: bold; color: #ccc;"); chk.toggled.connect(self.search); fl.addWidget(chk)
+        for chk in [self.chk_s_urg, self.chk_s_elec, self.chk_s_mec, self.chk_s_prev]: chk.setStyleSheet(_estilo_check_etiqueta()); chk.toggled.connect(self.search); fl.addWidget(chk)
         fl.addStretch(); l.addLayout(fl)
         self.s_table = QTableWidget(); self.setup_table(self.s_table); self.configurar_deseleccion(self.s_table); self.s_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.s_table)); l.addWidget(self.s_table)
         bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar"), clicked=lambda: self.edit_rec(self.s_table))); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=lambda: self.del_rec(self.s_table))); l.addLayout(bl); self.tab_search.setLayout(l)
@@ -3730,7 +3788,7 @@ class MaintenanceApp(QMainWindow):
         self.todo_list.itemDoubleClicked.connect(self.edit_todo); ll.addWidget(self.todo_list); l.addLayout(ll, 60)
         rl = QVBoxLayout(); g = QGroupBox(t("lbl_nuevo_trabajo")); f = QVBoxLayout()
         self.in_todo_t = QLineEdit(); self.in_todo_t.setPlaceholderText(t("ph_titulo")); f.addWidget(self.in_todo_t)
-        self.in_todo_d = QTextEdit(); self.in_todo_d.setPlaceholderText(t("ph_detalles")); self.in_todo_d.setMaximumHeight(100); self.in_todo_d.setStyleSheet("QTextEdit { color: #e0e0e0; background-color: #1e1e1e; border: 1px solid #555; }"); f.addWidget(self.in_todo_d)
+        self.in_todo_d = QTextEdit(); self.in_todo_d.setPlaceholderText(t("ph_detalles")); self.in_todo_d.setMaximumHeight(100); f.addWidget(self.in_todo_d)
         fila_asig = QHBoxLayout()
         fila_asig.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"))
         self.combo_asignar = QComboBox()
