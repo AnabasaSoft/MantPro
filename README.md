@@ -26,6 +26,7 @@
 - [Instalación](#-instalación)
 - [Uso](#-uso)
 - [Usuarios y Acceso](#-usuarios-y-acceso)
+- [Maquinaria](#-maquinaria)
 - [Stock de Almacén](#-stock-de-almacén)
 - [Sincronización PC-Móvil](#-sincronización-pc-móvil)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
@@ -73,7 +74,8 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
 - **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
-- **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico
+- **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
+- **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico e indicando la máquina/submáquina de cada trabajo, si la tiene
 
 ### 📱 Aplicación Móvil (Android)
 
@@ -89,6 +91,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
 - **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén))
+- **🏭 Vincular Máquina**: Selecciona en un desplegable la máquina o submáquina en la que se ha hecho el trabajo, tanto al crear un registro nuevo como al editar uno ya sincronizado del historial
 
 ### 📦 Aplicación Móvil de Stock (Android)
 
@@ -395,6 +398,33 @@ registros que aún estén pendientes de subir**.
 
 ---
 
+## 🏭 Maquinaria
+
+> Gestión disponible desde la aplicación de escritorio, con el vínculo a la
+> máquina también seleccionable desde el móvil al registrar o editar un
+> trabajo.
+
+Pestaña "🏭 Máquinas" del PC, pensada para llevar el control de averías e
+intervenciones de cada equipo a lo largo del tiempo.
+
+- **🌳 Árbol de maquinaria**: las máquinas pueden tener submáquinas (por
+  ejemplo, una línea con varios equipos), formando una jerarquía tan profunda
+  como haga falta
+- **📅 Trabajos organizados por año y mes**: al expandir una máquina se ven los
+  años con trabajos, y al expandir un año, los meses; cada nivel muestra un
+  contador de cuántos trabajos tiene, con carga bajo demanda para no ralentizar
+  el árbol
+- **🖱️ Acceso directo al trabajo**: haciendo doble clic sobre un trabajo del
+  árbol se abre directamente su ficha de edición
+- **📸 Foto de la máquina**: cada máquina o submáquina puede tener una foto
+  adjunta, visible en un recuadro junto al árbol al seleccionarla
+- **🔗 Vínculo desde cada trabajo**: al registrar un trabajo nuevo (PC o móvil)
+  o editar uno existente se puede elegir a qué máquina/submáquina pertenece
+- **📊 En las exportaciones**: la máquina o submáquina vinculada aparece como
+  columna adicional en las exportaciones a PDF, CSV y Excel
+
+---
+
 ## 📦 Stock de Almacén
 
 > Gestión completa desde la aplicación de escritorio, con consulta y
@@ -542,6 +572,7 @@ MantPro/
 ├── usuarios.py                  # Usuarios, contraseñas, roles y sesiones
 ├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
 ├── almacen.py                   # Stock de almacén: estructura, materiales y movimientos
+├── maquinas.py                  # Árbol de maquinaria y su histórico de trabajos
 ├── idiomas.py                   # Traducciones del escritorio (ES / EN / EU)
 ├── requirements.txt             # Dependencias Python
 ├── logo.png                     # Logo de la aplicación
@@ -573,7 +604,9 @@ MantPro/
 La aplicación utiliza SQLite con las siguientes tablas:
 
 - **`tareas`**: Registro de intervenciones realizadas (fecha, descripción, tags,
-  fotos y **quién lo realizó**: `usuario_id` y `usuario_nombre`)
+  fotos, **quién lo realizó** (`usuario_id` y `usuario_nombre`) y la
+  **máquina vinculada** (`maquina_id`), si tiene una)
+- **`maquinas`**: Árbol de maquinaria (nombre, máquina superior, notas y foto)
 - **`pendientes`**: Tareas pendientes de realizar (título, detalles y
   **técnico asignado**: `asignado_a` y `asignado_nombre`)
 - **`usuarios`**: Personas que usan la aplicación (login, nombre, hash de la
@@ -676,6 +709,10 @@ Estado actual y siguientes pasos previstos.
 - **Sesiones de dispositivos**: listar los móviles vinculados a cada usuario,
   con su modelo real de dispositivo, y poder revocar una o varias sesiones
   concretas sin tener que desactivar al usuario entero.
+- **Listado de maquinaria**: árbol de máquinas y submáquinas con foto adjunta,
+  contador de trabajos por año y mes, y vínculo de cada trabajo (PC o móvil) a
+  la máquina en la que se ha hecho, incluido en las exportaciones a PDF, CSV
+  y Excel.
 
 ### 🔜 Siguientes pasos
 
@@ -686,10 +723,6 @@ Estado actual y siguientes pasos previstos.
       dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
       finalizado, y adjuntarla al registro apoyándose en el sistema de
       usuarios ya existente.
-- [ ] **Listado de maquinaria**: dar de alta las máquinas/equipos a mantener,
-      para poder vincular cada trabajo a una máquina concreta y así llevar el
-      control de averías por máquina y de qué se le ha hecho a cada una a lo
-      largo del tiempo.
 
 ### 🔒 Nota sobre seguridad
 
