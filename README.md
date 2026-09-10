@@ -59,6 +59,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **✍️ Autoría de los Trabajos**: Cada intervención guarda quién la realizó, visible en el historial y en los informes
 - **🔒 Permisos por Registro**: un técnico solo puede editar o borrar sus propios trabajos; un administrador puede gestionar cualquiera, incluida la reasignación del autor de uno o varios registros a la vez
 - **📋 Auditoría de Cambios**: registro de quién edita o borra cada trabajo (no solo quién lo creó), consultable y filtrable por técnico y por tipo de acción desde "Registro de cambios" (solo administradores)
+- **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores)
 - **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia"
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
 - **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
@@ -352,6 +353,15 @@ quitarle el rol o desactivarlo al último que queda.
 - **Restablecer contraseña**: útil cuando alguien la olvida. Al cambiarla se
   cierran automáticamente todas las sesiones abiertas de esa persona en el móvil.
 - **Cambiar la propia contraseña**: `Herramientas` > `🔑 Cambiar mi contraseña`.
+
+### Sesiones de dispositivos
+
+`Herramientas` > `🔐 Sesiones de dispositivos` (solo administradores) lista
+todas las sesiones abiertas en el móvil de todos los usuarios, con el modelo
+del dispositivo, cuándo se inició, cuándo expira y si sigue activa o ya
+expiró. Se pueden seleccionar una o varias filas a la vez y revocarlas, lo que
+cierra la sesión de ese móvil sin necesidad de desactivar al usuario entero
+(que cerraría *todos* sus dispositivos de golpe).
 
 ### Autoría de los trabajos
 
@@ -663,12 +673,12 @@ Estado actual y siguientes pasos previstos.
   materiales sin stock o por debajo de su mínimo. Con base de datos propia
   (`almacen.db`) y app móvil independiente (`mantpro_stock_app`) para
   consultar y mover stock desde el teléfono.
+- **Sesiones de dispositivos**: listar los móviles vinculados a cada usuario,
+  con su modelo real de dispositivo, y poder revocar una o varias sesiones
+  concretas sin tener que desactivar al usuario entero.
 
 ### 🔜 Siguientes pasos
 
-- [ ] **Sesiones activas**: listar los móviles vinculados a cada usuario y poder
-      revocar uno concreto (hoy solo se puede desactivar al usuario entero,
-      lo que invalida todos sus dispositivos a la vez).
 - [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
 - [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
       oficina, sin depender de estar en la misma WiFi que el PC.
