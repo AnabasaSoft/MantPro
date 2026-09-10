@@ -421,7 +421,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.7.0';
+const String kAppVersion = '3.7.1';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -1083,11 +1083,11 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             leading: f != null && f.existsSync() ? Image.file(f, width: 40, height: 40, fit: BoxFit.cover) : const Icon(Icons.build),
             title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(item.detalles, maxLines: 1),
             trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () { setState(() => _pendientes.removeAt(i)); _guardarDatos(); }),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(onSave: (r) => _editarRegistro(i, r), registroExistente: item))),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, onSave: (r) => _editarRegistro(i, r), registroExistente: item))),
           ));
         })),
       ]),
-      floatingActionButton: FloatingActionButton(child: const Icon(Icons.add), backgroundColor: Colors.blueAccent, onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(onSave: _addRegistro)))),
+      floatingActionButton: FloatingActionButton(child: const Icon(Icons.add), backgroundColor: Colors.blueAccent, onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, onSave: _addRegistro)))),
     );
   }
 }
