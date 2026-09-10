@@ -21,7 +21,6 @@ mantenimiento.db
 fotos_recibidas/
 backups/
 backups_auto/
-.serena
 
 # --- FLUTTER (DENTRO DE TU CARPETA MANTENIMIENTO_APP) ---
 # Compilados y temporales de Flutter
@@ -51,9 +50,13 @@ mantenimiento_app/macos
 # Archivos de sistema operativo
 .DS_Store
 Thumbs.db
-Logo.jpg
 
 #Otros archivos
 *.pdf
 *.sh
 bump_version.py
+Logo.jpg
+MantPro_Stock.png
+.claude/
+.serena/
+CLAUDE.md

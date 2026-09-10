@@ -59,6 +59,13 @@ def _conn():
     return con
 
 
+def _columnas(con, tabla):
+    try:
+        return {fila["name"] for fila in con.execute(f"PRAGMA table_info({tabla})")}
+    except sqlite3.Error:
+        return set()
+
+
 def inicializar():
     """Crea las tablas si no existen. Idempotente."""
     con = _conn()
@@ -67,7 +74,8 @@ def inicializar():
         CREATE TABLE IF NOT EXISTS estanterias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL,
-            tiene_hueco_suelo INTEGER NOT NULL DEFAULT 0
+            tiene_hueco_suelo INTEGER NOT NULL DEFAULT 0,
+            estilo_baldas TEXT NOT NULL DEFAULT 'numero'
         )
     """)
     cur.execute("""
@@ -109,29 +117,57 @@ def inicializar():
             motivo TEXT
         )
     """)
+
+    # --- columnas nuevas en tablas existentes ---
+    if "estilo_baldas" not in _columnas(con, "estanterias"):
+        cur.execute("ALTER TABLE estanterias ADD COLUMN estilo_baldas TEXT NOT NULL DEFAULT 'numero'")
+
     con.commit()
     con.close()
 
 
 # ---------------------------------------------------------------- estructura
 
-def crear_estanteria(nombre, num_baldas, tiene_hueco_suelo, num_secciones=0):
-    """Crea una estantería con sus baldas (numeradas de 1 a num_baldas,
-    de abajo a arriba). Si tiene_hueco_suelo, añade también la balda 0.
-    Si num_secciones > 0, crea esa cantidad de secciones ("Sección 1", "Sección 2"...)
-    en cada balda creada."""
+def _letra_seccion(indice):
+    """Convierte un índice (1, 2, 3...) en letras estilo columnas de hoja de
+    cálculo: A, B, ..., Z, AA, AB... para no limitar a 26 secciones por balda."""
+    letras = ""
+    while indice > 0:
+        indice, resto = divmod(indice - 1, 26)
+        letras = chr(ord('A') + resto) + letras
+    return letras
+
+
+def texto_balda(numero, estilo_baldas="numero"):
+    """Texto identificativo de una balda (sin el prefijo "Balda"/"Suelo": eso lo
+    añade cada interfaz en su propio idioma). La balda 0 (hueco de suelo) no
+    tiene número visible, así que se devuelve como cadena vacía."""
+    if numero == 0:
+        return ""
+    return _letra_seccion(numero) if estilo_baldas == "letra" else str(numero)
+
+
+def crear_estanteria(nombre, num_baldas, tiene_hueco_suelo, num_secciones=0,
+                      estilo_baldas="numero", estilo_secciones="letra"):
+    """Crea una estantería con sus baldas (numeradas internamente de 1 a
+    num_baldas, de abajo a arriba; ese número interno se usa siempre para
+    ordenar, aunque en pantalla se muestre como letra si estilo_baldas="letra").
+    Si tiene_hueco_suelo, añade también la balda 0.
+    Si num_secciones > 0, crea esa cantidad de secciones ("Sección A"/"Sección 1"...
+    según estilo_secciones) en cada balda creada."""
     con = _conn()
     cur = con.cursor()
-    cur.execute("INSERT INTO estanterias (nombre, tiene_hueco_suelo) VALUES (?, ?)",
-                (nombre, 1 if tiene_hueco_suelo else 0))
+    cur.execute("INSERT INTO estanterias (nombre, tiene_hueco_suelo, estilo_baldas) VALUES (?, ?, ?)",
+                (nombre, 1 if tiene_hueco_suelo else 0, estilo_baldas))
     estanteria_id = cur.lastrowid
 
     def _crear_balda(numero):
         cur.execute("INSERT INTO baldas (estanteria_id, numero) VALUES (?, ?)", (estanteria_id, numero))
         balda_id = cur.lastrowid
         for i in range(1, int(num_secciones) + 1):
+            etiqueta = _letra_seccion(i) if estilo_secciones == "letra" else str(i)
             cur.execute("INSERT INTO secciones (balda_id, nombre) VALUES (?, ?)",
-                        (balda_id, f"Sección {i}"))
+                        (balda_id, f"Sección {etiqueta}"))
 
     if tiene_hueco_suelo:
         _crear_balda(0)
@@ -248,7 +284,7 @@ def obtener_ubicacion_texto(seccion_id):
         return ""
     con = _conn()
     fila = con.execute("""
-        SELECT e.nombre AS estanteria, b.numero AS balda, s.nombre AS seccion
+        SELECT e.nombre AS estanteria, e.estilo_baldas AS estilo_baldas, b.numero AS balda, s.nombre AS seccion
         FROM secciones s
         JOIN baldas b ON s.balda_id = b.id
         JOIN estanterias e ON b.estanteria_id = e.id
@@ -257,7 +293,7 @@ def obtener_ubicacion_texto(seccion_id):
     con.close()
     if not fila:
         return ""
-    nombre_balda = "Suelo" if fila["balda"] == 0 else f"Balda {fila['balda']}"
+    nombre_balda = "Suelo" if fila["balda"] == 0 else f"Balda {texto_balda(fila['balda'], fila['estilo_baldas'])}"
     return f"{fila['estanteria']} > {nombre_balda} > {fila['seccion']}"
 
 
@@ -280,12 +316,31 @@ def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id
     return material_id
 
 
-def actualizar_material(material_id, codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto):
+def actualizar_material(material_id, codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
+                         usuario_id=None, usuario_nombre=None):
     con = _conn()
+    seccion_anterior = con.execute(
+        "SELECT seccion_id FROM materiales WHERE id=?", (material_id,)).fetchone()["seccion_id"]
     con.execute("""
         UPDATE materiales SET codigo=?, nombre=?, descripcion=?, unidad=?, stock_minimo=?, seccion_id=?, foto=?
         WHERE id=?
     """, (codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto, material_id))
+    con.commit()
+    con.close()
+    if seccion_id != seccion_anterior:
+        origen = obtener_ubicacion_texto(seccion_anterior) or "Sin ubicación"
+        destino = obtener_ubicacion_texto(seccion_id) or "Sin ubicación"
+        _registrar_traslado(material_id, origen, destino, usuario_id, usuario_nombre)
+
+
+def _registrar_traslado(material_id, origen, destino, usuario_id, usuario_nombre):
+    from datetime import datetime
+    con = _conn()
+    con.execute("""
+        INSERT INTO movimientos (material_id, fecha, tipo, cantidad, usuario_id, usuario_nombre, motivo)
+        VALUES (?, ?, 'traslado', 0, ?, ?, ?)
+    """, (material_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), usuario_id, usuario_nombre,
+          f"De {origen} a {destino}"))
     con.commit()
     con.close()
 

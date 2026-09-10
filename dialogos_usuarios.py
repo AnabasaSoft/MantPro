@@ -27,7 +27,7 @@ si esa función no está disponible, se usa el literal en español.
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QMessageBox, QTableWidget, QTableWidgetItem, QComboBox,
-    QCheckBox, QHeaderView, QAbstractItemView, QDialogButtonBox
+    QCheckBox, QHeaderView, QAbstractItemView, QDialogButtonBox, QWidget
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
@@ -235,14 +235,13 @@ class DialogoGestionUsuarios(QDialog):
         self.nueva_password = QLineEdit()
         self.nueva_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.nueva_password.setPlaceholderText(t("login_password", "Contraseña"))
-        self.combo_rol = QComboBox()
-        self.combo_rol.addItem(t("rol_tecnico", "Técnico"), "tecnico")
-        self.combo_rol.addItem(t("rol_admin", "Administrador"), "admin")
+        self.selector_roles, self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin = \
+            self._crear_selector_roles()
         self.chk_cambiar = QCheckBox(t("usuarios_forzar_cambio", "Pedir cambio al entrar"))
         self.chk_cambiar.setChecked(True)
         boton_alta = QPushButton(t("usuarios_anadir", "➕ Añadir"))
         for w in (self.nuevo_login, self.nuevo_nombre, self.nueva_password,
-                  self.combo_rol, self.chk_cambiar, boton_alta):
+                  self.selector_roles, self.chk_cambiar, boton_alta):
             alta.addWidget(w)
         layout.addLayout(alta)
 
@@ -269,6 +268,55 @@ class DialogoGestionUsuarios(QDialog):
 
     # -------------------------------------------------- helpers
 
+    @staticmethod
+    def _texto_roles(roles):
+        etiquetas = {
+            "admin": t("rol_admin", "Administrador"),
+            "almacen": t("rol_almacen", "Almacén"),
+            "tecnico": t("rol_tecnico", "Técnico"),
+        }
+        return ", ".join(etiquetas.get(r, r) for r in (roles or ["tecnico"]))
+
+    def _crear_selector_roles(self, roles_iniciales=("tecnico",)):
+        """Casillas para elegir uno o varios roles (técnico y/o almacén).
+        Administrador es exclusivo: al marcarlo se desmarcan y bloquean los otros."""
+        chk_tecnico = QCheckBox(t("rol_tecnico", "Técnico"))
+        chk_almacen = QCheckBox(t("rol_almacen", "Almacén"))
+        chk_admin = QCheckBox(t("rol_admin", "Administrador"))
+        chk_tecnico.setChecked("tecnico" in roles_iniciales)
+        chk_almacen.setChecked("almacen" in roles_iniciales)
+        chk_admin.setChecked("admin" in roles_iniciales)
+
+        def _al_marcar_admin(marcado):
+            if marcado:
+                chk_tecnico.setChecked(False)
+                chk_almacen.setChecked(False)
+            chk_tecnico.setEnabled(not marcado)
+            chk_almacen.setEnabled(not marcado)
+
+        def _al_marcar_otro(_marcado):
+            if chk_tecnico.isChecked() or chk_almacen.isChecked():
+                chk_admin.setChecked(False)
+
+        chk_admin.toggled.connect(_al_marcar_admin)
+        chk_tecnico.toggled.connect(_al_marcar_otro)
+        chk_almacen.toggled.connect(_al_marcar_otro)
+        _al_marcar_admin(chk_admin.isChecked())
+
+        contenedor = QWidget()
+        lay = QHBoxLayout(contenedor)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(chk_tecnico)
+        lay.addWidget(chk_almacen)
+        lay.addWidget(chk_admin)
+        return contenedor, chk_tecnico, chk_almacen, chk_admin
+
+    @staticmethod
+    def _roles_marcados(chk_tecnico, chk_almacen, chk_admin):
+        return [r for chk, r in (
+            (chk_tecnico, "tecnico"), (chk_almacen, "almacen"), (chk_admin, "admin")
+        ) if chk.isChecked()]
+
     def refrescar(self):
         datos = usuarios.listar_usuarios()
         self.tabla.setRowCount(len(datos))
@@ -276,8 +324,7 @@ class DialogoGestionUsuarios(QDialog):
             valores = [
                 u["login"],
                 u["nombre"],
-                t("rol_admin", "Administrador") if u["rol"] == "admin"
-                else t("rol_tecnico", "Técnico"),
+                self._texto_roles(u.get("roles")),
                 t("activo", "Activo") if u["activo"] else t("inactivo", "Inactivo"),
                 u.get("ultimo_acceso") or "—",
                 str(u["id"]),
@@ -300,15 +347,19 @@ class DialogoGestionUsuarios(QDialog):
     # -------------------------------------------------- acciones
 
     def _anadir(self):
+        roles = self._roles_marcados(self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin)
         ok, mensaje = usuarios.crear_usuario(
             self.nuevo_login.text(),
             self.nuevo_nombre.text(),
             self.nueva_password.text(),
-            self.combo_rol.currentData(),
+            roles,
             self.chk_cambiar.isChecked(),
         )
         if ok:
             self.nuevo_login.clear(); self.nuevo_nombre.clear(); self.nueva_password.clear()
+            self.chk_rol_tecnico.setChecked(True)
+            self.chk_rol_almacen.setChecked(False)
+            self.chk_rol_admin.setChecked(False)
             self.refrescar()
         else:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
@@ -338,8 +389,23 @@ class DialogoGestionUsuarios(QDialog):
         if uid is None:
             return
         actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
-        nuevo = "tecnico" if actual["rol"] == "admin" else "admin"
-        ok, mensaje = usuarios.actualizar_usuario(uid, rol=nuevo)
+        roles_actuales = actual.get("roles") or [actual["rol"]]
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("usuarios_cambiar_rol", "🎚 Cambiar rol"))
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel(t("usuarios_col_rol", "Rol") + ":"))
+        selector, chk_tecnico, chk_almacen, chk_admin = self._crear_selector_roles(roles_actuales)
+        lay.addWidget(selector)
+        caja = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.accepted.connect(dlg.accept); caja.rejected.connect(dlg.reject)
+        lay.addWidget(caja)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        roles = self._roles_marcados(chk_tecnico, chk_almacen, chk_admin)
+        ok, mensaje = usuarios.actualizar_usuario(uid, roles=roles)
         if not ok:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
         self.refrescar()
