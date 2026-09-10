@@ -389,9 +389,12 @@ def materiales_bajo_minimo():
 
 # ---------------------------------------------------------------- movimientos
 
-def registrar_movimiento(material_id, tipo, cantidad, usuario_id, usuario_nombre, motivo=""):
+def registrar_movimiento(material_id, tipo, cantidad, usuario_id, usuario_nombre, motivo="", permitir_negativo=False):
     """tipo: 'entrada' o 'salida'. Actualiza el stock y deja constancia del movimiento.
-    Devuelve (True, None) o (False, "stock_insuficiente")."""
+    Devuelve (True, None) o (False, "stock_insuficiente").
+    Si permitir_negativo es True, una salida puede dejar el stock en negativo en
+    lugar de bloquearse (uso: descuento automático de material usado en un trabajo,
+    donde el movimiento ya ha ocurrido en la realidad aunque falte stock registrado)."""
     from datetime import datetime
     con = _conn()
     cur = con.cursor()
@@ -400,7 +403,7 @@ def registrar_movimiento(material_id, tipo, cantidad, usuario_id, usuario_nombre
         con.close()
         return False, "material_no_existe"
     stock_actual = fila["stock_actual"]
-    if tipo == "salida" and cantidad > stock_actual:
+    if tipo == "salida" and cantidad > stock_actual and not permitir_negativo:
         con.close()
         return False, "stock_insuficiente"
     nuevo_stock = stock_actual + cantidad if tipo == "entrada" else stock_actual - cantidad

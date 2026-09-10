@@ -610,6 +610,8 @@ class ServidorSincronizacion(QThread):
                                     usuario['id'], usuario['nombre']))
                     conn.commit()
 
+                self._descontar_materiales_trabajo(request, usuario, titulo)
+
                 # Emitimos la señal pasando el título correcto para la notificación
                 self.registro_recibido.emit(titulo, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
                 return jsonify({"status": "ok"})
@@ -673,6 +675,8 @@ class ServidorSincronizacion(QThread):
                               (fecha_final, desc_final, tags, raw_desc, filename,
                                usuario['id'], usuario['nombre']))
                     conn.commit()
+
+                self._descontar_materiales_trabajo(request, usuario, titulo)
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
@@ -1330,6 +1334,36 @@ class ServidorSincronizacion(QThread):
                 file.save(ruta)
                 return filename, ruta
         return "", ""
+
+    def _descontar_materiales_trabajo(self, req, usuario, referencia):
+        """Lee el campo 'materiales' (JSON: [{"material_id":.., "cantidad":..}, ...])
+        del formulario de un trabajo y descuenta cada cantidad del almacén. El
+        material ya se ha usado en la realidad, así que el descuento se aplica
+        aunque deje el stock en negativo: eso es lo que dispara el aviso de
+        "bajo mínimo" en la app para que se verifique y se reponga."""
+        materiales_raw = req.form.get('materiales')
+        if not materiales_raw:
+            return
+        try:
+            materiales = json.loads(materiales_raw)
+        except (ValueError, TypeError):
+            return
+        hubo_algo = False
+        for item in materiales:
+            try:
+                material_id = int(item.get('material_id'))
+                cantidad = float(item.get('cantidad') or 0)
+            except (TypeError, ValueError):
+                continue
+            if cantidad <= 0:
+                continue
+            ok, _ = almacen.registrar_movimiento(
+                material_id, "salida", cantidad, usuario['id'], usuario['nombre'],
+                motivo=f"Usado en trabajo: {referencia}", permitir_negativo=True)
+            if ok:
+                hubo_algo = True
+        if hubo_algo:
+            self.stock_actualizado.emit()
 
     def obtener_ip_local(self):
         try:

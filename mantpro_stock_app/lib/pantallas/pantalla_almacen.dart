@@ -69,7 +69,10 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
   }
 
   Future<void> _cargar() async {
-    setState(() { _cargando = true; _error = null; });
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final ip = prefs.getString('pc_ip_url');
@@ -102,7 +105,8 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
     final cambiado = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => PantallaArticulo(materialId: materialId, seccionIdInicial: seccionId),
+        builder: (_) => PantallaArticulo(
+            materialId: materialId, seccionIdInicial: seccionId),
       ),
     );
     if (cambiado == true) _cargar();
@@ -118,45 +122,63 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
 
   Widget _construir(BuildContext context) {
     if (_cargando) return const Center(child: CircularProgressIndicator());
-    if (_error != null) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(_error!, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          ElevatedButton(onPressed: _cargar, child: const Text('↻')),
-        ]),
-      );
-    }
-    if (_estanterias.isEmpty) {
-      return Center(child: Text(tt('msg_sin_estanterias', 'No hay estanterías configuradas en el almacén')));
-    }
 
-    return DefaultTabController(
-      length: _estanterias.length,
-      child: Column(
-        children: [
-          Material(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-            child: TabBar(
-              isScrollable: true,
-              tabs: _estanterias.map((e) => Tab(text: e.nombre)).toList(),
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              children: _estanterias
-                  .map((e) => _ArbolEstanteria(
-                        estanteria: e,
-                        materialesPorSeccion: _materialesPorSeccion,
-                        onRefrescar: _cargar,
-                        onAbrirArticulo: (id) => _abrirArticulo(materialId: id),
-                        onAnadirArticulo: (seccionId) => _abrirArticulo(seccionId: seccionId),
-                      ))
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
+    // Igual que en "Bajo mínimo": todo el contenido (error, sin estanterías o
+    // el árbol en sí) va dentro de un único RefreshIndicator, para poder
+    // forzar la actualización con un arrastre hacia abajo aunque todavía no
+    // haya ninguna estantería configurada.
+    return RefreshIndicator(
+      onRefresh: _cargar,
+      child: _error != null
+          ? ListView(children: [
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(_error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  ElevatedButton(onPressed: _cargar, child: const Text('↻')),
+                ]),
+              ),
+            ])
+          : _estanterias.isEmpty
+              ? ListView(children: [
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                        child: Text(tt('msg_sin_estanterias',
+                            'No hay estanterías configuradas en el almacén'))),
+                  ),
+                ])
+              : DefaultTabController(
+                  length: _estanterias.length,
+                  child: Column(
+                    children: [
+                      Material(
+                        color: Theme.of(context).appBarTheme.backgroundColor,
+                        child: TabBar(
+                          isScrollable: true,
+                          tabs: _estanterias
+                              .map((e) => Tab(text: e.nombre))
+                              .toList(),
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: _estanterias
+                              .map((e) => _ArbolEstanteria(
+                                    estanteria: e,
+                                    materialesPorSeccion: _materialesPorSeccion,
+                                    onAbrirArticulo: (id) =>
+                                        _abrirArticulo(materialId: id),
+                                    onAnadirArticulo: (seccionId) =>
+                                        _abrirArticulo(seccionId: seccionId),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
     );
   }
 }
@@ -176,14 +198,12 @@ String _tituloSeccion(String nombre) {
 class _ArbolEstanteria extends StatelessWidget {
   final Estanteria estanteria;
   final Map<int, List<Articulo>> materialesPorSeccion;
-  final Future<void> Function() onRefrescar;
   final void Function(int materialId) onAbrirArticulo;
   final void Function(int seccionId) onAnadirArticulo;
 
   const _ArbolEstanteria({
     required this.estanteria,
     required this.materialesPorSeccion,
-    required this.onRefrescar,
     required this.onAbrirArticulo,
     required this.onAnadirArticulo,
   });
@@ -191,56 +211,57 @@ class _ArbolEstanteria extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final puedeGestionar = AuthService.puedeGestionarAlmacen;
-    return RefreshIndicator(
-      onRefresh: onRefrescar,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: estanteria.baldas.map((balda) {
-          final tituloBalda = balda.numero == 0
-              ? tt('lbl_suelo', 'Suelo')
-              : '${tt('lbl_balda', 'Balda')} ${textoBalda(balda.numero, estanteria.estiloBaldas)}';
-          return ExpansionTile(
-            title: Text(tituloBalda, style: const TextStyle(fontWeight: FontWeight.bold)),
-            initiallyExpanded: true,
-            children: balda.secciones.map((seccion) {
-              final materiales = materialesPorSeccion[seccion.id] ?? [];
-              return ExpansionTile(
-                title: Text(_tituloSeccion(seccion.nombre)),
-                initiallyExpanded: true,
-                trailing: puedeGestionar
-                    ? IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        tooltip: tt('btn_anadir', 'Añadir'),
-                        onPressed: () => onAnadirArticulo(seccion.id),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: estanteria.baldas.map((balda) {
+        final tituloBalda = balda.numero == 0
+            ? tt('lbl_suelo', 'Suelo')
+            : '${tt('lbl_balda', 'Balda')} ${textoBalda(balda.numero, estanteria.estiloBaldas)}';
+        return ExpansionTile(
+          title: Text(tituloBalda,
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          initiallyExpanded: true,
+          children: balda.secciones.map((seccion) {
+            final materiales = materialesPorSeccion[seccion.id] ?? [];
+            return ExpansionTile(
+              title: Text(_tituloSeccion(seccion.nombre)),
+              initiallyExpanded: true,
+              trailing: puedeGestionar
+                  ? IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      tooltip: tt('btn_anadir', 'Añadir'),
+                      onPressed: () => onAnadirArticulo(seccion.id),
+                    )
+                  : const Icon(Icons.expand_more),
+              children: materiales.isEmpty
+                  ? [
+                      ListTile(
+                        dense: true,
+                        title: Text(
+                            tt('msg_sin_articulos_seccion', 'Sin artículos'),
+                            style: const TextStyle(color: Colors.grey)),
                       )
-                    : const Icon(Icons.expand_more),
-                children: materiales.isEmpty
-                    ? [
-                        ListTile(
-                          dense: true,
-                          title: Text(tt('msg_sin_articulos_seccion', 'Sin artículos'),
-                              style: const TextStyle(color: Colors.grey)),
-                        )
-                      ]
-                    : materiales
-                        .map((m) => ListTile(
-                              dense: true,
-                              leading: const Icon(Icons.inventory_2_outlined),
-                              title: Text(m.nombre),
-                              trailing: Text(
-                                '${formatearCantidad(m.stockActual)} ${m.unidad}'.trim(),
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: colorStock(m.stockActual, m.stockMinimo)),
-                              ),
-                              onTap: () => onAbrirArticulo(m.id),
-                            ))
-                        .toList(),
-              );
-            }).toList(),
-          );
-        }).toList(),
-      ),
+                    ]
+                  : materiales
+                      .map((m) => ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.inventory_2_outlined),
+                            title: Text(m.nombre),
+                            trailing: Text(
+                              '${formatearCantidad(m.stockActual)} ${m.unidad}'
+                                  .trim(),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      colorStock(m.stockActual, m.stockMinimo)),
+                            ),
+                            onTap: () => onAbrirArticulo(m.id),
+                          ))
+                      .toList(),
+            );
+          }).toList(),
+        );
+      }).toList(),
     );
   }
 }
