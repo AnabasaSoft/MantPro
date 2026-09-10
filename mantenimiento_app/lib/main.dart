@@ -421,7 +421,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.7.1';
+const String kAppVersion = '3.7.2';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -1988,21 +1988,52 @@ class _DialogoSeleccionarMaterial extends StatefulWidget {
   State<_DialogoSeleccionarMaterial> createState() => _DialogoSeleccionarMaterialState();
 }
 class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial> {
+  static const _claveCache = 'stock_materiales_cache_busqueda';
   final _buscarCtrl = TextEditingController();
   List<Map<String, dynamic>> _resultados = [];
+  List<Map<String, dynamic>> _todosCache = [];
   Map<String, dynamic>? _seleccionado;
   final _cantidadCtrl = TextEditingController(text: '1');
   bool _buscando = false;
+  bool _sinConexion = false;
+
+  /// Filtra localmente la caché de materiales cuando no hay conexión con el
+  /// PC, igual que hace el servidor (nombre, código o descripción).
+  List<Map<String, dynamic>> _filtrarCache(String q) {
+    if (q.isEmpty) return _todosCache;
+    final ql = q.toLowerCase();
+    return _todosCache.where((m) =>
+        (m['nombre']?.toString().toLowerCase().contains(ql) ?? false) ||
+        (m['codigo']?.toString().toLowerCase().contains(ql) ?? false) ||
+        (m['descripcion']?.toString().toLowerCase().contains(ql) ?? false)).toList();
+  }
 
   Future<void> _buscar(String q) async {
     setState(() => _buscando = true);
+    bool ok = false;
     try {
       final res = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/stock/materiales?q=${Uri.encodeQueryComponent(q)}")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         _resultados = List<Map<String, dynamic>>.from(data['materiales'] ?? []);
+        ok = true;
+        _sinConexion = false;
+        if (q.isEmpty) {
+          _todosCache = _resultados;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_claveCache, json.encode(_todosCache));
+        }
       }
     } catch (_) {}
+    if (!ok) {
+      if (_todosCache.isEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        final guardado = prefs.getString(_claveCache);
+        if (guardado != null) { try { _todosCache = List<Map<String, dynamic>>.from(json.decode(guardado)); } catch (_) {} }
+      }
+      _resultados = _filtrarCache(q);
+      _sinConexion = true;
+    }
     if (mounted) setState(() => _buscando = false);
   }
 
@@ -2048,20 +2079,25 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
       content: SizedBox(
         width: double.maxFinite,
         height: 300,
-        child: _buscando
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                itemCount: _resultados.length,
-                itemBuilder: (_, i) {
-                  final m = _resultados[i];
-                  return ListTile(
-                    leading: const Icon(Icons.inventory_2_outlined),
-                    title: Text(m['nombre']?.toString() ?? ''),
-                    subtitle: Text('${m['stock_actual']} ${m['unidad'] ?? ''}'.trim()),
-                    onTap: () => setState(() => _seleccionado = m),
-                  );
-                },
-              ),
+        child: Column(children: [
+          if (_sinConexion) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(t("msg_material_sin_conexion"), style: const TextStyle(color: Colors.orange, fontSize: 12))),
+          Expanded(child: _buscando
+              ? const Center(child: CircularProgressIndicator())
+              : _resultados.isEmpty
+                  ? Center(child: Text(t("msg_sin_resultados_material"), style: const TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: _resultados.length,
+                      itemBuilder: (_, i) {
+                        final m = _resultados[i];
+                        return ListTile(
+                          leading: const Icon(Icons.inventory_2_outlined),
+                          title: Text(m['nombre']?.toString() ?? ''),
+                          subtitle: Text('${m['stock_actual']} ${m['unidad'] ?? ''}'.trim()),
+                          onTap: () => setState(() => _seleccionado = m),
+                        );
+                      },
+                    )),
+        ]),
       ),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t("btn_cancelar_mayus")))],
     );

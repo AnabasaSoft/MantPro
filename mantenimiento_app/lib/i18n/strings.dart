@@ -158,6 +158,8 @@ const Map<String, Map<String, String>> _traducciones = {
     "msg_sin_materiales": "No se ha usado ningún material",
     "lbl_cantidad": "Cantidad",
     "hint_buscar_material": "Buscar material...",
+    "msg_sin_resultados_material": "No se ha encontrado ningún material",
+    "msg_material_sin_conexion": "Sin conexión con el PC: mostrando la última lista guardada",
   },
   "en": {
     // --- Listas, Estados y Notificaciones ---
@@ -275,6 +277,8 @@ const Map<String, Map<String, String>> _traducciones = {
     "msg_sin_materiales": "No material was used",
     "lbl_cantidad": "Quantity",
     "hint_buscar_material": "Search material...",
+    "msg_sin_resultados_material": "No material found",
+    "msg_material_sin_conexion": "No connection to the PC: showing the last saved list",
   },
   "eu": {
     "hdr_fecha": "DATA",
@@ -389,7 +393,9 @@ const Map<String, Map<String, String>> _traducciones = {
     "btn_anadir_material": "Materiala gehitu",
     "msg_sin_materiales": "Ez da materialik erabili",
     "lbl_cantidad": "Kopurua",
-    "hint_buscar_material": "Materiala bilatu..."
+    "hint_buscar_material": "Materiala bilatu...",
+    "msg_sin_resultados_material": "Ez da materialik aurkitu",
+    "msg_material_sin_conexion": "PCrekin konexiorik ez: gordetako azken zerrenda erakusten"
   },
 };
 
