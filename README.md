@@ -686,6 +686,10 @@ Estado actual y siguientes pasos previstos.
       dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
       finalizado, y adjuntarla al registro apoyándose en el sistema de
       usuarios ya existente.
+- [ ] **Listado de maquinaria**: dar de alta las máquinas/equipos a mantener,
+      para poder vincular cada trabajo a una máquina concreta y así llevar el
+      control de averías por máquina y de qué se le ha hecho a cada una a lo
+      largo del tiempo.
 
 ### 🔒 Nota sobre seguridad
 
