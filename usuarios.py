@@ -510,6 +510,25 @@ def sesiones_de(usuario_id):
     return [dict(f) for f in filas]
 
 
+def listar_sesiones():
+    """Todas las sesiones de dispositivos de todos los usuarios, con el estado calculado."""
+    con = _conn()
+    filas = con.execute(
+        "SELECT s.token, s.dispositivo, s.creado, s.expira, "
+        "u.id AS usuario_id, u.login, u.nombre "
+        "FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id "
+        "ORDER BY s.creado DESC"
+    ).fetchall()
+    con.close()
+    ahora = datetime.now().isoformat(timespec="seconds")
+    sesiones = []
+    for f in filas:
+        d = dict(f)
+        d["activa"] = d["expira"] >= ahora
+        sesiones.append(d)
+    return sesiones
+
+
 # ---------------------------------------------------------------- auditoría
 
 def registrar_auditoria(usuario_id, tarea_id, accion, detalle=""):

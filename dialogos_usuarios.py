@@ -33,6 +33,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 
 import os
+from datetime import datetime
 import usuarios
 
 try:
@@ -49,6 +50,16 @@ def t(clave, defecto=None):
     if valor == clave and defecto is not None:
         return defecto
     return valor
+
+
+def _formatear_fecha(iso):
+    """Convierte un ISO datetime (guardado en BD) a 'HH:MM:SS DD/MM/AAAA'."""
+    if not iso:
+        return "—"
+    try:
+        return datetime.fromisoformat(iso).strftime("%H:%M:%S %d/%m/%Y")
+    except ValueError:
+        return iso
 
 
 # --------------------------------------------------------------------- login
@@ -418,4 +429,100 @@ class DialogoGestionUsuarios(QDialog):
         ok, mensaje = usuarios.actualizar_usuario(uid, activo=not actual["activo"])
         if not ok:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        self.refrescar()
+
+
+class _ItemFecha(QTableWidgetItem):
+    """Muestra la fecha formateada pero ordena por el valor ISO real subyacente."""
+
+    def __init__(self, iso):
+        super().__init__(_formatear_fecha(iso))
+        self._iso = iso or ""
+
+    def __lt__(self, otro):
+        if isinstance(otro, _ItemFecha):
+            return self._iso < otro._iso
+        return super().__lt__(otro)
+
+
+class DialogoSesiones(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(t("sesiones_titulo", "Sesiones de dispositivos"))
+        self.setModal(True)
+        self.resize(760, 420)
+
+        layout = QVBoxLayout(self)
+
+        self.tabla = QTableWidget(0, 6)
+        self.tabla.setHorizontalHeaderLabels([
+            t("sesiones_col_usuario", "Usuario"),
+            t("sesiones_col_dispositivo", "Dispositivo"),
+            t("sesiones_col_iniciada", "Iniciada"),
+            t("sesiones_col_expira", "Expira"),
+            t("sesiones_col_estado", "Estado"),
+            "token",
+        ])
+        self.tabla.setColumnHidden(5, True)
+        self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.tabla.setSortingEnabled(True)
+        cabecera = self.tabla.horizontalHeader()
+        cabecera.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        cabecera.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        cabecera.setStretchLastSection(False)
+        layout.addWidget(self.tabla)
+
+        acciones = QHBoxLayout()
+        boton_actualizar = QPushButton(t("sesiones_actualizar", "🔄 Actualizar"))
+        boton_revocar = QPushButton(t("sesiones_revocar", "🚫 Revocar sesión"))
+        boton_cerrar = QPushButton(t("cerrar", "Cerrar"))
+        acciones.addWidget(boton_actualizar)
+        acciones.addWidget(boton_revocar)
+        acciones.addStretch()
+        acciones.addWidget(boton_cerrar)
+        layout.addLayout(acciones)
+
+        boton_actualizar.clicked.connect(self.refrescar)
+        boton_revocar.clicked.connect(self._revocar)
+        boton_cerrar.clicked.connect(self.accept)
+
+        self.refrescar()
+
+    def refrescar(self):
+        datos = usuarios.listar_sesiones()
+        self.tabla.setSortingEnabled(False)
+        self.tabla.setRowCount(len(datos))
+        for fila, s in enumerate(datos):
+            usuario_txt = f"{s['nombre']} ({s['login']})" if s.get("nombre") else s["login"]
+            columnas = [
+                QTableWidgetItem(usuario_txt),
+                QTableWidgetItem(s.get("dispositivo") or "—"),
+                _ItemFecha(s.get("creado")),
+                _ItemFecha(s.get("expira")),
+                QTableWidgetItem(t("sesiones_activa", "Activa") if s["activa"] else t("sesiones_expirada", "Expirada")),
+                QTableWidgetItem(s["token"]),
+            ]
+            for col, item in enumerate(columnas):
+                if not s["activa"]:
+                    item.setForeground(Qt.GlobalColor.gray)
+                self.tabla.setItem(fila, col, item)
+        self.tabla.setSortingEnabled(True)
+
+    def _tokens_seleccionados(self):
+        filas = {i.row() for i in self.tabla.selectedIndexes()}
+        if not filas:
+            QMessageBox.information(
+                self, t("aviso", "Aviso"),
+                t("sesiones_selecciona", "Selecciona una sesión de la lista."))
+            return []
+        return [self.tabla.item(fila, 5).text() for fila in filas]
+
+    def _revocar(self):
+        tokens = self._tokens_seleccionados()
+        if not tokens:
+            return
+        for token in tokens:
+            usuarios.revocar_token(token)
         self.refrescar()

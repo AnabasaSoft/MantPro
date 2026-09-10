@@ -24,6 +24,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_painter/image_painter.dart';
 import 'package:path_provider/path_provider.dart';
@@ -51,6 +52,23 @@ final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
 String tt(String clave, String defecto) {
   final v = t(clave);
   return v == clave ? defecto : v;
+}
+
+/// Modelo del móvil (p.ej. "Samsung SM-G991B"), para distinguir sesiones en
+/// "Sesiones de dispositivos" cuando hay varios móviles con la misma app.
+Future<String> _nombreDispositivo() async {
+  try {
+    final infoPlugin = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final info = await infoPlugin.androidInfo;
+      return '${info.manufacturer} ${info.model}'.trim();
+    }
+    if (Platform.isIOS) {
+      final info = await infoPlugin.iosInfo;
+      return info.name.isNotEmpty ? info.name : info.utsname.machine;
+    }
+  } catch (_) {}
+  return 'Android';
 }
 
 class AuthService {
@@ -87,7 +105,7 @@ class AuthService {
         body: json.encode({
           'login': usuario,
           'password': password,
-          'dispositivo': 'Android',
+          'dispositivo': await _nombreDispositivo(),
         }),
       ).timeout(const Duration(seconds: 10));
 
@@ -421,7 +439,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.7.2';
+const String kAppVersion = '3.7.3';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
