@@ -29,6 +29,7 @@
 - [Maquinaria](#-maquinaria)
 - [Stock de Almacén](#-stock-de-almacén)
 - [Sincronización PC-Móvil](#-sincronización-pc-móvil)
+- [Copias de Seguridad](#-copias-de-seguridad)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Contribuir](#-contribuir)
 - [Roadmap](#-roadmap)
@@ -69,7 +70,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
 - **👤 Filtro por Técnico**: Filtra el historial y las exportaciones (PDF, CSV y Excel) por la persona que hizo el trabajo
-- **📦 Backup/Restore**: Exportación e importación de base de datos completa, eligiendo dónde guardar cada copia de seguridad
+- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
 - **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente
@@ -564,6 +565,49 @@ Para que la sincronización funcione:
 
 ---
 
+## 💾 Copias de Seguridad
+
+MantPro distingue entre dos tipos de copia, pensados para momentos distintos:
+
+### Backup automático (al cerrar la app)
+
+Cada vez que se cierra el programa se hace, en segundo plano y sin necesidad de
+intervención, un backup rápido pensado para no notarse aunque pasen los años:
+
+- **Bases de datos**: `mantenimiento.db` y `almacen.db` se empaquetan enteras en
+  un ZIP (`auto_backup_db_<fecha>.zip`) cada vez, rotando y conservando solo los
+  3 más recientes.
+- **Fotos**: en vez de volver a comprimir todo el historial de fotos en cada
+  cierre, se mantienen unos ZIP incrementales por año (`fotos_backup_<año>.zip`):
+  cada cierre solo añade a su ZIP del año que corresponda las fotos que todavía
+  no estuvieran dentro, sin tocar ni recomprimir las de años anteriores. Así el
+  tiempo de cierre no crece con el tiempo de uso de la aplicación.
+
+Mientras se hace esta copia se muestra una ventana con una barra de progreso que
+retiene el foco, y el cierre real de la aplicación espera a que termine.
+
+### Backup manual (menú Archivo)
+
+`Archivo > Backup` sigue generando, como siempre, un único ZIP
+(`backup_completo_<fecha>.zip`) con las dos bases de datos y **todas** las fotos
+juntas y comprimidas, en la ubicación que elijas. `Archivo > Restaurar backup`
+permite recuperar tanto este tipo de copia como los backups automáticos: si el
+ZIP elegido es un backup automático, restaura primero la base de datos y, con
+ella ya restaurada, calcula qué fotos hacen falta y las extrae únicamente de los
+`fotos_backup_<año>.zip` correspondientes, en vez de volcarlas todas. Ambas
+operaciones muestran también su propia barra de progreso con foco.
+
+### Limpieza de fotos huérfanas
+
+`Herramientas > Limpiar fotos huérfanas` borra las fotos de `fotos_recibidas`
+que ya no estén referenciadas por ningún trabajo, pendiente o máquina. Al cerrar
+la aplicación y antes de un backup manual también se limpia `fotos_recibidas`
+en silencio, pero **solo** esa opción del menú Herramientas revisa además los
+`fotos_backup_<año>.zip` y los reescribe sin las fotos huérfanas que pudieran
+contener, para no arrastrarlas indefinidamente.
+
+---
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -591,7 +635,8 @@ MantPro/
 │   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
-├── backups/                     # Backups de base de datos
+├── backups/                     # Backups manuales completos (BD + fotos)
+├── backups_auto/                # Backups automáticos al cerrar (BD rotativa + fotos por año)
 └── docs/                        # Documentación adicional
 ```
 
@@ -713,6 +758,11 @@ Estado actual y siguientes pasos previstos.
   contador de trabajos por año y mes, y vínculo de cada trabajo (PC o móvil) a
   la máquina en la que se ha hecho, incluido en las exportaciones a PDF, CSV
   y Excel.
+- **Backup automático incremental**: el cierre de la aplicación ya no reempaqueta
+  todo el historial de fotos cada vez; las bases de datos rotan en un ZIP y las
+  fotos se reparten en ZIP incrementales por año, con una barra de progreso con
+  foco tanto en el cierre como en el backup y la restauración manuales (ver
+  [Copias de Seguridad](#-copias-de-seguridad)).
 
 ### 🔜 Siguientes pasos
 

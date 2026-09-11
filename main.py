@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.0"
+APP_VERSION = "3.8.2"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -376,6 +376,204 @@ class GeneradorPDFThread(QThread):
             self.resultado.emit(True, "PDF(s) generado(s) correctamente.")
         except Exception as e:
             self.resultado.emit(False, str(e))
+
+
+class BackupThread(QThread):
+    """Backup automático al cerrar la aplicación.
+
+    Las fotos son inmutables una vez guardadas (solo se añaden o se borran las
+    huérfanas), así que en vez de reempaquetar todo el histórico cada vez que
+    se cierra la app, se mantienen unos ZIP incrementales por año (nombrados
+    "fotos_backup_<año>.zip"): cada cierre solo añade a su ZIP del año las
+    fotos que todavía no estén dentro, sin tocar ni recomprimir las que ya
+    estaban. Así el ZIP de años anteriores no vuelve a abrirse salvo que
+    aparezca una foto nueva de ese año, y el peso total queda repartido y
+    comprimido en vez de duplicado sin comprimir en una carpeta espejo.
+
+    La base de datos sí cambia en cada sesión, pero pesa poco, así que esa
+    parte se sigue empaquetando entera en un ZIP rotativo (sin comprimir,
+    para no gastar tiempo de CPU en algo que ya es rápido de por sí).
+    """
+    progreso = pyqtSignal(int, int)  # (archivos copiados, total a copiar)
+    resultado = pyqtSignal(bool, str)
+
+    _RE_TIMESTAMP = re.compile(r"(\d{8})_\d{6}")
+
+    def __init__(self, carpeta_fotos, carpeta_backups_auto, db_name, db_almacen_name):
+        super().__init__()
+        self.carpeta_fotos = carpeta_fotos
+        self.carpeta_backups_auto = carpeta_backups_auto
+        self.db_name = db_name
+        self.db_almacen_name = db_almacen_name
+
+    def _anio_de_foto(self, nombre, ruta):
+        """El nombre de fichero lleva casi siempre una marca de tiempo
+        (pc_drag_20260115_..., app_20260115_..., maquina_20260115_...); si no
+        la lleva (fotos muy antiguas), se recurre a la fecha de modificación."""
+        m = self._RE_TIMESTAMP.search(nombre)
+        if m:
+            return m.group(1)[:4]
+        try:
+            return str(datetime.fromtimestamp(os.path.getmtime(ruta)).year)
+        except Exception:
+            return str(datetime.now().year)
+
+    def run(self):
+        try:
+            os.makedirs(self.carpeta_backups_auto, exist_ok=True)
+            origen_archivos = os.listdir(self.carpeta_fotos) if os.path.exists(self.carpeta_fotos) else []
+
+            ya_respaldadas = set()
+            zips_existentes = {}
+            for f in os.listdir(self.carpeta_backups_auto):
+                if f.startswith("fotos_backup_") and f.endswith(".zip"):
+                    anio = f[len("fotos_backup_"):-len(".zip")]
+                    zips_existentes[anio] = os.path.join(self.carpeta_backups_auto, f)
+                    try:
+                        with zipfile.ZipFile(zips_existentes[anio], 'r') as zf:
+                            ya_respaldadas.update(zf.namelist())
+                    except Exception:
+                        pass
+
+            pendientes_por_anio = {}
+            for nombre in origen_archivos:
+                if nombre in ya_respaldadas:
+                    continue
+                ruta_origen = os.path.join(self.carpeta_fotos, nombre)
+                if not os.path.isfile(ruta_origen):
+                    continue
+                anio = self._anio_de_foto(nombre, ruta_origen)
+                pendientes_por_anio.setdefault(anio, []).append(nombre)
+
+            total = sum(len(v) for v in pendientes_por_anio.values())
+            copiadas = 0
+            self.progreso.emit(0, total)
+            for anio, nombres in pendientes_por_anio.items():
+                ruta_zip = zips_existentes.get(anio, os.path.join(self.carpeta_backups_auto, f"fotos_backup_{anio}.zip"))
+                with zipfile.ZipFile(ruta_zip, 'a', zipfile.ZIP_DEFLATED) as zipf:
+                    existentes_zip = set(zipf.namelist())
+                    for nombre in nombres:
+                        if nombre not in existentes_zip:
+                            zipf.write(os.path.join(self.carpeta_fotos, nombre), arcname=nombre)
+                        copiadas += 1
+                        self.progreso.emit(copiadas, total)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            nombre_zip = f"auto_backup_db_{timestamp}.zip"
+            ruta_zip = os.path.join(self.carpeta_backups_auto, nombre_zip)
+            with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_STORED) as zipf:
+                if os.path.exists(self.db_name):
+                    zipf.write(self.db_name, arcname=os.path.basename(self.db_name))
+                if os.path.exists(self.db_almacen_name):
+                    zipf.write(self.db_almacen_name, arcname=os.path.basename(self.db_almacen_name))
+
+            backups = []
+            for f in os.listdir(self.carpeta_backups_auto):
+                ruta_completa = os.path.join(self.carpeta_backups_auto, f)
+                if os.path.isfile(ruta_completa) and f.startswith("auto_backup_db_") and f.endswith(".zip"):
+                    backups.append(ruta_completa)
+            backups.sort(key=os.path.getmtime)
+            while len(backups) > 3:
+                os.remove(backups.pop(0))
+
+            self.resultado.emit(True, "Auto-backup completado.")
+        except Exception as ex:
+            self.resultado.emit(False, str(ex))
+
+
+class BackupManualThread(QThread):
+    """Backup manual (Archivo > Backup): un único ZIP con las dos bases de
+    datos y todas las fotos, tal y como se ha hecho siempre. Va en un hilo
+    aparte solo para poder mostrar una barra de progreso con foco mientras
+    se genera, sin congelar la ventana."""
+    progreso = pyqtSignal(int, int)
+    resultado = pyqtSignal(bool, str, str)  # (éxito, mensaje/error, ruta_zip)
+
+    def __init__(self, ruta_zip, carpeta_fotos, db_name, db_almacen_name):
+        super().__init__()
+        self.ruta_zip = ruta_zip
+        self.carpeta_fotos = carpeta_fotos
+        self.db_name = db_name
+        self.db_almacen_name = db_almacen_name
+
+    def run(self):
+        try:
+            archivos_fotos = []
+            if os.path.exists(self.carpeta_fotos):
+                for root, dirs, files in os.walk(self.carpeta_fotos):
+                    for file in files:
+                        archivos_fotos.append(os.path.join(root, file))
+
+            total = len(archivos_fotos) + 2
+            hechos = 0
+            self.progreso.emit(0, total)
+            with zipfile.ZipFile(self.ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                if os.path.exists(self.db_name):
+                    zipf.write(self.db_name, arcname=os.path.basename(self.db_name))
+                hechos += 1; self.progreso.emit(hechos, total)
+                if os.path.exists(self.db_almacen_name):
+                    zipf.write(self.db_almacen_name, arcname=os.path.basename(self.db_almacen_name))
+                hechos += 1; self.progreso.emit(hechos, total)
+                for ruta_archivo in archivos_fotos:
+                    ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
+                    zipf.write(ruta_archivo, arcname=ruta_en_zip)
+                    hechos += 1; self.progreso.emit(hechos, total)
+
+            self.resultado.emit(True, "", self.ruta_zip)
+        except Exception as ex:
+            self.resultado.emit(False, str(ex), self.ruta_zip)
+
+
+class RestoreManualThread(QThread):
+    """Restauración manual de un backup (completo o automático). Extrae la BD
+    y las fotos necesarias en un hilo aparte para poder mostrar una barra de
+    progreso con foco mientras dura la operación."""
+    progreso = pyqtSignal(int, int)
+    resultado = pyqtSignal(bool, str)
+
+    def __init__(self, archivo_zip, restore_path, carpeta_fotos, es_auto_backup, obtener_fotos_necesarias=None):
+        super().__init__()
+        self.archivo_zip = archivo_zip
+        self.restore_path = restore_path
+        self.carpeta_fotos = carpeta_fotos
+        # Los auto-backup solo traen la BD en el zip; sus fotos hay que sacarlas
+        # de los "fotos_backup_<año>.zip" según lo que diga la BD ya restaurada
+        self.es_auto_backup = es_auto_backup
+        self.obtener_fotos_necesarias = obtener_fotos_necesarias
+
+    def run(self):
+        try:
+            with zipfile.ZipFile(self.archivo_zip, 'r') as zipf:
+                entradas = zipf.namelist()
+                total = len(entradas)
+                self.progreso.emit(0, total)
+                for i, nombre in enumerate(entradas, start=1):
+                    zipf.extract(nombre, path=self.restore_path)
+                    self.progreso.emit(i, total)
+
+            if self.es_auto_backup and self.obtener_fotos_necesarias:
+                fotos_necesarias = self.obtener_fotos_necesarias()
+                carpeta_backups_auto = os.path.dirname(self.archivo_zip)
+                destino_fotos = os.path.join(self.restore_path, os.path.basename(self.carpeta_fotos))
+                os.makedirs(destino_fotos, exist_ok=True)
+                zips_fotos = [f for f in os.listdir(carpeta_backups_auto)
+                              if f.startswith("fotos_backup_") and f.endswith(".zip")]
+                total_f = len(zips_fotos)
+                self.progreso.emit(0, total_f)
+                for i, f in enumerate(zips_fotos, start=1):
+                    try:
+                        with zipfile.ZipFile(os.path.join(carpeta_backups_auto, f), 'r') as zf:
+                            for nombre in zf.namelist():
+                                if nombre in fotos_necesarias:
+                                    zf.extract(nombre, path=destino_fotos)
+                    except Exception:
+                        pass
+                    self.progreso.emit(i, total_f)
+
+            self.resultado.emit(True, "")
+        except Exception as ex:
+            self.resultado.emit(False, str(ex))
+
 
 class VisorFoto(QDialog):
     def __init__(self, ruta_imagen, parent=None):
@@ -1223,6 +1421,60 @@ class ServidorSincronizacion(QThread):
 
                 conn.commit()
                 conn.close()
+
+                self.pendiente_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/revertir_pendiente', methods=['POST'])
+        @requiere_token
+        def api_revertir_pendiente():
+            # Deshace la finalización de un trabajo: lo saca del historial y lo
+            # vuelve a poner en Pendientes. Mismo comportamiento que el PC.
+            try:
+                usuario = g.usuario_mantpro
+                id_t = request.form.get('id')
+
+                d = self.db.obtener_tarea_por_id(id_t)
+                if not d:
+                    return jsonify({"status": "error", "message": "Registro no encontrado"}), 404
+
+                fecha_tarea, desc_tarea = d[1], d[2]
+                uid_original = d[4] if len(d) > 4 else None
+                unombre_original = d[5] if len(d) > 5 else ""
+
+                if not usuarios.es_admin(usuario) and uid_original != usuario['id']:
+                    return jsonify({"status": "error", "message": "Solo puedes modificar tus propios trabajos."}), 403
+
+                # Si el trabajo venía de un aviso recurrente, lo "descompletamos" igual
+                # que se hace al borrar un registro del historial.
+                prefijo = "Mantenimiento Preventivo: "
+                if desc_tarea.startswith(prefijo):
+                    titulo_aviso = desc_tarea.replace(prefijo, "").strip()
+                    try:
+                        conn = self.db.conectar(); c = conn.cursor()
+                        c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
+                        aviso = c.fetchone()
+                        if aviso:
+                            c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
+                            conn.commit()
+                        conn.close()
+                    except Exception as e:
+                        print(f"Error intentando restaurar aviso: {e}")
+
+                lineas = desc_tarea.split("\n")
+                titulo = lineas[0].strip()
+                detalles = "\n".join(lineas[1:]).strip()
+
+                if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None):
+                    return jsonify({"status": "error", "message": "No se ha podido revertir el trabajo a pendiente."}), 500
+
+                detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
+                conn = self.db.conectar(); c = conn.cursor()
+                c.execute("DELETE FROM tareas WHERE id=?", (id_t,))
+                conn.commit(); conn.close()
+                usuarios.registrar_auditoria(usuario['id'], id_t, "revertir", detalle_auditoria)
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
@@ -2907,38 +3159,48 @@ class MaintenanceApp(QMainWindow):
         # principal y el diálogo modal de "nueva versión disponible".
 
     def closeEvent(self, e):
-        self.settings.setValue("geometry", self.saveGeometry())
+        if getattr(self, "_cierre_confirmado", False):
+            self.settings.setValue("geometry", self.saveGeometry())
+            super().closeEvent(e)
+            return
 
-        # 1. Limpieza de fotos antes del backup
+        # Posponemos el cierre real hasta que termine el backup automático
+        e.ignore()
+
         print("Iniciando limpieza de fotos...")
         self.limpiar_fotos_huerfanas(silencioso=True)
 
-        # 2. Backup automático
         print("Iniciando Auto-Backup...")
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            nombre_zip = f"auto_backup_full_{timestamp}.zip"
-            # Usar la nueva ruta de backups auto
-            ruta_zip = os.path.join(self.carpeta_backups_auto, nombre_zip)
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tt("title_cerrando", "Cerrando MantPro"))
+        dlg.setFixedSize(420, 110)
+        dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
+        dlg.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
+        l = QVBoxLayout()
+        l.addWidget(QLabel(tt("lbl_haciendo_backup", "Haciendo copia de seguridad antes de cerrar...")))
+        barra = QProgressBar(); barra.setRange(0, 0)
+        l.addWidget(barra)
+        dlg.setLayout(l)
 
-            with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
-                if os.path.exists(self.db.db_almacen_name): zipf.write(self.db.db_almacen_name, arcname=os.path.basename(self.db.db_almacen_name))
-                if os.path.exists(self.carpeta_fotos):
-                    for root, dirs, files in os.walk(self.carpeta_fotos):
-                        for file in files:
-                            ruta_archivo = os.path.join(root, file)
-                            ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
-                            zipf.write(ruta_archivo, arcname=ruta_en_zip)
+        def _actualizar_progreso(actual, total):
+            if total:
+                barra.setRange(0, total)
+                barra.setValue(actual)
 
-            backups = []
-            for f in os.listdir(self.carpeta_backups_auto):
-                ruta_completa = os.path.join(self.carpeta_backups_auto, f)
-                if os.path.isfile(ruta_completa) and f.startswith("auto_backup_full_") and f.endswith(".zip"): backups.append(ruta_completa)
-            backups.sort(key=os.path.getmtime)
-            while len(backups) > 3: archivo_a_borrar = backups.pop(0); os.remove(archivo_a_borrar)
-        except Exception as ex: print(f"Error en auto-backup: {ex}")
-        super().closeEvent(e)
+        def _backup_terminado(exito, mensaje):
+            if not exito:
+                print(f"Error en auto-backup: {mensaje}")
+            dlg.accept()
+
+        self.hilo_backup = BackupThread(self.carpeta_fotos, self.carpeta_backups_auto, self.db.db_name, self.db.db_almacen_name)
+        self.hilo_backup.progreso.connect(_actualizar_progreso)
+        self.hilo_backup.resultado.connect(_backup_terminado)
+        self.hilo_backup.start()
+
+        dlg.exec()
+
+        self._cierre_confirmado = True
+        self.close()
 
     def on_registro_recibido(self, titulo, detalles, tags, filename, ruta_foto):
         if self.qr_dialog: self.qr_dialog.accept(); self.qr_dialog = None
@@ -3253,7 +3515,7 @@ class MaintenanceApp(QMainWindow):
 
         fm.addSeparator()
         if usuarios.es_admin():
-            tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=self.limpiar_fotos_huerfanas))
+            tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=lambda: self.limpiar_fotos_huerfanas(limpiar_backups=True)))
             tm.addSeparator()
         tm.addAction(QAction(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"),
                              self, triggered=self.cambiar_mi_password))
@@ -4603,6 +4865,77 @@ class MaintenanceApp(QMainWindow):
                     if hasattr(self, 'servidor') and self.servidor:
                         self.servidor.pendiente_actualizado.emit()
 
+    def revertir_a_pendiente(self, tabla_widget):
+        """Deshace la finalización de un trabajo: lo saca del historial y lo
+        vuelve a poner en Pendientes, por si se completó por error."""
+        r = tabla_widget.currentRow()
+        if r < 0: return
+        i = tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole)
+        if not self._puede_modificar(i):
+            QMessageBox.information(self, t("aviso"),
+                tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
+            return
+
+        d = self.db.obtener_tarea_por_id(i)
+        if not d: return
+        fecha_tarea, desc_tarea, tags_tarea = d[1], d[2], d[3]
+        uid_original = d[4] if len(d) > 4 else None
+        unombre_original = d[5] if len(d) > 5 else ""
+        maquina_id = d[6] if len(d) > 6 else None
+
+        texto_aviso = tt("msg_confirmar_revertir_pendiente",
+            "El trabajo volverá a la pestaña Pendientes y desaparecerá del historial. ¿Continuar?")
+        if maquina_id:
+            texto_aviso += "\n\n" + tt("msg_revertir_pierde_maquina",
+                "Las tareas pendientes no admiten máquina vinculada, así que se perderá ese dato.")
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(tt("title_revertir_pendiente", "Revertir a pendiente"))
+        msg.setText(texto_aviso)
+        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() != btn_si: return
+
+        # Si el trabajo venía de un aviso recurrente, lo "descompletamos" igual
+        # que ya se hace al borrar un registro del historial.
+        prefijo = "Mantenimiento Preventivo: "
+        if desc_tarea.startswith(prefijo):
+            titulo_aviso = desc_tarea.replace(prefijo, "").strip()
+            try:
+                conn = self.db.conectar(); c = conn.cursor()
+                c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
+                aviso = c.fetchone()
+                if aviso:
+                    c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
+                    conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"Error intentando restaurar aviso: {e}")
+
+        lineas = desc_tarea.split("\n")
+        titulo = lineas[0].strip()
+        detalles = "\n".join(lineas[1:]).strip()
+
+        if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None):
+            QMessageBox.critical(self, t("aviso"), tt("msg_error_revertir", "No se ha podido revertir el trabajo a pendiente."))
+            return
+
+        detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
+        try:
+            conn = self.db.conectar(); c = conn.cursor()
+            c.execute("DELETE FROM tareas WHERE id=?", (i,))
+            conn.commit(); conn.close()
+        except Exception as e:
+            print(f"Error eliminando tarea al revertir: {e}")
+        usuarios.registrar_auditoria(usuarios.id_actual(), i, "revertir", detalle_auditoria)
+        self.refresh_todos()
+        self.refresh_all()
+        if hasattr(self, 'servidor') and self.servidor:
+            self.servidor.pendiente_actualizado.emit()
+        self.statusBar().showMessage(tt("msg_revertido_pendiente", "Trabajo movido de nuevo a Pendientes."), 4000)
+
     def add_todo(self):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
         uid = self.combo_asignar.currentData()
@@ -4750,18 +5083,36 @@ class MaintenanceApp(QMainWindow):
         ruta_sugerida = os.path.join(self.carpeta_backups, nombre_zip)
         ruta_zip = self.guardar_archivo_dialogo(t("title_guardar_backup"), ruta_sugerida, "Archivos ZIP (*.zip)")
         if not ruta_zip: return
-        try:
-            with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.exists(self.db.db_name): zipf.write(self.db.db_name, arcname=os.path.basename(self.db.db_name))
-                if os.path.exists(self.db.db_almacen_name): zipf.write(self.db.db_almacen_name, arcname=os.path.basename(self.db.db_almacen_name))
-                if os.path.exists(self.carpeta_fotos):
-                    for root, dirs, files in os.walk(self.carpeta_fotos):
-                        for file in files:
-                            ruta_archivo = os.path.join(root, file)
-                            ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
-                            zipf.write(ruta_archivo, arcname=ruta_en_zip)
-            QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=os.path.basename(ruta_zip)))
-        except Exception as e: QMessageBox.critical(self, t("title_error_backup"), str(e))
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("title_guardar_backup"))
+        dlg.setFixedSize(420, 110)
+        dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
+        dlg.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
+        l = QVBoxLayout()
+        l.addWidget(QLabel(tt("lbl_haciendo_backup", "Haciendo copia de seguridad...")))
+        barra = QProgressBar(); barra.setRange(0, 0)
+        l.addWidget(barra)
+        dlg.setLayout(l)
+
+        def _actualizar_progreso(actual, total):
+            if total:
+                barra.setRange(0, total)
+                barra.setValue(actual)
+
+        def _terminado(exito, mensaje, ruta):
+            dlg.accept()
+            if exito:
+                QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=os.path.basename(ruta)))
+            else:
+                QMessageBox.critical(self, t("title_error_backup"), mensaje)
+
+        self.hilo_backup_manual = BackupManualThread(ruta_zip, self.carpeta_fotos, self.db.db_name, self.db.db_almacen_name)
+        self.hilo_backup_manual.progreso.connect(_actualizar_progreso)
+        self.hilo_backup_manual.resultado.connect(_terminado)
+        self.hilo_backup_manual.start()
+
+        dlg.exec()
 
     def restaurar_backup(self):
         msg = QMessageBox(self)
@@ -4776,13 +5127,41 @@ class MaintenanceApp(QMainWindow):
         # But to be safe with styles, we could instantiate QFileDialog.
         # For restore, let's keep it simple as it's a critical operation.
         archivo_zip, _ = QFileDialog.getOpenFileName(self, t("title_seleccionar_backup"), "backups", "Archivos ZIP (*.zip)", options=QFileDialog.Option.DontUseNativeDialog)
-        if archivo_zip:
-            try:
-                # Restaurar en DATA_DIR o carpeta local según donde estemos
-                restore_path = os.path.dirname(self.db.db_name)
-                with zipfile.ZipFile(archivo_zip, 'r') as zipf: zipf.extractall(path=restore_path)
+        if not archivo_zip: return
+
+        # Restaurar en DATA_DIR o carpeta local según donde estemos
+        restore_path = os.path.dirname(self.db.db_name)
+        es_auto_backup = os.path.basename(archivo_zip).startswith("auto_backup_db_")
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("title_restaurar_copia"))
+        dlg.setFixedSize(420, 110)
+        dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
+        dlg.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
+        l = QVBoxLayout()
+        l.addWidget(QLabel(tt("lbl_restaurando_backup", "Restaurando copia de seguridad...")))
+        barra = QProgressBar(); barra.setRange(0, 0)
+        l.addWidget(barra)
+        dlg.setLayout(l)
+
+        def _actualizar_progreso(actual, total):
+            if total:
+                barra.setRange(0, total)
+                barra.setValue(actual)
+
+        def _terminado(exito, mensaje):
+            dlg.accept()
+            if exito:
                 QMessageBox.information(self, t("title_restauracion"), t("msg_sistema_restaurado")); self.refresh_all()
-            except Exception as e: QMessageBox.critical(self, t("title_error_restauracion"), t("msg_zip_corrupto").format(error=str(e)))
+            else:
+                QMessageBox.critical(self, t("title_error_restauracion"), t("msg_zip_corrupto").format(error=mensaje))
+
+        self.hilo_restore = RestoreManualThread(archivo_zip, restore_path, self.carpeta_fotos, es_auto_backup, self._fotos_en_uso)
+        self.hilo_restore.progreso.connect(_actualizar_progreso)
+        self.hilo_restore.resultado.connect(_terminado)
+        self.hilo_restore.start()
+
+        dlg.exec()
 
     def exportar_csv(self):
         dlg = DialogoFiltroTecnico(self, t("title_exportar_csv"))
@@ -5156,6 +5535,12 @@ class MaintenanceApp(QMainWindow):
             menu.addAction(texto, lambda: self._reasignar_masivo(seleccion))
 
         if n == 1:
+            act_revertir = menu.addAction(tt("ctx_revertir_pendiente", "↩️ Revertir a pendiente"),
+                                           lambda: self.revertir_a_pendiente(self.h_table))
+            act_revertir.setEnabled(puede)
+            if not puede:
+                act_revertir.setToolTip(tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
+
             menu.addSeparator()
             act_borrar = menu.addAction(t("btn_borrar_seleccionado"), lambda: self.del_rec(self.h_table))
             act_borrar.setEnabled(puede)
@@ -5273,6 +5658,7 @@ class MaintenanceApp(QMainWindow):
         combo_a.addItem(tt("filtro_todos", "Todos"), "TODOS")
         combo_a.addItem(tt("accion_editar", "Editar"), "editar")
         combo_a.addItem(tt("accion_borrar", "Borrar"), "borrar")
+        combo_a.addItem(tt("accion_revertir", "Revertir a pendiente"), "revertir")
         fila.addWidget(combo_a)
         lay.addLayout(fila)
 
@@ -5305,7 +5691,7 @@ class MaintenanceApp(QMainWindow):
             for fila_n, r in enumerate(registros):
                 tabla.setItem(fila_n, 0, QTableWidgetItem(r["fecha"]))
                 tabla.setItem(fila_n, 1, QTableWidgetItem(r["usuario_nombre"]))
-                accion_txt = {"editar": "✏️ Editado", "borrar": "🗑️ Borrado"}.get(r["accion"], r["accion"])
+                accion_txt = {"editar": "✏️ Editado", "borrar": "🗑️ Borrado", "revertir": "↩️ Revertido a pendiente"}.get(r["accion"], r["accion"])
                 tabla.setItem(fila_n, 2, QTableWidgetItem(accion_txt))
                 tabla.setItem(fila_n, 3, QTableWidgetItem(str(r["tarea_id"])))
                 tabla.setItem(fila_n, 4, QTableWidgetItem(r["detalle"]))
@@ -5385,41 +5771,85 @@ class MaintenanceApp(QMainWindow):
         if dialogo.exec(): return dialogo.selectedFiles()[0]
         return None
 
-    def limpiar_fotos_huerfanas(self, silencioso=False):
+    def _fotos_en_uso(self):
+        """Nombres de fichero de foto referenciados desde cualquier sitio de la
+        BD (trabajos, pendientes y fotos de máquinas). Se usa tanto para saber
+        qué es basura como para saber qué hace falta restaurar de un backup."""
+        fotos_en_uso = set(); conn = self.db.conectar(); c = conn.cursor()
+        c.execute("SELECT descripcion FROM tareas")
+        for row in c.fetchall():
+            m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
+            if m: fotos_en_uso.add(m.group(1).strip())
+            m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
+            if m_d: fotos_en_uso.add(m_d.group(1).strip())
+        c.execute("SELECT detalles FROM pendientes")
+        for row in c.fetchall():
+            m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
+            if m: fotos_en_uso.add(m.group(1).strip())
+            m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
+            if m_d: fotos_en_uso.add(m_d.group(1).strip())
+        c.execute("SELECT foto FROM maquinas WHERE foto IS NOT NULL")
+        for row in c.fetchall():
+            if row[0]: fotos_en_uso.add(row[0].strip())
+        conn.close()
+        return fotos_en_uso
+
+    def limpiar_fotos_huerfanas(self, silencioso=False, limpiar_backups=False):
         try:
-            fotos_en_uso = set(); conn = self.db.conectar(); c = conn.cursor()
-            c.execute("SELECT descripcion FROM tareas")
-            for row in c.fetchall():
-                m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
-                if m: fotos_en_uso.add(m.group(1).strip())
-                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
-                if m_d: fotos_en_uso.add(m_d.group(1).strip())
-            c.execute("SELECT detalles FROM pendientes")
-            for row in c.fetchall():
-                m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
-                if m: fotos_en_uso.add(m.group(1).strip())
-                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
-                if m_d: fotos_en_uso.add(m_d.group(1).strip())
-            conn.close()
-            if not os.path.exists(self.carpeta_fotos): return
+            fotos_en_uso = self._fotos_en_uso()
+
             basura = []
-            for f in os.listdir(self.carpeta_fotos):
-                if f not in fotos_en_uso and f not in ["Logo.jpg", "icono.png"] and not f.startswith("QR_"): basura.append(f)
-            if not basura: return
+            if os.path.exists(self.carpeta_fotos):
+                for f in os.listdir(self.carpeta_fotos):
+                    if f not in fotos_en_uso and f not in ["Logo.jpg", "icono.png"] and not f.startswith("QR_"):
+                        basura.append(f)
+
+            # Los ZIP de fotos del backup automático solo se revisan cuando se pide
+            # explícitamente desde el menú Herramientas, nunca al cerrar el programa
+            # ni antes de un backup manual, para no alargar esas operaciones.
+            zips_con_huerfanas = {}
+            if limpiar_backups and os.path.isdir(self.carpeta_backups_auto):
+                for f in os.listdir(self.carpeta_backups_auto):
+                    if f.startswith("fotos_backup_") and f.endswith(".zip"):
+                        ruta_zip = os.path.join(self.carpeta_backups_auto, f)
+                        try:
+                            with zipfile.ZipFile(ruta_zip, 'r') as zf:
+                                huerfanas = [n for n in zf.namelist() if n not in fotos_en_uso]
+                            if huerfanas: zips_con_huerfanas[ruta_zip] = huerfanas
+                        except Exception:
+                            pass
+
+            total_huerfanas = len(basura) + sum(len(v) for v in zips_con_huerfanas.values())
+            if total_huerfanas == 0: return
+
             confirmado = True
             if not silencioso:
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Question)
                 msg.setWindowTitle(t("title_limpieza"))
-                msg.setText(t("msg_fotos_basura").format(n=len(basura)))
+                msg.setText(t("msg_fotos_basura").format(n=total_huerfanas))
                 btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
                 msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
                 msg.exec()
                 if msg.clickedButton() != btn_si: confirmado = False
-            if confirmado:
-                for f in basura:
-                    try: os.remove(os.path.join(self.carpeta_fotos, f))
-                    except: pass
+            if not confirmado: return
+
+            for f in basura:
+                try: os.remove(os.path.join(self.carpeta_fotos, f))
+                except: pass
+
+            for ruta_zip, huerfanas in zips_con_huerfanas.items():
+                try:
+                    huerfanas_set = set(huerfanas)
+                    ruta_tmp = ruta_zip + ".tmp"
+                    with zipfile.ZipFile(ruta_zip, 'r') as origen, \
+                         zipfile.ZipFile(ruta_tmp, 'w', zipfile.ZIP_DEFLATED) as nuevo:
+                        for n in origen.namelist():
+                            if n not in huerfanas_set:
+                                nuevo.writestr(n, origen.read(n))
+                    os.replace(ruta_tmp, ruta_zip)
+                except Exception:
+                    pass
         except Exception as e: print(f"Error limpieza: {e}")
 
     def edit_todo(self, item=None): # Añadimos argumento opcional para el doble click
