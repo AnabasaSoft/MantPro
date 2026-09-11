@@ -439,7 +439,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.8.0';
+const String kAppVersion = '3.8.2';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -1530,9 +1530,20 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        foregroundColor: Colors.white,
+      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
+        FloatingActionButton(
+          mini: true, heroTag: 'btnSincronizarPendientes', backgroundColor: Colors.blue,
+          tooltip: t("btn_sincronizar"),
+          child: _cargando
+              ? const Padding(padding: EdgeInsets.all(10), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Icon(Icons.sync, color: Colors.white),
+          onPressed: () => _sincronizarTodo(),
+        ),
+        const SizedBox(height: 10),
+        FloatingActionButton.extended(
+          heroTag: 'btnAnadirPendiente',
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task),
           label: Text(t("lbl_anadir")),
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
@@ -1546,7 +1557,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             _sincronizarTodo(silencioso: true);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_pendiente_creado"))));
           }))),
-      ),
+        ),
+      ]),
     );
   }
   void _borrar(int id) async { if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_borrar_q")), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"), style: const TextStyle(color: Colors.red)))])) == true) { setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); }); _guardarCache(); _sincronizarTodo(silencioso: true); } }
@@ -1929,6 +1941,46 @@ class _TabHistorialState extends State<TabHistorial> {
       await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_guardado"))));
     })));
   }
+  Future<void> _revertirAPendiente(Registro r) async {
+    if (_urlPC == null) return;
+    String aviso = "El trabajo volverá a la pestaña Pendientes y desaparecerá del historial. ¿Continuar?";
+    if (r.maquinaId != null) {
+      aviso += "\n\nLas tareas pendientes no admiten máquina vinculada, así que se perderá ese dato.";
+    }
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: const Text("Revertir a pendiente"),
+      content: Text(aviso),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))),
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"))),
+      ],
+    ));
+    if (ok != true || !mounted) return;
+    try {
+      final res = await httpPostAuth(Uri.parse("http://$_urlPC/api/revertir_pendiente"), body: {'id': r.id.toString()});
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() => _registros.removeWhere((x) => x.id == r.id));
+        final prefs = await SharedPreferences.getInstance();
+        final c = prefs.getString('historial_cache');
+        if (c != null) {
+          try {
+            List<dynamic> d = json.decode(c);
+            d.removeWhere((item) => item['id'] == r.id);
+            await prefs.setString('historial_cache', json.encode(d));
+          } catch (_) {}
+        }
+        datosSincronizadosNotifier.value++;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Trabajo movido de nuevo a Pendientes.")));
+      } else {
+        String msg = "No se ha podido revertir el trabajo.";
+        try { msg = json.decode(res.body)['message'] ?? msg; } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error de conexión.")));
+    }
+  }
   @override Widget build(BuildContext context) {
     return Scaffold(
       body: Column(children: [
@@ -1954,7 +2006,7 @@ class _TabHistorialState extends State<TabHistorial> {
             final r = _registros[i]; Widget w;
             w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues) ?? const Icon(Icons.article, color: Colors.blueGrey);
               bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
-            return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Text("${r.titulo} | ${traducirTagsBD(r.tags)}"), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r)));
+            return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Text("${r.titulo} | ${traducirTagsBD(r.tags)}"), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r), onLongPress: p ? null : () => _revertirAPendiente(r)));
           })))
       ]),
       floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
