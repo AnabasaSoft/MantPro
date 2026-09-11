@@ -5008,7 +5008,7 @@ class MaintenanceApp(QMainWindow):
 
             # Guardamos los datos originales (sucios) por debajo para la lógica
             it.setData(Qt.ItemDataRole.UserRole, i)
-            it.setData(Qt.ItemDataRole.UserRole + 1, t)
+            it.setData(Qt.ItemDataRole.UserRole + 1, tit)
             it.setData(Qt.ItemDataRole.UserRole + 2, d)
             it.setData(Qt.ItemDataRole.UserRole + 3, asig_id)
 
