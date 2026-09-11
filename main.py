@@ -3467,7 +3467,9 @@ class MaintenanceApp(QMainWindow):
         fm = mb.addMenu(t("menu_archivo"))
         if usuarios.es_admin():
             fm.addAction(QAction(t("menu_backup"), self, triggered=self.realizar_backup))
-            fm.addAction(QAction(t("menu_restaurar"), self, triggered=self.restaurar_backup))
+            menu_restaurar = fm.addMenu(t("menu_restaurar"))
+            menu_restaurar.addAction(QAction(tt("menu_restaurar_manual", "Restaurar..."), self, triggered=self.restaurar_backup))
+            menu_restaurar.addAction(QAction(tt("menu_restaurar_auto", "Restaurar desde copia automática..."), self, triggered=self.restaurar_backup_auto))
             fm.addSeparator()
 
         # --- SUBMENÚ PDF ---
@@ -5114,7 +5116,7 @@ class MaintenanceApp(QMainWindow):
 
         dlg.exec()
 
-    def restaurar_backup(self):
+    def _confirmar_restaurar(self):
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle(t("title_restaurar_copia"))
@@ -5122,13 +5124,28 @@ class MaintenanceApp(QMainWindow):
         btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
         msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
         msg.exec()
-        if msg.clickedButton() != btn_si: return
+        return msg.clickedButton() == btn_si
+
+    def restaurar_backup(self):
+        if not self._confirmar_restaurar(): return
         # Use a dialog instance to allow setting DontUseNativeDialog if needed, though getOpenFileName static usually works.
         # But to be safe with styles, we could instantiate QFileDialog.
         # For restore, let's keep it simple as it's a critical operation.
         archivo_zip, _ = QFileDialog.getOpenFileName(self, t("title_seleccionar_backup"), "backups", "Archivos ZIP (*.zip)", options=QFileDialog.Option.DontUseNativeDialog)
         if not archivo_zip: return
+        self._ejecutar_restauracion(archivo_zip)
 
+    def restaurar_backup_auto(self):
+        if not self._confirmar_restaurar(): return
+        carpeta_inicial = self.carpeta_backups_auto if os.path.isdir(self.carpeta_backups_auto) else "backups"
+        archivo_zip, _ = QFileDialog.getOpenFileName(
+            self, tt("title_seleccionar_backup_auto", "Seleccionar copia automática"), carpeta_inicial,
+            tt("filtro_backup_auto", "Copias automáticas") + " (auto_backup_db_*.zip)",
+            options=QFileDialog.Option.DontUseNativeDialog)
+        if not archivo_zip: return
+        self._ejecutar_restauracion(archivo_zip)
+
+    def _ejecutar_restauracion(self, archivo_zip):
         # Restaurar en DATA_DIR o carpeta local según donde estemos
         restore_path = os.path.dirname(self.db.db_name)
         es_auto_backup = os.path.basename(archivo_zip).startswith("auto_backup_db_")
