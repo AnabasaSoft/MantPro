@@ -70,9 +70,10 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
 - **👤 Filtro por Técnico**: Filtra el historial y las exportaciones (PDF, CSV y Excel) por la persona que hizo el trabajo
-- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso
+- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
+- **↩️ Revertir a Pendiente**: si un trabajo se completó por error, se puede devolver a Pendientes con un clic desde el historial (con aviso si tenía máquina vinculada, ya que se perdería ese dato), quedando registrado en la auditoría
 - **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
 - **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
@@ -88,6 +89,8 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **💾 Almacenamiento Local**: Guarda registros offline hasta sincronizar
 - **📋 Trabajos Pendientes**: Visualiza y gestiona tareas asignadas desde el PC, con filtro **"Solo míos"**
 - **🔄 Puesta al Día al Abrir**: Al arrancar, la app sincroniza en segundo plano los datos de todas las pestañas
+- **🔁 Resincronizar a Mano**: Las pestañas Pendientes, Historial y Recordatorios tienen su propio botón para reenviar de inmediato lo que el móvil tenga y el PC todavía no
+- **↩️ Revertir a Pendiente**: manteniendo pulsado un registro del Historial se puede devolver a la pestaña Pendientes si se completó por error
 - **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
@@ -108,6 +111,7 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 - **⚠️ Stock Bajo Mínimo**: pestaña dedicada a los materiales en alerta
 - **🔄 Auto-actualización**: la pantalla se refresca sola al detectar cambios, tanto si el cambio se hizo en el propio móvil como en el PC
 - **🔌 Modo Offline**: consulta con la última información sincronizada si no hay conexión con el PC
+- **🔔 Recordatorio Diario de Comprobación de Stock**: notificación automática a las 8:00 AM (hora local) invitando a revisar la cantidad real de 5 materiales del almacén, elegidos al azar y distintos cada día; al pulsarla se abre una pantalla para corregir la cantidad de cada uno sin buscarlos a mano. Si no hay ningún material dado de alta, no se muestra ninguna notificación
 
 ---
 
@@ -563,6 +567,11 @@ Para que la sincronización funcione:
   - `Ajustes → Batería → Inicio automático` → **activar** MantPro
 - La notificación se reevalúa cada vez que abres el Dashboard, así que si acabas de marcar un trabajo como completado, ábrelo de nuevo para que se cancele/reprograme correctamente.
 
+**No me llega la notificación diaria de comprobación de stock (MantPro Stock):**
+- Se aplican las mismas comprobaciones que en MantPro (permiso de notificaciones y exclusión de la optimización de batería, ver arriba)
+- Si el almacén no tiene ningún material dado de alta, no se muestra ninguna notificación: es el comportamiento esperado
+- Se reevalúa cada vez que la app sincroniza con el PC (al abrir y cada 25 segundos mientras está abierta)
+
 ---
 
 ## 💾 Copias de Seguridad
@@ -590,12 +599,15 @@ retiene el foco, y el cierre real de la aplicación espera a que termine.
 
 `Archivo > Backup` sigue generando, como siempre, un único ZIP
 (`backup_completo_<fecha>.zip`) con las dos bases de datos y **todas** las fotos
-juntas y comprimidas, en la ubicación que elijas. `Archivo > Restaurar backup`
-permite recuperar tanto este tipo de copia como los backups automáticos: si el
-ZIP elegido es un backup automático, restaura primero la base de datos y, con
-ella ya restaurada, calcula qué fotos hacen falta y las extrae únicamente de los
-`fotos_backup_<año>.zip` correspondientes, en vez de volcarlas todas. Ambas
-operaciones muestran también su propia barra de progreso con foco.
+juntas y comprimidas, en la ubicación que elijas. `Archivo > Restaurar` se abre
+como submenú con dos opciones: **"Restaurar..."**, para elegir cualquier ZIP a
+mano, y **"Restaurar desde copia automática..."**, que abre directamente la
+carpeta `backups_auto`. En ambos casos, si el ZIP elegido es un backup
+automático, se restaura primero la base de datos y, con ella ya restaurada, se
+calcula qué fotos hacen falta y se extraen únicamente de los
+`fotos_backup_<año>.zip` correspondientes, en vez de volcarlas todas. Las tres
+operaciones (backup, y ambas restauraciones) muestran su propia barra de
+progreso con foco.
 
 ### Limpieza de fotos huérfanas
 
@@ -763,6 +775,17 @@ Estado actual y siguientes pasos previstos.
   fotos se reparten en ZIP incrementales por año, con una barra de progreso con
   foco tanto en el cierre como en el backup y la restauración manuales (ver
   [Copias de Seguridad](#-copias-de-seguridad)).
+- **Revertir un trabajo a pendiente**: deshacer por error la finalización de un
+  trabajo, tanto desde el historial del PC como manteniendo pulsado el registro
+  en el móvil, con aviso de pérdida de la máquina vinculada si la tenía y
+  restauración automática del aviso recurrente de origen, si venía de uno.
+- **Restaurar desde copia automática**: `Archivo > Restaurar` se abre como
+  submenú para elegir entre un backup manual cualquiera o ir directo a la
+  carpeta de copias automáticas al cerrar la app.
+- **Recordatorio diario de stock**: la app `mantpro_stock_app` avisa cada
+  mañana a las 8:00 para comprobar la cantidad real de 5 materiales del
+  almacén (al azar, distintos cada día) y permite corregirla al momento desde
+  la propia notificación.
 
 ### 🔜 Siguientes pasos
 
