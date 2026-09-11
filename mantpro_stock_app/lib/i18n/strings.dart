@@ -107,6 +107,15 @@ const Map<String, Map<String, String>> _traducciones = {
 
     "msg_sin_conexion_pc": "❌ Sin conexión con el PC",
     "msg_actualizando": "Actualizando...",
+
+    "canal_notif_stock": "Comprobación de stock",
+    "canal_notif_stock_desc": "Recordatorio diario a las 8:00 AM",
+    "notif_stock_titulo": "📦 Comprobación de stock",
+    "notif_stock_cuerpo": "Revisa el stock de 5 materiales del almacén.",
+    "titulo_comprobar_stock": "Comprobar stock",
+    "lbl_comprobar_stock_intro": "Comprueba la cantidad real de estos materiales y corrígela si hace falta.",
+    "msg_sin_materiales": "No hay materiales en el almacén.",
+    "motivo_comprobacion_stock": "Comprobación de stock",
   },
   "en": {
     "app_titulo": "MantPro Stock",
@@ -185,6 +194,15 @@ const Map<String, Map<String, String>> _traducciones = {
 
     "msg_sin_conexion_pc": "❌ No connection to the PC",
     "msg_actualizando": "Updating...",
+
+    "canal_notif_stock": "Stock check",
+    "canal_notif_stock_desc": "Daily reminder at 8:00 AM",
+    "notif_stock_titulo": "📦 Stock check",
+    "notif_stock_cuerpo": "Check the stock of 5 warehouse materials.",
+    "titulo_comprobar_stock": "Check stock",
+    "lbl_comprobar_stock_intro": "Check the actual quantity of these materials and correct it if needed.",
+    "msg_sin_materiales": "There are no materials in the warehouse.",
+    "motivo_comprobacion_stock": "Stock check",
   },
   "eu": {
     "app_titulo": "MantPro Stock",
@@ -263,6 +281,15 @@ const Map<String, Map<String, String>> _traducciones = {
 
     "msg_sin_conexion_pc": "❌ Ez dago konexiorik PCarekin",
     "msg_actualizando": "Eguneratzen...",
+
+    "canal_notif_stock": "Stock egiaztapena",
+    "canal_notif_stock_desc": "Eguneroko oroigarria 8:00etan",
+    "notif_stock_titulo": "📦 Stock egiaztapena",
+    "notif_stock_cuerpo": "Egiaztatu biltegiko 5 materialen stocka.",
+    "titulo_comprobar_stock": "Stocka egiaztatu",
+    "lbl_comprobar_stock_intro": "Egiaztatu material hauen kopuru erreala eta zuzendu behar bada.",
+    "msg_sin_materiales": "Ez dago materialik biltegian.",
+    "motivo_comprobacion_stock": "Stock egiaztapena",
   },
 };
 

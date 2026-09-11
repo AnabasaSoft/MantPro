@@ -20,9 +20,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 import 'i18n/strings.dart';
 import 'api.dart';
@@ -30,14 +34,73 @@ import 'sincronizador.dart';
 import 'pantallas/pantalla_almacen.dart';
 import 'pantallas/pantalla_buscar.dart';
 import 'pantallas/pantalla_bajo_minimo.dart';
+import 'pantallas/pantalla_comprobar_stock.dart';
 
 // --- GESTOR DE TEMA GLOBAL ---
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
+// Permite navegar a la pantalla de comprobación de stock al pulsar la
+// notificación diaria, tanto si la app ya estaba abierta como si se lanza
+// desde cero (ver getNotificationAppLaunchDetails en main()).
+final GlobalKey<NavigatorState> navigatorKeyStock = GlobalKey<NavigatorState>();
+const String _payloadComprobarStock = 'comprobar_stock';
+
+final FlutterLocalNotificationsPlugin pluginNotificaciones = FlutterLocalNotificationsPlugin();
+
+void _alPulsarNotificacion(NotificationResponse respuesta) {
+  if (respuesta.payload == _payloadComprobarStock) {
+    navigatorKeyStock.currentState?.push(
+        MaterialPageRoute(builder: (_) => const PantallaComprobarStock()));
+  }
+}
+
+// --- EVALUADOR DIARIO DE LA NOTIFICACIÓN DE COMPROBACIÓN DE STOCK ---
+// Se reevalúa cada vez que se sincroniza con el PC: si no hay ningún
+// material dado de alta en el almacén no tiene sentido pedir que se
+// compruebe el stock, así que se cancela el aviso hasta que haya alguno.
+Future<void> evaluarNotificacionStock() async {
+  final prefs = await SharedPreferences.getInstance();
+  bool hayMateriales = false;
+  final cache = prefs.getString(kStockCacheMateriales);
+  if (cache != null) {
+    try {
+      final datos = json.decode(cache);
+      hayMateriales = (datos['materiales'] as List).isNotEmpty;
+    } catch (_) {}
+  }
+
+  if (hayMateriales) {
+    final androidDetails = AndroidNotificationDetails(
+      'canal_stock', tt('canal_notif_stock', 'Comprobación de stock'),
+      channelDescription: tt('canal_notif_stock_desc', 'Recordatorio diario a las 8:00 AM'),
+      importance: Importance.max, priority: Priority.high, icon: '@mipmap/ic_launcher');
+    final platformDetails = NotificationDetails(android: androidDetails);
+
+    tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime fechaProgramada = tz.TZDateTime(tz.local, now.year, now.month, now.day, 8);
+    if (fechaProgramada.isBefore(now)) {
+      fechaProgramada = fechaProgramada.add(const Duration(days: 1));
+    }
+
+    await pluginNotificaciones.zonedSchedule(
+      id: 1,
+      title: tt('notif_stock_titulo', '📦 Comprobación de stock'),
+      body: tt('notif_stock_cuerpo', 'Revisa el stock de 5 materiales del almacén.'),
+      scheduledDate: fechaProgramada,
+      notificationDetails: platformDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+      payload: _payloadComprobarStock,
+    );
+  } else {
+    await pluginNotificaciones.cancel(id: 1);
+  }
+}
+
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás. Comparte repositorio con MantPro.
-const String kAppVersion = '3.8.2';
+const String kAppVersion = '3.8.3';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -90,6 +153,25 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  tz.initializeTimeZones();
+  try {
+    final zonaActual = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(zonaActual));
+  } catch (e) {
+    tz.setLocalLocation(tz.getLocation('Europe/Madrid'));
+  }
+
+  const initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: initSettingsAndroid);
+  await pluginNotificaciones.initialize(
+      settings: initSettings, onDidReceiveNotificationResponse: _alPulsarNotificacion);
+
+  final androidImpl = pluginNotificaciones
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  await androidImpl?.requestNotificationsPermission();
+  await androidImpl?.requestExactAlarmsPermission();
+
   final prefs = await SharedPreferences.getInstance();
   final bool isDark = prefs.getBool('is_dark_mode') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
@@ -97,6 +179,13 @@ void main() async {
   await AuthService.cargar();
   sesionNotifier.value = AuthService.autenticado;
   runApp(const MyApp());
+
+  // Si la app se ha abierto pulsando la notificación estando cerrada del
+  // todo, el callback de arriba no llega a tiempo: hay que comprobarlo aparte.
+  final detalles = await pluginNotificaciones.getNotificationAppLaunchDetails();
+  if (detalles?.didNotificationLaunchApp == true && detalles?.notificationResponse != null) {
+    _alPulsarNotificacion(detalles!.notificationResponse!);
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -111,6 +200,7 @@ class MyApp extends StatelessWidget {
           valueListenable: themeNotifier,
           builder: (_, mode, __) {
             return MaterialApp(
+              navigatorKey: navigatorKeyStock,
               home: const AuthGate(),
               debugShowCheckedModeBanner: false,
               title: "MantPro Stock",
@@ -387,6 +477,7 @@ class _MainScreenState extends State<MainScreen> {
     } catch (_) {
       // Sin conexión con el PC: se sigue trabajando con la caché local.
     }
+    evaluarNotificacionStock();
   }
 
   Future<void> _sincronizarPeriodico() async {
@@ -396,6 +487,7 @@ class _MainScreenState extends State<MainScreen> {
     try {
       await StockSincronizador.sincronizarTodo(ip, silencioso: true);
     } catch (_) {}
+    evaluarNotificacionStock();
   }
 
   Future<void> _cerrarSesion() async {
