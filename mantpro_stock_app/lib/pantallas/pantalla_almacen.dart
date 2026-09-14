@@ -243,48 +243,56 @@ class _ArbolEstanteria extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: esSuelo ? colorSuelo : null)),
             initiallyExpanded: true,
-            children: balda.secciones.map((seccion) {
-            final materiales = materialesPorSeccion[seccion.id] ?? [];
-            return ExpansionTile(
-              title: Text(_tituloSeccion(seccion.nombre)),
-              initiallyExpanded: true,
-              trailing: puedeGestionar
-                  ? IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      tooltip: tt('btn_anadir', 'Añadir'),
-                      onPressed: () => onAnadirArticulo(seccion.id),
-                    )
-                  : const Icon(Icons.expand_more),
-              children: materiales.isEmpty
-                  ? [
-                      ListTile(
-                        dense: true,
-                        title: Text(
-                            tt('msg_sin_articulos_seccion', 'Sin artículos'),
-                            style: const TextStyle(color: Colors.grey)),
-                      )
-                    ]
-                  : materiales
-                      .map((m) => ListTile(
+            children: [
+              // Artículos ubicados directamente en la balda (dados de alta
+              // dejando pulsado sobre ella, sin elegir sección): se muestran
+              // sueltos, sin la sección implícita que los agrupa por dentro.
+              ...balda.secciones
+                  .where((s) => s.implicita)
+                  .expand((s) => materialesPorSeccion[s.id] ?? const <Articulo>[])
+                  .map((m) => _tileArticulo(m, onAbrirArticulo)),
+              ...balda.secciones.where((s) => !s.implicita).map((seccion) {
+                final materiales = materialesPorSeccion[seccion.id] ?? [];
+                return ExpansionTile(
+                  title: Text(_tituloSeccion(seccion.nombre)),
+                  initiallyExpanded: true,
+                  trailing: puedeGestionar
+                      ? IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          tooltip: tt('btn_anadir', 'Añadir'),
+                          onPressed: () => onAnadirArticulo(seccion.id),
+                        )
+                      : const Icon(Icons.expand_more),
+                  children: materiales.isEmpty
+                      ? [
+                          ListTile(
                             dense: true,
-                            leading: const Icon(Icons.inventory_2_outlined),
-                            title: Text(m.nombre),
-                            trailing: Text(
-                              '${formatearCantidad(m.stockActual)} ${m.unidad}'
-                                  .trim(),
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      colorStock(m.stockActual, m.stockMinimo)),
-                            ),
-                            onTap: () => onAbrirArticulo(m.id),
-                          ))
-                      .toList(),
-            );
-          }).toList(),
+                            title: Text(
+                                tt('msg_sin_articulos_seccion', 'Sin artículos'),
+                                style: const TextStyle(color: Colors.grey)),
+                          )
+                        ]
+                      : materiales.map((m) => _tileArticulo(m, onAbrirArticulo)).toList(),
+                );
+              }),
+            ],
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _tileArticulo(Articulo m, void Function(int materialId) onAbrirArticulo) {
+    return ListTile(
+      dense: true,
+      leading: const Icon(Icons.inventory_2_outlined),
+      title: Text(m.nombre),
+      trailing: Text(
+        '${formatearCantidad(m.stockActual)} ${m.unidad}'.trim(),
+        style: TextStyle(
+            fontWeight: FontWeight.bold, color: colorStock(m.stockActual, m.stockMinimo)),
+      ),
+      onTap: () => onAbrirArticulo(m.id),
     );
   }
 }

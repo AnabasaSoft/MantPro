@@ -281,6 +281,14 @@ def puede_gestionar_almacen(usuario=None):
     return bool(u) and ("admin" in roles or "almacen" in roles)
 
 
+def puede_hacer_trabajos(usuario=None):
+    """True para admin y para el rol técnico: son quienes pueden crear, editar,
+    completar o borrar trabajos y avisos desde la app móvil de mantenimiento."""
+    u = usuario or SESION_ACTUAL
+    roles = u.get("roles") or [u.get("rol")] if u else []
+    return bool(u) and ("admin" in roles or "tecnico" in roles)
+
+
 def nombre_actual():
     """Nombre a estampar en los registros creados desde el escritorio."""
     return SESION_ACTUAL["nombre"] if SESION_ACTUAL else ETIQUETA_HISTORICO

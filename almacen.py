@@ -93,7 +93,8 @@ def inicializar():
         CREATE TABLE IF NOT EXISTS secciones (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             balda_id INTEGER NOT NULL REFERENCES baldas(id) ON DELETE CASCADE,
-            nombre TEXT NOT NULL
+            nombre TEXT NOT NULL,
+            implicita INTEGER NOT NULL DEFAULT 0
         )
     """)
     cur.execute("""
@@ -125,6 +126,8 @@ def inicializar():
     # --- columnas nuevas en tablas existentes ---
     if "estilo_baldas" not in _columnas(con, "estanterias"):
         cur.execute("ALTER TABLE estanterias ADD COLUMN estilo_baldas TEXT NOT NULL DEFAULT 'numero'")
+    if "implicita" not in _columnas(con, "secciones"):
+        cur.execute("ALTER TABLE secciones ADD COLUMN implicita INTEGER NOT NULL DEFAULT 0")
 
     con.commit()
     con.close()
@@ -340,10 +343,21 @@ def _balda_tiene_material(balda_id):
     return fila["n"] > 0
 
 
-def crear_seccion(balda_id, nombre):
+def crear_seccion(balda_id, nombre, implicita=False):
+    """Crea una sección. Si `implicita` es True se marca como creada
+    automáticamente al ubicar un material sin elegir sección explícita (ver
+    seccion_para_balda): no aparece como una sección más en los árboles de
+    estructura ni en la ubicación del material, y se borra sola en cuanto se
+    queda sin material (ver _borrar_seccion_si_implicita_y_vacia). Si se crea
+    una sección normal (implicita=False) en una balda que ya tenía una
+    implícita, esta deja de estar oculta: al haber ahora una organización
+    explícita en esa balda tiene sentido que se vean las dos."""
     con = _conn()
     cur = con.cursor()
-    cur.execute("INSERT INTO secciones (balda_id, nombre) VALUES (?, ?)", (balda_id, nombre))
+    if not implicita:
+        cur.execute("UPDATE secciones SET implicita=0 WHERE balda_id=? AND implicita=1", (balda_id,))
+    cur.execute("INSERT INTO secciones (balda_id, nombre, implicita) VALUES (?, ?, ?)",
+                (balda_id, nombre, 1 if implicita else 0))
     seccion_id = cur.lastrowid
     con.commit()
     con.close()
@@ -354,15 +368,32 @@ def seccion_para_balda(balda_id):
     """Para poder ubicar un material directamente en una balda o un hueco de
     suelo sin tener que crear antes una sección desde el escritorio (p. ej. al
     añadir un artículo desde el móvil dejando pulsado sobre la balda): si ya
-    tiene alguna sección, devuelve la primera; si no tiene ninguna, crea una
-    por defecto ("Sección A") y devuelve su id. El material sigue quedando
-    ubicado en una sección concreta, solo que se crea de forma transparente."""
+    tiene una sección implícita (creada de la misma forma anteriormente), la
+    reutiliza; si no, crea una nueva marcada como implícita y devuelve su id.
+    El material sigue quedando ubicado en una sección concreta, solo que se
+    crea de forma transparente y no se muestra como tal."""
     con = _conn()
-    fila = con.execute("SELECT id FROM secciones WHERE balda_id=? ORDER BY id LIMIT 1", (balda_id,)).fetchone()
+    fila = con.execute(
+        "SELECT id FROM secciones WHERE balda_id=? AND implicita=1 ORDER BY id LIMIT 1", (balda_id,)).fetchone()
     con.close()
     if fila:
         return fila["id"]
-    return crear_seccion(balda_id, "Sección A")
+    return crear_seccion(balda_id, "Sección A", implicita=True)
+
+
+def _borrar_seccion_si_implicita_y_vacia(con, seccion_id):
+    """Si `seccion_id` es una sección implícita que se ha quedado sin
+    material, la borra: no tiene sentido dejar un hueco vacío en el árbol por
+    una sección que el usuario nunca llegó a crear a propósito."""
+    if not seccion_id:
+        return
+    fila = con.execute("SELECT implicita FROM secciones WHERE id=?", (seccion_id,)).fetchone()
+    if fila is None or not fila["implicita"]:
+        return
+    quedan = con.execute(
+        "SELECT COUNT(*) AS n FROM materiales WHERE seccion_id=?", (seccion_id,)).fetchone()["n"]
+    if quedan == 0:
+        con.execute("DELETE FROM secciones WHERE id=?", (seccion_id,))
 
 
 def eliminar_seccion(seccion_id):
@@ -405,12 +436,16 @@ def listar_estructura():
 
 
 def obtener_ubicacion_texto(seccion_id):
-    """Devuelve una cadena tipo 'Estantería A > Balda 2 > Sección B' para una sección."""
+    """Devuelve una cadena tipo 'Estantería A > Balda 2 > Sección B' para una
+    sección. Si la sección es implícita (el material se ubicó directamente en
+    la balda, sin elegir sección) se omite ese último tramo, ya que para el
+    usuario el material está "en la balda", no en una sección con nombre."""
     if not seccion_id:
         return ""
     con = _conn()
     fila = con.execute("""
-        SELECT e.nombre AS estanteria, e.estilo_baldas AS estilo_baldas, b.numero AS balda, s.nombre AS seccion
+        SELECT e.nombre AS estanteria, e.estilo_baldas AS estilo_baldas, b.numero AS balda,
+               s.nombre AS seccion, s.implicita AS implicita
         FROM secciones s
         JOIN baldas b ON s.balda_id = b.id
         JOIN estanterias e ON b.estanteria_id = e.id
@@ -420,7 +455,10 @@ def obtener_ubicacion_texto(seccion_id):
     if not fila:
         return ""
     nombre_balda = "Suelo" if fila["balda"] == 0 else f"Balda {texto_balda(fila['balda'], fila['estilo_baldas'])}"
-    return f"{fila['estanteria']} > {nombre_balda} > {fila['seccion']}"
+    ubicacion = f"{fila['estanteria']} > {nombre_balda}"
+    if not fila["implicita"]:
+        ubicacion += f" > {fila['seccion']}"
+    return ubicacion
 
 
 # ---------------------------------------------------------------- materiales
@@ -447,16 +485,25 @@ def actualizar_material(material_id, codigo, nombre, descripcion, unidad, stock_
     con = _conn()
     seccion_anterior = con.execute(
         "SELECT seccion_id FROM materiales WHERE id=?", (material_id,)).fetchone()["seccion_id"]
+    con.close()
+    cambia_seccion = seccion_id != seccion_anterior
+    # Hay que leer la ubicación de origen antes de tocar nada: si la sección
+    # anterior era implícita y se queda vacía se borra más abajo, y entonces
+    # ya no se podría recuperar su nombre para el registro del traslado.
+    origen = obtener_ubicacion_texto(seccion_anterior) if cambia_seccion else None
+
+    con = _conn()
     con.execute("""
         UPDATE materiales SET codigo=?, nombre=?, descripcion=?, unidad=?, stock_minimo=?, seccion_id=?, foto=?
         WHERE id=?
     """, (codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto, material_id))
+    if cambia_seccion:
+        _borrar_seccion_si_implicita_y_vacia(con, seccion_anterior)
     con.commit()
     con.close()
-    if seccion_id != seccion_anterior:
-        origen = obtener_ubicacion_texto(seccion_anterior) or "Sin ubicación"
+    if cambia_seccion:
         destino = obtener_ubicacion_texto(seccion_id) or "Sin ubicación"
-        _registrar_traslado(material_id, origen, destino, usuario_id, usuario_nombre)
+        _registrar_traslado(material_id, origen or "Sin ubicación", destino, usuario_id, usuario_nombre)
 
 
 def _registrar_traslado(material_id, origen, destino, usuario_id, usuario_nombre):
@@ -473,7 +520,10 @@ def _registrar_traslado(material_id, origen, destino, usuario_id, usuario_nombre
 
 def borrar_material(material_id):
     con = _conn()
+    fila = con.execute("SELECT seccion_id FROM materiales WHERE id=?", (material_id,)).fetchone()
+    seccion_id = fila["seccion_id"] if fila else None
     con.execute("DELETE FROM materiales WHERE id=?", (material_id,))
+    _borrar_seccion_si_implicita_y_vacia(con, seccion_id)
     con.commit()
     con.close()
 

@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.5"
+APP_VERSION = "3.8.6"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -745,6 +745,22 @@ class ServidorSincronizacion(QThread):
 
         self._usuario_peticion = _usuario_peticion
 
+        # --- API DE TRABAJOS (app MantPro) ----------------------------------
+        # Lectura: cualquier usuario autenticado. Alta/edición/completar/borrar
+        # trabajos y avisos: solo admin o rol "técnico" (usuarios.puede_hacer_trabajos).
+        def requiere_tecnico(func):
+            from functools import wraps
+
+            @wraps(func)
+            def envoltorio(*args, **kwargs):
+                if not usuarios.puede_hacer_trabajos(g.usuario_mantpro):
+                    return jsonify({
+                        "status": "error", "error": "sin_permiso",
+                        "message": "Tu usuario no puede gestionar trabajos."
+                    }), 403
+                return func(*args, **kwargs)
+            return envoltorio
+
         @self.app.route('/api/login', methods=['POST'])
         def api_login():
             datos = request.get_json(silent=True) or request.form
@@ -865,6 +881,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/completar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_completar_pendiente():
             try:
                 usuario = g.usuario_mantpro
@@ -915,6 +932,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/agregar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_agregar_pendiente():
             print(">>> PETICIÓN: AGREGAR PENDIENTE")
             try:
@@ -944,6 +962,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/editar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_editar_pendiente():
             try:
                 id_p = request.form.get('id')
@@ -971,6 +990,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/eliminar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_eliminar_pendiente():
             # (Mantener código original)
             try:
@@ -1196,6 +1216,7 @@ class ServidorSincronizacion(QThread):
         # ---------------------------------------------------------
         @self.app.route('/api/completar_aviso', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_completar_aviso():
             print("\n" + "="*40)
             print(">>> RECIBIDA PETICIÓN: COMPLETAR AVISO")
@@ -1304,6 +1325,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/editar_historial', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_editar_historial():
             try:
                 id_t = request.form.get('id')
@@ -1353,6 +1375,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/restaurar_foto', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_restaurar_foto():
             # Endpoint de reparación manual: sube una foto (antes o después) para un registro
             # existente SIN tocar el resto de la descripción ni la otra foto.
@@ -1395,6 +1418,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/descompletar_aviso', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_descompletar_aviso():
             try:
                 id_aviso = request.form.get('id')
@@ -1434,6 +1458,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/revertir_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_tecnico
         def api_revertir_pendiente():
             # Deshace la finalización de un trabajo: lo saca del historial y lo
             # vuelve a poner en Pendientes. Mismo comportamiento que el PC.
@@ -1596,6 +1621,20 @@ class ServidorSincronizacion(QThread):
                     material_id, datos.get('codigo', ''), nombre, datos.get('descripcion', ''),
                     datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
                     seccion_id, foto_final, usuario['id'], usuario['nombre'])
+                self.stock_actualizado.emit()
+                return jsonify({"status": "ok"})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/stock/material/<int:material_id>', methods=['DELETE'])
+        @requiere_token
+        @requiere_almacen
+        def api_stock_borrar_material(material_id):
+            try:
+                material = almacen.obtener_material(material_id)
+                if material is None:
+                    return jsonify({"status": "error", "message": "Material no encontrado"}), 404
+                almacen.borrar_material(material_id)
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:
@@ -2336,6 +2375,12 @@ class DialogoConfigurarAlmacen(QDialog):
                 item_balda.setData(0, Qt.ItemDataRole.UserRole, ("balda", balda["id"]))
                 item_balda.setForeground(0, col_suelo if es_suelo else col_balda)
                 for sec in balda["secciones"]:
+                    # Las secciones implícitas (creadas solas al ubicar un
+                    # material directamente en la balda, sin elegir sección)
+                    # no se muestran aquí: para el usuario ese material está
+                    # "en la balda", no en una sección que él haya creado.
+                    if sec.get("implicita"):
+                        continue
                     item_sec = QTreeWidgetItem([f"📦 {sec['nombre']}"])
                     item_sec.setData(0, Qt.ItemDataRole.UserRole, ("seccion", sec["id"]))
                     item_sec.setForeground(0, col_sec)
