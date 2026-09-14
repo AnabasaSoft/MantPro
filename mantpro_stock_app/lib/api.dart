@@ -300,6 +300,7 @@ class StockApi {
 
     for (final n in nuevos) {
       final localId = n['localId'] as int;
+      final seccionId = int.tryParse('${n['seccion_id']}');
       lista.add(Articulo(
         // Id temporal estable (basado en el localId de la cola, no en la
         // posición en la lista) para poder editarlo o borrarlo mientras
@@ -311,9 +312,13 @@ class StockApi {
         unidad: n['unidad'] ?? '',
         stockActual: double.tryParse('${n['stock_inicial']}') ?? 0,
         stockMinimo: double.tryParse('${n['stock_minimo']}') ?? 0,
-        seccionId: int.tryParse('${n['seccion_id']}'),
+        seccionId: seccionId,
         foto: null,
         ubicacion: '',
+        // Si no se eligió sección se guardó la balda: como sin conexión no
+        // existe todavía ninguna sección (ni implícita) donde colgarlo, el
+        // árbol lo tiene que ubicar por balda en vez de por sección.
+        baldaIdPendiente: seccionId == null ? int.tryParse('${n['balda_id']}') : null,
       ));
     }
     return lista;
