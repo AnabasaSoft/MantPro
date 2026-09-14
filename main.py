@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.3"
+APP_VERSION = "3.8.4"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -894,6 +894,11 @@ class ServidorSincronizacion(QThread):
                 with get_db_connection(self.db_path) as conn:
                     c = conn.cursor()
                     c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
+                    if c.rowcount == 0:
+                        # El pendiente no existe (id inválido, ya completado o aún no
+                        # sincronizado desde el móvil): no creamos nada en el historial
+                        # para no duplicar el trabajo.
+                        return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
                     # Usamos el INSERT completo para alimentar todas las columnas
                     c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
                               (fecha_final, desc_final, tags, raw_desc, filename,
@@ -1436,8 +1441,12 @@ class ServidorSincronizacion(QThread):
                 usuario = g.usuario_mantpro
                 id_t = request.form.get('id')
 
-                d = self.db.obtener_tarea_por_id(id_t)
+                conn = sqlite3.connect(self.db_path)
+                c = conn.cursor()
+                c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE id=?", (id_t,))
+                d = c.fetchone()
                 if not d:
+                    conn.close()
                     return jsonify({"status": "error", "message": "Registro no encontrado"}), 404
 
                 fecha_tarea, desc_tarea = d[1], d[2]
@@ -1445,6 +1454,7 @@ class ServidorSincronizacion(QThread):
                 unombre_original = d[5] if len(d) > 5 else ""
 
                 if not usuarios.es_admin(usuario) and uid_original != usuario['id']:
+                    conn.close()
                     return jsonify({"status": "error", "message": "Solo puedes modificar tus propios trabajos."}), 403
 
                 # Si el trabajo venía de un aviso recurrente, lo "descompletamos" igual
@@ -1453,13 +1463,11 @@ class ServidorSincronizacion(QThread):
                 if desc_tarea.startswith(prefijo):
                     titulo_aviso = desc_tarea.replace(prefijo, "").strip()
                     try:
-                        conn = self.db.conectar(); c = conn.cursor()
                         c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
                         aviso = c.fetchone()
                         if aviso:
                             c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
                             conn.commit()
-                        conn.close()
                     except Exception as e:
                         print(f"Error intentando restaurar aviso: {e}")
 
@@ -1467,11 +1475,16 @@ class ServidorSincronizacion(QThread):
                 titulo = lineas[0].strip()
                 detalles = "\n".join(lineas[1:]).strip()
 
-                if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None):
+                try:
+                    c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre) VALUES (?,?,?,?)',
+                              (titulo, detalles, uid_original, unombre_original or None))
+                    conn.commit()
+                except Exception as e:
+                    conn.close()
+                    print(f"Error revirtiendo a pendiente: {e}")
                     return jsonify({"status": "error", "message": "No se ha podido revertir el trabajo a pendiente."}), 500
 
                 detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
-                conn = self.db.conectar(); c = conn.cursor()
                 c.execute("DELETE FROM tareas WHERE id=?", (id_t,))
                 conn.commit(); conn.close()
                 usuarios.registrar_auditoria(usuario['id'], id_t, "revertir", detalle_auditoria)
@@ -4214,7 +4227,11 @@ class MaintenanceApp(QMainWindow):
         bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar"), clicked=lambda: self.edit_rec(self.s_table))); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=lambda: self.del_rec(self.s_table))); l.addLayout(bl); self.tab_search.setLayout(l)
     def _llenar_combo_usuarios(self, combo, incluir_todos=False, incluir_sin_asignar=False):
         """Rellena un combo con los usuarios activos, conservando la selección."""
-        anterior = combo.currentData()
+        # Si el combo aún no tenía nada cargado (primer llenado), no hay
+        # selección previa real que conservar: usamos un centinela que no
+        # coincide con ningún dato, para no confundir "sin selección" con
+        # "Sin asignar" (ambos usan None como dato) y así caer en el índice 0.
+        anterior = combo.currentData() if combo.count() > 0 else "__SIN_SELECCION_PREVIA__"
         combo.blockSignals(True)
         combo.clear()
         if incluir_todos:

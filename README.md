@@ -724,11 +724,7 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 
 ---
 
-## 🗺️ Roadmap
-
-Estado actual y siguientes pasos previstos.
-
-### ✅ Hecho
+## ✅ Hecho
 
 - **Gestión de usuarios**: login con usuario y contraseña en PC y móvil, roles
   múltiples por usuario (administrador / técnico / almacén), alta y baja
@@ -787,15 +783,15 @@ Estado actual y siguientes pasos previstos.
   almacén (al azar, distintos cada día) y permite corregirla al momento desde
   la propia notificación.
 
-### 🔜 Siguientes pasos
+## 🗺️ Roadmap
 
 - [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
 - [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
-      oficina, sin depender de estar en la misma WiFi que el PC.
+oficina, sin depender de estar en la misma WiFi que el PC.
 - [ ] **Firma digital de trabajos completados**: capturar en el móvil, con el
-      dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
-      finalizado, y adjuntarla al registro apoyándose en el sistema de
-      usuarios ya existente.
+dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
+finalizado, y adjuntarla al registro apoyándose en el sistema de
+usuarios ya existente.
 
 ### 🔒 Nota sobre seguridad
 

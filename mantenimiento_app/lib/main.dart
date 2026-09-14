@@ -18,6 +18,7 @@
 // GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
 import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -439,7 +440,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.8.3';
+const String kAppVersion = '3.8.4';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -718,6 +719,11 @@ class _MainScreenState extends State<MainScreen> {
   int _indiceActual = 0;
   /// Muestra una barrita de progreso mientras se traen los datos al arrancar.
   bool _sincronizandoInicial = false;
+  /// Si la última comprobación periódica encontró el PC accesible. Se usa
+  /// para detectar el momento exacto en que se RECUPERA la conexión (pasa de
+  /// false a true) y disparar una sincronización + refresco general.
+  bool _conectadoPC = false;
+  Timer? _timerConexion;
   void _irAPestana(int index) => setState(() => _indiceActual = index);
   late final List<Widget> _pantallas;
 
@@ -736,6 +742,17 @@ class _MainScreenState extends State<MainScreen> {
     // Y traemos de una vez los datos de TODAS las pestañas, sin esperar a que
     // el usuario entre en cada una.
     _sincronizarAlArrancar();
+    // Comprobamos cada poco tiempo si hay conexión con el PC. En cuanto se
+    // detecta que se acaba de recuperar (antes no la había), sincronizamos
+    // todo y avisamos a todas las pestañas a la vez con datosSincronizadosNotifier,
+    // sin esperar a que el usuario entre manualmente en cada una.
+    _timerConexion = Timer.periodic(const Duration(seconds: 5), (_) => _comprobarConexionYSincronizar());
+  }
+
+  @override
+  void dispose() {
+    _timerConexion?.cancel();
+    super.dispose();
   }
 
   /// Sincronización completa en segundo plano nada más abrir la app.
@@ -748,12 +765,32 @@ class _MainScreenState extends State<MainScreen> {
     if (mounted) setState(() => _sincronizandoInicial = true);
     try {
       await SincronizadorGlobal.sincronizarTodo(ip);
+      _conectadoPC = true;
     } catch (_) {
       // Sin conexión con el PC: no molestamos, las pestañas usan su caché.
     }
     // Avisamos a las pestañas de que la caché ya está fresca.
     datosSincronizadosNotifier.value++;
     if (mounted) setState(() => _sincronizandoInicial = false);
+  }
+
+  Future<void> _comprobarConexionYSincronizar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ip = prefs.getString('pc_ip_url');
+    if (ip == null || !AuthService.autenticado) return;
+    bool ok = false;
+    try {
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/dashboard")).timeout(const Duration(seconds: 4));
+      ok = res.statusCode == 200;
+    } catch (_) { ok = false; }
+    if (ok && !_conectadoPC) {
+      // Acabamos de recuperar la conexión: sincronizamos todo lo pendiente y
+      // refrescamos todas las pestañas (la visible al momento y las demás en
+      // cuanto se entre en ellas, ya que su caché ya estará al día).
+      try { await SincronizadorGlobal.sincronizarTodo(ip); } catch (_) {}
+      datosSincronizadosNotifier.value++;
+    }
+    _conectadoPC = ok;
   }
 
   Future<void> _cerrarSesion() async {
@@ -1187,6 +1224,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   List<Map<String, dynamic>> _colaNuevos = [];
   List<Map<String, dynamic>> _colaEdiciones = [];
   List<int> _colaBorrados = [];
+  List<Map<String, dynamic>> _colaRevertir = [];
   Map<String, String> _fotosLocales = {};
   bool _cargando = false; String? _urlPC;
 
@@ -1202,6 +1240,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (prefs.getString('cola_nuevos') != null) _colaNuevos = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_nuevos')!));
       if (prefs.getString('cola_ediciones') != null) _colaEdiciones = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_ediciones')!));
       if (prefs.getString('cola_borrados') != null) _colaBorrados = List<int>.from(json.decode(prefs.getString('cola_borrados')!));
+      if (prefs.getString('cola_revertir') != null) _colaRevertir = List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_revertir')!));
       _soloMios = prefs.getBool('pendientes_solo_mios') ?? false;
       if (prefs.getString('fotos_locales_map') != null) _fotosLocales = Map<String, String>.from(json.decode(prefs.getString('fotos_locales_map')!));
     });
@@ -1215,6 +1254,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     await prefs.setString('cola_nuevos', json.encode(_colaNuevos));
     await prefs.setString('cola_ediciones', json.encode(_colaEdiciones));
     await prefs.setString('cola_borrados', json.encode(_colaBorrados));
+    await prefs.setString('cola_revertir', json.encode(_colaRevertir));
     await prefs.setString('fotos_locales_map', json.encode(_fotosLocales));
   }
   void _aplicarEdicionesVisuales() {
@@ -1255,6 +1295,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 
     List<Map<String, dynamic>> so = []; for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) so.add(t); }
     if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
+
+    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString()})) rv.add(t); }
+    if (rv.isNotEmpty) setState(() { for (var t in rv) _colaRevertir.remove(t); });
 
     await _guardarCache();
 
@@ -1366,8 +1409,57 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (fl != null && !File(fl).existsSync()) fl = null;
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       pendientePC: p, fotoInicialPath: fl, serverImageName: fs, urlPC: _urlPC,
-      onSave: (r) {
+      onSave: (r) async {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
+
+        // Si este "pendiente" es en realidad una reversión de historial que
+        // todavía no se ha sincronizado con el PC, su id es un comodín local
+        // que el servidor no reconoce. Completarlo con el flujo normal
+        // crearía un trabajo nuevo en el historial Y dejaría la reversión
+        // pendiente, duplicando el trabajo cuando ambas cosas se sincronicen.
+        // En su lugar, cancelamos la reversión: el trabajo original nunca
+        // llega a tocarse en el servidor, solo se actualiza con los cambios
+        // hechos aquí.
+        final idxRevertir = _colaRevertir.indexWhere((t) => t['idTemp'] == p.id);
+        if (idxRevertir != -1) {
+          final entry = _colaRevertir[idxRevertir];
+          final idOriginal = entry['id'].toString();
+          final descFinal = r.titulo + (r.detalles.isNotEmpty ? "\n${r.detalles}" : "");
+          final prefs = await SharedPreferences.getInstance();
+
+          setState(() => _colaRevertir.removeAt(idxRevertir));
+
+          List<Map<String, dynamic>> edicionesHist = [];
+          final ce = prefs.getString('historial_cola_ediciones');
+          if (ce != null) { try { edicionesHist = List<Map<String, dynamic>>.from(json.decode(ce)); } catch (_) {} }
+          edicionesHist.removeWhere((e) => e['id'] == idOriginal);
+          edicionesHist.add({'id': idOriginal, 'detalles': descFinal, 'tags': r.tags, 'fotoPath': r.imagePath, 'fotoPathDespues': r.imagePathDespues});
+          await prefs.setString('historial_cola_ediciones', json.encode(edicionesHist));
+
+          final regOriginal = entry['registro'] != null ? Map<String, dynamic>.from(entry['registro']) : null;
+          if (regOriginal != null) {
+            regOriginal['detalles'] = descFinal;
+            regOriginal['tags'] = r.tags;
+            if (r.imagePath != null) regOriginal['imagePath'] = r.imagePath;
+            if (r.imagePathDespues != null) regOriginal['imagePathDespues'] = r.imagePathDespues;
+            List<Map<String, dynamic>> cacheHist = [];
+            final ch = prefs.getString('historial_cache');
+            if (ch != null) { try { cacheHist = List<Map<String, dynamic>>.from(json.decode(ch)); } catch (_) {} }
+            cacheHist.removeWhere((c) => c['id'] == regOriginal['id']);
+            cacheHist.insert(0, regOriginal);
+            await prefs.setString('historial_cache', json.encode(cacheHist));
+          }
+
+          setState(() {
+            _listaPC.removeWhere((i) => i.id == p.id);
+            if (ref != null) _fotosLocales.remove(ref);
+            _fotosLocales.remove(p.id.toString());
+          });
+          await _guardarCache();
+          datosSincronizadosNotifier.value++;
+          _sincronizarTodo(silencioso: true);
+          return;
+        }
 
         // --- AÑADIMOS FECHA ---
         Map<String, dynamic> mapTemp = {
@@ -1471,6 +1563,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                         onTap: () => _editarColaSalida(i),
                         trailing: IconButton(
                           icon: const Icon(Icons.undo, color: Colors.orange),
+                          tooltip: "Cancelar envío y volver a pendiente",
                           onPressed: () {
                             setState(() {
                               _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles']));
@@ -1561,7 +1654,40 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       ]),
     );
   }
-  void _borrar(int id) async { if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_borrar_q")), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"), style: const TextStyle(color: Colors.red)))])) == true) { setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); }); _guardarCache(); _sincronizarTodo(silencioso: true); } }
+  void _borrar(int id) async {
+    if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_borrar_q")), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"), style: const TextStyle(color: Colors.red)))])) != true) return;
+
+    // Si es una reversión de historial aún sin sincronizar, borrarla no debe
+    // mandar un "eliminar_pendiente" con un id comodín (el servidor no lo
+    // reconoce y el trabajo original se quedaría huérfano como pendiente al
+    // sincronizar la reversión). En su lugar, deshacemos la reversión y
+    // dejamos el trabajo tal cual estaba en el historial.
+    final idxRevertir = _colaRevertir.indexWhere((t) => t['idTemp'] == id);
+    if (idxRevertir != -1) {
+      final entry = _colaRevertir[idxRevertir];
+      final regOriginal = entry['registro'];
+      final prefs = await SharedPreferences.getInstance();
+      if (regOriginal != null) {
+        List<Map<String, dynamic>> cacheHist = [];
+        final ch = prefs.getString('historial_cache');
+        if (ch != null) { try { cacheHist = List<Map<String, dynamic>>.from(json.decode(ch)); } catch (_) {} }
+        cacheHist.removeWhere((c) => c['id'] == regOriginal['id']);
+        cacheHist.insert(0, Map<String, dynamic>.from(regOriginal));
+        await prefs.setString('historial_cache', json.encode(cacheHist));
+      }
+      setState(() {
+        _colaRevertir.removeAt(idxRevertir);
+        _listaPC.removeWhere((p) => p.id == id);
+      });
+      await _guardarCache();
+      datosSincronizadosNotifier.value++;
+      return;
+    }
+
+    setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); });
+    _guardarCache();
+    _sincronizarTodo(silencioso: true);
+  }
   Future<void> _escanearQR() async {
     final c = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
     if (c != null) {
@@ -1842,7 +1968,17 @@ class _TabHistorialState extends State<TabHistorial> {
         final nuevos = await _descargarPagina(q, 0);
         setState(() { _registros = nuevos; _sinConexion = false; });
         _aplicarCambiosVisuales();
-        await _fusionarEnCacheOffline(q, nuevos, alPrincipio: true);
+        if (!_hayMas && q.isEmpty) {
+          // La página 0 contiene TODO el historial: es la verdad completa del
+          // servidor, así que sustituimos el caché entero en vez de fusionar.
+          // Esto limpia entradas locales obsoletas (p. ej. duplicados de un
+          // trabajo ya borrado en el PC) que un simple merge nunca purgaría.
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('historial_cache', json.encode(nuevos.map((r) => r.toJson()).toList()));
+          _actualizarAnios();
+        } else {
+          await _fusionarEnCacheOffline(q, nuevos, alPrincipio: true);
+        }
         ok = true;
       } catch (e) { ok = false; }
     }
@@ -1956,30 +2092,51 @@ class _TabHistorialState extends State<TabHistorial> {
       ],
     ));
     if (ok != true || !mounted) return;
-    try {
-      final res = await httpPostAuth(Uri.parse("http://$_urlPC/api/revertir_pendiente"), body: {'id': r.id.toString()});
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        setState(() => _registros.removeWhere((x) => x.id == r.id));
-        final prefs = await SharedPreferences.getInstance();
-        final c = prefs.getString('historial_cache');
-        if (c != null) {
-          try {
-            List<dynamic> d = json.decode(c);
-            d.removeWhere((item) => item['id'] == r.id);
-            await prefs.setString('historial_cache', json.encode(d));
-          } catch (_) {}
-        }
-        datosSincronizadosNotifier.value++;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Trabajo movido de nuevo a Pendientes.")));
-      } else {
-        String msg = "No se ha podido revertir el trabajo.";
-        try { msg = json.decode(res.body)['message'] ?? msg; } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error de conexión.")));
+
+    // Offline-first: reconstruimos título/detalles igual que hace el servidor
+    // y lo movemos a Pendientes al instante, sin depender de tener conexión.
+    // La petición real al PC se encola y la sincroniza la pestaña Pendientes
+    // en cuanto haya conexión, igual que el resto de acciones de la app.
+    final partes = r.detalles.split("\n");
+    final tituloNuevo = partes.first.trim();
+    final detallesNuevo = partes.skip(1).join("\n").trim();
+    final idTemp = -DateTime.now().millisecondsSinceEpoch;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    List<Map<String, dynamic>> cola = [];
+    final cCola = prefs.getString('cola_revertir');
+    if (cCola != null) { try { cola = List<Map<String, dynamic>>.from(json.decode(cCola)); } catch (_) {} }
+    // Guardamos 'idTemp' (el id del comodín en Pendientes) y el registro original completo:
+    // si el usuario completa este mismo trabajo desde Pendientes antes de sincronizar,
+    // hace falta poder cancelar esta reversión y restaurar el historial sin duplicar nada.
+    cola.add({'id': r.id.toString(), 'titulo': tituloNuevo, 'detalles': detallesNuevo, 'idTemp': idTemp, 'registro': r.toJson()});
+    await prefs.setString('cola_revertir', json.encode(cola));
+
+    List<Map<String, dynamic>> pc = [];
+    final cPc = prefs.getString('trabajos_pc');
+    if (cPc != null) { try { pc = List<Map<String, dynamic>>.from(json.decode(cPc)); } catch (_) {} }
+    pc.insert(0, {'id': idTemp, 'titulo': tituloNuevo, 'detalles': detallesNuevo, 'asignado_a': AuthService.usuarioId, 'asignado': AuthService.nombre});
+    await prefs.setString('trabajos_pc', json.encode(pc));
+
+    setState(() => _registros.removeWhere((x) => x.id == r.id));
+    final c = prefs.getString('historial_cache');
+    if (c != null) {
+      try {
+        List<dynamic> d = json.decode(c);
+        d.removeWhere((item) => item['id'] == r.id);
+        await prefs.setString('historial_cache', json.encode(d));
+      } catch (_) {}
     }
+
+    datosSincronizadosNotifier.value++;
+
+    // Si hay conexión con el PC, sincronizamos ya mismo (no hace falta esperar
+    // a entrar en la pestaña Pendientes): la pestaña Historial no tiene acceso
+    // a las colas de Pendientes, así que usamos el sincronizador global.
+    // Si no hay conexión, el cambio se queda guardado en local y se sincroniza
+    // solo, como con el resto de acciones de la app.
+    if (_urlPC != null) SincronizadorGlobal.sincronizarTodo(_urlPC!);
   }
   @override Widget build(BuildContext context) {
     return Scaffold(
@@ -2304,9 +2461,13 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> colaNuevos = prefs.getString('cola_nuevos') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_nuevos')!)) : [];
     List<Map<String, dynamic>> colaEdiciones = prefs.getString('cola_ediciones') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_ediciones')!)) : [];
     List<Map<String, dynamic>> colaSalida = prefs.getString('cola_salida') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_salida')!)) : [];
+    List<Map<String, dynamic>> colaRevertir = prefs.getString('cola_revertir') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_revertir')!)) : [];
 
     List<int> bo = []; for (var id in colaBorrados) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/eliminar_pendiente"), body: {'id': id.toString()})).statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
+
+    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()})).statusCode == 200) rv.add(t); } catch (e) {} }
+    for (var t in rv) { colaRevertir.remove(t); }
 
     Future<bool> apiMultipart(String ep, Map<String, dynamic> d) async {
       try {
@@ -2337,6 +2498,7 @@ class SincronizadorGlobal {
     await prefs.setString('cola_nuevos', json.encode(colaNuevos));
     await prefs.setString('cola_ediciones', json.encode(colaEdiciones));
     await prefs.setString('cola_salida', json.encode(colaSalida));
+    await prefs.setString('cola_revertir', json.encode(colaRevertir));
 
     try {
       final res = await httpGetAuth(Uri.parse("http://$ip/api/pendientes")).timeout(const Duration(seconds: 5));
