@@ -783,7 +783,7 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
   almacén (al azar, distintos cada día) y permite corregirla al momento desde
   la propia notificación.
 
-## 🗺️ Roadmap
+## 🧭 Roadmap
 
 - [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
 - [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
