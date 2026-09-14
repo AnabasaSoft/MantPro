@@ -10,11 +10,15 @@ import '../modelos.dart';
 
 /// Muestra (y, si el usuario puede gestionar el almacén, permite editar) un artículo.
 /// - Si [materialId] es null se abre directamente en modo creación, preseleccionando
-///   [seccionIdInicial] cuando el alta se lanza desde una sección concreta del árbol.
+///   [seccionIdInicial] cuando el alta se lanza desde una sección concreta del árbol,
+///   o solo la estantería y la balda con [baldaIdInicial] cuando se lanza desde una
+///   balda o un hueco de suelo (dejando la sección por elegir).
 class PantallaArticulo extends StatefulWidget {
   final int? materialId;
   final int? seccionIdInicial;
-  const PantallaArticulo({super.key, this.materialId, this.seccionIdInicial});
+  final int? baldaIdInicial;
+  const PantallaArticulo(
+      {super.key, this.materialId, this.seccionIdInicial, this.baldaIdInicial});
 
   @override
   State<PantallaArticulo> createState() => _PantallaArticuloState();
@@ -105,6 +109,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
         _rellenarFormulario(material);
       } else if (widget.seccionIdInicial != null) {
         _preseleccionarSeccion(widget.seccionIdInicial!);
+      } else if (widget.baldaIdInicial != null) {
+        _preseleccionarBalda(widget.baldaIdInicial!);
       }
     } catch (e) {
       _error = e.toString();
@@ -131,6 +137,21 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
             _seccionSel = sec.id;
             return;
           }
+        }
+      }
+    }
+  }
+
+  /// Preselecciona estantería y balda a partir de [baldaIdInicial], dejando la
+  /// sección sin elegir: se usa cuando el alta se lanza desde una balda o un
+  /// hueco de suelo del árbol (dejando pulsado), no desde una sección concreta.
+  void _preseleccionarBalda(int baldaId) {
+    for (final est in _estanterias) {
+      for (final balda in est.baldas) {
+        if (balda.id == baldaId) {
+          _estanteriaSel = est.id;
+          _baldaSel = balda.id;
+          return;
         }
       }
     }

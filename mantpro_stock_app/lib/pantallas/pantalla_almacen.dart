@@ -101,12 +101,12 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
     if (mounted) setState(() => _cargando = false);
   }
 
-  Future<void> _abrirArticulo({int? materialId, int? seccionId}) async {
+  Future<void> _abrirArticulo({int? materialId, int? seccionId, int? baldaId}) async {
     final cambiado = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => PantallaArticulo(
-            materialId: materialId, seccionIdInicial: seccionId),
+            materialId: materialId, seccionIdInicial: seccionId, baldaIdInicial: baldaId),
       ),
     );
     if (cambiado == true) _cargar();
@@ -178,6 +178,8 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
                                         _abrirArticulo(materialId: id),
                                     onAnadirArticulo: (seccionId) =>
                                         _abrirArticulo(seccionId: seccionId),
+                                    onAnadirArticuloBalda: (baldaId) =>
+                                        _abrirArticulo(baldaId: baldaId),
                                   ))
                               .toList(),
                         ),
@@ -206,12 +208,14 @@ class _ArbolEstanteria extends StatelessWidget {
   final Map<int, List<Articulo>> materialesPorSeccion;
   final void Function(int materialId) onAbrirArticulo;
   final void Function(int seccionId) onAnadirArticulo;
+  final void Function(int baldaId) onAnadirArticuloBalda;
 
   const _ArbolEstanteria({
     required this.estanteria,
     required this.materialesPorSeccion,
     required this.onAbrirArticulo,
     required this.onAnadirArticulo,
+    required this.onAnadirArticuloBalda,
   });
 
   @override
@@ -228,13 +232,28 @@ class _ArbolEstanteria extends StatelessWidget {
         // árbol del PC, para que se note de un vistazo que no es una balda más.
         final oscuro = Theme.of(context).brightness == Brightness.dark;
         final colorSuelo = oscuro ? const Color(0xFFE0B34D) : const Color(0xFF8A6210);
-        return ExpansionTile(
-          title: Text(tituloBalda,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: esSuelo ? colorSuelo : null)),
-          initiallyExpanded: true,
-          children: balda.secciones.map((seccion) {
+        return GestureDetector(
+          // Dejar pulsado sobre una balda o hueco de suelo permite añadir un
+          // artículo ahí directamente, sin tener que abrir antes una de sus
+          // secciones (útil sobre todo si solo tiene una).
+          onLongPress: puedeGestionar
+              ? () {
+                  if (balda.secciones.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(tt('msg_balda_sin_secciones',
+                            'Esta balda todavía no tiene secciones. Añade una desde el PC.'))));
+                  } else {
+                    onAnadirArticuloBalda(balda.id);
+                  }
+                }
+              : null,
+          child: ExpansionTile(
+            title: Text(tituloBalda,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: esSuelo ? colorSuelo : null)),
+            initiallyExpanded: true,
+            children: balda.secciones.map((seccion) {
             final materiales = materialesPorSeccion[seccion.id] ?? [];
             return ExpansionTile(
               title: Text(_tituloSeccion(seccion.nombre)),
@@ -273,6 +292,7 @@ class _ArbolEstanteria extends StatelessWidget {
                       .toList(),
             );
           }).toList(),
+          ),
         );
       }).toList(),
     );
