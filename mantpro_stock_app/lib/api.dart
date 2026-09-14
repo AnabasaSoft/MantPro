@@ -398,7 +398,8 @@ class StockApi {
     required String descripcion,
     required String unidad,
     required double stockMinimo,
-    required int seccionId,
+    int? seccionId,
+    int? baldaId,
     double stockInicial = 0,
     File? foto,
     bool borrarFoto = false,
@@ -411,7 +412,11 @@ class StockApi {
       'descripcion': descripcion,
       'unidad': unidad,
       'stock_minimo': stockMinimo.toString(),
-      'seccion_id': seccionId.toString(),
+      // Si no se ha elegido sección todavía se manda la balda (o el hueco de
+      // suelo) y el servidor resuelve o crea una sección por defecto: así no
+      // hace falta tener secciones creadas de antemano para dar de alta.
+      if (seccionId != null) 'seccion_id': seccionId.toString(),
+      if (seccionId == null && baldaId != null) 'balda_id': baldaId.toString(),
     };
     if (esNuevo) campos['stock_inicial'] = stockInicial.toString();
     if (borrarFoto) campos['borrar_foto'] = '1';

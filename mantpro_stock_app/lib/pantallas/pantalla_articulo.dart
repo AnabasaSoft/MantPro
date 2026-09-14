@@ -172,7 +172,10 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_seccionSel == null) {
+    // No hace falta elegir una sección: si solo se ha elegido balda (o hueco
+    // de suelo) el servidor ubica el artículo ahí, creando una sección por
+    // defecto si todavía no tiene ninguna.
+    if (_seccionSel == null && _baldaSel == null) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(tt('msg_selecciona_seccion', 'Selecciona una sección del almacén.'))));
       return;
@@ -186,7 +189,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
         descripcion: _descripcion.text.trim(),
         unidad: _unidad.text.trim(),
         stockMinimo: double.tryParse(_stockMinimo.text.replaceAll(',', '.')) ?? 0,
-        seccionId: _seccionSel!,
+        seccionId: _seccionSel,
+        baldaId: _baldaSel,
         stockInicial: double.tryParse(_stockInicial.text.replaceAll(',', '.')) ?? 0,
         foto: _fotoNueva,
         borrarFoto: _borrarFoto,

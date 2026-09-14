@@ -350,6 +350,21 @@ def crear_seccion(balda_id, nombre):
     return seccion_id
 
 
+def seccion_para_balda(balda_id):
+    """Para poder ubicar un material directamente en una balda o un hueco de
+    suelo sin tener que crear antes una sección desde el escritorio (p. ej. al
+    añadir un artículo desde el móvil dejando pulsado sobre la balda): si ya
+    tiene alguna sección, devuelve la primera; si no tiene ninguna, crea una
+    por defecto ("Sección A") y devuelve su id. El material sigue quedando
+    ubicado en una sección concreta, solo que se crea de forma transparente."""
+    con = _conn()
+    fila = con.execute("SELECT id FROM secciones WHERE balda_id=? ORDER BY id LIMIT 1", (balda_id,)).fetchone()
+    con.close()
+    if fila:
+        return fila["id"]
+    return crear_seccion(balda_id, "Sección A")
+
+
 def eliminar_seccion(seccion_id):
     """Borra una sección. Falla si contiene material ubicado."""
     con = _conn()

@@ -234,19 +234,9 @@ class _ArbolEstanteria extends StatelessWidget {
         final colorSuelo = oscuro ? const Color(0xFFE0B34D) : const Color(0xFF8A6210);
         return GestureDetector(
           // Dejar pulsado sobre una balda o hueco de suelo permite añadir un
-          // artículo ahí directamente, sin tener que abrir antes una de sus
-          // secciones (útil sobre todo si solo tiene una).
-          onLongPress: puedeGestionar
-              ? () {
-                  if (balda.secciones.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(tt('msg_balda_sin_secciones',
-                            'Esta balda todavía no tiene secciones. Añade una desde el PC.'))));
-                  } else {
-                    onAnadirArticuloBalda(balda.id);
-                  }
-                }
-              : null,
+          // artículo ahí directamente, aunque todavía no tenga ninguna
+          // sección creada: el servidor la crea sola de forma transparente.
+          onLongPress: puedeGestionar ? () => onAnadirArticuloBalda(balda.id) : null,
           child: ExpansionTile(
             title: Text(tituloBalda,
                 style: TextStyle(
