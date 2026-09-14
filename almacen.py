@@ -41,6 +41,7 @@ Uso desde main.py:
     almacen.inicializar()
 """
 
+import re
 import sqlite3
 
 RUTA_DB = "almacen.db"
@@ -260,13 +261,21 @@ def eliminar_seccion(seccion_id):
     return True, None
 
 
+def _clave_orden_natural(nombre):
+    """Trocea el nombre en fragmentos de texto y número para poder ordenar
+    '1, 2, 3, ..., 10, 11' en vez del orden alfabético '1, 10, 11, 2, 3...'."""
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', nombre or "")]
+
+
 def listar_estructura():
     """Devuelve la estructura completa anidada:
     [{id, nombre, tiene_hueco_suelo, baldas: [{id, numero, secciones: [{id, nombre}, ...]}, ...]}, ...]
     Las baldas se devuelven ordenadas de arriba hacia abajo (más intuitivo visualmente),
     dejando la balda 0 (hueco de suelo) siempre al final."""
     con = _conn()
-    estanterias = [dict(row) for row in con.execute("SELECT * FROM estanterias ORDER BY nombre")]
+    estanterias = sorted(
+        (dict(row) for row in con.execute("SELECT * FROM estanterias")),
+        key=lambda e: _clave_orden_natural(e["nombre"]))
     for est in estanterias:
         baldas = [dict(row) for row in con.execute(
             "SELECT * FROM baldas WHERE estanteria_id=? ORDER BY numero DESC", (est["id"],))]

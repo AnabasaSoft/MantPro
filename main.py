@@ -2275,17 +2275,28 @@ class DialogoConfigurarAlmacen(QDialog):
 
     def refrescar(self):
         self.arbol.clear()
+        # Un color de texto distinto por nivel (estantería/balda/hueco de suelo/sección)
+        # para que la jerarquía se distinga de un vistazo, ajustado según el tema activo.
+        oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+        col_est = QColor("#5fa8e8") if oscuro else QColor("#0d3862")
+        col_balda = QColor("#6fcf7a") if oscuro else QColor("#1e6620")
+        col_suelo = QColor("#e0b34d") if oscuro else QColor("#8a6210")
+        col_sec = QColor("#c98be0") if oscuro else QColor("#6a2d8a")
         for est in almacen.listar_estructura():
             item_est = QTreeWidgetItem([f"🗄️ {est['nombre']}"])
             item_est.setData(0, Qt.ItemDataRole.UserRole, ("estanteria", est["id"]))
+            item_est.setForeground(0, col_est)
             for balda in est["baldas"]:
-                nombre_balda = tt("txt_hueco_suelo_corto", "Hueco de suelo") if balda["numero"] == 0 else tt(
+                es_suelo = balda["numero"] == 0
+                nombre_balda = tt("txt_hueco_suelo_corto", "Hueco de suelo") if es_suelo else tt(
                     "txt_balda_num", "Balda {n}").format(n=almacen.texto_balda(balda["numero"], est.get("estilo_baldas", "numero")))
                 item_balda = QTreeWidgetItem([f"📚 {nombre_balda}"])
                 item_balda.setData(0, Qt.ItemDataRole.UserRole, ("balda", balda["id"]))
+                item_balda.setForeground(0, col_suelo if es_suelo else col_balda)
                 for sec in balda["secciones"]:
                     item_sec = QTreeWidgetItem([f"📦 {sec['nombre']}"])
                     item_sec.setData(0, Qt.ItemDataRole.UserRole, ("seccion", sec["id"]))
+                    item_sec.setForeground(0, col_sec)
                     item_balda.addChild(item_sec)
                 item_est.addChild(item_balda)
             self.arbol.addTopLevelItem(item_est)
