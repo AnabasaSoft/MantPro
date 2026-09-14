@@ -57,7 +57,10 @@ def configurar_db(ruta):
 
 
 def _conn():
-    con = sqlite3.connect(RUTA_DB)
+    # timeout=20: igual que en main.py, para no dar "database is locked" cuando
+    # el hilo del servidor Flask comprueba la sesión de un móvil justo mientras
+    # el PC está escribiendo mucho seguido (p. ej. al crear un almacén entero).
+    con = sqlite3.connect(RUTA_DB, timeout=20)
     con.row_factory = sqlite3.Row
     return con
 

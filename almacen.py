@@ -54,7 +54,10 @@ def configurar_db(ruta):
 
 
 def _conn():
-    con = sqlite3.connect(RUTA_DB)
+    # timeout=20: igual que en main.py, para no dar "database is locked" cuando
+    # el hilo del servidor Flask lee mientras el PC está escribiendo mucho
+    # seguido (p. ej. al crear de golpe toda la estructura de un almacén).
+    con = sqlite3.connect(RUTA_DB, timeout=20)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con
@@ -190,6 +193,61 @@ def eliminar_estanteria(estanteria_id):
     return True, None
 
 
+def renombrar_estanteria(estanteria_id, nombre):
+    """Cambia el nombre de una estantería ya creada."""
+    con = _conn()
+    con.execute("UPDATE estanterias SET nombre=? WHERE id=?", (nombre, estanteria_id))
+    con.commit()
+    con.close()
+
+
+def editar_estanteria(estanteria_id, nombre, num_baldas, tiene_hueco_suelo, num_secciones=0,
+                       estilo_baldas="numero", estilo_secciones="letra"):
+    """Aplica en bloque, sobre una estantería ya creada, los mismos campos que se
+    piden al crearla (mismo diálogo reutilizado en modo edición):
+    - Renombra y cambia el estilo de numeración de las baldas.
+    - Si tiene_hueco_suelo pasa a True y no lo tenía, añade el hueco de suelo; si
+      pasa a False y lo tenía, lo borra (si está vacío; si tiene material, se deja
+      como estaba).
+    - Si num_baldas es mayor que las baldas normales (numero>0) que ya tiene, añade
+      las que falten (continuando la numeración) y les crea num_secciones secciones
+      nuevas con estilo_secciones. Si es menor, borra las de numeración más alta
+      hasta llegar a esa cantidad, parando en la primera que tenga material ubicado.
+    Devuelve el número de baldas que no se han podido borrar por no estar vacías."""
+    renombrar_estanteria(estanteria_id, nombre)
+    cambiar_estilo_baldas(estanteria_id, estilo_baldas)
+
+    con = _conn()
+    tenia_suelo = con.execute(
+        "SELECT 1 FROM baldas WHERE estanteria_id=? AND numero=0", (estanteria_id,)).fetchone() is not None
+    baldas_normales = [dict(r) for r in con.execute(
+        "SELECT id, numero FROM baldas WHERE estanteria_id=? AND numero>0 ORDER BY numero", (estanteria_id,))]
+    con.close()
+
+    if tiene_hueco_suelo and not tenia_suelo:
+        anadir_hueco_suelo(estanteria_id)
+    elif not tiene_hueco_suelo and tenia_suelo:
+        con = _conn()
+        fila = con.execute("SELECT id FROM baldas WHERE estanteria_id=? AND numero=0", (estanteria_id,)).fetchone()
+        con.close()
+        if fila:
+            eliminar_balda(fila["id"])
+
+    actuales = len(baldas_normales)
+    baldas_no_borradas = 0
+    if num_baldas > actuales:
+        for _ in range(int(num_baldas) - actuales):
+            nueva_balda_id = anadir_balda(estanteria_id)
+            crear_secciones_iniciales(nueva_balda_id, num_secciones, estilo_secciones)
+    elif num_baldas < actuales:
+        for balda in reversed(baldas_normales[int(num_baldas):]):
+            ok, _ = eliminar_balda(balda["id"])
+            if not ok:
+                baldas_no_borradas += 1
+                break
+    return baldas_no_borradas
+
+
 def _estanteria_tiene_material(estanteria_id):
     con = _conn()
     fila = con.execute("""
@@ -203,7 +261,8 @@ def _estanteria_tiene_material(estanteria_id):
 
 
 def anadir_balda(estanteria_id):
-    """Añade una balda nueva por encima de las existentes (no reinicia numeración)."""
+    """Añade una balda nueva por encima de las existentes (no reinicia numeración).
+    Devuelve el id de la balda creada."""
     con = _conn()
     cur = con.cursor()
     fila = cur.execute(
@@ -211,9 +270,25 @@ def anadir_balda(estanteria_id):
         (estanteria_id,)).fetchone()
     siguiente = (fila["maximo"] or 0) + 1
     cur.execute("INSERT INTO baldas (estanteria_id, numero) VALUES (?, ?)", (estanteria_id, siguiente))
+    balda_id = cur.lastrowid
     con.commit()
     con.close()
-    return siguiente
+    return balda_id
+
+
+def crear_secciones_iniciales(balda_id, num_secciones, estilo_secciones):
+    """Crea num_secciones secciones nuevas ("Sección A"/"Sección 1"... según
+    estilo_secciones) en una balda que todavía no tiene ninguna, igual que hace
+    crear_estanteria() para las baldas creadas junto con la estantería."""
+    if int(num_secciones) <= 0:
+        return
+    con = _conn()
+    for i in range(1, int(num_secciones) + 1):
+        etiqueta = _letra_seccion(i) if estilo_secciones == "letra" else str(i)
+        con.execute("INSERT INTO secciones (balda_id, nombre) VALUES (?, ?)",
+                    (balda_id, f"Sección {etiqueta}"))
+    con.commit()
+    con.close()
 
 
 def eliminar_balda(balda_id):
@@ -221,10 +296,37 @@ def eliminar_balda(balda_id):
     if _balda_tiene_material(balda_id):
         return False, "no_vacio"
     con = _conn()
+    fila = con.execute("SELECT estanteria_id, numero FROM baldas WHERE id=?", (balda_id,)).fetchone()
     con.execute("DELETE FROM baldas WHERE id=?", (balda_id,))
+    if fila is not None and fila["numero"] == 0:
+        con.execute("UPDATE estanterias SET tiene_hueco_suelo=0 WHERE id=?", (fila["estanteria_id"],))
     con.commit()
     con.close()
     return True, None
+
+
+def anadir_hueco_suelo(estanteria_id):
+    """Añade la balda 0 (hueco de suelo) a una estantería si todavía no la
+    tiene. Devuelve True si la ha creado, False si ya existía (no hace nada)."""
+    con = _conn()
+    existe = con.execute(
+        "SELECT 1 FROM baldas WHERE estanteria_id=? AND numero=0", (estanteria_id,)).fetchone()
+    if existe:
+        con.close()
+        return False
+    con.execute("INSERT INTO baldas (estanteria_id, numero) VALUES (?, 0)", (estanteria_id,))
+    con.execute("UPDATE estanterias SET tiene_hueco_suelo=1 WHERE id=?", (estanteria_id,))
+    con.commit()
+    con.close()
+    return True
+
+
+def cambiar_estilo_baldas(estanteria_id, estilo):
+    """Cambia cómo se muestra el número de balda de una estantería: 'numero' o 'letra'."""
+    con = _conn()
+    con.execute("UPDATE estanterias SET estilo_baldas=? WHERE id=?", (estilo, estanteria_id))
+    con.commit()
+    con.close()
 
 
 def _balda_tiene_material(balda_id):
