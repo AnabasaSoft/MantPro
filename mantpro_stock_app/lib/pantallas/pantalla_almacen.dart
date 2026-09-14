@@ -23,6 +23,7 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
   String? _error;
   List<Estanteria> _estanterias = [];
   Map<int, List<Articulo>> _materialesPorSeccion = {};
+  Map<int, List<Articulo>> _materialesPorBaldaPendiente = {};
 
   @override
   void initState() {
@@ -52,20 +53,33 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
     try {
       final estanterias = await StockApi.obtenerEstructura();
       final materiales = await StockApi.obtenerMateriales();
-      final agrupados = <int, List<Articulo>>{};
-      for (final m in materiales) {
-        if (m.seccionId == null) continue;
-        agrupados.putIfAbsent(m.seccionId!, () => []).add(m);
-      }
+      final (agrupados, agrupadosPorBalda) = _agrupar(materiales);
       if (mounted) {
         setState(() {
           _estanterias = estanterias;
           _materialesPorSeccion = agrupados;
+          _materialesPorBaldaPendiente = agrupadosPorBalda;
         });
       }
     } catch (_) {
       // Sin conexión ni caché legible: se deja lo que ya había en pantalla.
     }
+  }
+
+  /// Agrupa los artículos por sección para el árbol y, aparte, los dados de
+  /// alta sin conexión directamente sobre una balda (todavía sin sección
+  /// creada) por el id de esa balda, para poder mostrarlos sueltos.
+  (Map<int, List<Articulo>>, Map<int, List<Articulo>>) _agrupar(List<Articulo> materiales) {
+    final porSeccion = <int, List<Articulo>>{};
+    final porBaldaPendiente = <int, List<Articulo>>{};
+    for (final m in materiales) {
+      if (m.seccionId != null) {
+        porSeccion.putIfAbsent(m.seccionId!, () => []).add(m);
+      } else if (m.baldaIdPendiente != null) {
+        porBaldaPendiente.putIfAbsent(m.baldaIdPendiente!, () => []).add(m);
+      }
+    }
+    return (porSeccion, porBaldaPendiente);
   }
 
   Future<void> _cargar() async {
@@ -86,14 +100,11 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
       }
       final estanterias = await StockApi.obtenerEstructura();
       final materiales = await StockApi.obtenerMateriales();
-      final agrupados = <int, List<Articulo>>{};
-      for (final m in materiales) {
-        if (m.seccionId == null) continue;
-        agrupados.putIfAbsent(m.seccionId!, () => []).add(m);
-      }
+      final (agrupados, agrupadosPorBalda) = _agrupar(materiales);
       setState(() {
         _estanterias = estanterias;
         _materialesPorSeccion = agrupados;
+        _materialesPorBaldaPendiente = agrupadosPorBalda;
       });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -174,6 +185,7 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
                               .map((e) => _ArbolEstanteria(
                                     estanteria: e,
                                     materialesPorSeccion: _materialesPorSeccion,
+                                    materialesPorBaldaPendiente: _materialesPorBaldaPendiente,
                                     onAbrirArticulo: (id) =>
                                         _abrirArticulo(materialId: id),
                                     onAnadirArticulo: (seccionId) =>
@@ -206,6 +218,7 @@ String _tituloSeccion(String nombre) {
 class _ArbolEstanteria extends StatelessWidget {
   final Estanteria estanteria;
   final Map<int, List<Articulo>> materialesPorSeccion;
+  final Map<int, List<Articulo>> materialesPorBaldaPendiente;
   final void Function(int materialId) onAbrirArticulo;
   final void Function(int seccionId) onAnadirArticulo;
   final void Function(int baldaId) onAnadirArticuloBalda;
@@ -213,6 +226,7 @@ class _ArbolEstanteria extends StatelessWidget {
   const _ArbolEstanteria({
     required this.estanteria,
     required this.materialesPorSeccion,
+    required this.materialesPorBaldaPendiente,
     required this.onAbrirArticulo,
     required this.onAnadirArticulo,
     required this.onAnadirArticuloBalda,
@@ -250,6 +264,12 @@ class _ArbolEstanteria extends StatelessWidget {
               ...balda.secciones
                   .where((s) => s.implicita)
                   .expand((s) => materialesPorSeccion[s.id] ?? const <Articulo>[])
+                  .map((m) => _tileArticulo(m, onAbrirArticulo)),
+              // Artículos dados de alta sin conexión directamente sobre esta
+              // balda: el PC todavía no ha creado su sección (implícita o
+              // no), así que se muestran sueltos igual que los anteriores
+              // hasta que se sincronicen.
+              ...(materialesPorBaldaPendiente[balda.id] ?? const <Articulo>[])
                   .map((m) => _tileArticulo(m, onAbrirArticulo)),
               ...balda.secciones.where((s) => !s.implicita).map((seccion) {
                 final materiales = materialesPorSeccion[seccion.id] ?? [];

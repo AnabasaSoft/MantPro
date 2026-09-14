@@ -71,6 +71,12 @@ class Articulo {
   final int? seccionId;
   final String? foto;
   final String ubicacion;
+  // Solo se rellena para artículos dados de alta sin conexión directamente
+  // sobre una balda (o un hueco de suelo) sin elegir sección: como el PC
+  // todavía no ha creado la sección (implícita o no) que le correspondería,
+  // el árbol del almacén usa este campo para mostrarlo suelto bajo su balda
+  // mientras sigue pendiente de sincronizar.
+  final int? baldaIdPendiente;
 
   Articulo({
     required this.id,
@@ -83,6 +89,7 @@ class Articulo {
     required this.seccionId,
     required this.foto,
     required this.ubicacion,
+    this.baldaIdPendiente,
   });
 
   bool get bajoMinimo => stockActual <= 0 || stockActual < stockMinimo;
@@ -113,6 +120,7 @@ class Articulo {
         seccionId: seccionId,
         foto: foto,
         ubicacion: ubicacion,
+        baldaIdPendiente: baldaIdPendiente,
       );
 }
 
