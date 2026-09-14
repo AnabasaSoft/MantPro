@@ -54,6 +54,33 @@ void _alPulsarNotificacion(NotificationResponse respuesta) {
   }
 }
 
+// Avisa con un diálogo cuando la sincronización en segundo plano descubre que
+// el PC ha rechazado algún cambio pendiente por falta de permisos (p. ej. el
+// admin le ha quitado al usuario el rol de almacén). Sin este aviso el cambio
+// se perdería en silencio, ya que se descarta de la cola al no tener sentido
+// reintentarlo.
+void _alDenegarPermiso() {
+  final mensajes = permisoDenegadoNotifier.value;
+  if (mensajes.isEmpty) return;
+  final context = navigatorKeyStock.currentState?.overlay?.context;
+  if (context == null) return;
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text(tt('titulo_sin_permiso', 'Cambios no aplicados')),
+      content: Text(
+          '${tt('msg_sin_permiso_almacen', 'Tu usuario ya no tiene permiso para gestionar el almacén, así que el PC ha rechazado estos cambios pendientes:')}\n\n${mensajes.join('\n')}'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(tt('btn_aceptar', 'Aceptar')),
+        ),
+      ],
+    ),
+  );
+  permisoDenegadoNotifier.value = [];
+}
+
 // --- EVALUADOR DIARIO DE LA NOTIFICACIÓN DE COMPROBACIÓN DE STOCK ---
 // Se reevalúa cada vez que se sincroniza con el PC: si no hay ningún
 // material dado de alta en el almacén no tiene sentido pedir que se
@@ -100,7 +127,7 @@ Future<void> evaluarNotificacionStock() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás. Comparte repositorio con MantPro.
-const String kAppVersion = '3.8.5';
+const String kAppVersion = '3.8.6';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -178,6 +205,7 @@ void main() async {
   await cargarIdiomaGuardado();
   await AuthService.cargar();
   sesionNotifier.value = AuthService.autenticado;
+  permisoDenegadoNotifier.addListener(_alDenegarPermiso);
   runApp(const MyApp());
 
   // Si la app se ha abierto pulsando la notificación estando cerrada del

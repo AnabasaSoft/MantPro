@@ -49,6 +49,19 @@ final ValueNotifier<bool> sesionNotifier = ValueNotifier(false);
 /// Cada pestaña lo escucha para recargar su caché sin que el usuario haga nada.
 final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
 
+/// Descripciones de cambios pendientes que el PC ha rechazado por falta de
+/// permisos (p. ej. el admin le ha quitado el rol de técnico al usuario
+/// después de que dejara algo en la cola offline). main.dart escucha este
+/// notificador para avisar con un diálogo, ya que si no se notifica el
+/// cambio se pierde en silencio al quitarse de la cola.
+final ValueNotifier<List<String>> permisoDenegadoNotifier = ValueNotifier([]);
+
+/// Añade [descripcion] a [permisoDenegadoNotifier]. Se llama cuando el PC
+/// responde 403 al intentar sincronizar un cambio pendiente de trabajos.
+void avisarSinPermisoTrabajos(String descripcion) {
+  permisoDenegadoNotifier.value = [...permisoDenegadoNotifier.value, descripcion];
+}
+
 /// t() con texto por defecto, por si la clave aún no está en i18n/strings.dart.
 String tt(String clave, String defecto) {
   final v = t(clave);
@@ -440,7 +453,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.8.5';
+const String kAppVersion = '3.8.6';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -499,6 +512,37 @@ void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? "❌ No se pudo comprobar actualizaciones (sin conexión)" : "✅ Ya tienes la última versión")));
 }
 
+// Permite mostrar diálogos desde código de sincronización en segundo plano
+// (sin depender de la pantalla que esté visible en ese momento).
+final GlobalKey<NavigatorState> navigatorKeyApp = GlobalKey<NavigatorState>();
+
+// Avisa con un diálogo cuando la sincronización en segundo plano descubre que
+// el PC ha rechazado algún cambio de trabajos pendiente por falta de permisos
+// (p. ej. el admin le ha quitado al usuario el rol de técnico). Sin este
+// aviso el cambio se perdería en silencio, ya que se descarta de la cola al
+// no tener sentido reintentarlo.
+void _alDenegarPermisoTrabajos() {
+  final mensajes = permisoDenegadoNotifier.value;
+  if (mensajes.isEmpty) return;
+  final context = navigatorKeyApp.currentState?.overlay?.context;
+  if (context == null) return;
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text(tt('titulo_sin_permiso', 'Cambios no aplicados')),
+      content: Text(
+          '${tt('msg_sin_permiso_trabajos', 'Tu usuario ya no tiene permiso para gestionar trabajos, así que el PC ha rechazado estos cambios pendientes:')}\n\n${mensajes.join('\n')}'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(tt('btn_aceptar', 'Aceptar')),
+        ),
+      ],
+    ),
+  );
+  permisoDenegadoNotifier.value = [];
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -525,6 +569,7 @@ void main() async {
   await cargarIdiomaGuardado();
   await AuthService.cargar();
   sesionNotifier.value = AuthService.autenticado;
+  permisoDenegadoNotifier.addListener(_alDenegarPermisoTrabajos);
   runApp(const MyApp());
 }
 
@@ -540,6 +585,7 @@ class MyApp extends StatelessWidget {
           valueListenable: themeNotifier,
           builder: (_, mode, __) {
             return MaterialApp(
+              navigatorKey: navigatorKeyApp,
               home: const AuthGate(),
               debugShowCheckedModeBanner: false,
               title: "MantPro Móvil",
@@ -1284,7 +1330,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (_urlPC == null) return;
     if (!silencioso) setState(() => _cargando = true);
 
-    List<int> bo = []; for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()})) bo.add(id); }
+    List<int> bo = []; for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()}, descripcion: tt('lbl_eliminar_trabajo', 'Eliminar trabajo'))) bo.add(id); }
     if (bo.isNotEmpty) setState(() { for (var id in bo) _colaBorrados.remove(id); });
 
     List<Map<String, dynamic>> no = []; for (var t in _colaNuevos) { if (await _apiMultipart('agregar_pendiente', t)) no.add(t); }
@@ -1296,7 +1342,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     List<Map<String, dynamic>> so = []; for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) so.add(t); }
     if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
 
-    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString()})) rv.add(t); }
+    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString()}, descripcion: tt('lbl_revertir_trabajo', 'Revertir trabajo'))) rv.add(t); }
     if (rv.isNotEmpty) setState(() { for (var t in rv) _colaRevertir.remove(t); });
 
     await _guardarCache();
@@ -1338,7 +1384,20 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     } catch (e) { /* */ }
     if (!silencioso && mounted) setState(() => _cargando = false);
   }
-  Future<bool> _apiPost(String ep, Map<String, String> b) async { try { return (await httpPostAuth(Uri.parse("http://$_urlPC/api/$ep"), body: b)).statusCode == 200; } catch (e) { return false; } }
+  // Nota sobre el valor devuelto: true significa "quitar de la cola", que
+  // pasa tanto si el PC ha aceptado el cambio (200) como si lo ha rechazado
+  // de forma definitiva por falta de permisos (403, ver requiere_tecnico en
+  // main.py): en ese caso no tiene sentido reintentarlo, así que se descarta
+  // y se avisa al usuario mediante permisoDenegadoNotifier. Cualquier otro
+  // fallo (red, servidor caído) devuelve false y el elemento se queda en la
+  // cola para el siguiente intento.
+  Future<bool> _apiPost(String ep, Map<String, String> b, {String? descripcion}) async {
+    try {
+      final res = await httpPostAuth(Uri.parse("http://$_urlPC/api/$ep"), body: b);
+      if (res.statusCode == 403) { avisarSinPermisoTrabajos(descripcion ?? ep); return true; }
+      return res.statusCode == 200;
+    } catch (e) { return false; }
+  }
   Future<bool> _apiMultipart(String ep, Map<String, dynamic> d) async {
     try {
       var r = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/$ep"));
@@ -1360,7 +1419,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) {
         r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
       }
-      return (await r.send()).statusCode == 200;
+      final res = await r.send();
+      if (res.statusCode == 403) { avisarSinPermisoTrabajos(d['titulo']?.toString() ?? ep); return true; }
+      return res.statusCode == 200;
     } catch (e) { return false; }
   }
   String? _obtenerFotoServer(PendientePC p) { final m = RegExp(r"\[FOTO:\s*(.*?)\]").firstMatch(p.detalles); return m?.group(1)?.trim(); }
@@ -1764,8 +1825,8 @@ class _TabAvisosState extends State<TabAvisos> {
     if (!mounted) return;
     setState(() => _cargando = true);
 
-    List<String> ro = []; for (var id in _colaRestaurar) { try { if ((await httpPostAuth(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { if ((await httpPostAuth(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -1900,7 +1961,8 @@ class _TabHistorialState extends State<TabHistorial> {
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
-        if ((await req.send()).statusCode == 200) ok.add(e);
+        final res = await req.send();
+        if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); ok.add(e); } else if (res.statusCode == 200) ok.add(e);
       } catch (e) { /* */ }
     }
     if (ok.isNotEmpty) { setState(() { for (var s in ok) _colaEdiciones.remove(s); }); await _guardarCola(); }
@@ -2035,6 +2097,7 @@ class _TabHistorialState extends State<TabHistorial> {
       req.fields['id'] = id; req.fields['tipo'] = tipo;
       req.files.add(await http.MultipartFile.fromPath(tipo == 'antes' ? 'foto' : 'foto_despues', rutaLocal));
       final r = await req.send();
+      if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_foto', 'Restaurar foto')); return true; }
       return r.statusCode == 200;
     } catch (e) { return false; }
   }
@@ -2463,10 +2526,10 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> colaSalida = prefs.getString('cola_salida') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_salida')!)) : [];
     List<Map<String, dynamic>> colaRevertir = prefs.getString('cola_revertir') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_revertir')!)) : [];
 
-    List<int> bo = []; for (var id in colaBorrados) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/eliminar_pendiente"), body: {'id': id.toString()})).statusCode == 200) bo.add(id); } catch(e){} }
+    List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/eliminar_pendiente"), body: {'id': id.toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
 
-    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()})).statusCode == 200) rv.add(t); } catch (e) {} }
+    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
     for (var t in rv) { colaRevertir.remove(t); }
 
     Future<bool> apiMultipart(String ep, Map<String, dynamic> d) async {
@@ -2481,7 +2544,9 @@ class SincronizadorGlobal {
         if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
         if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
         if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
-        return (await r.send()).statusCode == 200;
+        final res = await r.send();
+        if (res.statusCode == 403) { avisarSinPermisoTrabajos(d['titulo']?.toString() ?? ep); return true; }
+        return res.statusCode == 200;
       } catch (e) { return false; }
     }
 
@@ -2511,8 +2576,8 @@ class SincronizadorGlobal {
     if (cc != null) { colaCompletados = (json.decode(cc) as List<dynamic>).map((e) => Map<String, String>.from(e)).toList(); }
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
-    List<String> ro = []; for (var id in colaRestaurar) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5))).statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { if ((await httpPostAuth(Uri.parse("http://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5))).statusCode == 200) co.add(item); } catch (e) {} }
+    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -2535,7 +2600,8 @@ class SincronizadorGlobal {
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
-        if ((await req.send()).statusCode == 200) hok.add(e);
+        final res = await req.send();
+        if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); hok.add(e); } else if (res.statusCode == 200) hok.add(e);
       } catch (e) {}
     }
     for (var s in hok) { histEdiciones.remove(s); }

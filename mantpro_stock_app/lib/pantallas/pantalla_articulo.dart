@@ -134,7 +134,11 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
           if (sec.id == seccionId) {
             _estanteriaSel = est.id;
             _baldaSel = balda.id;
-            _seccionSel = sec.id;
+            // Las secciones implícitas no aparecen como una opción más en el
+            // desplegable: si el artículo está en una, se deja la sección
+            // sin elegir, como si se hubiera dado de alta directamente en la
+            // balda (que es justo lo que pasó).
+            _seccionSel = sec.implicita ? null : sec.id;
             return;
           }
         }
@@ -257,13 +261,40 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
     }
   }
 
+  Future<void> _borrar() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tt('dlg_confirmar_borrado_articulo', 'Eliminar artículo')),
+        content: Text(tt('msg_confirmar_borrar_articulo',
+            '¿Eliminar este artículo? Se perderá su historial de movimientos.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('btn_cancelar'))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tt('btn_eliminar', 'Eliminar')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final sincronizado = await StockApi.borrarMaterial(widget.materialId!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(sincronizado
+          ? tt('msg_articulo_eliminado', '✅ Artículo eliminado')
+          : tt('msg_articulo_eliminado_pendiente',
+              '💾 Eliminado en el móvil. Se confirmará en el PC cuando haya conexión.'))));
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final puedeGestionar = AuthService.puedeGestionarAlmacen;
-    // Los artículos creados sin conexión tienen un id temporal negativo hasta
-    // que el PC confirma el alta: no se pueden editar ni registrar
-    // movimientos sobre ellos hasta entonces.
-    final esTemporal = widget.materialId != null && widget.materialId! < 0;
     final titulo = widget.materialId == null
         ? tt('titulo_nuevo_articulo', 'Nuevo artículo')
         : (_editando
@@ -274,8 +305,10 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
       appBar: AppBar(
         title: Text(titulo),
         actions: [
-          if (widget.materialId != null && !_editando && puedeGestionar && !esTemporal)
+          if (widget.materialId != null && !_editando && puedeGestionar) ...[
+            IconButton(icon: const Icon(Icons.delete_outline), onPressed: _borrar),
             IconButton(icon: const Icon(Icons.edit), onPressed: () => setState(() => _editando = true)),
+          ],
         ],
       ),
       body: _cargando
@@ -346,7 +379,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               '${formatearCantidad(m.stockMinimo)} ${m.unidad}'.trim()),
           _filaDato(tt('lbl_ubicacion', 'Ubicación'),
               m.ubicacion.isEmpty ? tt('lbl_sin_ubicacion', 'Sin ubicación') : m.ubicacion),
-          if (AuthService.puedeGestionarAlmacen && !esTemporal) ...[
+          if (AuthService.puedeGestionarAlmacen) ...[
             const SizedBox(height: 16),
             Row(children: [
               Expanded(
@@ -539,6 +572,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
             initialValue: _seccionSel,
             decoration: InputDecoration(labelText: tt('lbl_seccion', 'Sección'), border: const OutlineInputBorder()),
             items: (_baldaActual?.secciones ?? [])
+                .where((s) => !s.implicita)
                 .map((s) => DropdownMenuItem(value: s.id, child: Text(s.nombre)))
                 .toList(),
             onChanged: _baldaActual == null ? null : (v) => setState(() => _seccionSel = v),

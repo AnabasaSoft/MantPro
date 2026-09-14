@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 class Seccion {
   final int id;
   final String nombre;
-  Seccion({required this.id, required this.nombre});
-  factory Seccion.fromJson(Map<String, dynamic> j) =>
-      Seccion(id: j['id'], nombre: j['nombre'] ?? '');
+  // Sección creada sola al ubicar un artículo directamente en la balda sin
+  // elegir sección (ver seccion_para_balda en almacen.py): no se muestra como
+  // una sección más, sus artículos aparecen sueltos bajo la balda.
+  final bool implicita;
+  Seccion({required this.id, required this.nombre, this.implicita = false});
+  factory Seccion.fromJson(Map<String, dynamic> j) => Seccion(
+      id: j['id'], nombre: j['nombre'] ?? '', implicita: j['implicita'] == 1 || j['implicita'] == true);
 }
 
 class Balda {

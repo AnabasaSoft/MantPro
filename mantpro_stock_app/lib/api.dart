@@ -24,6 +24,13 @@ final ValueNotifier<int> rolesActualizadosNotifier = ValueNotifier(0);
 /// conexión). Las pantallas lo escuchan para refrescarse desde la caché local.
 final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
 
+/// Lista de descripciones de cambios pendientes que el PC ha rechazado por
+/// falta de permisos (p. ej. el admin le ha quitado el rol de almacén al
+/// usuario después de que dejara algo en la cola offline). main.dart escucha
+/// este notificador para avisar al usuario con un diálogo, ya que si no se
+/// notifica el cambio se pierde en silencio.
+final ValueNotifier<List<String>> permisoDenegadoNotifier = ValueNotifier([]);
+
 /// t() con texto por defecto, por si la clave aún no está en i18n/strings.dart.
 String tt(String clave, String defecto) {
   final v = t(clave);
@@ -191,11 +198,18 @@ const String kStockCacheBajoMinimo = 'stock_cache_bajo_minimo';
 const String kStockColaNuevos = 'stock_cola_nuevos';
 const String kStockColaEdiciones = 'stock_cola_ediciones';
 const String kStockColaMovimientos = 'stock_cola_movimientos';
+const String kStockColaBorrados = 'stock_cola_borrados';
 
 List<Map<String, dynamic>> leerColaMapas(SharedPreferences prefs, String key) {
   final s = prefs.getString(key);
   if (s == null) return [];
   return List<Map<String, dynamic>>.from(json.decode(s) as List);
+}
+
+List<int> leerColaIds(SharedPreferences prefs, String key) {
+  final s = prefs.getString(key);
+  if (s == null) return [];
+  return List<int>.from(json.decode(s) as List);
 }
 
 /// Todas las llamadas al backend de stock del PC (comparte servidor y login con MantPro).
@@ -252,7 +266,11 @@ class StockApi {
     final ediciones = leerColaMapas(prefs, kStockColaEdiciones);
     final movimientos = leerColaMapas(prefs, kStockColaMovimientos);
     final nuevos = leerColaMapas(prefs, kStockColaNuevos);
-    var lista = List<Articulo>.from(base);
+    final borrados = leerColaIds(prefs, kStockColaBorrados);
+    // Los artículos borrados en el móvil desaparecen al momento aunque el PC
+    // todavía no haya confirmado el borrado (se retira de la cola en cuanto
+    // haya conexión).
+    var lista = List<Articulo>.from(base)..removeWhere((a) => borrados.contains(a.id));
 
     for (final e in ediciones) {
       final idx = lista.indexWhere((a) => a.id == e['id']);
@@ -280,11 +298,13 @@ class StockApi {
       lista[idx] = lista[idx].conStockAjustado(delta);
     }
 
-    var temporal = 0;
     for (final n in nuevos) {
-      temporal--;
+      final localId = n['localId'] as int;
       lista.add(Articulo(
-        id: temporal,
+        // Id temporal estable (basado en el localId de la cola, no en la
+        // posición en la lista) para poder editarlo o borrarlo mientras
+        // sigue pendiente de enviar al PC.
+        id: -localId,
         codigo: n['codigo'] ?? '',
         nombre: n['nombre'] ?? '',
         descripcion: n['descripcion'] ?? '',
@@ -404,8 +424,12 @@ class StockApi {
     File? foto,
     bool borrarFoto = false,
   }) async {
-    final ip = await _ip();
     final esNuevo = id == null;
+    // Los artículos dados de alta sin conexión tienen un id temporal negativo
+    // hasta que el PC confirma el alta: editarlos no requiere avisar al
+    // servidor todavía, basta con actualizar los datos que están pendientes
+    // de enviar en la propia cola de altas.
+    final esTemporalExistente = id != null && id < 0;
     final campos = <String, String>{
       'codigo': codigo,
       'nombre': nombre,
@@ -421,8 +445,33 @@ class StockApi {
     if (esNuevo) campos['stock_inicial'] = stockInicial.toString();
     if (borrarFoto) campos['borrar_foto'] = '1';
 
-    final localId = DateTime.now().microsecondsSinceEpoch;
     final prefs = await SharedPreferences.getInstance();
+
+    if (esTemporalExistente) {
+      final localId = -id;
+      final cola = leerColaMapas(prefs, kStockColaNuevos);
+      final idx = cola.indexWhere((e) => e['localId'] == localId);
+      if (idx == -1) {
+        throw ApiException(tt('msg_articulo_no_encontrado', 'Artículo no encontrado'));
+      }
+      cola[idx] = {
+        ...cola[idx],
+        ...campos,
+        'fotoPath': borrarFoto ? null : (foto?.path ?? cola[idx]['fotoPath']),
+      };
+      await prefs.setString(kStockColaNuevos, json.encode(cola));
+      final ip = await _ip();
+      bool sincronizado = false;
+      try {
+        sincronizado = await StockSincronizador.intentarEnviarInmediato(ip, kStockColaNuevos, localId);
+      } catch (_) {}
+      // ignore: unawaited_futures
+      StockSincronizador.sincronizarTodo(ip, silencioso: true);
+      return sincronizado;
+    }
+
+    final ip = await _ip();
+    final localId = DateTime.now().microsecondsSinceEpoch;
     final colaKey = esNuevo ? kStockColaNuevos : kStockColaEdiciones;
     if (esNuevo) {
       final cola = leerColaMapas(prefs, kStockColaNuevos);
@@ -456,9 +505,24 @@ class StockApi {
     required double cantidad,
     String motivo = '',
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (materialId < 0) {
+      // El artículo todavía no existe en el PC: se ajusta directamente la
+      // cantidad inicial pendiente de enviar, sin cola de movimientos.
+      final localId = -materialId;
+      final cola = leerColaMapas(prefs, kStockColaNuevos);
+      final idx = cola.indexWhere((e) => e['localId'] == localId);
+      if (idx == -1) {
+        throw ApiException(tt('msg_articulo_no_encontrado', 'Artículo no encontrado'));
+      }
+      final actual = double.tryParse('${cola[idx]['stock_inicial']}') ?? 0;
+      final delta = tipo == 'salida' ? -cantidad : cantidad;
+      cola[idx] = {...cola[idx], 'stock_inicial': (actual + delta).toString()};
+      await prefs.setString(kStockColaNuevos, json.encode(cola));
+      return true;
+    }
     final ip = await _ip();
     final localId = DateTime.now().microsecondsSinceEpoch;
-    final prefs = await SharedPreferences.getInstance();
     final cola = leerColaMapas(prefs, kStockColaMovimientos);
     cola.add({'localId': localId, 'materialId': materialId, 'tipo': tipo, 'cantidad': cantidad, 'motivo': motivo});
     await prefs.setString(kStockColaMovimientos, json.encode(cola));
@@ -466,6 +530,35 @@ class StockApi {
     bool sincronizado = false;
     try {
       sincronizado = await StockSincronizador.intentarEnviarInmediato(ip, kStockColaMovimientos, localId);
+    } catch (_) {}
+    // ignore: unawaited_futures
+    StockSincronizador.sincronizarTodo(ip, silencioso: true);
+    return sincronizado;
+  }
+
+  /// Elimina un artículo. Igual que las demás escrituras: desaparece de
+  /// inmediato en el móvil (ver [_conPendientes]) y se confirma en el PC en
+  /// el acto si hay conexión, o se queda en la cola para el siguiente intento.
+  static Future<bool> borrarMaterial(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (id < 0) {
+      // El artículo se dio de alta sin conexión y todavía no se ha enviado
+      // al PC: basta con quitarlo de la cola de altas, no hay nada que borrar
+      // en el servidor.
+      final localId = -id;
+      final cola = leerColaMapas(prefs, kStockColaNuevos);
+      cola.removeWhere((e) => e['localId'] == localId);
+      await prefs.setString(kStockColaNuevos, json.encode(cola));
+      return true;
+    }
+    final ip = await _ip();
+    final cola = leerColaIds(prefs, kStockColaBorrados);
+    if (!cola.contains(id)) cola.add(id);
+    await prefs.setString(kStockColaBorrados, json.encode(cola));
+
+    bool sincronizado = false;
+    try {
+      sincronizado = await StockSincronizador.intentarBorrarInmediato(ip, id);
     } catch (_) {}
     // ignore: unawaited_futures
     StockSincronizador.sincronizarTodo(ip, silencioso: true);
