@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.4"
+APP_VERSION = "3.8.5"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -2197,19 +2197,31 @@ class DialogoSeleccionRegion(QDialog):
 # DIÁLOGOS DE STOCK DE ALMACÉN
 # ==========================================
 class DialogoNuevaEstanteria(QDialog):
-    """Alta de una estantería nueva: nombre, número de baldas y si tiene hueco de suelo."""
-    def __init__(self, parent=None):
+    """Alta de una estantería nueva: nombre, número de baldas y si tiene hueco de suelo.
+    Si se pasa `estanteria` (el dict que devuelve almacen.listar_estructura()), se abre
+    en modo edición con la misma ventana y todos los campos rellenados con los valores
+    actuales: se puede cambiar el nombre, el estilo de las baldas, el hueco de suelo y
+    subir o bajar el número de baldas (al subir, se añaden por arriba continuando la
+    numeración, creando en cada una el número de secciones indicado; al bajar, se
+    borran las de numeración más alta, deteniéndose en la primera que tenga material).
+    El número de secciones y su estilo solo se aplican a las baldas nuevas que se
+    añadan aquí, no a las que ya existían."""
+    def __init__(self, parent=None, estanteria=None):
         super().__init__(parent)
-        self.setWindowTitle(tt("title_nueva_estanteria", "Nueva estantería"))
+        self._editando = estanteria is not None
+        self.setWindowTitle(tt("title_editar_estanteria", "Editar estantería") if self._editando
+                             else tt("title_nueva_estanteria", "Nueva estantería"))
         self.resize(380, 220)
         l = QVBoxLayout()
         l.addWidget(QLabel(tt("lbl_nombre_estanteria", "Nombre de la estantería")))
         self.campo_nombre = QLineEdit(); self.campo_nombre.setPlaceholderText(tt("ph_nombre_estanteria", "ej. Estantería A"))
         l.addWidget(self.campo_nombre)
-        l.addWidget(QLabel(tt("lbl_num_baldas", "Número de baldas")))
+        lbl_num_baldas = QLabel(tt("lbl_num_baldas", "Número de baldas"))
+        l.addWidget(lbl_num_baldas)
         self.spin_baldas = QSpinBox(); self.spin_baldas.setRange(1, 30); self.spin_baldas.setValue(3)
         l.addWidget(self.spin_baldas)
-        l.addWidget(QLabel(tt("lbl_num_secciones", "Número de secciones por balda")))
+        lbl_num_secciones = QLabel(tt("lbl_num_secciones", "Número de secciones por balda"))
+        l.addWidget(lbl_num_secciones)
         self.spin_secciones = QSpinBox(); self.spin_secciones.setRange(0, 30); self.spin_secciones.setValue(0)
         self.spin_secciones.setToolTip(tt("tt_num_secciones", "0 = sin secciones predefinidas (se pueden añadir después)"))
         l.addWidget(self.spin_secciones)
@@ -2222,11 +2234,27 @@ class DialogoNuevaEstanteria(QDialog):
         self.combo_estilo_baldas.addItem(tt("txt_letras", "Letras (A, B, C...)"), "letra")
         l.addWidget(self.combo_estilo_baldas)
 
-        l.addWidget(QLabel(tt("lbl_estilo_secciones", "Nombrar las secciones con")))
+        lbl_estilo_secciones = QLabel(tt("lbl_estilo_secciones", "Nombrar las secciones con"))
+        l.addWidget(lbl_estilo_secciones)
         self.combo_estilo_secciones = QComboBox()
         self.combo_estilo_secciones.addItem(tt("txt_letras", "Letras (A, B, C...)"), "letra")
         self.combo_estilo_secciones.addItem(tt("txt_numeros", "Números (1, 2, 3...)"), "numero")
         l.addWidget(self.combo_estilo_secciones)
+
+        if self._editando:
+            self.campo_nombre.setText(estanteria["nombre"])
+            num_baldas_actual = sum(1 for b in estanteria["baldas"] if b["numero"] != 0)
+            self.spin_baldas.setValue(max(1, num_baldas_actual))
+            self.chk_hueco_suelo.setChecked(bool(estanteria.get("tiene_hueco_suelo")))
+            idx = self.combo_estilo_baldas.findData(estanteria.get("estilo_baldas", "numero"))
+            if idx >= 0:
+                self.combo_estilo_baldas.setCurrentIndex(idx)
+            self.spin_secciones.setValue(0)
+            tt_solo_nuevas = tt("tt_solo_baldas_nuevas", "Solo se aplica a las baldas nuevas que se añadan al subir el número de baldas")
+            lbl_num_secciones.setToolTip(tt_solo_nuevas)
+            self.spin_secciones.setToolTip(tt_solo_nuevas)
+            lbl_estilo_secciones.setToolTip(tt_solo_nuevas)
+            self.combo_estilo_secciones.setToolTip(tt_solo_nuevas)
 
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -2248,7 +2276,16 @@ class DialogoConfigurarAlmacen(QDialog):
         l = QVBoxLayout()
 
         self.arbol = QTreeWidget(); self.arbol.setHeaderHidden(True)
+        self.arbol.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.arbol.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.arbol.customContextMenuRequested.connect(self._mostrar_menu_contextual)
         l.addWidget(self.arbol)
+
+        h0 = QHBoxLayout()
+        btn_expandir = QPushButton(tt("btn_expandir_todo", "⬇️ Expandir todo")); btn_expandir.clicked.connect(self.arbol.expandAll)
+        btn_contraer = QPushButton(tt("btn_contraer_todo", "⬆️ Contraer todo")); btn_contraer.clicked.connect(self.arbol.collapseAll)
+        h0.addWidget(btn_expandir); h0.addWidget(btn_contraer)
+        l.addLayout(h0)
 
         h1 = QHBoxLayout()
         btn_add_est = QPushButton(tt("btn_anadir_estanteria", "➕ Añadir estantería")); btn_add_est.clicked.connect(self.anadir_estanteria)
@@ -2282,7 +2319,8 @@ class DialogoConfigurarAlmacen(QDialog):
         col_balda = QColor("#6fcf7a") if oscuro else QColor("#1e6620")
         col_suelo = QColor("#e0b34d") if oscuro else QColor("#8a6210")
         col_sec = QColor("#c98be0") if oscuro else QColor("#6a2d8a")
-        for est in almacen.listar_estructura():
+        self._estructura = almacen.listar_estructura()
+        for est in self._estructura:
             item_est = QTreeWidgetItem([f"🗄️ {est['nombre']}"])
             item_est.setData(0, Qt.ItemDataRole.UserRole, ("estanteria", est["id"]))
             item_est.setForeground(0, col_est)
@@ -2369,6 +2407,117 @@ class DialogoConfigurarAlmacen(QDialog):
         ok, error = almacen.eliminar_seccion(id_)
         if not ok:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
+        self.refrescar()
+
+    def _mapa_baldas(self):
+        """A partir de self._estructura (rellenada en refrescar), devuelve dos diccionarios:
+        {balda_id: estanteria_id} y {balda_id: es_hueco_suelo}, para poder clasificar la
+        selección múltiple del árbol sin volver a consultar la base de datos."""
+        est_de_balda, es_suelo = {}, {}
+        for est in self._estructura:
+            for balda in est["baldas"]:
+                est_de_balda[balda["id"]] = est["id"]
+                es_suelo[balda["id"]] = balda["numero"] == 0
+        return est_de_balda, es_suelo
+
+    def _mostrar_menu_contextual(self, pos):
+        items = self.arbol.selectedItems()
+        if not items:
+            return
+        est_de_balda, es_suelo = self._mapa_baldas()
+        ids_est, ids_balda, ids_suelo = set(), set(), set()
+        estanterias_afectadas = set()
+        for item in items:
+            tipo, id_ = item.data(0, Qt.ItemDataRole.UserRole)
+            if tipo == "estanteria":
+                ids_est.add(id_)
+                estanterias_afectadas.add(id_)
+            elif tipo == "balda":
+                estanterias_afectadas.add(est_de_balda.get(id_))
+                (ids_suelo if es_suelo.get(id_) else ids_balda).add(id_)
+
+        menu = QMenu(self)
+        if len(ids_est) == 1:
+            id_est = next(iter(ids_est))
+            a = menu.addAction(tt("menu_editar_estanteria", "✏️ Editar estantería"))
+            a.triggered.connect(lambda: self._editar_estanteria(id_est))
+            menu.addSeparator()
+        if ids_est:
+            a = menu.addAction(tt("menu_borrar_estanterias", "🗑️ Borrar estanterías seleccionadas"))
+            a.triggered.connect(lambda: self._borrar_estanterias_multiple(ids_est))
+        if ids_balda:
+            a = menu.addAction(tt("menu_borrar_baldas", "🗑️ Borrar baldas seleccionadas"))
+            a.triggered.connect(lambda: self._borrar_baldas_multiple(ids_balda))
+        if ids_suelo:
+            a = menu.addAction(tt("menu_borrar_huecos_suelo", "🗑️ Borrar huecos de suelo seleccionados"))
+            a.triggered.connect(lambda: self._borrar_baldas_multiple(ids_suelo))
+        if estanterias_afectadas:
+            if not menu.isEmpty():
+                menu.addSeparator()
+            a = menu.addAction(tt("menu_cambiar_a_numeros", "🔢 Cambiar baldas a números"))
+            a.triggered.connect(lambda: self._cambiar_estilo_multiple(estanterias_afectadas, "numero"))
+            a = menu.addAction(tt("menu_cambiar_a_letras", "🔤 Cambiar baldas a letras"))
+            a.triggered.connect(lambda: self._cambiar_estilo_multiple(estanterias_afectadas, "letra"))
+            menu.addSeparator()
+            a = menu.addAction(tt("menu_anadir_baldas", "➕ Añadir balda a cada estantería seleccionada"))
+            a.triggered.connect(lambda: self._anadir_baldas_multiple(estanterias_afectadas))
+            a = menu.addAction(tt("menu_anadir_huecos_suelo", "➕ Añadir hueco de suelo a cada estantería seleccionada"))
+            a.triggered.connect(lambda: self._anadir_huecos_suelo_multiple(estanterias_afectadas))
+        if not menu.isEmpty():
+            menu.exec(self.arbol.viewport().mapToGlobal(pos))
+
+    def _editar_estanteria(self, estanteria_id):
+        est = next((e for e in self._estructura if e["id"] == estanteria_id), None)
+        if est is None:
+            return
+        dlg = DialogoNuevaEstanteria(self, estanteria=est)
+        if dlg.exec():
+            nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones = dlg.get_data()
+            if not nombre:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_obligatorio", "El nombre es obligatorio.")); return
+            no_borradas = almacen.editar_estanteria(
+                estanteria_id, nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones)
+            if no_borradas:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
+                    "msg_baldas_no_borradas", "No se han podido quitar {n} balda(s): todavía contienen material ubicado.").format(n=no_borradas))
+            self.refrescar()
+
+    def _borrar_estanterias_multiple(self, ids):
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
+                "msg_confirmar_eliminar_estanterias", "¿Eliminar {n} estantería(s) y toda su estructura?").format(n=len(ids))) != QMessageBox.StandardButton.Yes:
+            return
+        fallidas = sum(1 for id_ in ids if not almacen.eliminar_estanteria(id_)[0])
+        if fallidas:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
+                "msg_algunas_no_vacias", "{n} elemento(s) no se han podido borrar porque todavía contienen material ubicado.").format(n=fallidas))
+        self.refrescar()
+
+    def _borrar_baldas_multiple(self, ids):
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
+                "msg_confirmar_eliminar_baldas", "¿Eliminar {n} elemento(s) seleccionado(s) y sus secciones?").format(n=len(ids))) != QMessageBox.StandardButton.Yes:
+            return
+        fallidas = sum(1 for id_ in ids if not almacen.eliminar_balda(id_)[0])
+        if fallidas:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
+                "msg_algunas_no_vacias", "{n} elemento(s) no se han podido borrar porque todavía contienen material ubicado.").format(n=fallidas))
+        self.refrescar()
+
+    def _cambiar_estilo_multiple(self, estanteria_ids, estilo):
+        for id_ in estanteria_ids:
+            almacen.cambiar_estilo_baldas(id_, estilo)
+        self.refrescar()
+
+    def _anadir_baldas_multiple(self, estanteria_ids):
+        for id_ in estanteria_ids:
+            almacen.anadir_balda(id_)
+        self.refrescar()
+
+    def _anadir_huecos_suelo_multiple(self, estanteria_ids):
+        creados = sum(1 for id_ in estanteria_ids if almacen.anadir_hueco_suelo(id_))
+        ya_existian = len(estanteria_ids) - creados
+        if ya_existian:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt(
+                "msg_huecos_suelo_ya_existian", "{n} estantería(s) ya tenían hueco de suelo y no se han modificado.").format(n=ya_existian))
         self.refrescar()
 
 

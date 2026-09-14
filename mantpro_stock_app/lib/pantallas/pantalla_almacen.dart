@@ -157,6 +157,12 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
                         color: Theme.of(context).appBarTheme.backgroundColor,
                         child: TabBar(
                           isScrollable: true,
+                          // La barra siempre usa el color oscuro del AppBar (igual en
+                          // modo claro y oscuro), así que el texto tiene que ser
+                          // siempre claro; si no se fija aquí, en modo claro el tema
+                          // pone letras oscuras y quedan ilegibles sobre ese fondo.
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.white70,
                           tabs: _estanterias
                               .map((e) => Tab(text: e.nombre))
                               .toList(),
@@ -214,12 +220,19 @@ class _ArbolEstanteria extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: estanteria.baldas.map((balda) {
-        final tituloBalda = balda.numero == 0
+        final esSuelo = balda.numero == 0;
+        final tituloBalda = esSuelo
             ? tt('lbl_suelo', 'Suelo')
             : '${tt('lbl_balda', 'Balda')} ${textoBalda(balda.numero, estanteria.estiloBaldas)}';
+        // El hueco de suelo se distingue con un color propio, igual que en el
+        // árbol del PC, para que se note de un vistazo que no es una balda más.
+        final oscuro = Theme.of(context).brightness == Brightness.dark;
+        final colorSuelo = oscuro ? const Color(0xFFE0B34D) : const Color(0xFF8A6210);
         return ExpansionTile(
           title: Text(tituloBalda,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: esSuelo ? colorSuelo : null)),
           initiallyExpanded: true,
           children: balda.secciones.map((seccion) {
             final materiales = materialesPorSeccion[seccion.id] ?? [];

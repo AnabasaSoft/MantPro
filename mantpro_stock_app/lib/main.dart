@@ -100,7 +100,7 @@ Future<void> evaluarNotificacionStock() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás. Comparte repositorio con MantPro.
-const String kAppVersion = '3.8.4';
+const String kAppVersion = '3.8.5';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
