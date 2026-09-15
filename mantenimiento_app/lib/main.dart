@@ -1096,31 +1096,40 @@ class _TabDashboardState extends State<TabDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_urlPC == null && _stats['pendientes'] == 0) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.link_off, size: 64, color: Colors.grey), const SizedBox(height: 16),
-        Text(t("lbl_pc_no_vinculado")), TextButton(onPressed: _abrirQR, child: Text(t("btn_vincular_ahora")))
-      ]));
-    }
-    String txt = _cargando ? "..." : (_urlPC == null ? "Sin IP" : (_conexionActiva ? "Online" : "Reconectar"));
-    Color col = _cargando ? Colors.orange : (_urlPC == null ? Colors.grey : (_conexionActiva ? Colors.green : Colors.red));
-    return RefreshIndicator(
-      onRefresh: _cargarStatsOnline,
-      child: ListView(padding: const EdgeInsets.all(16), children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(t("lbl_estado_planta"), style: Theme.of(context).textTheme.headlineSmall),
-          Row(children: [
-            IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update, size: 20), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
-            Icon(_conexionActiva ? Icons.cloud_done : Icons.cloud_off, size: 18, color: _conexionActiva ? Colors.green : Colors.red),
+    // Envuelto en ValueListenableBuilder porque esta pestaña se crea una sola
+    // vez y se reutiliza siempre la misma instancia (ver _pantallas en
+    // _MainScreenState): sin esto, al cambiar de idioma esta pestaña no se
+    // refresca hasta que se sale de ella y se vuelve a entrar.
+    return ValueListenableBuilder<String>(
+      valueListenable: idiomaNotifier,
+      builder: (context, idiomaActual, _) {
+        if (_urlPC == null && _stats['pendientes'] == 0) {
+          return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.link_off, size: 64, color: Colors.grey), const SizedBox(height: 16),
+            Text(t("lbl_pc_no_vinculado")), TextButton(onPressed: _abrirQR, child: Text(t("btn_vincular_ahora")))
+          ]));
+        }
+        String txt = _cargando ? "..." : (_urlPC == null ? "Sin IP" : (_conexionActiva ? "Online" : "Reconectar"));
+        Color col = _cargando ? Colors.orange : (_urlPC == null ? Colors.grey : (_conexionActiva ? Colors.green : Colors.red));
+        return RefreshIndicator(
+          onRefresh: _cargarStatsOnline,
+          child: ListView(padding: const EdgeInsets.all(16), children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(t("lbl_estado_planta"), style: Theme.of(context).textTheme.headlineSmall),
+              Row(children: [
+                IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update, size: 20), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
+                Icon(_conexionActiva ? Icons.cloud_done : Icons.cloud_off, size: 18, color: _conexionActiva ? Colors.green : Colors.red),
+              ]),
+            ]), const SizedBox(height: 20),
+            GridView.count(crossAxisCount: 2, shrinkWrap: true, crossAxisSpacing: 10, mainAxisSpacing: 10, physics: const NeverScrollableScrollPhysics(), children: [
+              _buildCard(t("lbl_pendientes"), "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, targetTabIndex: 2),
+              _buildCard(t("lbl_registros_mes"), "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, targetTabIndex: 4),
+              _buildCard(t("lbl_avisos_config"), "${_stats['avisos_total']}", Icons.alarm, Colors.purple, targetTabIndex: 3),
+              _buildCard(t("lbl_conexion"), txt, Icons.wifi, col, customAction: _intentarReconexion),
+            ]),
           ]),
-        ]), const SizedBox(height: 20),
-        GridView.count(crossAxisCount: 2, shrinkWrap: true, crossAxisSpacing: 10, mainAxisSpacing: 10, physics: const NeverScrollableScrollPhysics(), children: [
-          _buildCard(t("lbl_pendientes"), "${_stats['pendientes']}", Icons.assignment_late, Colors.orange, targetTabIndex: 2),
-          _buildCard(t("lbl_registros_mes"), "${_stats['registros_mes']}", Icons.calendar_today, Colors.blue, targetTabIndex: 4),
-          _buildCard(t("lbl_avisos_config"), "${_stats['avisos_total']}", Icons.alarm, Colors.purple, targetTabIndex: 3),
-          _buildCard(t("lbl_conexion"), txt, Icons.wifi, col, customAction: _intentarReconexion),
-        ]),
-      ]),
+        );
+      },
     );
   }
 }
@@ -1210,7 +1219,12 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     }
   }
   @override Widget build(BuildContext context) {
-    return Scaffold(
+    // Ver comentario del mismo patrón en TabDashboard.build(): esta pestaña
+    // también se reutiliza siempre igual, así que necesita su propio listener
+    // para refrescarse en cuanto se cambia de idioma, sin salir de ella.
+    return ValueListenableBuilder<String>(
+      valueListenable: idiomaNotifier,
+      builder: (context, idiomaActual, _) => Scaffold(
       body: Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.1),
@@ -1243,6 +1257,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         })),
       ]),
       floatingActionButton: FloatingActionButton(child: const Icon(Icons.add), backgroundColor: Colors.blueAccent, onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, onSave: _addRegistro)))),
+      ),
     );
   }
 }
@@ -1563,7 +1578,10 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   @override Widget build(BuildContext context) {
     bool off = _urlPC == null;
     final lista = _listaVisible;
-    return Scaffold(
+    // Ver comentario del mismo patrón en TabDashboard.build().
+    return ValueListenableBuilder<String>(
+      valueListenable: idiomaNotifier,
+      builder: (context, idiomaActual, _) => Scaffold(
       body: Column(
         children: [
           Padding(
@@ -1713,6 +1731,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           }))),
         ),
       ]),
+      ),
     );
   }
   void _borrar(int id) async {
@@ -1875,6 +1894,10 @@ class _TabAvisosState extends State<TabAvisos> {
     setState(() => _colaRestaurar.add(a.id.toString())); await _guardarColas(); _sincronizar();
   }
   @override Widget build(BuildContext context) {
+    // Ver comentario del mismo patrón en TabDashboard.build().
+    return ValueListenableBuilder<String>(
+      valueListenable: idiomaNotifier,
+      builder: (context, idiomaActual, _) {
     if (_urlPC == null && _avisos.isEmpty) return Center(child: Text(t("lbl_conecta_pc_sync")));
     int p = _colaCompletados.length + _colaRestaurar.length;
     return Scaffold(
@@ -1884,13 +1907,15 @@ class _TabAvisosState extends State<TabAvisos> {
           ? RefreshIndicator(onRefresh: _sincronizar, child: ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), Center(child:Text(t("msg_no_hay_avisos")))]))
           : RefreshIndicator(onRefresh: _sincronizar, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(10), itemCount: _avisos.length, itemBuilder: (ctx, i) {
             final a = _avisos[i]; String id = a.id.toString(); bool ec = _colaCompletados.any((x) => x['id'] == id); bool er = _colaRestaurar.contains(id);
-            String st = a.estado; String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
+            String st = traducirEstadoAviso(a.estado); String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
             Color c = cl == 'red' ? Colors.redAccent : (cl == 'green' ? Colors.green : Colors.blue);
             Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
             return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon(cl=='red'?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text(a.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("${t('lbl_proxima')}${a.rango}", style: const TextStyle(fontSize: 12)), trailing: w));
           }))),
       ]),
       floatingActionButton: FloatingActionButton(mini: true, backgroundColor: p>0?Colors.white:Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : Icon(Icons.sync, color: p>0?Colors.orange:Colors.white), onPressed: _sincronizar),
+    );
+      },
     );
   }
 }
@@ -2202,7 +2227,10 @@ class _TabHistorialState extends State<TabHistorial> {
     if (_urlPC != null) SincronizadorGlobal.sincronizarTodo(_urlPC!);
   }
   @override Widget build(BuildContext context) {
-    return Scaffold(
+    // Ver comentario del mismo patrón en TabDashboard.build().
+    return ValueListenableBuilder<String>(
+      valueListenable: idiomaNotifier,
+      builder: (context, idiomaActual, _) => Scaffold(
       body: Column(children: [
         if (_colaEdiciones.isNotEmpty) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Text(t("msg_pendientes_subir").replaceAll('{n}', _colaEdiciones.length.toString()), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
           if (_sinConexion) Container(width: double.infinity, color: Colors.blueGrey, padding: const EdgeInsets.all(6), child: Text(t("msg_sin_conexion_datos_guardados"), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12))),
@@ -2234,6 +2262,7 @@ class _TabHistorialState extends State<TabHistorial> {
         const SizedBox(height: 10),
         FloatingActionButton(mini: true, heroTag: 'btnSincronizar', backgroundColor: Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : const Icon(Icons.sync, color: Colors.white), onPressed: _sincronizarCompleto),
       ]),
+      ),
     );
   }
 }

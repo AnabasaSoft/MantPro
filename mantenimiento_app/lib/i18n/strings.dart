@@ -527,3 +527,12 @@ String traducirTagsBD(String tagsBd) {
   };
   return tagsBd.split(', ').map((tag) => map[tag] ?? tag).join(', ');
 }
+
+/// El PC devuelve el estado de un aviso como un código fijo en español
+/// ("FUTURO", "PENDIENTE", "OK", ver main.py), pensado para lógica interna,
+/// no para mostrarlo tal cual. Aquí se traduce ese código al idioma activo.
+String traducirEstadoAviso(String estadoBd) {
+  const map = {"FUTURO": "estado_futuro", "PENDIENTE": "estado_pendiente", "OK": "estado_ok"};
+  final clave = map[estadoBd];
+  return clave != null ? t(clave) : estadoBd;
+}
