@@ -56,13 +56,7 @@ máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
 
 ## 🎬 Vídeo de demostración
 
-<p align="center">
-  <a href="Capturas/MantPro_Video.webm">
-    <img src="Capturas/MantPro_Video_thumb.jpg" alt="Vídeo de demostración de MantPro" width="480"/>
-  </a>
-  <br/>
-  <sub>👆 Haz clic en la imagen para ver el vídeo</sub>
-</p>
+https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 ## 📸 Capturas de Pantalla
 
