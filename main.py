@@ -3986,7 +3986,6 @@ class MaintenanceApp(QMainWindow):
         QTabWidget::pane { border: 2px inset #808080; background: #d4d0c8; }
         QTabBar::tab { background: #d4d0c8; border: 1px outset #d4d0c8; padding: 4px 14px; margin-right: 1px; }
         QTabBar::tab:selected { background: #d4d0c8; border-bottom: none; font-weight: bold; }
-        QTabBar::tab:!selected { margin-top: 2px; }
         QPushButton { background-color: #d4d0c8; border: 2px outset #d4d0c8; padding: 4px 12px; min-height: 20px; }
         QPushButton:pressed { border-style: inset; }
         QPushButton:hover { background-color: #e4e0d8; }
