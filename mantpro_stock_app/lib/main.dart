@@ -127,7 +127,7 @@ Future<void> evaluarNotificacionStock() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás. Comparte repositorio con MantPro.
-const String kAppVersion = '3.8.6';
+const String kAppVersion = '3.8.7';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -165,14 +165,14 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
     if (!forzar && descartada == tag) return;
     if (!context.mounted) return;
     showDialog(context: context, barrierDismissible: true, builder: (ctx) => AlertDialog(
-      title: const Text("🚀 Nueva versión disponible"),
+      title: Text(t("msg_nueva_version_titulo")),
       content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        Text("Tienes la versión $kAppVersion instalada y en GitHub ya está la $tag."),
+        Text(t("msg_nueva_version_cuerpo").replaceAll('{actual}', kAppVersion).replaceAll('{nueva}', tag)),
         if (notas.trim().isNotEmpty) ...[const SizedBox(height: 10), Text(notas.trim(), style: const TextStyle(fontSize: 12, color: Colors.grey))],
       ])),
       actions: [
-        TextButton(onPressed: () async { await prefs.setString('update_descartada', tag); if (ctx.mounted) Navigator.pop(ctx); }, child: const Text("Luego")),
-        ElevatedButton.icon(icon: const Icon(Icons.download), label: const Text("Descargar"), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
+        TextButton(onPressed: () async { await prefs.setString('update_descartada', tag); if (ctx.mounted) Navigator.pop(ctx); }, child: Text(t("btn_luego"))),
+        ElevatedButton.icon(icon: const Icon(Icons.download), label: Text(t("btn_descargar")), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
       ],
     ));
   } catch (_) {} // sin conexión o GitHub caído: no molestamos

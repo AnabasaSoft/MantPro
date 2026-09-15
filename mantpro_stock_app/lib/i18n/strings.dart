@@ -116,6 +116,29 @@ const Map<String, Map<String, String>> _traducciones = {
     "lbl_comprobar_stock_intro": "Comprueba la cantidad real de estos materiales y corrígela si hace falta.",
     "msg_sin_materiales": "No hay materiales en el almacén.",
     "motivo_comprobacion_stock": "Comprobación de stock",
+
+    // --- Artículos, permisos y colas ---
+    "lbl_articulo": "Artículo",
+    "msg_borrado_articulo": "Borrado de artículo",
+    "lbl_movimiento_stock": "Movimiento de stock",
+    "titulo_sin_permiso": "Cambios no aplicados",
+    "msg_sin_permiso_almacen": "Tu usuario ya no tiene permiso para gestionar el almacén, así que el PC ha rechazado estos cambios pendientes:",
+    "btn_aceptar": "Aceptar",
+    "msg_articulo_no_encontrado": "Artículo no encontrado",
+    "msg_articulo_pendiente": "💾 Guardado en el móvil. Se enviará al PC cuando haya conexión.",
+    "msg_movimiento_pendiente": "💾 Guardado en el móvil. Se enviará al PC cuando haya conexión.",
+    "dlg_confirmar_borrado_articulo": "Eliminar artículo",
+    "msg_confirmar_borrar_articulo": "¿Eliminar este artículo? Se perderá su historial de movimientos.",
+    "btn_eliminar": "Eliminar",
+    "msg_articulo_eliminado": "✅ Artículo eliminado",
+    "msg_articulo_eliminado_pendiente": "💾 Eliminado en el móvil. Se confirmará en el PC cuando haya conexión.",
+    "lbl_pendiente_sincronizar": "Pendiente de enviar al PC",
+
+    // --- Comprobador de actualizaciones ---
+    "msg_nueva_version_titulo": "🚀 Nueva versión disponible",
+    "msg_nueva_version_cuerpo": "Tienes la versión {actual} instalada y en GitHub ya está la {nueva}.",
+    "btn_luego": "Luego",
+    "btn_descargar": "Descargar",
   },
   "en": {
     "app_titulo": "MantPro Stock",
@@ -203,6 +226,29 @@ const Map<String, Map<String, String>> _traducciones = {
     "lbl_comprobar_stock_intro": "Check the actual quantity of these materials and correct it if needed.",
     "msg_sin_materiales": "There are no materials in the warehouse.",
     "motivo_comprobacion_stock": "Stock check",
+
+    // --- Artículos, permisos y colas ---
+    "lbl_articulo": "Item",
+    "msg_borrado_articulo": "Item deletion",
+    "lbl_movimiento_stock": "Stock movement",
+    "titulo_sin_permiso": "Changes not applied",
+    "msg_sin_permiso_almacen": "Your user no longer has permission to manage the warehouse, so the PC rejected these pending changes:",
+    "btn_aceptar": "OK",
+    "msg_articulo_no_encontrado": "Item not found",
+    "msg_articulo_pendiente": "💾 Saved on the phone. It will be sent to the PC when there is a connection.",
+    "msg_movimiento_pendiente": "💾 Saved on the phone. It will be sent to the PC when there is a connection.",
+    "dlg_confirmar_borrado_articulo": "Delete item",
+    "msg_confirmar_borrar_articulo": "Delete this item? Its movement history will be lost.",
+    "btn_eliminar": "Delete",
+    "msg_articulo_eliminado": "✅ Item deleted",
+    "msg_articulo_eliminado_pendiente": "💾 Deleted on the phone. It will be confirmed on the PC when there is a connection.",
+    "lbl_pendiente_sincronizar": "Pending upload to the PC",
+
+    // --- Comprobador de actualizaciones ---
+    "msg_nueva_version_titulo": "🚀 New version available",
+    "msg_nueva_version_cuerpo": "You have version {actual} installed and {nueva} is already on GitHub.",
+    "btn_luego": "Later",
+    "btn_descargar": "Download",
   },
   "eu": {
     "app_titulo": "MantPro Stock",
@@ -290,6 +336,29 @@ const Map<String, Map<String, String>> _traducciones = {
     "lbl_comprobar_stock_intro": "Egiaztatu material hauen kopuru erreala eta zuzendu behar bada.",
     "msg_sin_materiales": "Ez dago materialik biltegian.",
     "motivo_comprobacion_stock": "Stock egiaztapena",
+
+    // --- Artículos, permisos y colas ---
+    "lbl_articulo": "Artikulua",
+    "msg_borrado_articulo": "Artikulua ezabatzea",
+    "lbl_movimiento_stock": "Stock mugimendua",
+    "titulo_sin_permiso": "Aldaketak ez dira aplikatu",
+    "msg_sin_permiso_almacen": "Zure erabiltzaileak ez du jada biltegia kudeatzeko baimenik, beraz PCak zain zeuden aldaketa hauek baztertu ditu:",
+    "btn_aceptar": "Ados",
+    "msg_articulo_no_encontrado": "Artikulua ez da aurkitu",
+    "msg_articulo_pendiente": "💾 Mugikorrean gordeta. PCra bidaliko da konexioa dagoenean.",
+    "msg_movimiento_pendiente": "💾 Mugikorrean gordeta. PCra bidaliko da konexioa dagoenean.",
+    "dlg_confirmar_borrado_articulo": "Artikulua ezabatu",
+    "msg_confirmar_borrar_articulo": "Artikulu hau ezabatu? Bere mugimenduen historia galduko da.",
+    "btn_eliminar": "Ezabatu",
+    "msg_articulo_eliminado": "✅ Artikulua ezabatuta",
+    "msg_articulo_eliminado_pendiente": "💾 Mugikorrean ezabatuta. PCan berretsiko da konexioa dagoenean.",
+    "lbl_pendiente_sincronizar": "PCra bidaltzeko zain",
+
+    // --- Comprobador de actualizaciones ---
+    "msg_nueva_version_titulo": "🚀 Bertsio berria eskuragarri",
+    "msg_nueva_version_cuerpo": "{actual} bertsioa instalatuta duzu eta GitHub-en jada {nueva} dago.",
+    "btn_luego": "Geroago",
+    "btn_descargar": "Deskargatu",
   },
 };
 

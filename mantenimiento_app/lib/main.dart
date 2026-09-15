@@ -453,7 +453,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.8.6';
+const String kAppVersion = '3.8.7';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -495,21 +495,21 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
     if (!forzar && descartada == tag) return; // el usuario ya dijo "Luego" para esta versión
     if (!context.mounted) return;
     showDialog(context: context, barrierDismissible: true, builder: (ctx) => AlertDialog(
-      title: const Text("🚀 Nueva versión disponible"),
+      title: Text(t("msg_nueva_version_titulo")),
       content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        Text("Tienes la versión $kAppVersion instalada y en GitHub ya está la $tag."),
+        Text(t("msg_nueva_version_cuerpo").replaceAll('{actual}', kAppVersion).replaceAll('{nueva}', tag)),
         if (notas.trim().isNotEmpty) ...[const SizedBox(height: 10), Text(notas.trim(), style: const TextStyle(fontSize: 12, color: Colors.grey))],
       ])),
       actions: [
-        TextButton(onPressed: () async { await prefs.setString('update_descartada', tag); if (ctx.mounted) Navigator.pop(ctx); }, child: const Text("Luego")),
-        ElevatedButton.icon(icon: const Icon(Icons.download), label: const Text("Descargar"), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
+        TextButton(onPressed: () async { await prefs.setString('update_descartada', tag); if (ctx.mounted) Navigator.pop(ctx); }, child: Text(t("btn_luego"))),
+        ElevatedButton.icon(icon: const Icon(Icons.download), label: Text(t("btn_descargar")), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
       ],
     ));
   } catch (e) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); } // sin conexión o GitHub caído: no molestamos
 }
 
 void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? "❌ No se pudo comprobar actualizaciones (sin conexión)" : "✅ Ya tienes la última versión")));
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? t("msg_sin_actualizaciones_sin_conexion") : t("msg_ya_ultima_version"))));
 }
 
 // Permite mostrar diálogos desde código de sincronización en segundo plano
@@ -1070,7 +1070,7 @@ class _TabDashboardState extends State<TabDashboard> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pc_ip_url', ip);
 
-      showDialog(context: context, barrierDismissible: false, builder: (ctx) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text("Sincronizando todo...")])));
+      showDialog(context: context, barrierDismissible: false, builder: (ctx) => AlertDialog(content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(t("msg_sincronizando_todo"))])));
       await SincronizadorGlobal.sincronizarTodo(ip);
       if (mounted) Navigator.pop(context);
 
@@ -1110,7 +1110,7 @@ class _TabDashboardState extends State<TabDashboard> {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(t("lbl_estado_planta"), style: Theme.of(context).textTheme.headlineSmall),
           Row(children: [
-            IconButton(tooltip: "Buscar actualizaciones", icon: const Icon(Icons.system_update, size: 20), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
+            IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update, size: 20), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
             Icon(_conexionActiva ? Icons.cloud_done : Icons.cloud_off, size: 18, color: _conexionActiva ? Colors.green : Colors.red),
           ]),
         ]), const SizedBox(height: 20),
@@ -1223,7 +1223,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
                   await prefs.setString('pc_ip_url', ip);
                   setState(() => _urlPC = ip);
 
-                  showDialog(context: context, barrierDismissible: false, builder: (ctx) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text("Sincronizando todo...")])));
+                  showDialog(context: context, barrierDismissible: false, builder: (ctx) => AlertDialog(content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(t("msg_sincronizando_todo"))])));
                   await SincronizadorGlobal.sincronizarTodo(ip);
                   if (mounted) Navigator.pop(context);
 
@@ -1620,11 +1620,11 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                       child: ListTile(
                         leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: wIcon))),
                         title: Text(cItem['titulo'], style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
-                        subtitle: const Text("LISTO (Esperando conexión para subir)", style: TextStyle(color: Colors.green)),
+                        subtitle: Text(t("estado_listo_esperando_conexion"), style: const TextStyle(color: Colors.green)),
                         onTap: () => _editarColaSalida(i),
                         trailing: IconButton(
                           icon: const Icon(Icons.undo, color: Colors.orange),
-                          tooltip: "Cancelar envío y volver a pendiente",
+                          tooltip: t("tooltip_cancelar_envio"),
                           onPressed: () {
                             setState(() {
                               _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles']));
@@ -1756,7 +1756,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       await prefs.setString('pc_ip_url', c);
       setState(() => _urlPC = c);
 
-      showDialog(context: context, barrierDismissible: false, builder: (ctx) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text("Sincronizando todo...")])));
+      showDialog(context: context, barrierDismissible: false, builder: (ctx) => AlertDialog(content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(t("msg_sincronizando_todo"))])));
       await SincronizadorGlobal.sincronizarTodo(c);
       if (mounted) Navigator.pop(context);
 
@@ -2142,12 +2142,12 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   Future<void> _revertirAPendiente(Registro r) async {
     if (_urlPC == null) return;
-    String aviso = "El trabajo volverá a la pestaña Pendientes y desaparecerá del historial. ¿Continuar?";
+    String aviso = t("msg_revertir_aviso");
     if (r.maquinaId != null) {
-      aviso += "\n\nLas tareas pendientes no admiten máquina vinculada, así que se perderá ese dato.";
+      aviso += t("msg_revertir_aviso_maquina");
     }
     final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text("Revertir a pendiente"),
+      title: Text(t("titulo_revertir_pendiente")),
       content: Text(aviso),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))),
@@ -2204,8 +2204,8 @@ class _TabHistorialState extends State<TabHistorial> {
   @override Widget build(BuildContext context) {
     return Scaffold(
       body: Column(children: [
-        if (_colaEdiciones.isNotEmpty) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Text("${_colaEdiciones.length} pendientes de subir", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-          if (_sinConexion) Container(width: double.infinity, color: Colors.blueGrey, padding: const EdgeInsets.all(6), child: const Text("📴 Sin conexión — mostrando datos guardados en el móvil", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12))),
+        if (_colaEdiciones.isNotEmpty) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Text(t("msg_pendientes_subir").replaceAll('{n}', _colaEdiciones.length.toString()), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+          if (_sinConexion) Container(width: double.infinity, color: Colors.blueGrey, padding: const EdgeInsets.all(6), child: Text(t("msg_sin_conexion_datos_guardados"), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12))),
 
             const SizedBox(height: 5),
             // Pestañas de Años
@@ -2230,7 +2230,7 @@ class _TabHistorialState extends State<TabHistorial> {
           })))
       ]),
       floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
-        FloatingActionButton(mini: true, heroTag: 'btnRestaurarFotos', backgroundColor: Colors.deepOrange, tooltip: "Reenviar fotos locales al PC", child: const Icon(Icons.cloud_upload, color: Colors.white), onPressed: _cargando ? null : _reenviarFotosAlPC),
+        FloatingActionButton(mini: true, heroTag: 'btnRestaurarFotos', backgroundColor: Colors.deepOrange, tooltip: t("tooltip_reenviar_fotos"), child: const Icon(Icons.cloud_upload, color: Colors.white), onPressed: _cargando ? null : _reenviarFotosAlPC),
         const SizedBox(height: 10),
         FloatingActionButton(mini: true, heroTag: 'btnSincronizar', backgroundColor: Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : const Icon(Icons.sync, color: Colors.white), onPressed: _sincronizarCompleto),
       ]),
