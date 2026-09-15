@@ -195,25 +195,13 @@ def anios_de_maquina(id_maquina):
     return [(f[0], f[1]) for f in filas]
 
 
-def meses_de_maquina_anio(id_maquina, anio):
-    """Meses (01-12) con trabajos de esta máquina en el año dado, con su contador."""
-    con = _conn()
-    filas = con.execute(
-        "SELECT substr(fecha,6,2) AS mes, COUNT(*) FROM tareas "
-        "WHERE maquina_id=? AND substr(fecha,1,4)=? "
-        "GROUP BY mes ORDER BY mes DESC",
-        (id_maquina, anio),
-    ).fetchall()
-    con.close()
-    return [(f[0], f[1]) for f in filas if f[0]]
-
-
-def trabajos_de_maquina_anio_mes(id_maquina, anio, mes):
+def trabajos_de_maquina_anio(id_maquina, anio):
+    """Trabajos de esta máquina en el año dado, más recientes primero."""
     con = _conn()
     filas = con.execute(
         "SELECT id, fecha, descripcion, tags FROM tareas WHERE maquina_id=? "
-        "AND substr(fecha,1,4)=? AND substr(fecha,6,2)=? ORDER BY fecha DESC, id DESC",
-        (id_maquina, anio, mes),
+        "AND substr(fecha,1,4)=? ORDER BY fecha DESC, id DESC",
+        (id_maquina, anio),
     ).fetchall()
     con.close()
     return [dict(f) for f in filas]

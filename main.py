@@ -74,10 +74,10 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QPropertyAnimation, QEasingCurve, QTimer,
-                          QTranslator, QLibraryInfo)
+                          QTranslator, QLibraryInfo, QRectF)
 
 from PyQt6.QtGui import (QAction, QActionGroup, QIcon, QColor, QBrush, QTextCharFormat,
-                         QPixmap, QImage, QTextCursor, QFileSystemModel)
+                         QPixmap, QImage, QTextCursor, QFileSystemModel, QPainter, QPen, QFont)
 
 # Función auxiliar para conectar de forma SEGURA
 def get_db_connection(db_path):
@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.6"
+APP_VERSION = "3.8.7"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -2623,6 +2623,85 @@ class DialogoSeleccionarUbicacion(QDialog):
         return self.combo_seccion.currentData()
 
 
+class _ItemArbolOrdenable(QTreeWidgetItem):
+    """QTreeWidgetItem que, si la columna tiene una clave de orden guardada en
+    UserRole+1 (un número o una fecha ISO), la usa para comparar en vez del
+    texto mostrado. Así "10" no queda antes que "2" y las fechas se ordenan
+    cronológicamente y no alfabéticamente al pulsar la cabecera del árbol."""
+    def __lt__(self, otro):
+        arbol = self.treeWidget()
+        columna = arbol.sortColumn() if arbol else 0
+        clave_propia = self.data(columna, Qt.ItemDataRole.UserRole + 1)
+        clave_otro = otro.data(columna, Qt.ItemDataRole.UserRole + 1)
+        if clave_propia is not None and clave_otro is not None:
+            return clave_propia < clave_otro
+        return super().__lt__(otro)
+
+
+class GraficoCircularTrabajos(QWidget):
+    """Gráfica circular dibujada a mano con QPainter (sin depender de ninguna
+    librería de gráficos externa) que reparte un total de trabajos entre un
+    conjunto de etiquetas, con su leyenda de colores al lado."""
+
+    _COLORES = [
+        QColor("#3daee9"), QColor("#e67e22"), QColor("#2ecc71"), QColor("#e74c3c"),
+        QColor("#9b59b6"), QColor("#f1c40f"), QColor("#1abc9c"), QColor("#95a5a6"),
+    ]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._datos = []
+        self.setMinimumHeight(180)
+
+    def establecer_datos(self, datos):
+        """datos: lista de tuplas (etiqueta, valor)."""
+        self._datos = [(etiqueta, valor) for etiqueta, valor in datos if valor > 0]
+        self.update()
+
+    def paintEvent(self, evento):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        total = sum(valor for _, valor in self._datos)
+        ancho, alto = self.width(), self.height()
+
+        if total == 0:
+            painter.setPen(QColor("#888888"))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
+                              tt("lbl_sin_trabajos_grafico", "Sin trabajos registrados"))
+            return
+
+        ancho_leyenda = 120
+        lado = min(alto - 20, ancho - ancho_leyenda - 20)
+        lado = max(lado, 30)
+        x_tarta = 10
+        y_tarta = (alto - lado) // 2
+        rect_tarta = QRectF(x_tarta, y_tarta, lado, lado)
+
+        angulo_inicio = 90 * 16  # las 12h en punto, QPainter mide en 1/16 de grado
+        for i, (etiqueta, valor) in enumerate(self._datos):
+            color = self._COLORES[i % len(self._COLORES)]
+            angulo_extension = -round(valor / total * 360 * 16)
+            painter.setBrush(QBrush(color))
+            painter.setPen(QPen(QColor("#1e1e1e"), 1))
+            painter.drawPie(rect_tarta, angulo_inicio, angulo_extension)
+            angulo_inicio += angulo_extension
+
+        x_leyenda = x_tarta + lado + 15
+        painter.setFont(QFont(painter.font().family(), 8))
+        for i, (etiqueta, valor) in enumerate(self._datos):
+            y = 10 + i * 16
+            if y > alto - 10:
+                painter.setPen(QColor("#dcdcdc"))
+                painter.drawText(x_leyenda, y, "…")
+                break
+            color = self._COLORES[i % len(self._COLORES)]
+            painter.setBrush(QBrush(color))
+            painter.setPen(QPen(Qt.PenStyle.NoPen))
+            painter.drawRect(x_leyenda, y, 10, 10)
+            painter.setPen(QColor("#dcdcdc"))
+            painter.drawText(x_leyenda + 15, y + 9, f"{etiqueta} ({valor})")
+
+
 class DialogoEditarMaquina(QDialog):
     """Alta/edición de una máquina del listado de maquinaria."""
     def __init__(self, parent=None, maquina=None, padre_sugerido=None, excluir_ids=None):
@@ -4492,19 +4571,25 @@ class MaintenanceApp(QMainWindow):
         b_nueva_sub = QPushButton(tt("btn_nueva_submaquina", "➕ Nueva submáquina")); b_nueva_sub.clicked.connect(self._maquina_nueva_sub)
         b_editar = QPushButton(tt("btn_editar_maquina", "✏️ Editar")); b_editar.clicked.connect(self._maquina_editar)
         b_eliminar = QPushButton(tt("btn_eliminar_maquina", "🗑️ Eliminar")); b_eliminar.setStyleSheet("background-color:#c0392b; color: white;"); b_eliminar.clicked.connect(self._maquina_eliminar)
-        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar]: h_tools.addWidget(b)
+        b_expandir = QPushButton(tt("btn_expandir_todo", "⬇️ Expandir todo")); b_expandir.clicked.connect(self._maquinas_expandir_todo)
+        b_contraer = QPushButton(tt("btn_contraer_todo", "⬆️ Contraer todo"))
+        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer]: h_tools.addWidget(b)
         h_tools.addStretch()
         l.addLayout(h_tools)
 
         h_cuerpo = QHBoxLayout()
         self.arbol_maquinas = QTreeWidget()
-        self.arbol_maquinas.setColumnCount(2)
-        self.arbol_maquinas.setHeaderLabels([tt("hdr_maquina", "Máquina"), tt("hdr_trabajos", "Trabajos")])
+        self.arbol_maquinas.setColumnCount(3)
+        self.arbol_maquinas.setHeaderLabels([tt("hdr_maquina", "Máquina"), tt("hdr_trabajos", "Trabajos"), tt("hdr_fecha_maquina", "Fecha")])
         self.arbol_maquinas.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.arbol_maquinas.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.arbol_maquinas.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.arbol_maquinas.setSortingEnabled(True)
         self.arbol_maquinas.itemExpanded.connect(self._maquina_item_expandido)
         self.arbol_maquinas.itemDoubleClicked.connect(self._maquina_item_doble_click)
         self.arbol_maquinas.currentItemChanged.connect(self._maquina_mostrar_foto_seleccionada)
         h_cuerpo.addWidget(self.arbol_maquinas, 65)
+        b_contraer.clicked.connect(self.arbol_maquinas.collapseAll)
 
         v_foto = QVBoxLayout()
         v_foto.addWidget(QLabel(tt("lbl_foto_maquina", "Foto de la máquina")))
@@ -4513,6 +4598,9 @@ class MaintenanceApp(QMainWindow):
         self.lbl_foto_maquina.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
         v_foto.addWidget(self.lbl_foto_maquina)
+        v_foto.addWidget(QLabel(tt("lbl_grafico_trabajos_maquina", "Trabajos por máquina")))
+        self.grafico_trabajos_maquina = GraficoCircularTrabajos()
+        v_foto.addWidget(self.grafico_trabajos_maquina)
         v_foto.addStretch()
         h_cuerpo.addLayout(v_foto, 35)
 
@@ -4540,6 +4628,7 @@ class MaintenanceApp(QMainWindow):
     def refrescar_arbol_maquinas(self):
         item_actual = self.arbol_maquinas.currentItem()
         id_seleccionado = item_actual.data(0, Qt.ItemDataRole.UserRole)["id"] if item_actual else None
+        self.arbol_maquinas.setSortingEnabled(False)
         self.arbol_maquinas.clear()
         todas = maquinas.listar_maquinas()
         por_padre = {}
@@ -4550,12 +4639,20 @@ class MaintenanceApp(QMainWindow):
             self.arbol_maquinas.addTopLevelItem(item)
             if id_seleccionado == m["id"]:
                 self.arbol_maquinas.setCurrentItem(item)
+        self.arbol_maquinas.setSortingEnabled(True)
+
+        datos_grafico = sorted(
+            ((m["nombre"], maquinas.contar_trabajos(m["id"])) for m in todas),
+            key=lambda par: par[1], reverse=True,
+        )
+        self.grafico_trabajos_maquina.establecer_datos(datos_grafico)
 
     def _crear_nodo_maquina(self, maquina):
         total = maquinas.contar_trabajos(maquina["id"])
-        item = QTreeWidgetItem([maquina["nombre"], str(total)])
+        item = _ItemArbolOrdenable([maquina["nombre"], str(total), ""])
+        item.setData(1, Qt.ItemDataRole.UserRole + 1, total)
         item.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "maquina", "id": maquina["id"], "cargado": False})
-        item.addChild(QTreeWidgetItem([""]))  # hijo ficticio para mostrar la flecha de expandir
+        item.addChild(_ItemArbolOrdenable([""]))  # hijo ficticio para mostrar la flecha de expandir
         return item
 
     def _maquina_item_expandido(self, item):
@@ -4571,25 +4668,37 @@ class MaintenanceApp(QMainWindow):
             for sub in por_padre.get(datos["id"], []):
                 item.addChild(self._crear_nodo_maquina(sub))
             for anio, cnt in maquinas.anios_de_maquina(datos["id"]):
-                nodo = QTreeWidgetItem([anio, str(cnt)])
+                nodo = _ItemArbolOrdenable([anio, str(cnt), ""])
+                nodo.setData(1, Qt.ItemDataRole.UserRole + 1, cnt)
                 nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "anio", "id": datos["id"], "anio": anio, "cargado": False})
-                nodo.addChild(QTreeWidgetItem([""]))
+                nodo.addChild(_ItemArbolOrdenable([""]))
                 item.addChild(nodo)
         elif tipo == "anio":
-            for mes, cnt in maquinas.meses_de_maquina_anio(datos["id"], datos["anio"]):
-                nombre_mes = tt(f"mes_{mes}", mes)
-                nodo = QTreeWidgetItem([nombre_mes, str(cnt)])
-                nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "mes", "id": datos["id"], "anio": datos["anio"], "mes": mes, "cargado": False})
-                nodo.addChild(QTreeWidgetItem([""]))
-                item.addChild(nodo)
-        elif tipo == "mes":
-            for trabajo in maquinas.trabajos_de_maquina_anio_mes(datos["id"], datos["anio"], datos["mes"]):
+            for trabajo in maquinas.trabajos_de_maquina_anio(datos["id"], datos["anio"]):
                 resumen = trabajo["descripcion"].splitlines()[0] if trabajo["descripcion"] else ""
-                nodo = QTreeWidgetItem([f"{trabajo['fecha']} — {resumen}", ""])
+                fecha_fmt = self._formatear_fecha_corta(trabajo["fecha"])
+                nodo = _ItemArbolOrdenable([resumen, "", fecha_fmt])
+                nodo.setData(2, Qt.ItemDataRole.UserRole + 1, trabajo["fecha"])
                 nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "trabajo", "id": trabajo["id"], "cargado": True})
                 item.addChild(nodo)
         datos["cargado"] = True
         item.setData(0, Qt.ItemDataRole.UserRole, datos)
+
+    def _formatear_fecha_corta(self, fecha_iso):
+        try:
+            return datetime.strptime(fecha_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
+        except (ValueError, TypeError):
+            return fecha_iso or ""
+
+    def _maquinas_expandir_todo(self):
+        """Expande todas las máquinas, años y trabajos, cargando bajo demanda
+        (vía _maquina_item_expandido) los niveles que aún no se hayan abierto."""
+        def expandir_recursivo(item):
+            self.arbol_maquinas.expandItem(item)
+            for i in range(item.childCount()):
+                expandir_recursivo(item.child(i))
+        for i in range(self.arbol_maquinas.topLevelItemCount()):
+            expandir_recursivo(self.arbol_maquinas.topLevelItem(i))
 
     def _maquina_item_doble_click(self, item, columna):
         datos = item.data(0, Qt.ItemDataRole.UserRole)
