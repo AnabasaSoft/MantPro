@@ -1,11 +1,11 @@
-# MantPro - Sistema de Mantenimiento Preventivo
+# MantPro
 
 <p align="center">
   <img src="logo.png" alt="MantPro Logo" width="200"/>
 </p>
 
 <p align="center">
-  <strong>Gestión profesional de mantenimiento preventivo y correctivo para equipos y flotas</strong>
+  <strong>CMMS gratuito y open source para gestionar el mantenimiento preventivo y correctivo de tu planta, taller o flota, desde PC y Android.</strong>
 </p>
 
 <p align="center">
@@ -13,15 +13,74 @@
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
+  <img src="https://img.shields.io/badge/Sin%20suscripción-100%25%20gratis-orange.svg" alt="Sin suscripción">
+</p>
+
+---
+
+## 🧩 ¿Qué problema resuelve?
+
+En muchos talleres y plantas pequeñas o medianas, el mantenimiento se lleva
+entre papeles, un Excel compartido y mensajes de WhatsApp. Funciona, hasta que
+alguien necesita saber **qué se le ha hecho a una máquina en concreto**, quién
+lo hizo, cuándo y con qué material, y esa información está repartida entre
+tres sitios distintos (o en ninguno).
+
+**MantPro centraliza eso**: cada técnico registra su intervención desde el
+móvil, en el momento, con fotos de antes y después si hace falta, y todo
+queda ordenado en el PC por máquina, por fecha y por persona, listo para
+consultarlo o sacar un informe en PDF.
+
+## 🎯 ¿Para quién es?
+
+Pensado para quien lleva el mantenimiento del día a día, no para departamentos
+de IT: técnicos de mantenimiento, responsables de planta, talleres, PYMEs
+industriales y encargados de almacén que necesitan un control real de
+máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
+
+## 🆚 ¿Por qué MantPro y no un CMMS comercial?
+
+- **Open source y gratis**: código abierto bajo AGPL-3.0, sin límite de
+  técnicos, máquinas o registros
+- **Sin suscripción**: no se paga por usuario ni por mes de uso
+- **Tus datos, en tu infraestructura**: la base de datos vive en tu propio PC;
+  no dependes de que un servicio en la nube de terceros siga existiendo el año
+  que viene
+- **Offline de verdad**: el móvil funciona sin conexión a internet ni al PC
+  durante toda la jornada, y sincroniza en cuanto vuelve a haber red
+- **Hecho desde el propio mantenimiento**: las funciones han ido saliendo de
+  necesidades reales de taller (fotos de antes/después, vínculo a máquina,
+  stock de recambios, avisos recurrentes...), no de una lista de requisitos
+  genérica de CMMS
+
+## 📸 Capturas de Pantalla
+
+### Aplicación de Escritorio
+
+<p align="center">
+  <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
+  <img src="Capturas/Almacen.png" alt="Gestión de Almacén" width="45%"/>
+</p>
+
+### Aplicación Móvil
+
+<p align="center">
+  <img src="Capturas/Dashboard-movil.jpg" alt="Dashboard Móvil" width="30%"/>
+  <img src="Capturas/Almacen-movil.jpg" alt="Almacén Móvil" width="30%"/>
+  <img src="Capturas/Historial-movil.jpg" alt="Historial Móvil" width="30%"/>
 </p>
 
 ---
 
 ## 📋 Índice
 
+- [¿Qué problema resuelve?](#-qué-problema-resuelve)
+- [¿Para quién es?](#-para-quién-es)
+- [¿Por qué MantPro?](#-por-qué-mantpro-y-no-un-cmms-comercial)
+- [Capturas de Pantalla](#-capturas-de-pantalla)
 - [Descargas](#-descargas)
 - [Características](#-características)
-- [Capturas de Pantalla](#-capturas-de-pantalla)
 - [Requisitos](#-requisitos)
 - [Instalación](#-instalación)
 - [Uso](#-uso)
@@ -112,25 +171,6 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 - **🔄 Auto-actualización**: la pantalla se refresca sola al detectar cambios, tanto si el cambio se hizo en el propio móvil como en el PC
 - **🔌 Modo Offline**: consulta con la última información sincronizada si no hay conexión con el PC
 - **🔔 Recordatorio Diario de Comprobación de Stock**: notificación automática a las 8:00 AM (hora local) invitando a revisar la cantidad real de 5 materiales del almacén, elegidos al azar y distintos cada día; al pulsarla se abre una pantalla para corregir la cantidad de cada uno sin buscarlos a mano. Si no hay ningún material dado de alta, no se muestra ninguna notificación
-
----
-
-## 📸 Capturas de Pantalla
-
-### Aplicación de Escritorio
-
-<p align="center">
-  <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Gestión de Almacén" width="45%"/>
-</p>
-
-### Aplicación Móvil
-
-<p align="center">
-  <img src="Capturas/Dashboard-movil.jpg" alt="Dashboard Móvil" width="30%"/>
-  <img src="Capturas/Almacen-movil.jpg" alt="Almacén Móvil" width="30%"/>
-  <img src="Capturas/Historial-movil.jpg" alt="Historial Móvil" width="30%"/>
-</p>
 
 ---
 
