@@ -57,7 +57,7 @@ máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
 ## 🎬 Vídeo de demostración
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/Capturas/MantPro_Video.webm">
+  <a href="Capturas/MantPro_Video.webm">
     <img src="Capturas/MantPro_Video_thumb.jpg" alt="Vídeo de demostración de MantPro" width="480"/>
   </a>
   <br/>
