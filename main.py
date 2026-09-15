@@ -4597,10 +4597,22 @@ class MaintenanceApp(QMainWindow):
         self.lbl_foto_maquina.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
         v_foto.addWidget(self.lbl_foto_maquina)
+        v_foto.addStretch(1)  # empuja el bloque de la gráfica hacia abajo
         v_foto.addWidget(QLabel(tt("lbl_grafico_trabajos_maquina", "Trabajos por máquina")))
+
+        h_grafico = QHBoxLayout()
         self.grafico_trabajos_maquina = GraficoCircularTrabajos()
-        v_foto.addWidget(self.grafico_trabajos_maquina)
-        v_foto.addStretch()
+        h_grafico.addWidget(self.grafico_trabajos_maquina, 1)
+        v_combo_anio = QVBoxLayout()
+        v_combo_anio.addWidget(QLabel(tt("lbl_anio_grafico", "Año:")))
+        self.combo_anio_grafico = QComboBox()
+        self.combo_anio_grafico.currentIndexChanged.connect(self._actualizar_grafico_trabajos)
+        v_combo_anio.addWidget(self.combo_anio_grafico)
+        v_combo_anio.addStretch()
+        h_grafico.addLayout(v_combo_anio)
+        v_foto.addLayout(h_grafico)
+
+        v_foto.addStretch(1)
         h_cuerpo.addLayout(v_foto, 35)
 
         l.addLayout(h_cuerpo)
@@ -4640,17 +4652,23 @@ class MaintenanceApp(QMainWindow):
                 self.arbol_maquinas.setCurrentItem(item)
         self.arbol_maquinas.setSortingEnabled(True)
 
-        datos_grafico = sorted(
-            ((m["nombre"], maquinas.contar_trabajos(m["id"])) for m in todas),
-            key=lambda par: par[1], reverse=True,
-        )
-        self.grafico_trabajos_maquina.establecer_datos(datos_grafico)
+        self._refrescar_combo_anio_grafico()
+        self._actualizar_grafico_trabajos()
+
+    def _colores_arbol_maquinas(self):
+        """Colores para diferenciar máquinas y años en el árbol, acordes al tema activo."""
+        oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+        col_maquina = QColor("#5fa8e8") if oscuro else QColor("#0d3862")
+        col_anio = QColor("#e0b34d") if oscuro else QColor("#8a6210")
+        return col_maquina, col_anio
 
     def _crear_nodo_maquina(self, maquina):
         total = maquinas.contar_trabajos(maquina["id"])
         item = _ItemArbolOrdenable([maquina["nombre"], str(total), ""])
         item.setData(1, Qt.ItemDataRole.UserRole + 1, total)
         item.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "maquina", "id": maquina["id"], "cargado": False})
+        col_maquina, _ = self._colores_arbol_maquinas()
+        item.setForeground(0, col_maquina)
         item.addChild(_ItemArbolOrdenable([""]))  # hijo ficticio para mostrar la flecha de expandir
         return item
 
@@ -4666,10 +4684,12 @@ class MaintenanceApp(QMainWindow):
                 por_padre.setdefault(m["padre_id"], []).append(m)
             for sub in por_padre.get(datos["id"], []):
                 item.addChild(self._crear_nodo_maquina(sub))
+            _, col_anio = self._colores_arbol_maquinas()
             for anio, cnt in maquinas.anios_de_maquina(datos["id"]):
                 nodo = _ItemArbolOrdenable([anio, str(cnt), ""])
                 nodo.setData(1, Qt.ItemDataRole.UserRole + 1, cnt)
                 nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "anio", "id": datos["id"], "anio": anio, "cargado": False})
+                nodo.setForeground(0, col_anio)
                 nodo.addChild(_ItemArbolOrdenable([""]))
                 item.addChild(nodo)
         elif tipo == "anio":
@@ -4682,6 +4702,29 @@ class MaintenanceApp(QMainWindow):
                 item.addChild(nodo)
         datos["cargado"] = True
         item.setData(0, Qt.ItemDataRole.UserRole, datos)
+
+    def _refrescar_combo_anio_grafico(self):
+        """Rellena el desplegable de años del gráfico, conservando la selección actual si sigue existiendo."""
+        anio_actual = self.combo_anio_grafico.currentData()
+        self.combo_anio_grafico.blockSignals(True)
+        self.combo_anio_grafico.clear()
+        self.combo_anio_grafico.addItem(tt("opcion_todos_los_anios", "TODOS"), None)
+        for anio in maquinas.anios_disponibles():
+            self.combo_anio_grafico.addItem(anio, anio)
+        indice = self.combo_anio_grafico.findData(anio_actual)
+        self.combo_anio_grafico.setCurrentIndex(indice if indice >= 0 else 0)
+        self.combo_anio_grafico.blockSignals(False)
+
+    def _actualizar_grafico_trabajos(self):
+        """Recalcula el gráfico circular de trabajos por máquina según el año elegido en el desplegable."""
+        anio = self.combo_anio_grafico.currentData()
+        todas = maquinas.listar_maquinas()
+        if anio is None:
+            datos_grafico = ((m["nombre"], maquinas.contar_trabajos(m["id"])) for m in todas)
+        else:
+            datos_grafico = ((m["nombre"], maquinas.contar_trabajos_anio(m["id"], anio)) for m in todas)
+        datos_grafico = sorted(datos_grafico, key=lambda par: par[1], reverse=True)
+        self.grafico_trabajos_maquina.establecer_datos(datos_grafico)
 
     def _formatear_fecha_corta(self, fecha_iso):
         try:

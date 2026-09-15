@@ -195,6 +195,30 @@ def anios_de_maquina(id_maquina):
     return [(f[0], f[1]) for f in filas]
 
 
+def anios_disponibles():
+    """Años (texto 'YYYY') con al menos un trabajo vinculado a alguna máquina,
+    de más reciente a más antiguo."""
+    con = _conn()
+    filas = con.execute(
+        "SELECT DISTINCT substr(fecha,1,4) AS anio FROM tareas "
+        "WHERE maquina_id IS NOT NULL AND fecha IS NOT NULL AND fecha != '' "
+        "ORDER BY anio DESC"
+    ).fetchall()
+    con.close()
+    return [f[0] for f in filas]
+
+
+def contar_trabajos_anio(id_maquina, anio):
+    """Nº de trabajos de esta máquina en el año dado (texto 'YYYY')."""
+    con = _conn()
+    fila = con.execute(
+        "SELECT COUNT(*) FROM tareas WHERE maquina_id=? AND substr(fecha,1,4)=?",
+        (id_maquina, anio),
+    ).fetchone()
+    con.close()
+    return fila[0] if fila else 0
+
+
 def trabajos_de_maquina_anio(id_maquina, anio):
     """Trabajos de esta máquina en el año dado, más recientes primero."""
     con = _conn()

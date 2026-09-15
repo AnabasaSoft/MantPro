@@ -54,6 +54,16 @@ máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
   stock de recambios, avisos recurrentes...), no de una lista de requisitos
   genérica de CMMS
 
+## 🎬 Vídeo de demostración
+
+<p align="center">
+  <a href="Capturas/MantPro_Video.webm">
+    <img src="Capturas/MantPro_Video_thumb.jpg" alt="Vídeo de demostración de MantPro" width="480"/>
+  </a>
+  <br/>
+  <sub>👆 Haz clic en la imagen para ver el vídeo</sub>
+</p>
+
 ## 📸 Capturas de Pantalla
 
 ### Aplicación de Escritorio
@@ -78,6 +88,7 @@ máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
 - [¿Qué problema resuelve?](#-qué-problema-resuelve)
 - [¿Para quién es?](#-para-quién-es)
 - [¿Por qué MantPro?](#-por-qué-mantpro-y-no-un-cmms-comercial)
+- [Vídeo de demostración](#-vídeo-de-demostración)
 - [Capturas de Pantalla](#-capturas-de-pantalla)
 - [Descargas](#-descargas)
 - [Características](#-características)
