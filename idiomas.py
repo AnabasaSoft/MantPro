@@ -104,7 +104,7 @@ TRADUCCIONES = {
         "tab_calendario": "📅 Calendario",
         "tab_avisos": "🔁 Recordatorios",
         "tab_registrar": "📝 Registrar",
-        "tab_historial": "🗂 Historial",
+        "tab_historial": "📋 Historial",
         "tab_buscador": "🔍 Buscador",
         "tab_pendientes": "🔨 Pendientes",
 
@@ -517,7 +517,7 @@ TRADUCCIONES = {
         "tab_calendario": "📅 Calendar",
         "tab_avisos": "🔁 Reminders",
         "tab_registrar": "📝 New Entry",
-        "tab_historial": "🗂 History",
+        "tab_historial": "📋 History",
         "tab_buscador": "🔍 Search",
         "tab_pendientes": "🔨 Pending",
 
@@ -921,7 +921,7 @@ TRADUCCIONES = {
         "tab_calendario": "📅 Egutegia",
         "tab_avisos": "🔁 Gogorarazpenak",
         "tab_registrar": "📝 Erregistratu",
-        "tab_historial": "🗂 Historia",
+        "tab_historial": "📋 Historia",
         "tab_buscador": "🔍 Bilatzailea",
         "tab_pendientes": "🔨 Egiteke",
         "dlg_idioma_titulo": "Aldatu Hizkuntza",
