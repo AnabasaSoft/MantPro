@@ -38,8 +38,10 @@ import usuarios
 
 try:
     from idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
+    import idiomas as _idiomas
 except Exception:  # pragma: no cover
     _t = None
+    _idiomas = None
 
 
 def t(clave, defecto=None):
@@ -53,13 +55,18 @@ def t(clave, defecto=None):
 
 
 def _formatear_fecha(iso):
-    """Convierte un ISO datetime (guardado en BD) a 'HH:MM:SS DD/MM/AAAA'."""
+    """Convierte un ISO datetime (guardado en BD) a 'HH:MM:SS' + fecha corta del idioma activo."""
     if not iso:
         return "—"
     try:
-        return datetime.fromisoformat(iso).strftime("%H:%M:%S %d/%m/%Y")
+        dt_obj = datetime.fromisoformat(iso)
     except ValueError:
         return iso
+    if _idiomas is not None:
+        fecha_txt = _idiomas.formato_fecha_localizada(dt_obj.strftime("%Y-%m-%d"))
+    else:
+        fecha_txt = dt_obj.strftime("%d/%m/%Y")
+    return f"{dt_obj.strftime('%H:%M:%S')} {fecha_txt}"
 
 
 # --------------------------------------------------------------------- login
