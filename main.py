@@ -311,11 +311,7 @@ class GeneradorPDFThread(QThread):
                     autor = fila_pdf[3] if len(fila_pdf) > 3 and fila_pdf[3] else usuarios.ETIQUETA_HISTORICO
                     maquina_nombre = self.mapa_maquinas.get(fila_pdf[4], "-") if len(fila_pdf) > 4 and fila_pdf[4] else "-"
                     prioridad_txt = traducir_prioridad(fila_pdf[5]) if len(fila_pdf) > 5 else traducir_prioridad("Media")
-                    try:
-                        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
-                        fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-                    except:
-                        fecha_formateada = fecha
+                    fecha_formateada = idiomas.formato_fecha_localizada(fecha)
 
                     desc_visual = desc
                     img_obj = ""
@@ -1209,7 +1205,7 @@ class ServidorSincronizacion(QThread):
                         "id": aid,
                         "titulo": tit,
                         "frecuencia": freq,
-                        "rango": f"{ocurrencia.strftime('%d/%m')} - {fin_ocurrencia.strftime('%d/%m')}",
+                        "rango": f"{ocurrencia.strftime(idiomas.formato_fecha_corta_py())} - {fin_ocurrencia.strftime(idiomas.formato_fecha_corta_py())}",
                         "estado": estado,
                         "color": color_code,
                         "raw_inicio": ocurrencia.strftime("%Y-%m-%d"),
@@ -4435,7 +4431,8 @@ class MaintenanceApp(QMainWindow):
             self.table_avisos.setItem(r, 1, item_t)
             self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
 
-            rango = f"{ocurrencia.toString('dd/MM')} - {fin_ocurrencia.toString('dd/MM')}"
+            patron_qt = idiomas.formato_fecha_corta_qt()
+            rango = f"{ocurrencia.toString(patron_qt)} - {fin_ocurrencia.toString(patron_qt)}"
             self.table_avisos.setItem(r, 3, QTableWidgetItem(rango))
             self.table_avisos.setItem(r, 4, QTableWidgetItem(estado_txt))
 
@@ -4908,10 +4905,7 @@ class MaintenanceApp(QMainWindow):
         self.grafico_trabajos_maquina.establecer_datos(datos_grafico)
 
     def _formatear_fecha_corta(self, fecha_iso):
-        try:
-            return datetime.strptime(fecha_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
-        except (ValueError, TypeError):
-            return fecha_iso or ""
+        return idiomas.formato_fecha_localizada(fecha_iso)
 
     def _maquinas_expandir_todo(self):
         """Expande todas las máquinas, años y trabajos, cargando bajo demanda
@@ -5766,14 +5760,10 @@ class MaintenanceApp(QMainWindow):
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
-                writer.writerow(["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), "Foto Antes", "Foto Después"])
+                writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")])
                 for tarea in datos:
-                    # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
-                    try:
-                        fecha_obj = datetime.strptime(tarea[1], "%Y-%m-%d")
-                        fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-                    except:
-                        fecha_formateada = tarea[1]
+                    # Convertir formato de fecha de YYYY-MM-DD al formato corto del idioma activo
+                    fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
 
                     # Limpiamos FOTO y REF de la descripción
                     desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
@@ -5816,7 +5806,7 @@ class MaintenanceApp(QMainWindow):
             center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
 
             # Nuevos encabezados
-            headers = ["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), "Foto Antes", "Foto Después"]
+            headers = [tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")]
             for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
 
             # Ajuste de anchura de columnas
@@ -5854,12 +5844,8 @@ class MaintenanceApp(QMainWindow):
             mapa_maquinas = maquinas.mapa_rutas_completas()
             row = 1
             for tarea in datos:
-                # Convertir formato de fecha
-                try:
-                    fecha_obj = datetime.strptime(tarea[1], "%Y-%m-%d")
-                    fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-                except:
-                    fecha_formateada = tarea[1]
+                # Convertir formato de fecha al formato corto del idioma activo
+                fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
 
                 worksheet.write(row, 0, tarea[0], center)
                 worksheet.write(row, 1, fecha_formateada, center)
@@ -6034,7 +6020,8 @@ class MaintenanceApp(QMainWindow):
                 nombre_defecto = f"Reporte_Mantenimiento_{inicio}_a_{fin}.pdf"
                 archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
                 if not archivo: return
-                lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({inicio} a {fin}){sufijo_u}", "datos": datos})
+                titulo_pdf = t("titulo_reporte_rango").format(inicio=inicio, fin=fin) + sufijo_u
+                lista_trabajos.append({"archivo": archivo, "titulo": titulo_pdf, "datos": datos})
 
             elif modo == "TODO":
                 c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
@@ -6044,7 +6031,7 @@ class MaintenanceApp(QMainWindow):
                 nombre_defecto = f"Reporte_Histórico_Completo_{datetime.now().strftime('%Y%m%d')}.pdf"
                 archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
                 if not archivo: return
-                lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte Histórico Completo{sufijo_u}", "datos": datos})
+                lista_trabajos.append({"archivo": archivo, "titulo": t("titulo_reporte_historico") + sufijo_u, "datos": datos})
 
             elif modo == "MESES":
                 c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
@@ -6068,7 +6055,8 @@ class MaintenanceApp(QMainWindow):
 
                 for mes, datos_mes in datos_por_mes.items():
                     archivo = os.path.join(carpeta_destino, f"Reporte_Mantenimiento_{mes}.pdf")
-                    lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({mes}){sufijo_u}", "datos": datos_mes})
+                    titulo_mes = t("titulo_reporte_mes").format(mes=mes) + sufijo_u
+                    lista_trabajos.append({"archivo": archivo, "titulo": titulo_mes, "datos": datos_mes})
 
             conn.close()
         except Exception as e:
