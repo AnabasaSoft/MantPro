@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.8"
+APP_VERSION = "3.8.9"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -2741,6 +2741,18 @@ class DialogoEditarMaquina(QDialog):
             self.combo_padre.setCurrentIndex(idx)
         l.addWidget(self.combo_padre)
 
+        l.addWidget(QLabel(tt("lbl_zona_maquina", "Zona / Ubicación (opcional)")))
+        h_zona = QHBoxLayout()
+        self.combo_zona = QComboBox()
+        self._recargar_combo_zona(maquina.get("zona_id") if maquina else None)
+        h_zona.addWidget(self.combo_zona, 1)
+        btn_nueva_zona = QPushButton("➕")
+        btn_nueva_zona.setFixedWidth(32)
+        btn_nueva_zona.setToolTip(tt("btn_nueva_zona", "Nueva zona"))
+        btn_nueva_zona.clicked.connect(self._nueva_zona)
+        h_zona.addWidget(btn_nueva_zona)
+        l.addLayout(h_zona)
+
         l.addWidget(QLabel(tt("lbl_notas", "Notas")))
         self.campo_notas = QTextEdit(maquina.get("notas") or "" if maquina else "")
         self.campo_notas.setMaximumHeight(100)
@@ -2764,6 +2776,20 @@ class DialogoEditarMaquina(QDialog):
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
         l.addWidget(b); self.setLayout(l)
+
+    def _recargar_combo_zona(self, zona_id_seleccionada=None):
+        self.combo_zona.clear()
+        self.combo_zona.addItem(tt("txt_sin_zona", "— Sin zona —"), None)
+        for z in maquinas.listar_zonas():
+            self.combo_zona.addItem(z["nombre"], z["id"])
+        idx = self.combo_zona.findData(zona_id_seleccionada)
+        self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
+
+    def _nueva_zona(self):
+        nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona", "Nueva zona"), tt("lbl_nombre_zona", "Nombre de la zona"))
+        if ok and nombre.strip():
+            nuevo_id = maquinas.agregar_zona(nombre.strip())
+            self._recargar_combo_zona(nuevo_id)
 
     def _actualizar_preview_inicial(self):
         if self.foto_nombre_existente:
@@ -2804,6 +2830,7 @@ class DialogoEditarMaquina(QDialog):
         return {
             "nombre": self.campo_nombre.text().strip(),
             "padre_id": self.combo_padre.currentData(),
+            "zona_id": self.combo_zona.currentData(),
             "notas": self.campo_notas.toPlainText().strip(),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
             "foto_nombre_existente": self.foto_nombre_existente,
@@ -4578,11 +4605,12 @@ class MaintenanceApp(QMainWindow):
 
         h_cuerpo = QHBoxLayout()
         self.arbol_maquinas = QTreeWidget()
-        self.arbol_maquinas.setColumnCount(3)
-        self.arbol_maquinas.setHeaderLabels([tt("hdr_maquina", "Máquina"), tt("hdr_trabajos", "Trabajos"), tt("hdr_fecha_maquina", "Fecha")])
+        self.arbol_maquinas.setColumnCount(4)
+        self.arbol_maquinas.setHeaderLabels([tt("hdr_maquina", "Máquina"), tt("hdr_trabajos", "Trabajos"), tt("hdr_fecha_maquina", "Fecha"), tt("hdr_zona", "Zona")])
         self.arbol_maquinas.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.arbol_maquinas.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.arbol_maquinas.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.arbol_maquinas.header().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.arbol_maquinas.setSortingEnabled(True)
         self.arbol_maquinas.itemExpanded.connect(self._maquina_item_expandido)
         self.arbol_maquinas.itemDoubleClicked.connect(self._maquina_item_doble_click)
@@ -4608,6 +4636,10 @@ class MaintenanceApp(QMainWindow):
         self.combo_anio_grafico = QComboBox()
         self.combo_anio_grafico.currentIndexChanged.connect(self._actualizar_grafico_trabajos)
         v_combo_anio.addWidget(self.combo_anio_grafico)
+        v_combo_anio.addWidget(QLabel(tt("lbl_zona_grafico", "Zona:")))
+        self.combo_zona_grafico = QComboBox()
+        self.combo_zona_grafico.currentIndexChanged.connect(self._actualizar_grafico_trabajos)
+        v_combo_anio.addWidget(self.combo_zona_grafico)
         v_combo_anio.addStretch()
         h_grafico.addLayout(v_combo_anio)
         v_foto.addLayout(h_grafico)
@@ -4653,22 +4685,25 @@ class MaintenanceApp(QMainWindow):
         self.arbol_maquinas.setSortingEnabled(True)
 
         self._refrescar_combo_anio_grafico()
+        self._refrescar_combo_zona_grafico()
         self._actualizar_grafico_trabajos()
 
     def _colores_arbol_maquinas(self):
-        """Colores para diferenciar máquinas y años en el árbol, acordes al tema activo."""
+        """Colores para diferenciar máquinas, años y zonas en el árbol, acordes al tema activo."""
         oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
         col_maquina = QColor("#5fa8e8") if oscuro else QColor("#0d3862")
         col_anio = QColor("#e0b34d") if oscuro else QColor("#8a6210")
-        return col_maquina, col_anio
+        col_zona = QColor("#c98be0") if oscuro else QColor("#6a2d8a")
+        return col_maquina, col_anio, col_zona
 
     def _crear_nodo_maquina(self, maquina):
         total = maquinas.contar_trabajos(maquina["id"])
-        item = _ItemArbolOrdenable([maquina["nombre"], str(total), ""])
+        item = _ItemArbolOrdenable([maquina["nombre"], str(total), "", maquina.get("zona_nombre") or ""])
         item.setData(1, Qt.ItemDataRole.UserRole + 1, total)
         item.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "maquina", "id": maquina["id"], "cargado": False})
-        col_maquina, _ = self._colores_arbol_maquinas()
+        col_maquina, _, col_zona = self._colores_arbol_maquinas()
         item.setForeground(0, col_maquina)
+        item.setForeground(3, col_zona)
         item.addChild(_ItemArbolOrdenable([""]))  # hijo ficticio para mostrar la flecha de expandir
         return item
 
@@ -4684,7 +4719,7 @@ class MaintenanceApp(QMainWindow):
                 por_padre.setdefault(m["padre_id"], []).append(m)
             for sub in por_padre.get(datos["id"], []):
                 item.addChild(self._crear_nodo_maquina(sub))
-            _, col_anio = self._colores_arbol_maquinas()
+            _, col_anio, _ = self._colores_arbol_maquinas()
             for anio, cnt in maquinas.anios_de_maquina(datos["id"]):
                 nodo = _ItemArbolOrdenable([anio, str(cnt), ""])
                 nodo.setData(1, Qt.ItemDataRole.UserRole + 1, cnt)
@@ -4715,15 +4750,37 @@ class MaintenanceApp(QMainWindow):
         self.combo_anio_grafico.setCurrentIndex(indice if indice >= 0 else 0)
         self.combo_anio_grafico.blockSignals(False)
 
+    def _refrescar_combo_zona_grafico(self):
+        """Rellena el desplegable de zonas del gráfico, conservando la selección actual si sigue existiendo."""
+        zona_actual = self.combo_zona_grafico.currentData()
+        self.combo_zona_grafico.blockSignals(True)
+        self.combo_zona_grafico.clear()
+        self.combo_zona_grafico.addItem(tt("opcion_todas_las_zonas", "TODAS"), None)
+        for z in maquinas.zonas_disponibles():
+            self.combo_zona_grafico.addItem(z["nombre"], z["id"])
+        indice = self.combo_zona_grafico.findData(zona_actual)
+        self.combo_zona_grafico.setCurrentIndex(indice if indice >= 0 else 0)
+        self.combo_zona_grafico.blockSignals(False)
+
     def _actualizar_grafico_trabajos(self):
-        """Recalcula el gráfico circular de trabajos por máquina según el año elegido en el desplegable."""
+        """Recalcula el gráfico circular de trabajos por máquina según el año y la zona elegidos
+        en los desplegables, sumando en cada máquina de nivel superior los trabajos de sus submáquinas."""
         anio = self.combo_anio_grafico.currentData()
-        todas = maquinas.listar_maquinas()
-        if anio is None:
-            datos_grafico = ((m["nombre"], maquinas.contar_trabajos(m["id"])) for m in todas)
-        else:
-            datos_grafico = ((m["nombre"], maquinas.contar_trabajos_anio(m["id"], anio)) for m in todas)
-        datos_grafico = sorted(datos_grafico, key=lambda par: par[1], reverse=True)
+        zona_id = self.combo_zona_grafico.currentData()
+        top_level = [m for m in maquinas.listar_maquinas() if m["padre_id"] is None]
+        if zona_id is not None:
+            top_level = [m for m in top_level if m["zona_id"] == zona_id]
+
+        def total_trabajos(id_maquina):
+            ids = maquinas.descendientes_ids(id_maquina)
+            if anio is None:
+                return sum(maquinas.contar_trabajos(i) for i in ids)
+            return sum(maquinas.contar_trabajos_anio(i, anio) for i in ids)
+
+        datos_grafico = sorted(
+            ((m["nombre"], total_trabajos(m["id"])) for m in top_level),
+            key=lambda par: par[1], reverse=True,
+        )
         self.grafico_trabajos_maquina.establecer_datos(datos_grafico)
 
     def _formatear_fecha_corta(self, fecha_iso):
@@ -4772,20 +4829,20 @@ class MaintenanceApp(QMainWindow):
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
-            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto)
+            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
             self.refrescar_arbol_maquinas()
 
     def _maquina_nueva_sub(self):
         item = self.arbol_maquinas.currentItem()
         datos_item = item.data(0, Qt.ItemDataRole.UserRole) if item else None
         if not datos_item or datos_item.get("tipo") != "maquina":
-            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_maquina", "Selecciona primero la máquina superior."))
+            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_maquina_padre", "Selecciona primero la máquina superior."))
             return
         dlg = DialogoEditarMaquina(self, padre_sugerido=datos_item["id"])
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
-            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto)
+            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
             self.refrescar_arbol_maquinas()
 
     def _maquina_editar(self):
@@ -4800,7 +4857,7 @@ class MaintenanceApp(QMainWindow):
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
-            maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto)
+            maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
             self.refrescar_arbol_maquinas()
             self._maquina_mostrar_foto_seleccionada()
 
