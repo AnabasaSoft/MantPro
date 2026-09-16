@@ -303,12 +303,14 @@ class GeneradorPDFThread(QThread):
                     return Paragraph(texto, style_header)
 
                 data_tabla = [[cab(t("hdr_fecha")), cab(t("hdr_descripcion")), cab(tt("hdr_maquina", "Máquina")),
-                               cab(tt("hdr_realizado_por", "Realizado por")), cab(t("hdr_foto_antes")), cab(t("hdr_foto_despues"))]]
+                               cab(tt("hdr_realizado_por", "Realizado por")), cab(tt("hdr_prioridad", "Prioridad")),
+                               cab(t("hdr_foto_antes")), cab(t("hdr_foto_despues"))]]
 
                 for fila_pdf in trabajo["datos"]:
                     fecha, desc, tags = fila_pdf[0], fila_pdf[1], fila_pdf[2]
                     autor = fila_pdf[3] if len(fila_pdf) > 3 and fila_pdf[3] else usuarios.ETIQUETA_HISTORICO
                     maquina_nombre = self.mapa_maquinas.get(fila_pdf[4], "-") if len(fila_pdf) > 4 and fila_pdf[4] else "-"
+                    prioridad_txt = traducir_prioridad(fila_pdf[5]) if len(fila_pdf) > 5 else traducir_prioridad("Media")
                     try:
                         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
                         fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
@@ -350,10 +352,10 @@ class GeneradorPDFThread(QThread):
                     desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
-                    data_tabla.append([Paragraph(fecha_formateada, style_cell), p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), img_obj, img_obj_d])
+                    data_tabla.append([Paragraph(fecha_formateada, style_cell), p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), Paragraph(prioridad_txt, style_cell), img_obj, img_obj_d])
 
                 ancho_foto = 3.0 * cm
-                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.8*cm, 2.4*cm, 2.6*cm, ancho_foto, ancho_foto])
+                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.2*cm, 2.2*cm, 2.4*cm, 1.8*cm, ancho_foto, ancho_foto])
                 tabla_pdf.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -5814,7 +5816,7 @@ class MaintenanceApp(QMainWindow):
             center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
 
             # Nuevos encabezados
-            headers = ["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"]
+            headers = ["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), "Foto Antes", "Foto Después"]
             for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
 
             # Ajuste de anchura de columnas
@@ -5823,8 +5825,9 @@ class MaintenanceApp(QMainWindow):
             worksheet.set_column('C:C', 60) # Descripción ancha
             worksheet.set_column('D:D', 25) # Máquina
             worksheet.set_column('E:E', 20) # Realizado por
-            worksheet.set_column('F:F', 25) # Foto Antes
-            worksheet.set_column('G:G', 25) # Foto Después
+            worksheet.set_column('F:F', 12) # Prioridad
+            worksheet.set_column('G:G', 25) # Foto Antes
+            worksheet.set_column('H:H', 25) # Foto Después
 
             # --- FUNCIÓN INTERNA PARA CALCULAR LA ESCALA PERFECTA ---
             def obtener_opciones_img(ruta_img):
@@ -5873,6 +5876,9 @@ class MaintenanceApp(QMainWindow):
                 autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
                 worksheet.write(row, 4, autor, center)
 
+                prioridad_txt = traducir_prioridad(tarea[6]) if len(tarea) > 6 else traducir_prioridad("Media")
+                worksheet.write(row, 5, prioridad_txt, center)
+
                 # Incrustar FOTO ANTES
                 m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
                 if m:
@@ -5881,12 +5887,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta):
                         opc = obtener_opciones_img(ruta)
                         if opc:
-                            try: worksheet.insert_image(row, 5, ruta, opc)
-                            except: worksheet.write(row, 5, "Err Img", center)
+                            try: worksheet.insert_image(row, 6, ruta, opc)
+                            except: worksheet.write(row, 6, "Err Img", center)
                         else:
-                            worksheet.write(row, 5, "Err Img", center)
-                    else: worksheet.write(row, 5, "No File", center)
-                else: worksheet.write(row, 5, "-", center)
+                            worksheet.write(row, 6, "Err Img", center)
+                    else: worksheet.write(row, 6, "No File", center)
+                else: worksheet.write(row, 6, "-", center)
 
                 # Incrustar FOTO DESPUÉS
                 m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
@@ -5896,12 +5902,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta_d):
                         opc = obtener_opciones_img(ruta_d)
                         if opc:
-                            try: worksheet.insert_image(row, 6, ruta_d, opc)
-                            except: worksheet.write(row, 6, "Err Img", center)
+                            try: worksheet.insert_image(row, 7, ruta_d, opc)
+                            except: worksheet.write(row, 7, "Err Img", center)
                         else:
-                            worksheet.write(row, 6, "Err Img", center)
-                    else: worksheet.write(row, 6, "No File", center)
-                else: worksheet.write(row, 6, "-", center)
+                            worksheet.write(row, 7, "Err Img", center)
+                    else: worksheet.write(row, 7, "No File", center)
+                else: worksheet.write(row, 7, "-", center)
 
                 worksheet.set_row(row, 90) # Altura de fila fija
                 row += 1
@@ -6020,7 +6026,7 @@ class MaintenanceApp(QMainWindow):
             lista_trabajos = []
 
             if modo == "RANGO" and inicio and fin:
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
                           "WHERE fecha BETWEEN ? AND ?" + cond_u + " ORDER BY fecha DESC, id DESC",
                           [inicio, fin] + param_u)
                 datos = c.fetchall()
@@ -6031,7 +6037,7 @@ class MaintenanceApp(QMainWindow):
                 lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte de Mantenimiento ({inicio} a {fin}){sufijo_u}", "datos": datos})
 
             elif modo == "TODO":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
@@ -6041,7 +6047,7 @@ class MaintenanceApp(QMainWindow):
                 lista_trabajos.append({"archivo": archivo, "titulo": f"Reporte Histórico Completo{sufijo_u}", "datos": datos})
 
             elif modo == "MESES":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
