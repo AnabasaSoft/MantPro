@@ -108,9 +108,6 @@ TRADUCCIONES = {
         "tab_buscador": "🔍 Buscador",
         "tab_pendientes": "🔨 Pendientes",
 
-        # --- Diálogo de idioma / reinicio ---
-        "dlg_idioma_titulo": "Cambiar Idioma",
-        "dlg_idioma_reinicio_texto": "El idioma se aplicará la próxima vez que abras la aplicación.\n¿Cerrar la aplicación ahora?",
 
         # --- Botones genéricos ---
         "btn_cerrar": "Cerrar",
@@ -557,9 +554,6 @@ TRADUCCIONES = {
         "tab_buscador": "🔍 Search",
         "tab_pendientes": "🔨 Pending",
 
-        # --- Language dialog / restart ---
-        "dlg_idioma_titulo": "Change Language",
-        "dlg_idioma_reinicio_texto": "The language will be applied next time you open the app.\nClose the app now?",
 
         # --- Generic buttons ---
         "btn_cerrar": "Close",
@@ -996,8 +990,6 @@ TRADUCCIONES = {
         "tab_historial": "📋 Historia",
         "tab_buscador": "🔍 Bilatzailea",
         "tab_pendientes": "🔨 Egiteke",
-        "dlg_idioma_titulo": "Aldatu Hizkuntza",
-        "dlg_idioma_reinicio_texto": "Hizkuntza aplikazioa hurrengo aldiz irekitzean aplikatuko da.\nItxi aplikazioa orain?",
         "btn_cerrar": "Itxi",
         "btn_cancelar": "Utzi",
         "btn_anadir": "Gehitu",

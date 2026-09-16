@@ -3468,6 +3468,17 @@ class MaintenanceApp(QMainWindow):
         self.aplicar_estilo_visual()
         cw = QWidget(); self.setCentralWidget(cw); ml = QVBoxLayout(); ml.setContentsMargins(10, 10, 10, 10); cw.setLayout(ml)
         self.tabs = QTabWidget(); ml.addWidget(self.tabs)
+        self._poblar_tabs()
+        self.tabs.currentChanged.connect(self.on_tab_changed)
+        self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
+        # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
+        # Se dispara desde el punto de entrada (bloque __main__), una vez que la
+        # ventana principal ya está visible y el splash se ha cerrado del todo,
+        # para evitar la carrera de foco/apilamiento entre el splash, la ventana
+        # principal y el diálogo modal de "nueva versión disponible".
+
+    def _poblar_tabs(self):
+        """Crea (o recrea) todas las pestañas dentro de self.tabs, ya existente."""
         self.tab_dashboard = QWidget(); self.init_dashboard_tab(); self.tabs.addTab(self.tab_dashboard, t("tab_dashboard"))
         self.tab_calendar = QWidget(); self.init_calendar_tab(); self.tabs.addTab(self.tab_calendar, t("tab_calendario"))
         self.tab_avisos = QWidget(); self.init_avisos_tab(); self.tabs.addTab(self.tab_avisos, t("tab_avisos"))
@@ -3478,13 +3489,30 @@ class MaintenanceApp(QMainWindow):
         self.tab_maquinas = QWidget(); self.init_maquinas_tab(); self.tabs.addTab(self.tab_maquinas, tt("tab_maquinas", "🏭 Máquinas"))
         self.tab_stock = QWidget(); self.init_stock_tab(); self.tabs.addTab(self.tab_stock, tt("tab_stock", "📦 Stock de almacén"))
         self.tab_stock_alertas = QWidget(); self.init_stock_alertas_tab(); self.tabs.addTab(self.tab_stock_alertas, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo"))
-        self.tabs.currentChanged.connect(self.on_tab_changed)
+
+    def recargar_interfaz_completa(self):
+        """Reconstruye el menú y todas las pestañas en caliente (p.ej. tras un
+        cambio de idioma), sin tener que cerrar y volver a abrir la aplicación."""
+        self.menuBar().clear()
+        self.crear_menu()
+
+        titulo_base = t("title_control_mantenimiento")
+        if usuarios.SESION_ACTUAL:
+            titulo_base += f"  —  👤 {usuarios.SESION_ACTUAL['nombre']}"
+        self.setWindowTitle(titulo_base)
+
+        indice_actual = self.tabs.currentIndex()
+        self.tabs.blockSignals(True)
+        while self.tabs.count():
+            viejo = self.tabs.widget(0)
+            self.tabs.removeTab(0)
+            viejo.deleteLater()
+        self._poblar_tabs()
+        if 0 <= indice_actual < self.tabs.count():
+            self.tabs.setCurrentIndex(indice_actual)
+        self.tabs.blockSignals(False)
+
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
-        # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
-        # Se dispara desde el punto de entrada (bloque __main__), una vez que la
-        # ventana principal ya está visible y el splash se ha cerrado del todo,
-        # para evitar la carrera de foco/apilamiento entre el splash, la ventana
-        # principal y el diálogo modal de "nueva versión disponible".
 
     def closeEvent(self, e):
         if getattr(self, "_cierre_confirmado", False):
@@ -3878,32 +3906,10 @@ class MaintenanceApp(QMainWindow):
 
     def cambiar_idioma(self, codigo):
         if codigo == idiomas.get_idioma():
-            for cod, act in self.acciones_idioma:
-                act.setChecked(cod == idiomas.get_idioma())
             return
-
-        # Guardamos el idioma anterior por si cancela
-        idioma_anterior = idiomas.get_idioma()
-
-        # Cambiamos temporalmente en memoria para que el diálogo salga en el nuevo idioma
         idiomas.set_idioma(codigo)
-
-        msg = QMessageBox(self)
-        msg.setWindowTitle(t("dlg_idioma_titulo"))
-        msg.setText(t("dlg_idioma_reinicio_texto"))
-        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
-        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
-        msg.exec()
-
-        if msg.clickedButton() == btn_si:
-            self.db.set_config("idioma", codigo)
-            # idiomas.set_idioma(codigo) ya está activo, cerramos
-            self.close()
-        else:
-            # Si dice que no, revertimos el idioma en memoria y los tics del menú
-            idiomas.set_idioma(idioma_anterior)
-            for cod, act in self.acciones_idioma:
-                act.setChecked(cod == idioma_anterior)
+        self.db.set_config("idioma", codigo)
+        self.recargar_interfaz_completa()
 
     def cambiar_pais_region(self):
         # PASO 1: Elegir país
