@@ -7,11 +7,10 @@
 # (idiomas/*.json) como en las dos apps móviles
 # (mantenimiento_app y mantpro_stock_app, lib/i18n/*.dart).
 #
-# Si a algún idioma le falta una clave, se añade automáticamente con el
-# texto en español como valor provisional, para que no quede nada sin
-# traducir a medias (el texto en español hace de recordatorio de que hay
-# que traducirlo, en vez de quedar mostrando la clave en bruto o cayendo
-# silenciosamente al español).
+# Solo informa: si a algún idioma le falta una clave, la lista junto con su
+# texto en español, pero no modifica ningún fichero. Las claves que falten
+# hay que traducirlas a mano y a propósito en el idioma correspondiente, en
+# vez de dejar un texto en español como placeholder automático.
 #
 # Uso:
 #   python3 verificar_idiomas.py
@@ -44,12 +43,6 @@ def _cargar_json(codigo):
         return json.load(f)
 
 
-def _guardar_json(codigo, datos):
-    with open(os.path.join(DIR_IDIOMAS_PC, f"{codigo}.json"), "w", encoding="utf-8") as f:
-        json.dump(datos, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-
-
 def revisar_pc():
     if not os.path.isdir(DIR_IDIOMAS_PC):
         return 0
@@ -72,11 +65,9 @@ def revisar_pc():
         sobran = [clave for clave in datos if clave not in referencia]
 
         if faltan:
-            print(f"[PC/{codigo}.json] Faltan {len(faltan)} clave(s). Añadidas con el texto en español, pendientes de traducir:")
+            print(f"[PC/{codigo}.json] Faltan {len(faltan)} clave(s):")
             for clave in faltan:
                 print(f"    {clave}: {referencia[clave]!r}")
-                datos[clave] = referencia[clave]
-            _guardar_json(codigo, datos)
             total += len(faltan)
 
         if sobran:
@@ -95,23 +86,6 @@ def _extraer_claves_dart(ruta):
     with open(ruta, encoding="utf-8") as f:
         contenido = f.read()
     return dict(_RE_PAR_DART.findall(contenido))
-
-
-def _anadir_claves_dart(ruta, claves_a_anadir):
-    """Inserta las claves que faltan justo antes del '};' final del fichero,
-    con el valor en español escapado como literal Dart."""
-    with open(ruta, encoding="utf-8") as f:
-        contenido = f.read()
-    idx = contenido.rstrip().rfind("};")
-    if idx == -1:
-        raise ValueError(f"No se encontró el cierre '}};' en {ruta}")
-    lineas_nuevas = ""
-    for clave, valor in claves_a_anadir.items():
-        valor_escapado = valor.replace("\\", "\\\\").replace('"', '\\"').replace("$", "\\$")
-        lineas_nuevas += f'  "{clave}": "{valor_escapado}",\n'
-    nuevo_contenido = contenido[:idx] + lineas_nuevas + contenido[idx:]
-    with open(ruta, "w", encoding="utf-8") as f:
-        f.write(nuevo_contenido)
 
 
 def revisar_app_movil(carpeta_i18n):
@@ -136,10 +110,9 @@ def revisar_app_movil(carpeta_i18n):
 
         etiqueta = f"{nombre_app}/{nombre}"
         if faltan:
-            print(f"[{etiqueta}] Faltan {len(faltan)} clave(s). Añadidas con el texto en español, pendientes de traducir:")
+            print(f"[{etiqueta}] Faltan {len(faltan)} clave(s):")
             for clave, valor in faltan.items():
                 print(f"    {clave}: {valor!r}")
-            _anadir_claves_dart(ruta, faltan)
             total += len(faltan)
 
         if sobran:
@@ -158,7 +131,7 @@ def main():
     if total == 0:
         print("Todos los idiomas (PC y apps móviles) tienen las mismas claves que el español. Todo en orden.")
     else:
-        print(f"\nSe han añadido {total} clave(s) en total, copiadas del español. Tradúcelas antes de dar la función por terminada.")
+        print(f"\nFaltan {total} clave(s) en total. Tradúcelas a mano en cada idioma antes de dar la función por terminada.")
 
     return 0
 
