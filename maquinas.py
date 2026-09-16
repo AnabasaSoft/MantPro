@@ -71,6 +71,10 @@ def inicializar():
     if "maquina_id" not in cols:
         cur.execute("ALTER TABLE tareas ADD COLUMN maquina_id INTEGER")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_tareas_maquina ON tareas(maquina_id)")
+    if "prioridad" not in cols:
+        cur.execute("ALTER TABLE tareas ADD COLUMN prioridad TEXT DEFAULT 'Media'")
+    if "horas_paro" not in cols:
+        cur.execute("ALTER TABLE tareas ADD COLUMN horas_paro REAL")
 
     cols_maquinas = {fila[1] for fila in cur.execute("PRAGMA table_info(maquinas)")}
     if "foto" not in cols_maquinas:
@@ -281,3 +285,42 @@ def trabajos_de_maquina_anio(id_maquina, anio):
     ).fetchall()
     con.close()
     return [dict(f) for f in filas]
+
+
+def indicadores_fiabilidad(id_maquina):
+    """MTBF (tiempo medio entre averías, en días) y MTTR (tiempo medio de
+    reparación, en horas) de una máquina y sus submáquinas, calculados a
+    partir de los trabajos marcados con la etiqueta 'Avería'.
+
+    Devuelve {"num_averias": int, "mtbf_dias": float|None, "mttr_horas": float|None}.
+    mtbf_dias solo se calcula con 2 o más averías (hace falta al menos un
+    intervalo entre dos fechas); mttr_horas solo con averías que tengan
+    horas de parada registradas.
+    """
+    ids = descendientes_ids(id_maquina)
+    marcas = ",".join("?" * len(ids))
+    con = _conn()
+    filas = con.execute(
+        f"SELECT fecha, horas_paro FROM tareas WHERE maquina_id IN ({marcas}) "
+        f"AND tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != '' "
+        f"ORDER BY fecha ASC, id ASC",
+        ids,
+    ).fetchall()
+    con.close()
+
+    fechas = []
+    for fila in filas:
+        try:
+            fechas.append(datetime.strptime(fila["fecha"], "%Y-%m-%d"))
+        except (ValueError, TypeError):
+            pass
+
+    mtbf_dias = None
+    if len(fechas) >= 2:
+        total_dias = (fechas[-1] - fechas[0]).days
+        mtbf_dias = total_dias / (len(fechas) - 1)
+
+    horas = [fila["horas_paro"] for fila in filas if fila["horas_paro"] is not None]
+    mttr_horas = (sum(horas) / len(horas)) if horas else None
+
+    return {"num_averias": len(filas), "mtbf_dias": mtbf_dias, "mttr_horas": mttr_horas}

@@ -201,6 +201,8 @@ def inicializar():
             cur.execute("ALTER TABLE pendientes ADD COLUMN asignado_a INTEGER")
         if "asignado_nombre" not in cols:
             cur.execute("ALTER TABLE pendientes ADD COLUMN asignado_nombre TEXT")
+        if "prioridad" not in cols:
+            cur.execute("ALTER TABLE pendientes ADD COLUMN prioridad TEXT DEFAULT 'Media'")
 
     # --- admin inicial ---
     creado_admin = False
