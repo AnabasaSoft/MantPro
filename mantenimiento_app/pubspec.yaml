@@ -1,7 +1,7 @@
 name: app_mantenimiento
 description: App offline para mantenimiento
 publish_to: 'none'
-version: 3.8.8+388
+version: 3.8.9+389
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

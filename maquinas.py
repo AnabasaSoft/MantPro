@@ -76,38 +76,90 @@ def inicializar():
     if "foto" not in cols_maquinas:
         cur.execute("ALTER TABLE maquinas ADD COLUMN foto TEXT")
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS zonas (
+            id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE
+        )
+    """)
+    if "zona_id" not in cols_maquinas:
+        cur.execute("ALTER TABLE maquinas ADD COLUMN zona_id INTEGER")
+
     con.commit()
     con.close()
 
 
+# ---------------------------------------------------------------- zonas (ubicaciones)
+
+def listar_zonas():
+    """Todas las zonas dadas de alta, ordenadas por nombre."""
+    con = _conn()
+    filas = con.execute("SELECT id, nombre FROM zonas ORDER BY nombre COLLATE NOCASE").fetchall()
+    con.close()
+    return [dict(f) for f in filas]
+
+
+def agregar_zona(nombre):
+    """Da de alta una zona nueva y devuelve su id (o el de la existente si ya había una con ese nombre)."""
+    con = _conn()
+    cur = con.cursor()
+    cur.execute("INSERT OR IGNORE INTO zonas (nombre) VALUES (?)", (nombre.strip(),))
+    con.commit()
+    fila = cur.execute("SELECT id FROM zonas WHERE nombre=?", (nombre.strip(),)).fetchone()
+    con.close()
+    return fila[0] if fila else None
+
+
+def borrar_zona(id_zona):
+    """Borra la zona. Las máquinas que la tenían asignada quedan sin zona."""
+    con = _conn()
+    con.execute("UPDATE maquinas SET zona_id=NULL WHERE zona_id=?", (id_zona,))
+    con.execute("DELETE FROM zonas WHERE id=?", (id_zona,))
+    con.commit()
+    con.close()
+
+
+def zonas_disponibles():
+    """Zonas (id, nombre) con al menos una máquina asignada, ordenadas por nombre."""
+    con = _conn()
+    filas = con.execute(
+        "SELECT DISTINCT z.id, z.nombre FROM zonas z JOIN maquinas m ON m.zona_id = z.id "
+        "ORDER BY z.nombre COLLATE NOCASE"
+    ).fetchall()
+    con.close()
+    return [dict(f) for f in filas]
+
+
 # ---------------------------------------------------------------- CRUD máquinas
 
-def agregar_maquina(nombre, padre_id=None, notas="", foto=None):
+def agregar_maquina(nombre, padre_id=None, notas="", foto=None, zona_id=None):
     con = _conn()
     con.execute(
-        "INSERT INTO maquinas (nombre, padre_id, notas, creado, foto) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO maquinas (nombre, padre_id, notas, creado, foto, zona_id) VALUES (?, ?, ?, ?, ?, ?)",
         (nombre.strip(), padre_id, (notas or "").strip(),
-         datetime.now().isoformat(timespec="seconds"), foto),
+         datetime.now().isoformat(timespec="seconds"), foto, zona_id),
     )
     con.commit()
     con.close()
 
 
-def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None):
+def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None, zona_id=None):
     con = _conn()
     con.execute(
-        "UPDATE maquinas SET nombre=?, padre_id=?, notas=?, foto=? WHERE id=?",
-        (nombre.strip(), padre_id, (notas or "").strip(), foto, id_maquina),
+        "UPDATE maquinas SET nombre=?, padre_id=?, notas=?, foto=?, zona_id=? WHERE id=?",
+        (nombre.strip(), padre_id, (notas or "").strip(), foto, zona_id, id_maquina),
     )
     con.commit()
     con.close()
 
 
 def listar_maquinas():
-    """Todas las máquinas (planas, con su padre_id), ordenadas por nombre."""
+    """Todas las máquinas (planas, con su padre_id y su zona), ordenadas por nombre."""
     con = _conn()
     filas = con.execute(
-        "SELECT id, nombre, padre_id, notas, foto FROM maquinas ORDER BY nombre COLLATE NOCASE"
+        "SELECT m.id, m.nombre, m.padre_id, m.notas, m.foto, m.zona_id, z.nombre AS zona_nombre "
+        "FROM maquinas m LEFT JOIN zonas z ON z.id = m.zona_id "
+        "ORDER BY m.nombre COLLATE NOCASE"
     ).fetchall()
     con.close()
     return [dict(f) for f in filas]
@@ -116,7 +168,7 @@ def listar_maquinas():
 def obtener_maquina(id_maquina):
     con = _conn()
     fila = con.execute(
-        "SELECT id, nombre, padre_id, notas, foto FROM maquinas WHERE id=?", (id_maquina,)
+        "SELECT id, nombre, padre_id, notas, foto, zona_id FROM maquinas WHERE id=?", (id_maquina,)
     ).fetchone()
     con.close()
     return dict(fila) if fila else None
