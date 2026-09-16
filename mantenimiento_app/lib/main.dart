@@ -453,7 +453,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.8.9';
+const String kAppVersion = '3.9.0';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -671,6 +671,8 @@ class Registro {
   String? fecha; // Nuevo campo fecha
   int? maquinaId;
   String? maquinaNombre;
+  /// Código fijo en español ("Baja", "Media", "Alta", "Crítica").
+  String prioridad;
   List<Map<String, dynamic>> materiales; // [{material_id, nombre, cantidad}]
 
   Registro({
@@ -685,6 +687,7 @@ class Registro {
     this.fecha,
     this.maquinaId,
     this.maquinaNombre,
+    this.prioridad = 'Media',
     List<Map<String, dynamic>>? materiales
   }) : materiales = materiales ?? [];
 
@@ -700,6 +703,7 @@ class Registro {
     'fecha': fecha,
     'maquinaId': maquinaId,
     'maquinaNombre': maquinaNombre,
+    'prioridad': prioridad,
     'materiales': materiales
   };
 
@@ -715,6 +719,7 @@ class Registro {
     fecha: json['fecha'],
     maquinaId: json['maquinaId'],
     maquinaNombre: json['maquinaNombre'],
+    prioridad: (json['prioridad'] as String?) ?? 'Media',
     materiales: json['materiales'] != null
         ? List<Map<String, dynamic>>.from(
             (json['materiales'] as List).map((e) => Map<String, dynamic>.from(e)))
@@ -728,17 +733,21 @@ class PendientePC {
   /// Técnico al que el PC ha asignado este trabajo (null = sin asignar).
   int? asignadoA;
   String? asignado;
-  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado});
+  /// Código fijo en español ("Baja", "Media", "Alta", "Crítica"), igual que
+  /// en el PC. Se traduce solo al mostrarlo, ver traducirPrioridad().
+  String prioridad;
+  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media'});
   factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
         id: json['id'],
         titulo: json['titulo'],
         detalles: json['detalles'],
         asignadoA: json['asignado_a'],
         asignado: (json['asignado'] as String?)?.isEmpty == true ? null : json['asignado'],
+        prioridad: (json['prioridad'] as String?) ?? 'Media',
       );
   Map<String, dynamic> toJson() => {
         'id': id, 'titulo': titulo, 'detalles': detalles,
-        'asignado_a': asignadoA, 'asignado': asignado,
+        'asignado_a': asignadoA, 'asignado': asignado, 'prioridad': prioridad,
       };
   /// true si el trabajo es del usuario que tiene la sesión abierta.
   bool get esMio => asignadoA != null && asignadoA == AuthService.usuarioId;
@@ -1266,6 +1275,15 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
 // PESTAÑA 2: PENDIENTES PC
 // ==========================================
 class TabPendientesPC extends StatefulWidget { const TabPendientesPC({super.key}); @override State<TabPendientesPC> createState() => _TabPendientesPCState(); }
+Color _colorPrioridad(String p) {
+  switch (p) {
+    case 'Crítica': return Colors.red;
+    case 'Alta': return Colors.orange;
+    case 'Baja': return Colors.green;
+    default: return Colors.grey;
+  }
+}
+
 class _TabPendientesPCState extends State<TabPendientesPC> {
   /// Filtro local: mostrar solo los trabajos asignados a mí en el PC.
   bool _soloMios = false;
@@ -1324,7 +1342,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (index != -1) {
         _listaPC[index] = PendientePC(
           id: _listaPC[index].id, titulo: edicion['titulo'], detalles: edicion['detalles'],
-          asignadoA: _listaPC[index].asignadoA, asignado: _listaPC[index].asignado);
+          asignadoA: _listaPC[index].asignadoA, asignado: _listaPC[index].asignado,
+          prioridad: edicion['prioridad'] ?? _listaPC[index].prioridad);
       }
     }
   }
@@ -1421,6 +1440,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       r.fields['titulo'] = d['titulo'];
       r.fields['detalles'] = d['detalles'];
       if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
+      if (d.containsKey('prioridad') && d['prioridad'] != null) r.fields['prioridad'] = d['prioridad'];
 
       // --- ENVÍO DE FECHA ---
       if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
@@ -1546,6 +1566,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'imagePath': r.imagePath,
           'imagePathDespues': r.imagePathDespues,
           'fecha': r.fecha,
+          'prioridad': r.prioridad,
           'materiales': r.materiales
         };
         // ---------------------
@@ -1563,12 +1584,12 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       onUpdate: (r) {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
         if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
-        Map<String, dynamic> mapTempEdit = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues};
+        Map<String, dynamic> mapTempEdit = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad};
         setState(() {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
           _colaEdiciones.add(mapTempEdit);
           int i = _listaPC.indexWhere((x) => x.id == p.id);
-          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles, asignadoA: p.asignadoA, asignado: p.asignado);
+          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles, asignadoA: p.asignadoA, asignado: p.asignado, prioridad: r.prioridad);
         });
           _guardarCache();
           _sincronizarTodo(silencioso: true);
@@ -1645,7 +1666,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                           tooltip: t("tooltip_cancelar_envio"),
                           onPressed: () {
                             setState(() {
-                              _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles']));
+                              _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles'], prioridad: cItem['prioridad'] ?? 'Media'));
                               _colaSalida.removeAt(i);
                             });
                             _guardarCache();
@@ -1670,12 +1691,19 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                     margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: ListTile(
                       leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: ico),
-                      title: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(color: _colorPrioridad(item.prioridad), shape: BoxShape.circle)),
+                        Flexible(child: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold))),
+                      ]),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(limpio, maxLines: 2, overflow: TextOverflow.ellipsis),
+                          if (item.prioridad == 'Alta' || item.prioridad == 'Crítica')
+                            Text(traducirPrioridad(item.prioridad),
+                                style: TextStyle(fontSize: 12, color: _colorPrioridad(item.prioridad), fontWeight: FontWeight.bold)),
                           if (item.asignado != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
@@ -1722,9 +1750,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             String ru = DateTime.now().millisecondsSinceEpoch.toString();
             if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
             String d = "${r.detalles} [REF:$ru]";
-            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath};
+            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad};
             setState(() => _colaNuevos.add(mapTempNuevo));
-            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d)));
+            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad)));
             _guardarCache();
             _sincronizarTodo(silencioso: true);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_pendiente_creado"))));
@@ -2274,12 +2302,13 @@ class FormScreen extends StatefulWidget { final Function(Registro) onSave; final
 class _FormScreenState extends State<FormScreen> {
   final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
+  String _prioridad = 'Media';
   List<Map<String, dynamic>> _materiales = [];
   int? _maquinaId;
   List<MapEntry<String, int?>> _arbolMaquinas = MaquinasCache.arbol([]);
   @override void initState() { super.initState();
-    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; }
-    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _maquinaId = r.maquinaId; }
+    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; _prioridad = widget.pendientePC!.prioridad; }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _maquinaId = r.maquinaId; _prioridad = r.prioridad; }
     _cargarMaquinas();
   }
   Future<void> _cargarMaquinas() async {
@@ -2308,7 +2337,7 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, materiales: _materiales);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -2322,6 +2351,17 @@ class _FormScreenState extends State<FormScreen> {
         TextField(controller: _d, maxLines: 5, decoration: InputDecoration(labelText: t("lbl_detalles"))), const SizedBox(height: 15),
         Wrap(spacing: 8, children: [FilterChip(label: Text('🚨 ${t("tag_urgente")}'), selected: _u, onSelected: (v)=>setState(()=>_u=v)), FilterChip(label: Text('⚡ ${t("tag_electrico")}'), selected: _e, onSelected: (v)=>setState(()=>_e=v)), FilterChip(label: Text('⚙️ ${t("tag_mecanico")}'), selected: _m, onSelected: (v)=>setState(()=>_m=v)), FilterChip(label: Text('🛡️ ${t("tag_preventivo")}'), selected: _p, onSelected: (v)=>setState(()=>_p=v))]),
         TextField(controller: _tag, decoration: InputDecoration(labelText: t("lbl_tags_extra"))), const SizedBox(height: 15),
+        if (!widget.esHistorial) ...[
+          DropdownButtonFormField<String>(
+            value: _prioridad,
+            decoration: InputDecoration(labelText: t("lbl_prioridad")),
+            items: const ['Baja', 'Media', 'Alta', 'Crítica']
+                .map((p) => DropdownMenuItem(value: p, child: Text(traducirPrioridad(p))))
+                .toList(),
+            onChanged: (v) => setState(() => _prioridad = v ?? 'Media'),
+          ),
+          const SizedBox(height: 15),
+        ],
         DropdownButtonFormField<int?>(
           value: _arbolMaquinas.any((e) => e.value == _maquinaId) ? _maquinaId : null,
           decoration: InputDecoration(labelText: t("lbl_maquina")),

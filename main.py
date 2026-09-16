@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.8.9"
+APP_VERSION = "3.9.0"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -868,13 +868,13 @@ class ServidorSincronizacion(QThread):
                 u = g.usuario_mantpro
                 solo_mios = request.args.get('solo_mios', '') in ('1', 'true', 'True')
                 if solo_mios:
-                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,'') "
+                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), COALESCE(prioridad,'Media') "
                               "FROM pendientes WHERE asignado_a = ? ORDER BY id DESC", (u['id'],))
                 else:
-                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,'') "
+                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), COALESCE(prioridad,'Media') "
                               "FROM pendientes ORDER BY id DESC")
                 datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
-                          "asignado_a": r[3], "asignado": r[4]} for r in c.fetchall()]
+                          "asignado_a": r[3], "asignado": r[4], "prioridad": r[5]} for r in c.fetchall()]
                 conn.close()
                 return jsonify(datos)
             except Exception as e: return jsonify({"error": str(e)}), 500
@@ -889,6 +889,7 @@ class ServidorSincronizacion(QThread):
                 titulo = request.form.get('titulo') or "Sin Título"
                 detalles = request.form.get('detalles', '')
                 tags = request.form.get('tags', '')
+                prioridad = request.form.get('prioridad') or 'Media'
 
                 # --- LEER FECHA DEL MÓVIL ---
                 fecha_movil = request.form.get('fecha')
@@ -917,9 +918,9 @@ class ServidorSincronizacion(QThread):
                         # para no duplicar el trabajo.
                         return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
                     # Usamos el INSERT completo para alimentar todas las columnas
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, prioridad) VALUES (?,?,?,?,?,?,?,?)',
                               (fecha_final, desc_final, tags, raw_desc, filename,
-                               usuario['id'], usuario['nombre']))
+                               usuario['id'], usuario['nombre'], prioridad))
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo)
@@ -938,6 +939,7 @@ class ServidorSincronizacion(QThread):
             try:
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
+                prioridad = request.form.get('prioridad') or 'Media'
                 filename, ruta_foto = self._procesar_foto(request, 'foto')
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename: detalles += f"\n[FOTO: {filename}]"
@@ -948,8 +950,8 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
                 # Un pendiente creado desde el móvil queda asignado a quien lo crea
                 usuario = g.usuario_mantpro
-                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre) VALUES (?,?,?,?)',
-                          (titulo, detalles, usuario['id'], usuario['nombre']))
+                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad) VALUES (?,?,?,?,?)',
+                          (titulo, detalles, usuario['id'], usuario['nombre'], prioridad))
                 conn.commit()
                 conn.close()
 
@@ -968,6 +970,7 @@ class ServidorSincronizacion(QThread):
                 id_p = request.form.get('id')
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
+                prioridad = request.form.get('prioridad')
 
                 # Gestión de foto nueva si la hubiera
                 filename, ruta = self._procesar_foto(request, 'foto')
@@ -979,8 +982,11 @@ class ServidorSincronizacion(QThread):
 
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
-                # Actualizamos título y detalles
-                c.execute('UPDATE pendientes SET titulo=?, detalles=? WHERE id=?', (titulo, detalles, id_p))
+                # Actualizamos título y detalles (y prioridad si el móvil la ha enviado)
+                if prioridad:
+                    c.execute('UPDATE pendientes SET titulo=?, detalles=?, prioridad=? WHERE id=?', (titulo, detalles, prioridad, id_p))
+                else:
+                    c.execute('UPDATE pendientes SET titulo=?, detalles=? WHERE id=?', (titulo, detalles, id_p))
                 conn.commit()
                 conn.close()
 
@@ -1825,21 +1831,21 @@ class GestorBaseDatos:
             conn.commit(); conn.close(); return True
         except: return False
 
-    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None):
+    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, prioridad="Media", horas_paro=None):
         """Guarda un registro atribuido al usuario que ha iniciado sesión."""
         if usuario_id is None: usuario_id = usuarios.id_actual()
         if usuario_nombre is None: usuario_nombre = usuarios.nombre_actual()
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id) VALUES (?,?,?,?,?,?)',
-                      (f, d, t, usuario_id, usuario_nombre, maquina_id))
+            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id,prioridad,horas_paro) VALUES (?,?,?,?,?,?,?,?)',
+                      (f, d, t, usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro))
             conn.commit(); conn.close(); return True
         except Exception as e:
             print(f"Error agregar_tarea: {e}"); return False
     def obtener_todas_cronologico(self, filtro_usuario=None):
         try:
             conn=self.conectar(); c=conn.cursor()
-            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id FROM tareas"
+            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id,COALESCE(prioridad,'Media') FROM tareas"
             params = []
             if filtro_usuario:
                 sql += " WHERE usuario_nombre = ?"
@@ -1866,26 +1872,26 @@ class GestorBaseDatos:
             return True
         except Exception as e:
             print(f"Error borrar_tarea: {e}"); return False
-    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None):
+    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, prioridad="Media", horas_paro=None):
         try:
             conn = self.conectar(); c = conn.cursor()
             if usuario_id is not None:
-                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=?, maquina_id=? WHERE id=?',
-                          (f, d, t, usuario_id, usuario_nombre, maquina_id, i))
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=?, maquina_id=?, prioridad=?, horas_paro=? WHERE id=?',
+                          (f, d, t, usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro, i))
             else:
-                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, maquina_id=? WHERE id=?', (f, d, t, maquina_id, i))
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, maquina_id=?, prioridad=?, horas_paro=? WHERE id=?', (f, d, t, maquina_id, prioridad, horas_paro, i))
             conn.commit(); conn.close(); return True
         except: return False
     def obtener_tarea_por_id(self, i):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE id=?", (i,))
+            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media'), horas_paro FROM tareas WHERE id=?", (i,))
             return c.fetchone()
         except: return None
     def buscar_tareas_avanzado(self, texto, fecha=None):
         try:
             conn = self.conectar(); c = conn.cursor(); param_texto = f"%{texto}%"
-            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,'') FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
+            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
             parametros = [param_texto, param_texto]
             if fecha: query += " AND fecha = ?"; parametros.append(fecha)
             query += " ORDER BY fecha DESC, id DESC"; c.execute(query, parametros); return c.fetchall()
@@ -1908,19 +1914,19 @@ class GestorBaseDatos:
     def obtener_dias_especiales(self):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT fecha,tipo FROM dias_especiales'); return {r[0]:r[1] for r in c.fetchall()}
         except: return {}
-    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None):
+    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media"):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre) VALUES (?,?,?,?)',
-                      (t, d, asignado_a, asignado_nombre))
+            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad) VALUES (?,?,?,?,?)',
+                      (t, d, asignado_a, asignado_nombre, prioridad))
             conn.commit(); conn.close(); return True
         except Exception as e:
             print(f"Error agregar_pendiente: {e}"); return False
     def obtener_pendientes(self):
-        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre)."""
+        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre, prioridad)."""
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,'') FROM pendientes ORDER BY id DESC")
+            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,''),COALESCE(prioridad,'Media') FROM pendientes ORDER BY id DESC")
             return c.fetchall()
         except: return []
     def asignar_pendiente(self, id_p, asignado_a, asignado_nombre):
@@ -1933,10 +1939,10 @@ class GestorBaseDatos:
     def borrar_pendiente(self,i):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('DELETE FROM pendientes WHERE id=?',(i,)); conn.commit(); conn.close(); return True
         except: return False
-    def actualizar_pendiente(self, i, t, d):
+    def actualizar_pendiente(self, i, t, d, prioridad="Media"):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('UPDATE pendientes SET titulo=?, detalles=? WHERE id=?', (t, d, i))
+            c.execute('UPDATE pendientes SET titulo=?, detalles=?, prioridad=? WHERE id=?', (t, d, prioridad, i))
             conn.commit(); conn.close(); return True
         except: return False
 
@@ -3028,7 +3034,7 @@ class DialogoMovimientoStock(QDialog):
 
 
 class EditDialog(QDialog):
-    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None):
+    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, prioridad="Media", horas_paro=None):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
@@ -3103,6 +3109,7 @@ class EditDialog(QDialog):
         h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
         self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
+        self.chk_averia = QCheckBox(tt("tag_averia", "Avería"))
         lista_actual = [t.strip().lower() for t in tags.split(',')]
         def check_and_clean(texto_check, chk_box):
             if texto_check.lower() in lista_actual:
@@ -3113,12 +3120,32 @@ class EditDialog(QDialog):
         check_and_clean("mecánico", self.chk_mecanico)
         if "mecanico" in lista_actual: self.chk_mecanico.setChecked(True); lista_actual.remove("mecanico")
         check_and_clean("preventivo", self.chk_prev)
+        check_and_clean("avería", self.chk_averia)
+        if "averia" in lista_actual: self.chk_averia.setChecked(True); lista_actual.remove("averia")
         h_tags.addWidget(self.chk_urgente); h_tags.addWidget(self.chk_electrico)
-        h_tags.addWidget(self.chk_mecanico); h_tags.addWidget(self.chk_prev)
+        h_tags.addWidget(self.chk_mecanico); h_tags.addWidget(self.chk_prev); h_tags.addWidget(self.chk_averia)
         l.addLayout(h_tags)
         texto_manual = ", ".join([x for x in tags.split(',') if x.strip().lower() in lista_actual])
         self.tag = QLineEdit(); self.tag.setText(texto_manual); self.tag.setPlaceholderText(t("ph_otros_tags"))
         l.addWidget(self.tag)
+
+        # --- Prioridad y horas de parada (para MTBF/MTTR) ---
+        fila_prioridad = QHBoxLayout()
+        fila_prioridad.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
+        self.combo_prioridad = QComboBox()
+        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
+            self.combo_prioridad.addItem(tt(clave, cod), cod)
+        idx_prio = self.combo_prioridad.findData(prioridad or "Media")
+        self.combo_prioridad.setCurrentIndex(idx_prio if idx_prio >= 0 else 1)
+        fila_prioridad.addWidget(self.combo_prioridad, 1)
+        fila_prioridad.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
+        self.spin_horas_paro = QDoubleSpinBox(); self.spin_horas_paro.setRange(0, 999); self.spin_horas_paro.setDecimals(1)
+        self.spin_horas_paro.setSuffix(" h"); self.spin_horas_paro.setEnabled(self.chk_averia.isChecked())
+        if horas_paro is not None: self.spin_horas_paro.setValue(horas_paro)
+        self.chk_averia.toggled.connect(self.spin_horas_paro.setEnabled)
+        fila_prioridad.addWidget(self.spin_horas_paro)
+        l.addLayout(fila_prioridad)
+
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
@@ -3186,15 +3213,18 @@ class EditDialog(QDialog):
         if self.chk_electrico.isChecked(): final_tags.append("Eléctrico")
         if self.chk_mecanico.isChecked(): final_tags.append("Mecánico")
         if self.chk_prev.isChecked(): final_tags.append("Preventivo")
+        if self.chk_averia.isChecked(): final_tags.append("Avería")
         manual = self.tag.text().strip()
         if manual: final_tags.append(manual)
         usuario_id = self.combo_autor.currentData()
         usuario_nombre = self.combo_autor.currentText() if usuario_id is not None else usuarios.ETIQUETA_HISTORICO
         maquina_id = self.combo_maquina.currentData()
-        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id)
+        prioridad = self.combo_prioridad.currentData()
+        horas_paro = self.spin_horas_paro.value() if self.chk_averia.isChecked() else None
+        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro)
 
 class DialogoEditarPendiente(QDialog):
-    def __init__(self, parent=None, titulo="", detalles="", ruta_foto=""):
+    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media"):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_tarea_pendiente"))
         self.resize(550, 650)
@@ -3202,6 +3232,15 @@ class DialogoEditarPendiente(QDialog):
         l = QVBoxLayout()
         l.addWidget(QLabel(t("lbl_titulo"))); self.t = QLineEdit(titulo); l.addWidget(self.t)
         l.addWidget(QLabel(t("lbl_detalles"))); self.d = QTextEdit(); self.d.setText(detalles); self.d.setMaximumHeight(100); l.addWidget(self.d)
+        fila_prioridad = QHBoxLayout()
+        fila_prioridad.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
+        self.combo_prioridad = QComboBox()
+        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
+            self.combo_prioridad.addItem(tt(clave, cod), cod)
+        idx_prio = self.combo_prioridad.findData(prioridad or "Media")
+        self.combo_prioridad.setCurrentIndex(idx_prio if idx_prio >= 0 else 1)
+        fila_prioridad.addWidget(self.combo_prioridad, 1)
+        l.addLayout(fila_prioridad)
         l.addWidget(QLabel(t("lbl_foto_adjunta")))
         self.lbl_preview = QLabel(t("lbl_sin_foto")); self.lbl_preview.setFixedSize(400, 300)
         self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
@@ -3229,7 +3268,7 @@ class DialogoEditarPendiente(QDialog):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada): VisorFoto(self.ruta_foto_seleccionada, self).exec()
     def borrar_foto(self):
         self.ruta_foto_seleccionada = ""; self.actualizar_vista_foto()
-    def get_data(self): return self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada
+    def get_data(self): return self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada, self.combo_prioridad.currentData()
 
 class CompleteDialog(QDialog):
     def __init__(self, parent=None, titulo="", detalles=""):
@@ -3389,9 +3428,14 @@ def traducir_tags_bd(tags_bd):
         "Urgente": t("tag_urgente"),
         "Eléctrico": t("tag_electrico"),
         "Mecánico": t("tag_mecanico"),
-        "Preventivo": t("tag_preventivo")
+        "Preventivo": t("tag_preventivo"),
+        "Avería": tt("tag_averia", "Avería"),
     }
     return ", ".join([traducciones.get(x.strip(), x.strip()) for x in tags_bd.split(",") if x.strip()])
+
+def traducir_prioridad(codigo):
+    claves = {"Baja": "prioridad_baja", "Media": "prioridad_media", "Alta": "prioridad_alta", "Crítica": "prioridad_critica"}
+    return tt(claves.get(codigo, "prioridad_media"), codigo or "Media")
 
 # ==========================================
 # 4. APLICACIÓN PRINCIPAL
@@ -3650,6 +3694,7 @@ class MaintenanceApp(QMainWindow):
             id_t, fecha, desc, tags = fila[0], fila[1], fila[2], fila[3]
             autor = fila[4] if len(fila) > 4 else ""
             if not autor: autor = usuarios.ETIQUETA_HISTORICO
+            prioridad = fila[6] if len(fila) > 6 else "Media"
             # LIMPIEZA VISUAL (FOTO Y REF)
             desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
             desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
@@ -3678,6 +3723,12 @@ class MaintenanceApp(QMainWindow):
 
             item_t = QTableWidgetItem(traducir_tags_bd(tags))
             item_u = QTableWidgetItem(autor)
+            item_p = QTableWidgetItem(traducir_prioridad(prioridad))
+            colores_prioridad = {
+                "Crítica": QColor("#8e1616"), "Alta": QColor("#c0392b" if not oscuro else "#a94442"),
+            }
+            if prioridad in colores_prioridad:
+                item_p.setBackground(colores_prioridad[prioridad]); item_p.setForeground(QColor("#ffffff"))
 
             if color_bg:
                 item_f.setBackground(color_bg); item_d.setBackground(color_bg)
@@ -3688,6 +3739,8 @@ class MaintenanceApp(QMainWindow):
             table.setItem(r, 0, item_f); table.setItem(r, 1, item_d); table.setItem(r, 2, item_t)
             if table.columnCount() > 3:
                 table.setItem(r, 3, item_u)
+            if table.columnCount() > 4:
+                table.setItem(r, 4, item_p)
 
     def search(self):
         texto = self.s_in.text().strip(); fecha = None
@@ -4178,9 +4231,25 @@ class MaintenanceApp(QMainWindow):
         h_tags = QHBoxLayout()
         self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
         self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
-        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet(_estilo_check_etiqueta()); h_tags.addWidget(c)
+        self.chk_averia = QCheckBox(tt("tag_averia", "Avería"))
+        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev, self.chk_averia]: c.setStyleSheet(_estilo_check_etiqueta()); h_tags.addWidget(c)
         l.addLayout(h_tags)
         self.itag = QLineEdit(); self.itag.setPlaceholderText(t("ph_otras_etiquetas")); l.addWidget(self.itag)
+
+        fila_prioridad_entry = QHBoxLayout()
+        fila_prioridad_entry.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
+        self.combo_prioridad_entry = QComboBox()
+        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
+            self.combo_prioridad_entry.addItem(tt(clave, cod), cod)
+        self.combo_prioridad_entry.setCurrentIndex(1)
+        fila_prioridad_entry.addWidget(self.combo_prioridad_entry, 1)
+        fila_prioridad_entry.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
+        self.spin_horas_paro_entry = QDoubleSpinBox(); self.spin_horas_paro_entry.setRange(0, 999); self.spin_horas_paro_entry.setDecimals(1)
+        self.spin_horas_paro_entry.setSuffix(" h"); self.spin_horas_paro_entry.setEnabled(False)
+        self.chk_averia.toggled.connect(self.spin_horas_paro_entry.setEnabled)
+        fila_prioridad_entry.addWidget(self.spin_horas_paro_entry)
+        l.addLayout(fila_prioridad_entry)
+
         b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
     def borrar_foto_entry(self):
         self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText(t("lbl_arrastra_foto")); self.lbl_entry_foto.setStyleSheet(_estilo_zona_arrastre()); self.btn_del_foto.hide()
@@ -4231,15 +4300,18 @@ class MaintenanceApp(QMainWindow):
         if self.chk_electrico.isChecked(): lista_tags.append("Eléctrico")
         if self.chk_mecanico.isChecked(): lista_tags.append("Mecánico")
         if self.chk_prev.isChecked(): lista_tags.append("Preventivo")
+        if self.chk_averia.isChecked(): lista_tags.append("Avería")
         manuales = self.itag.text().strip()
         if manuales: lista_tags.append(manuales)
         maquina_id = self.combo_maquina_entry.currentData()
-        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id):
+        prioridad = self.combo_prioridad_entry.currentData()
+        horas_paro = self.spin_horas_paro_entry.value() if self.chk_averia.isChecked() else None
+        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, prioridad=prioridad, horas_paro=horas_paro):
             self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)
-            self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False)
-            self.combo_maquina_entry.setCurrentIndex(0)
+            self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False); self.chk_averia.setChecked(False)
+            self.combo_maquina_entry.setCurrentIndex(0); self.combo_prioridad_entry.setCurrentIndex(1)
             self.borrar_foto_entry(); self.borrar_foto_entry_d(); self.refresh_all(); self.setup_autocompletado()
     def setup_autocompletado(self):
         d = self.db.obtener_todas_las_descripciones()
@@ -4584,6 +4656,14 @@ class MaintenanceApp(QMainWindow):
         self._llenar_combo_usuarios(self.combo_asignar, incluir_sin_asignar=True)
         fila_asig.addWidget(self.combo_asignar, 1)
         f.addLayout(fila_asig)
+        fila_prioridad_todo = QHBoxLayout()
+        fila_prioridad_todo.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
+        self.combo_prioridad_todo = QComboBox()
+        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
+            self.combo_prioridad_todo.addItem(tt(clave, cod), cod)
+        self.combo_prioridad_todo.setCurrentIndex(1)
+        fila_prioridad_todo.addWidget(self.combo_prioridad_todo, 1)
+        f.addLayout(fila_prioridad_todo)
         f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
         ga = QGroupBox(t("lbl_acciones")); fa = QVBoxLayout()
         b_ok = QPushButton(t("btn_completar"), clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
@@ -4631,6 +4711,12 @@ class MaintenanceApp(QMainWindow):
         self.lbl_foto_maquina.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
         v_foto.addWidget(self.lbl_foto_maquina)
+
+        self.lbl_indicadores_maquina = QLabel("")
+        self.lbl_indicadores_maquina.setWordWrap(True)
+        self.lbl_indicadores_maquina.setStyleSheet("padding: 6px; font-size: 12px;")
+        v_foto.addWidget(self.lbl_indicadores_maquina)
+
         v_foto.addStretch(1)  # empuja el bloque de la gráfica hacia abajo
         v_foto.addWidget(QLabel(tt("lbl_grafico_trabajos_maquina", "Trabajos por máquina")))
 
@@ -4670,9 +4756,39 @@ class MaintenanceApp(QMainWindow):
             if not pix.isNull():
                 self.lbl_foto_maquina.setPixmap(pix.scaled(self.lbl_foto_maquina.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
                 self.lbl_foto_maquina.setStyleSheet("border: 2px solid #3daee9; background-color: #000;")
-                return
-        self.lbl_foto_maquina.setPixmap(QPixmap()); self.lbl_foto_maquina.setText(tt("lbl_sin_foto", "Sin foto"))
-        self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
+            else:
+                self.lbl_foto_maquina.setPixmap(QPixmap()); self.lbl_foto_maquina.setText(tt("lbl_sin_foto", "Sin foto"))
+                self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
+        else:
+            self.lbl_foto_maquina.setPixmap(QPixmap()); self.lbl_foto_maquina.setText(tt("lbl_sin_foto", "Sin foto"))
+            self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
+        self._actualizar_indicadores_maquina(datos["id"] if datos and datos.get("tipo") == "maquina" else None)
+
+    def _actualizar_indicadores_maquina(self, id_maquina):
+        """Muestra MTBF/MTTR de la máquina seleccionada (y sus submáquinas)."""
+        if not hasattr(self, 'lbl_indicadores_maquina'):
+            return
+        if id_maquina is None:
+            self.lbl_indicadores_maquina.setText("")
+            return
+        ind = maquinas.indicadores_fiabilidad(id_maquina)
+        if ind["num_averias"] == 0 or ind["mtbf_dias"] is None:
+            self.lbl_indicadores_maquina.setText(
+                f"<b>{tt('lbl_indicadores_fiabilidad', 'Indicadores de fiabilidad')}</b><br>"
+                f"{tt('lbl_num_averias', 'Averías registradas')}: {ind['num_averias']}<br>"
+                f"<i>{tt('msg_sin_datos_fiabilidad', 'Aún no hay averías suficientes para calcular indicadores.')}</i>"
+            )
+            return
+        mtbf_txt = tt("fmt_dias", "{n:.1f} días").format(n=ind["mtbf_dias"])
+        partes = [
+            f"<b>{tt('lbl_indicadores_fiabilidad', 'Indicadores de fiabilidad')}</b>",
+            f"{tt('lbl_num_averias', 'Averías registradas')}: {ind['num_averias']}",
+            f"{tt('lbl_mtbf', 'MTBF (tiempo medio entre averías)')}: {mtbf_txt}",
+        ]
+        if ind["mttr_horas"] is not None:
+            mttr_txt = tt("fmt_horas", "{n:.1f} horas").format(n=ind["mttr_horas"])
+            partes.append(f"{tt('lbl_mttr', 'MTTR (tiempo medio de reparación)')}: {mttr_txt}")
+        self.lbl_indicadores_maquina.setText("<br>".join(partes))
 
     def refrescar_arbol_maquinas(self):
         item_actual = self.arbol_maquinas.currentItem()
@@ -5189,8 +5305,8 @@ class MaintenanceApp(QMainWindow):
         if hasattr(self, 'arbol_maquinas'):
             self.refrescar_arbol_maquinas()
     def setup_table(self, tabla_widget):
-        tabla_widget.setColumnCount(4); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
-        tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tabla_widget.setColumnCount(5); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "PRIORIDAD")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
+        tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     def configurar_deseleccion(self, widget):
         clase_base = type(widget)
         def click_inteligente(event):
@@ -5226,10 +5342,12 @@ class MaintenanceApp(QMainWindow):
             uid = d[4] if len(d) > 4 else None
             unombre = d[5] if len(d) > 5 else ""
             maquina_id = d[6] if len(d) > 6 else None
-            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id)
+            prioridad = d[7] if len(d) > 7 else "Media"
+            horas_paro = d[8] if len(d) > 8 else None
+            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id, prioridad=prioridad, horas_paro=horas_paro)
             if dlg.exec():
-                fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id = dlg.get_data()
-                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id)
+                fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nueva_prioridad, nuevas_horas_paro = dlg.get_data()
+                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nueva_prioridad, nuevas_horas_paro)
                 self.refresh_all()
                 if hasattr(self, 'arbol_maquinas'):
                     self.refrescar_arbol_maquinas()
@@ -5324,6 +5442,7 @@ class MaintenanceApp(QMainWindow):
         uid_original = d[4] if len(d) > 4 else None
         unombre_original = d[5] if len(d) > 5 else ""
         maquina_id = d[6] if len(d) > 6 else None
+        prioridad_original = d[7] if len(d) > 7 else "Media"
 
         texto_aviso = tt("msg_confirmar_revertir_pendiente",
             "El trabajo volverá a la pestaña Pendientes y desaparecerá del historial. ¿Continuar?")
@@ -5360,7 +5479,7 @@ class MaintenanceApp(QMainWindow):
         titulo = lineas[0].strip()
         detalles = "\n".join(lineas[1:]).strip()
 
-        if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None):
+        if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None, prioridad_original):
             QMessageBox.critical(self, t("aviso"), tt("msg_error_revertir", "No se ha podido revertir el trabajo a pendiente."))
             return
 
@@ -5382,8 +5501,9 @@ class MaintenanceApp(QMainWindow):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
         uid = self.combo_asignar.currentData()
         nombre = self.combo_asignar.currentText() if uid is not None else None
-        if tit and self.db.agregar_pendiente(tit, d, uid, nombre):
-            self.in_todo_t.clear(); self.in_todo_d.clear(); self.refresh_todos()
+        prioridad = self.combo_prioridad_todo.currentData()
+        if tit and self.db.agregar_pendiente(tit, d, uid, nombre, prioridad):
+            self.in_todo_t.clear(); self.in_todo_d.clear(); self.combo_prioridad_todo.setCurrentIndex(1); self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
                 self.servidor.pendiente_actualizado.emit()
 
@@ -5428,7 +5548,11 @@ class MaintenanceApp(QMainWindow):
         if not ps:
             self.todo_list.addItem(t("msg_nada"))
 
-        for i, tit, d, asig_id, asig_nombre in ps:
+        orden_prioridad = {"Crítica": 0, "Alta": 1, "Media": 2, "Baja": 3}
+        ps = sorted(ps, key=lambda p: orden_prioridad.get(p[5], 2))
+
+        iconos_prioridad = {"Crítica": "🔴", "Alta": "🟠", "Media": "⬜", "Baja": "🟢"}
+        for i, tit, d, asig_id, asig_nombre, prioridad in ps:
             # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
             d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
             d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
@@ -5436,7 +5560,10 @@ class MaintenanceApp(QMainWindow):
             tiene_foto = self._hay_foto_disponible(d)
 
             # Texto visual limpio
-            texto_visual = f"⬜ {tit}"
+            icono = iconos_prioridad.get(prioridad, "⬜")
+            texto_visual = f"{icono} {tit}"
+            if prioridad in ("Crítica", "Alta"):
+                texto_visual += f"  [{traducir_prioridad(prioridad)}]"
             if d_limpio:
                 texto_visual += f"\n   ↳ {d_limpio}"
 
@@ -5453,6 +5580,7 @@ class MaintenanceApp(QMainWindow):
             it.setData(Qt.ItemDataRole.UserRole + 1, tit)
             it.setData(Qt.ItemDataRole.UserRole + 2, d)
             it.setData(Qt.ItemDataRole.UserRole + 3, asig_id)
+            it.setData(Qt.ItemDataRole.UserRole + 4, prioridad)
 
             if tiene_foto:
                 it.setToolTip("📸 Tiene foto adjunta")
@@ -5488,6 +5616,7 @@ class MaintenanceApp(QMainWindow):
         id_pendiente = item.data(Qt.ItemDataRole.UserRole)
         titulo = item.data(Qt.ItemDataRole.UserRole + 1)
         detalles_originales = item.data(Qt.ItemDataRole.UserRole + 2)
+        prioridad_pendiente = item.data(Qt.ItemDataRole.UserRole + 4) or "Media"
 
         # Usamos la nueva clase de diálogo
         dialogo = CompleteDialog(self, titulo, detalles_originales)
@@ -5507,7 +5636,7 @@ class MaintenanceApp(QMainWindow):
             if foto_nueva: desc_final += f"\n[FOTO: {os.path.basename(foto_nueva)}]"
 
             # Guardar en Historial y borrar de Pendientes
-            if self.db.agregar_tarea(fecha, desc_final, tags):
+            if self.db.agregar_tarea(fecha, desc_final, tags, prioridad=prioridad_pendiente):
                 self.db.borrar_pendiente(id_pendiente)
                 self.refresh_todos()
                 self.refresh_all()
@@ -5635,7 +5764,7 @@ class MaintenanceApp(QMainWindow):
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
-                writer.writerow(["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), "Foto Antes", "Foto Después"])
+                writer.writerow(["ID", "Fecha", "Descripción", tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), "Foto Antes", "Foto Después"])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD a DD/MM/YYYY
                     try:
@@ -5659,7 +5788,8 @@ class MaintenanceApp(QMainWindow):
 
                     autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
                     maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
-                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues])
+                    prioridad_txt = traducir_prioridad(tarea[6]) if len(tarea) > 6 else traducir_prioridad("Media")
+                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, prioridad_txt, foto_antes, foto_despues])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -6317,6 +6447,7 @@ class MaintenanceApp(QMainWindow):
         pid = item.data(Qt.ItemDataRole.UserRole)
         titulo_actual = item.data(Qt.ItemDataRole.UserRole + 1)
         detalles_raw = item.data(Qt.ItemDataRole.UserRole + 2)
+        prioridad_actual = item.data(Qt.ItemDataRole.UserRole + 4) or "Media"
 
         # --- LÓGICA DE LIMPIEZA VISUAL ---
         ruta_foto_actual = ""
@@ -6342,10 +6473,10 @@ class MaintenanceApp(QMainWindow):
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
 
         # Abrimos el diálogo con el texto LIMPIO
-        dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual)
+        dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual)
 
         if dlg.exec():
-            nuevo_t, nuevo_d, nueva_foto = dlg.get_data()
+            nuevo_t, nuevo_d, nueva_foto, nueva_prioridad = dlg.get_data()
 
             if nuevo_t:
                 desc_final = nuevo_d
@@ -6368,7 +6499,7 @@ class MaintenanceApp(QMainWindow):
                     desc_final += f"\n[FOTO: {nombre_final}]"
 
                 # Guardamos en BD (con la REF oculta de nuevo)
-                if self.db.actualizar_pendiente(pid, nuevo_t, desc_final):
+                if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad):
                     self.refresh_todos()
                     self.statusBar().showMessage(t("msg_pendiente_actualizado"), 3000)
 

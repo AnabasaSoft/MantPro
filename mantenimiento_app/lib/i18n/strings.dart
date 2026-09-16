@@ -88,6 +88,11 @@ const Map<String, Map<String, String>> _traducciones = {
     "tag_electrico": "Eléctrico",
     "tag_mecanico": "Mecánico",
     "tag_preventivo": "Preventivo",
+    "lbl_prioridad": "Prioridad",
+    "prioridad_baja": "Baja",
+    "prioridad_media": "Media",
+    "prioridad_alta": "Alta",
+    "prioridad_critica": "Crítica",
     "lbl_estado_planta": "Estado Planta",
     "lbl_pendientes": "Pendientes",
     "lbl_registros_mes": "Registros Mes",
@@ -238,6 +243,11 @@ const Map<String, Map<String, String>> _traducciones = {
     "tag_electrico": "Electrical",
     "tag_mecanico": "Mechanical",
     "tag_preventivo": "Preventive",
+    "lbl_prioridad": "Priority",
+    "prioridad_baja": "Low",
+    "prioridad_media": "Medium",
+    "prioridad_alta": "High",
+    "prioridad_critica": "Critical",
     "lbl_estado_planta": "Plant Status",
     "lbl_pendientes": "Pending",
     "lbl_registros_mes": "Month Records",
@@ -447,6 +457,11 @@ const Map<String, Map<String, String>> _traducciones = {
     "tag_electrico": "Elektrikoa",
     "tag_mecanico": "Mekanikoa",
     "tag_preventivo": "Prebentziozkoa",
+    "lbl_prioridad": "Lehentasuna",
+    "prioridad_baja": "Baxua",
+    "prioridad_media": "Ertaina",
+    "prioridad_alta": "Altua",
+    "prioridad_critica": "Kritikoa",
     "lbl_titulo": "Izenburua",
     "lbl_detalles": "Xehetasunak",
     "lbl_antes": "AURREKOA",
@@ -526,6 +541,20 @@ String traducirTagsBD(String tagsBd) {
     "Preventivo": t("tag_preventivo")
   };
   return tagsBd.split(', ').map((tag) => map[tag] ?? tag).join(', ');
+}
+
+/// La prioridad se guarda en la BD como código fijo en español ("Baja",
+/// "Media", "Alta", "Crítica", ver maquinas.py/usuarios.py). Aquí se traduce
+/// ese código al idioma activo para mostrarlo.
+String traducirPrioridad(String? codigo) {
+  const map = {
+    "Baja": "prioridad_baja",
+    "Media": "prioridad_media",
+    "Alta": "prioridad_alta",
+    "Crítica": "prioridad_critica",
+  };
+  final clave = map[codigo];
+  return clave != null ? t(clave) : (codigo ?? t("prioridad_media"));
 }
 
 /// El PC devuelve el estado de un aviso como un código fijo en español
