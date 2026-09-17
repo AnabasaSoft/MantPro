@@ -21,7 +21,7 @@
   "tipo_festivo_manual": "Festivo (Manual)",
   "estado_ok": "OK",
   "estado_pendiente": "PENDIENTE",
-  "estado_futuro": "Futuro",
+  "estado_futuro": "FUTURO",
   "estado_listo_subir": "LISTO (Subir)",
   "estado_pendiente_subir": "PENDIENTE (Subir)",
   "notif_titulo": "⚠️ Mantenimiento Preventivo",
