@@ -2282,7 +2282,15 @@ class _TabHistorialState extends State<TabHistorial> {
             final r = _registros[i]; Widget w;
             w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues) ?? const Icon(Icons.article, color: Colors.blueGrey);
               bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
-            return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Text("${r.titulo} | ${traducirTagsBD(r.tags)}"), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r), onLongPress: p ? null : () => _revertirAPendiente(r)));
+            return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text("${r.titulo} | ${traducirTagsBD(r.tags)}"),
+              if (r.maquinaNombre != null && r.maquinaNombre!.isNotEmpty)
+                Padding(padding: const EdgeInsets.only(top: 2), child: Row(children: [
+                  const Icon(Icons.precision_manufacturing, size: 14, color: Colors.blueGrey),
+                  const SizedBox(width: 4),
+                  Flexible(child: Text(r.maquinaNombre!, style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
+                ])),
+            ]), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r), onLongPress: p ? null : () => _revertirAPendiente(r)));
           })))
       ]),
       floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
