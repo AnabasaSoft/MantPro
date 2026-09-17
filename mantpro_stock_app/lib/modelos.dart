@@ -33,14 +33,25 @@ class Estanteria {
   final int id;
   final String nombre;
   final String estiloBaldas; // 'numero' o 'letra': cómo se numeran sus baldas
+  final int? zonaId;
   final List<Balda> baldas;
-  Estanteria({required this.id, required this.nombre, required this.estiloBaldas, required this.baldas});
+  Estanteria({required this.id, required this.nombre, required this.estiloBaldas, required this.zonaId, required this.baldas});
   factory Estanteria.fromJson(Map<String, dynamic> j) => Estanteria(
         id: j['id'],
         nombre: j['nombre'] ?? '',
         estiloBaldas: j['estilo_baldas'] ?? 'numero',
+        zonaId: j['zona_id'],
         baldas: ((j['baldas'] as List?) ?? []).map((b) => Balda.fromJson(b)).toList(),
       );
+}
+
+/// Zona del almacén (espacio físico que agrupa estanterías): se gestiona
+/// solo desde el PC, el móvil solo la lee para poder filtrar por ella.
+class Zona {
+  final int id;
+  final String nombre;
+  Zona({required this.id, required this.nombre});
+  factory Zona.fromJson(Map<String, dynamic> j) => Zona(id: j['id'], nombre: j['nombre'] ?? '');
 }
 
 /// Convierte un índice (1, 2, 3...) en letras estilo columnas de hoja de

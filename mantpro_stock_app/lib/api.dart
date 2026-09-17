@@ -193,6 +193,7 @@ class ApiException implements Exception {
 // escrituras pendientes de sincronizar con el PC (igual que en la app de
 // trabajos: se guarda todo como JSON y SincronizadorStock lo va vaciando).
 const String kStockCacheEstructura = 'stock_cache_estructura';
+const String kStockCacheZonas = 'stock_cache_zonas';
 const String kStockCacheMateriales = 'stock_cache_materiales';
 const String kStockCacheBajoMinimo = 'stock_cache_bajo_minimo';
 const String kStockColaNuevos = 'stock_cola_nuevos';
@@ -248,6 +249,35 @@ class StockApi {
     if (s == null) return null;
     final datos = json.decode(s);
     return (datos['estanterias'] as List).map((e) => Estanteria.fromJson(e)).toList();
+  }
+
+  static Future<List<Zona>> obtenerZonas() async {
+    try {
+      final ip = await _ip();
+      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/zonas'))
+          .timeout(const Duration(seconds: 4));
+      final datos = json.decode(res.body);
+      if (res.statusCode != 200 || datos['status'] != 'ok') {
+        throw ApiException(datos['message'] ?? 'Error al cargar las zonas del almacén');
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(kStockCacheZonas, res.body);
+      return (datos['zonas'] as List).map((z) => Zona.fromJson(z)).toList();
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      final cache = await _cacheZonas();
+      if (cache != null) return cache;
+      throw ApiException(tt('msg_sin_conexion_pc', 'Sin conexión con el PC'));
+    }
+  }
+
+  static Future<List<Zona>?> _cacheZonas() async {
+    final prefs = await SharedPreferences.getInstance();
+    final s = prefs.getString(kStockCacheZonas);
+    if (s == null) return null;
+    final datos = json.decode(s);
+    return (datos['zonas'] as List).map((z) => Zona.fromJson(z)).toList();
   }
 
   static Future<List<Articulo>?> _cacheMateriales() async {

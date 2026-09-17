@@ -75,11 +75,18 @@ def inicializar():
     con = _conn()
     cur = con.cursor()
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS zonas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL
+        )
+    """)
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS estanterias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL,
             tiene_hueco_suelo INTEGER NOT NULL DEFAULT 0,
-            estilo_baldas TEXT NOT NULL DEFAULT 'numero'
+            estilo_baldas TEXT NOT NULL DEFAULT 'numero',
+            zona_id INTEGER REFERENCES zonas(id)
         )
     """)
     cur.execute("""
@@ -126,11 +133,83 @@ def inicializar():
     # --- columnas nuevas en tablas existentes ---
     if "estilo_baldas" not in _columnas(con, "estanterias"):
         cur.execute("ALTER TABLE estanterias ADD COLUMN estilo_baldas TEXT NOT NULL DEFAULT 'numero'")
+    if "zona_id" not in _columnas(con, "estanterias"):
+        cur.execute("ALTER TABLE estanterias ADD COLUMN zona_id INTEGER REFERENCES zonas(id)")
     if "implicita" not in _columnas(con, "secciones"):
         cur.execute("ALTER TABLE secciones ADD COLUMN implicita INTEGER NOT NULL DEFAULT 0")
 
+    # --- migración: agrupar en una zona "Almacén" las estanterías que ya
+    # existieran de antes de añadir el concepto de zonas (o cualquier
+    # estantería que, por lo que sea, se quede sin zona asignada). ---
+    huerfanas = cur.execute("SELECT COUNT(*) AS n FROM estanterias WHERE zona_id IS NULL").fetchone()["n"]
+    if huerfanas:
+        zona = cur.execute("SELECT id FROM zonas ORDER BY id LIMIT 1").fetchone()
+        zona_id = zona["id"] if zona else cur.execute(
+            "INSERT INTO zonas (nombre) VALUES ('Almacén')").lastrowid
+        cur.execute("UPDATE estanterias SET zona_id=? WHERE zona_id IS NULL", (zona_id,))
+
     con.commit()
     con.close()
+
+
+# ---------------------------------------------------------------------- zonas
+
+def crear_zona(nombre):
+    """Crea una zona de almacén (espacio físico que agrupa estanterías)."""
+    con = _conn()
+    cur = con.cursor()
+    cur.execute("INSERT INTO zonas (nombre) VALUES (?)", (nombre,))
+    zona_id = cur.lastrowid
+    con.commit()
+    con.close()
+    return zona_id
+
+
+def listar_zonas():
+    con = _conn()
+    zonas = sorted(
+        (dict(row) for row in con.execute("SELECT * FROM zonas")),
+        key=lambda z: _clave_orden_natural(z["nombre"]))
+    con.close()
+    return zonas
+
+
+def renombrar_zona(zona_id, nombre):
+    con = _conn()
+    con.execute("UPDATE zonas SET nombre=? WHERE id=?", (nombre, zona_id))
+    con.commit()
+    con.close()
+
+
+def zona_estanterias(zona_id):
+    """Ids de las estanterías que pertenecen a una zona."""
+    con = _conn()
+    ids = [r["id"] for r in con.execute("SELECT id FROM estanterias WHERE zona_id=?", (zona_id,))]
+    con.close()
+    return ids
+
+
+def eliminar_zona(zona_id, forzar=False):
+    """Borra una zona. Si contiene estanterías:
+    - Sin `forzar`, no borra nada y devuelve (False, "contiene_estanterias"),
+      para que la interfaz pueda avisar de que esas estanterías (y toda su
+      estructura) se eliminarán también antes de pedir confirmación.
+    - Con `forzar=True`, borra primero cada estantería de la zona (lo que a su
+      vez falla, igual que al borrarlas una a una, si alguna todavía tiene
+      material ubicado dentro).
+    Devuelve (True, None) si se ha borrado, o (False, motivo) si no."""
+    ids_est = zona_estanterias(zona_id)
+    if ids_est and not forzar:
+        return False, "contiene_estanterias"
+    for estanteria_id in ids_est:
+        ok, error = eliminar_estanteria(estanteria_id)
+        if not ok:
+            return False, error
+    con = _conn()
+    con.execute("DELETE FROM zonas WHERE id=?", (zona_id,))
+    con.commit()
+    con.close()
+    return True, None
 
 
 # ---------------------------------------------------------------- estructura
@@ -155,17 +234,18 @@ def texto_balda(numero, estilo_baldas="numero"):
 
 
 def crear_estanteria(nombre, num_baldas, tiene_hueco_suelo, num_secciones=0,
-                      estilo_baldas="numero", estilo_secciones="letra"):
+                      estilo_baldas="numero", estilo_secciones="letra", zona_id=None):
     """Crea una estantería con sus baldas (numeradas internamente de 1 a
     num_baldas, de abajo a arriba; ese número interno se usa siempre para
     ordenar, aunque en pantalla se muestre como letra si estilo_baldas="letra").
     Si tiene_hueco_suelo, añade también la balda 0.
     Si num_secciones > 0, crea esa cantidad de secciones ("Sección A"/"Sección 1"...
-    según estilo_secciones) en cada balda creada."""
+    según estilo_secciones) en cada balda creada.
+    zona_id indica en qué zona (espacio físico del almacén) queda ubicada."""
     con = _conn()
     cur = con.cursor()
-    cur.execute("INSERT INTO estanterias (nombre, tiene_hueco_suelo, estilo_baldas) VALUES (?, ?, ?)",
-                (nombre, 1 if tiene_hueco_suelo else 0, estilo_baldas))
+    cur.execute("INSERT INTO estanterias (nombre, tiene_hueco_suelo, estilo_baldas, zona_id) VALUES (?, ?, ?, ?)",
+                (nombre, 1 if tiene_hueco_suelo else 0, estilo_baldas, zona_id))
     estanteria_id = cur.lastrowid
 
     def _crear_balda(numero):
@@ -415,14 +495,19 @@ def _clave_orden_natural(nombre):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', nombre or "")]
 
 
-def listar_estructura():
+def listar_estructura(zona_id=None):
     """Devuelve la estructura completa anidada:
-    [{id, nombre, tiene_hueco_suelo, baldas: [{id, numero, secciones: [{id, nombre}, ...]}, ...]}, ...]
+    [{id, nombre, tiene_hueco_suelo, zona_id, baldas: [{id, numero, secciones: [{id, nombre}, ...]}, ...]}, ...]
     Las baldas se devuelven ordenadas de arriba hacia abajo (más intuitivo visualmente),
-    dejando la balda 0 (hueco de suelo) siempre al final."""
+    dejando la balda 0 (hueco de suelo) siempre al final.
+    Si se indica zona_id, solo devuelve las estanterías de esa zona."""
     con = _conn()
+    if zona_id is not None:
+        filas = con.execute("SELECT * FROM estanterias WHERE zona_id=?", (zona_id,))
+    else:
+        filas = con.execute("SELECT * FROM estanterias")
     estanterias = sorted(
-        (dict(row) for row in con.execute("SELECT * FROM estanterias")),
+        (dict(row) for row in filas),
         key=lambda e: _clave_orden_natural(e["nombre"]))
     for est in estanterias:
         baldas = [dict(row) for row in con.execute(
@@ -535,21 +620,29 @@ def obtener_material(material_id):
     return dict(fila) if fila else None
 
 
-def listar_materiales(filtro_texto=None):
+def listar_materiales(filtro_texto=None, zona_id=None):
+    """Si se indica zona_id, solo devuelve los materiales ubicados en estanterías
+    de esa zona (los que no tienen ubicación asignada quedan fuera del filtro)."""
     con = _conn()
+    condiciones = []
+    parametros = []
     if filtro_texto:
         patron = f"%{filtro_texto}%"
-        filas = con.execute("""
-            SELECT DISTINCT m.* FROM materiales m
-            LEFT JOIN secciones s ON m.seccion_id = s.id
-            LEFT JOIN baldas b ON s.balda_id = b.id
-            LEFT JOIN estanterias e ON b.estanteria_id = e.id
-            WHERE m.nombre LIKE ? OR m.codigo LIKE ? OR m.descripcion LIKE ?
-               OR e.nombre LIKE ? OR s.nombre LIKE ?
-            ORDER BY m.nombre
-        """, (patron, patron, patron, patron, patron)).fetchall()
-    else:
-        filas = con.execute("SELECT * FROM materiales ORDER BY nombre").fetchall()
+        condiciones.append("(m.nombre LIKE ? OR m.codigo LIKE ? OR m.descripcion LIKE ? OR e.nombre LIKE ? OR s.nombre LIKE ?)")
+        parametros += [patron, patron, patron, patron, patron]
+    if zona_id is not None:
+        condiciones.append("e.zona_id = ?")
+        parametros.append(zona_id)
+    sql = """
+        SELECT DISTINCT m.* FROM materiales m
+        LEFT JOIN secciones s ON m.seccion_id = s.id
+        LEFT JOIN baldas b ON s.balda_id = b.id
+        LEFT JOIN estanterias e ON b.estanteria_id = e.id
+    """
+    if condiciones:
+        sql += " WHERE " + " AND ".join(condiciones)
+    sql += " ORDER BY m.nombre"
+    filas = con.execute(sql, parametros).fetchall()
     con.close()
     return [dict(f) for f in filas]
 

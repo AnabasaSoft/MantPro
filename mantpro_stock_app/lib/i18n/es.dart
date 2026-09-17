@@ -53,6 +53,8 @@ const Map<String, String> traduccionesEs = {
     "msg_sin_bajo_minimo": "No hay artículos por debajo del mínimo 🎉",
     "msg_sin_estanterias": "No hay estanterías configuradas en el almacén",
     "msg_sin_articulos_seccion": "Sin artículos",
+    "lbl_zona": "Zona",
+    "txt_todas_zonas": "Todas las zonas",
     "lbl_suelo": "Suelo",
     "lbl_balda": "Balda",
 

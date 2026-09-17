@@ -18,12 +18,33 @@ class PantallaAlmacen extends StatefulWidget {
   State<PantallaAlmacen> createState() => _PantallaAlmacenState();
 }
 
+const String _kZonaSeleccionada = 'stock_zona_seleccionada';
+
 class _PantallaAlmacenState extends State<PantallaAlmacen> {
   bool _cargando = true;
   String? _error;
   List<Estanteria> _estanterias = [];
+  List<Zona> _zonas = [];
+  int? _zonaSeleccionada;
   Map<int, List<Articulo>> _materialesPorSeccion = {};
   Map<int, List<Articulo>> _materialesPorBaldaPendiente = {};
+
+  /// Estanterías de la zona seleccionada. Si no hay ninguna zona (instalación
+  /// antigua sin sincronizar todavía) o la estantería no tiene zona asignada,
+  /// se muestra igualmente para no dejarla "desaparecida" de la vista.
+  List<Estanteria> get _estanteriasFiltradas => _zonaSeleccionada == null
+      ? _estanterias
+      : _estanterias.where((e) => e.zonaId == null || e.zonaId == _zonaSeleccionada).toList();
+
+  Future<void> _elegirZona(int? zonaId) async {
+    setState(() => _zonaSeleccionada = zonaId);
+    final prefs = await SharedPreferences.getInstance();
+    if (zonaId == null) {
+      await prefs.remove(_kZonaSeleccionada);
+    } else {
+      await prefs.setInt(_kZonaSeleccionada, zonaId);
+    }
+  }
 
   @override
   void initState() {
@@ -52,11 +73,16 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
   Future<void> _recargarSilencioso() async {
     try {
       final estanterias = await StockApi.obtenerEstructura();
+      final zonas = await StockApi.obtenerZonas();
       final materiales = await StockApi.obtenerMateriales();
       final (agrupados, agrupadosPorBalda) = _agrupar(materiales);
       if (mounted) {
         setState(() {
           _estanterias = estanterias;
+          _zonas = zonas;
+          if (_zonaSeleccionada != null && !zonas.any((z) => z.id == _zonaSeleccionada)) {
+            _zonaSeleccionada = null;
+          }
           _materialesPorSeccion = agrupados;
           _materialesPorBaldaPendiente = agrupadosPorBalda;
         });
@@ -99,10 +125,16 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
         StockSincronizador.sincronizarTodo(ip, silencioso: true);
       }
       final estanterias = await StockApi.obtenerEstructura();
+      final zonas = await StockApi.obtenerZonas();
       final materiales = await StockApi.obtenerMateriales();
       final (agrupados, agrupadosPorBalda) = _agrupar(materiales);
+      final zonaGuardada = prefs.getInt(_kZonaSeleccionada);
       setState(() {
         _estanterias = estanterias;
+        _zonas = zonas;
+        _zonaSeleccionada = (zonaGuardada != null && zonas.any((z) => z.id == zonaGuardada))
+            ? zonaGuardada
+            : null;
         _materialesPorSeccion = agrupados;
         _materialesPorBaldaPendiente = agrupadosPorBalda;
       });
@@ -134,6 +166,8 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
   Widget _construir(BuildContext context) {
     if (_cargando) return const Center(child: CircularProgressIndicator());
 
+    final estanterias = _estanteriasFiltradas;
+
     // Igual que en "Bajo mínimo": todo el contenido (error, sin estanterías o
     // el árbol en sí) va dentro de un único RefreshIndicator, para poder
     // forzar la actualización con un arrastre hacia abajo aunque todavía no
@@ -151,54 +185,80 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
                 ]),
               ),
             ])
-          : _estanterias.isEmpty
-              ? ListView(children: [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                        child: Text(tt('msg_sin_estanterias',
-                            'No hay estanterías configuradas en el almacén'))),
-                  ),
-                ])
-              : DefaultTabController(
-                  length: _estanterias.length,
-                  child: Column(
-                    children: [
-                      Material(
-                        color: Theme.of(context).appBarTheme.backgroundColor,
-                        child: TabBar(
-                          isScrollable: true,
-                          // La barra siempre usa el color oscuro del AppBar (igual en
-                          // modo claro y oscuro), así que el texto tiene que ser
-                          // siempre claro; si no se fija aquí, en modo claro el tema
-                          // pone letras oscuras y quedan ilegibles sobre ese fondo.
-                          labelColor: Colors.white,
-                          unselectedLabelColor: Colors.white70,
-                          tabs: _estanterias
-                              .map((e) => Tab(text: e.nombre))
-                              .toList(),
+          : Column(
+              children: [
+                if (_zonas.length > 1) _selectorZona(context),
+                Expanded(
+                  child: estanterias.isEmpty
+                      ? ListView(children: [
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(
+                                child: Text(tt('msg_sin_estanterias',
+                                    'No hay estanterías configuradas en el almacén'))),
+                          ),
+                        ])
+                      : DefaultTabController(
+                          length: estanterias.length,
+                          child: Column(
+                            children: [
+                              Material(
+                                color: Theme.of(context).appBarTheme.backgroundColor,
+                                child: TabBar(
+                                  isScrollable: true,
+                                  // La barra siempre usa el color oscuro del AppBar (igual en
+                                  // modo claro y oscuro), así que el texto tiene que ser
+                                  // siempre claro; si no se fija aquí, en modo claro el tema
+                                  // pone letras oscuras y quedan ilegibles sobre ese fondo.
+                                  labelColor: Colors.white,
+                                  unselectedLabelColor: Colors.white70,
+                                  tabs: estanterias
+                                      .map((e) => Tab(text: e.nombre))
+                                      .toList(),
+                                ),
+                              ),
+                              Expanded(
+                                child: TabBarView(
+                                  children: estanterias
+                                      .map((e) => _ArbolEstanteria(
+                                            estanteria: e,
+                                            materialesPorSeccion: _materialesPorSeccion,
+                                            materialesPorBaldaPendiente: _materialesPorBaldaPendiente,
+                                            onAbrirArticulo: (id) =>
+                                                _abrirArticulo(materialId: id),
+                                            onAnadirArticulo: (seccionId) =>
+                                                _abrirArticulo(seccionId: seccionId),
+                                            onAnadirArticuloBalda: (baldaId) =>
+                                                _abrirArticulo(baldaId: baldaId),
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          children: _estanterias
-                              .map((e) => _ArbolEstanteria(
-                                    estanteria: e,
-                                    materialesPorSeccion: _materialesPorSeccion,
-                                    materialesPorBaldaPendiente: _materialesPorBaldaPendiente,
-                                    onAbrirArticulo: (id) =>
-                                        _abrirArticulo(materialId: id),
-                                    onAnadirArticulo: (seccionId) =>
-                                        _abrirArticulo(seccionId: seccionId),
-                                    onAnadirArticuloBalda: (baldaId) =>
-                                        _abrirArticulo(baldaId: baldaId),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
+              ],
+            ),
+    );
+  }
+
+  Widget _selectorZona(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: DropdownButtonFormField<int?>(
+        initialValue: _zonaSeleccionada,
+        decoration: InputDecoration(
+          labelText: tt('lbl_zona', 'Zona'),
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        items: [
+          DropdownMenuItem<int?>(value: null, child: Text(tt('txt_todas_zonas', 'Todas las zonas'))),
+          ..._zonas.map((z) => DropdownMenuItem<int?>(value: z.id, child: Text(z.nombre))),
+        ],
+        onChanged: _elegirZona,
+      ),
     );
   }
 }
