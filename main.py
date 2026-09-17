@@ -2332,9 +2332,10 @@ class DialogoConfigurarAlmacen(QDialog):
         self.combo_zona = QComboBox()
         self.combo_zona.currentIndexChanged.connect(self._cambiar_zona)
         hz.addWidget(self.combo_zona, 1)
-        btn_nueva_zona = QPushButton(tt("btn_nueva_zona", "➕ Nueva zona")); btn_nueva_zona.clicked.connect(self.nueva_zona)
+        btn_nueva_zona = QPushButton(tt("btn_nueva_zona_almacen", "➕ Nueva zona")); btn_nueva_zona.clicked.connect(self.nueva_zona)
+        btn_renombrar_zona = QPushButton(tt("btn_renombrar_zona", "✏️ Renombrar zona")); btn_renombrar_zona.clicked.connect(self.renombrar_zona)
         btn_eliminar_zona = QPushButton(tt("btn_eliminar_zona", "🗑️ Eliminar zona")); btn_eliminar_zona.clicked.connect(self.eliminar_zona)
-        hz.addWidget(btn_nueva_zona); hz.addWidget(btn_eliminar_zona)
+        hz.addWidget(btn_nueva_zona); hz.addWidget(btn_renombrar_zona); hz.addWidget(btn_eliminar_zona)
         l.addLayout(hz)
 
         self.arbol = QTreeWidget(); self.arbol.setHeaderHidden(True)
@@ -2391,9 +2392,19 @@ class DialogoConfigurarAlmacen(QDialog):
         self.refrescar()
 
     def nueva_zona(self):
-        nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona", "Nueva zona"), tt("lbl_nombre_zona", "Nombre de la zona"))
+        nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona_almacen", "Nueva zona"), tt("lbl_nombre_zona_almacen", "Nombre de la zona"))
         if ok and nombre.strip():
             zona_id = almacen.crear_zona(nombre.strip())
+            self._cargar_zonas(preferir_id=zona_id)
+
+    def renombrar_zona(self):
+        zona_id = self.combo_zona.currentData()
+        if zona_id is None:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_zona_requerida", "Selecciona una zona.")); return
+        nombre, ok = QInputDialog.getText(self, tt("title_renombrar_zona", "Renombrar zona"),
+                                           tt("lbl_nombre_zona_almacen", "Nombre de la zona"), text=self.combo_zona.currentText())
+        if ok and nombre.strip():
+            almacen.renombrar_zona(zona_id, nombre.strip())
             self._cargar_zonas(preferir_id=zona_id)
 
     def eliminar_zona(self):
