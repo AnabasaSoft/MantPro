@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.9.0"
+APP_VERSION = "3.9.1"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -1544,6 +1544,11 @@ class ServidorSincronizacion(QThread):
         def api_stock_estructura():
             return jsonify({"status": "ok", "estanterias": almacen.listar_estructura()})
 
+        @self.app.route('/api/stock/zonas', methods=['GET'])
+        @requiere_token
+        def api_stock_zonas():
+            return jsonify({"status": "ok", "zonas": almacen.listar_zonas()})
+
         @self.app.route('/api/stock/materiales', methods=['GET'])
         @requiere_token
         def api_stock_materiales():
@@ -2322,6 +2327,16 @@ class DialogoConfigurarAlmacen(QDialog):
         self.resize(560, 520)
         l = QVBoxLayout()
 
+        hz = QHBoxLayout()
+        hz.addWidget(QLabel(tt("lbl_zona", "Zona")))
+        self.combo_zona = QComboBox()
+        self.combo_zona.currentIndexChanged.connect(self._cambiar_zona)
+        hz.addWidget(self.combo_zona, 1)
+        btn_nueva_zona = QPushButton(tt("btn_nueva_zona", "➕ Nueva zona")); btn_nueva_zona.clicked.connect(self.nueva_zona)
+        btn_eliminar_zona = QPushButton(tt("btn_eliminar_zona", "🗑️ Eliminar zona")); btn_eliminar_zona.clicked.connect(self.eliminar_zona)
+        hz.addWidget(btn_nueva_zona); hz.addWidget(btn_eliminar_zona)
+        l.addLayout(hz)
+
         self.arbol = QTreeWidget(); self.arbol.setHeaderHidden(True)
         self.arbol.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.arbol.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -2355,7 +2370,52 @@ class DialogoConfigurarAlmacen(QDialog):
         btn_cerrar = QPushButton(t("btn_cerrar")); btn_cerrar.clicked.connect(self.accept)
         l.addWidget(btn_cerrar)
         self.setLayout(l)
+        self._cargar_zonas()
+
+    def _cargar_zonas(self, preferir_id=None):
+        """Rellena el desplegable de zonas conservando (o forzando con
+        preferir_id) la selección actual, y refresca el árbol para la zona
+        que quede seleccionada."""
+        zona_previa = preferir_id if preferir_id is not None else self.combo_zona.currentData()
+        self._zonas = almacen.listar_zonas()
+        self.combo_zona.blockSignals(True)
+        self.combo_zona.clear()
+        for zona in self._zonas:
+            self.combo_zona.addItem(zona["nombre"], zona["id"])
+        idx = self.combo_zona.findData(zona_previa)
+        self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
+        self.combo_zona.blockSignals(False)
         self.refrescar()
+
+    def _cambiar_zona(self, _idx):
+        self.refrescar()
+
+    def nueva_zona(self):
+        nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona", "Nueva zona"), tt("lbl_nombre_zona", "Nombre de la zona"))
+        if ok and nombre.strip():
+            zona_id = almacen.crear_zona(nombre.strip())
+            self._cargar_zonas(preferir_id=zona_id)
+
+    def eliminar_zona(self):
+        zona_id = self.combo_zona.currentData()
+        if zona_id is None:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_zona_requerida", "Selecciona una zona.")); return
+        nombre_zona = self.combo_zona.currentText()
+        if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
+                "msg_confirmar_eliminar_zona", "¿Eliminar la zona «{nombre}»?").format(nombre=nombre_zona)) != QMessageBox.StandardButton.Yes:
+            return
+        ok, error = almacen.eliminar_zona(zona_id)
+        if not ok and error == "contiene_estanterias":
+            n = len(almacen.zona_estanterias(zona_id))
+            if QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
+                    "msg_zona_contiene_estanterias",
+                    "Esta zona contiene {n} estantería(s). Si continúas, se eliminarán también esas estanterías y toda su estructura. ¿Continuar?").format(n=n),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
+                return
+            ok, error = almacen.eliminar_zona(zona_id, forzar=True)
+        if not ok:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
+        self._cargar_zonas()
 
     def refrescar(self):
         self.arbol.clear()
@@ -2366,7 +2426,7 @@ class DialogoConfigurarAlmacen(QDialog):
         col_balda = QColor("#6fcf7a") if oscuro else QColor("#1e6620")
         col_suelo = QColor("#e0b34d") if oscuro else QColor("#8a6210")
         col_sec = QColor("#c98be0") if oscuro else QColor("#6a2d8a")
-        self._estructura = almacen.listar_estructura()
+        self._estructura = almacen.listar_estructura(self.combo_zona.currentData())
         for est in self._estructura:
             item_est = QTreeWidgetItem([f"🗄️ {est['nombre']}"])
             item_est.setData(0, Qt.ItemDataRole.UserRole, ("estanteria", est["id"]))
@@ -2399,12 +2459,15 @@ class DialogoConfigurarAlmacen(QDialog):
         return item.data(0, Qt.ItemDataRole.UserRole)
 
     def anadir_estanteria(self):
+        zona_id = self.combo_zona.currentData()
+        if zona_id is None:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_crea_zona_primero", "Crea antes una zona para poder añadir estanterías.")); return
         dlg = DialogoNuevaEstanteria(self)
         if dlg.exec():
             nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones = dlg.get_data()
             if not nombre:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_obligatorio", "El nombre es obligatorio.")); return
-            almacen.crear_estanteria(nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones)
+            almacen.crear_estanteria(nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones, zona_id=zona_id)
             self.refrescar()
 
     def eliminar_estanteria(self):
@@ -4328,6 +4391,7 @@ class MaintenanceApp(QMainWindow):
         self.table_avisos = QTableWidget(0, 5)
         self.configurar_deseleccion(self.table_avisos); self.table_avisos.setHorizontalHeaderLabels([t("hdr_estado"), t("hdr_titulo"), t("hdr_frecuencia"), t("hdr_proxima"), t("hdr_sit")])
         self.table_avisos.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_avisos.setColumnWidth(3, 140)
         self.table_avisos.cellDoubleClicked.connect(lambda r, c: self.edit_aviso())
         l.addWidget(QLabel(t("lbl_gestion_avisos"))); l.addWidget(self.table_avisos)
         g = QGroupBox(t("lbl_crear_nuevo_aviso")); f = QGridLayout()
@@ -4404,29 +4468,24 @@ class MaintenanceApp(QMainWindow):
             cl.addWidget(chk)
             self.table_avisos.setCellWidget(r, 0, cw)
 
-            # Colores (grises adaptados al tema; verde/rojo son ya bastante
-            # saturados como para funcionar bien en cualquier tema)
-            oscuro = self._tema_actual == "oscuro"
-            color = QColor("#555" if oscuro else "#e0e0e0")
-            color_fg = QColor("#ffffff" if oscuro else "#333333")
+            # Colores de estado: azul=futuro, rojo=pendiente, verde=realizado
+            color = QColor("#2e86c1")  # Azul (futuro)
             estado_txt = t("estado_futuro")
 
             if es_activo:
                 if completado:
-                    color = QColor("#27ae60"); color_fg = QColor("#ffffff") # Verde
+                    color = QColor("#27ae60") # Verde
                     estado_txt = t("estado_ok")
                 else:
-                    color = QColor("#cb4335"); color_fg = QColor("#ffffff") # Rojo (un poco más oscuro)
+                    color = QColor("#cb4335") # Rojo (un poco más oscuro)
                     estado_txt = t("estado_pendiente")
             elif completado:
-                 color = QColor("#27ae60"); color_fg = QColor("#ffffff")
+                 color = QColor("#27ae60")
                  estado_txt = t("estado_ok")
 
             # Rellenar fila
             item_t = QTableWidgetItem(tit)
             item_t.setData(Qt.ItemDataRole.UserRole, aid)
-            item_t.setBackground(color)
-            item_t.setForeground(color_fg)
 
             self.table_avisos.setItem(r, 1, item_t)
             self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
@@ -4434,7 +4493,10 @@ class MaintenanceApp(QMainWindow):
             patron_qt = idiomas.formato_fecha_corta_qt()
             rango = f"{ocurrencia.toString(patron_qt)} - {fin_ocurrencia.toString(patron_qt)}"
             self.table_avisos.setItem(r, 3, QTableWidgetItem(rango))
-            self.table_avisos.setItem(r, 4, QTableWidgetItem(estado_txt))
+
+            item_estado = QTableWidgetItem(estado_txt)
+            item_estado.setForeground(color)
+            self.table_avisos.setItem(r, 4, item_estado)
 
     def tog_aviso(self, id_aviso, fecha_ocurrencia, estado, titulo):
         # Actualizar fecha última completada
@@ -5001,6 +5063,10 @@ class MaintenanceApp(QMainWindow):
         self.stock_buscar = QLineEdit(); self.stock_buscar.setPlaceholderText(tt("ph_buscar_material", "Buscar material..."))
         self.stock_buscar.textChanged.connect(self.refresh_stock)
         barra.addWidget(self.stock_buscar, 1)
+        barra.addWidget(QLabel(tt("lbl_zona", "Zona")))
+        self.combo_zona_stock = QComboBox()
+        self.combo_zona_stock.currentIndexChanged.connect(self.refresh_stock)
+        barra.addWidget(self.combo_zona_stock)
         btn_add = QPushButton(tt("btn_add_material", "➕ Añadir material")); btn_add.clicked.connect(self.stock_anadir_material)
         btn_edit = QPushButton(tt("btn_editar_material", "✏️ Editar")); btn_edit.clicked.connect(self.stock_editar_material)
         btn_del = QPushButton(tt("btn_borrar_material", "🗑️ Eliminar")); btn_del.setStyleSheet("background-color:#c0392b; color:white;"); btn_del.clicked.connect(lambda: self.stock_borrar_material())
@@ -5038,6 +5104,21 @@ class MaintenanceApp(QMainWindow):
         l.addWidget(split)
 
         self.tab_stock.setLayout(l)
+        self._cargar_zonas_stock()
+
+    def _cargar_zonas_stock(self):
+        """Rellena el desplegable de zonas de la pestaña de stock, conservando
+        la zona seleccionada si sigue existiendo (o "Todas las zonas" si no)."""
+        if not hasattr(self, "combo_zona_stock"): return
+        zona_previa = self.combo_zona_stock.currentData()
+        self.combo_zona_stock.blockSignals(True)
+        self.combo_zona_stock.clear()
+        self.combo_zona_stock.addItem(tt("txt_todas_zonas", "Todas las zonas"), None)
+        for zona in almacen.listar_zonas():
+            self.combo_zona_stock.addItem(zona["nombre"], zona["id"])
+        idx = self.combo_zona_stock.findData(zona_previa)
+        self.combo_zona_stock.setCurrentIndex(idx if idx >= 0 else 0)
+        self.combo_zona_stock.blockSignals(False)
 
     def init_stock_alertas_tab(self):
         l = QVBoxLayout()
@@ -5154,7 +5235,8 @@ class MaintenanceApp(QMainWindow):
     def refresh_stock(self):
         if not hasattr(self, "tabla_stock"): return
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
-        materiales = almacen.listar_materiales(texto or None)
+        zona_id = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
+        materiales = almacen.listar_materiales(texto or None, zona_id)
         self.tabla_stock.setRowCount(len(materiales))
         for fila, m in enumerate(materiales):
             ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
@@ -5271,6 +5353,7 @@ class MaintenanceApp(QMainWindow):
     def stock_configurar_almacen(self):
         if not usuarios.es_admin(): return
         DialogoConfigurarAlmacen(self).exec()
+        self._cargar_zonas_stock()
         self.refresh_stock()
 
     # --- LÓGICA GENERAL ---

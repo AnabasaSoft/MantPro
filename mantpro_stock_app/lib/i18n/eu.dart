@@ -53,6 +53,8 @@ const Map<String, String> traduccionesEu = {
     "msg_sin_bajo_minimo": "Ez dago gutxienekotik beherako artikulurik 🎉",
     "msg_sin_estanterias": "Biltegian ez dago apalategirik konfiguratuta",
     "msg_sin_articulos_seccion": "Artikulurik ez",
+    "lbl_zona": "Eremua",
+    "txt_todas_zonas": "Eremu guztiak",
     "lbl_suelo": "Lurra",
     "lbl_balda": "Apala",
 
