@@ -3631,12 +3631,10 @@ class MaintenanceApp(QMainWindow):
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
 
     def closeEvent(self, e):
-        if getattr(self, "_cierre_confirmado", False):
-            self.settings.setValue("geometry", self.saveGeometry())
-            super().closeEvent(e)
-            return
-
-        # Posponemos el cierre real hasta que termine el backup automático
+        # Posponemos el cierre real (aceptando el evento al final de esta misma
+        # llamada, no volviendo a invocar self.close(): Qt ignora los close()
+        # reentrantes mientras ya se está procesando uno, así que llamarlo aquí
+        # dejaría la ventana abierta y obligaría a pulsar "Salir" dos veces).
         e.ignore()
 
         print("Iniciando limpieza de fotos...")
@@ -3671,8 +3669,8 @@ class MaintenanceApp(QMainWindow):
 
         dlg.exec()
 
-        self._cierre_confirmado = True
-        self.close()
+        self.settings.setValue("geometry", self.saveGeometry())
+        e.accept()
 
     def on_registro_recibido(self, titulo, detalles, tags, filename, ruta_foto):
         if self.qr_dialog: self.qr_dialog.accept(); self.qr_dialog = None
