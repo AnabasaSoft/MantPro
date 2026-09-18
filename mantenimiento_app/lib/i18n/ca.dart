@@ -52,7 +52,7 @@ const Map<String, String> traduccionesCa = {
     "tab_inicio": "Inici",
     "tab_local": "Local",
     "tab_pendientes": "Pendents",
-    "tab_avisos": "Recordatoris",
+    "tab_avisos": "Avisos",
     "tab_historial": "Historial",
     "titulo_dashboard": "Dashboard",
     "titulo_local": "Els Meus Registres Locals",

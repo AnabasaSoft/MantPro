@@ -204,6 +204,13 @@ def inicializar():
         if "prioridad" not in cols:
             cur.execute("ALTER TABLE pendientes ADD COLUMN prioridad TEXT DEFAULT 'Media'")
 
+    if _tabla_existe(con, "avisos_recurrentes"):
+        cols = _columnas(con, "avisos_recurrentes")
+        if "asignado_a" not in cols:
+            cur.execute("ALTER TABLE avisos_recurrentes ADD COLUMN asignado_a INTEGER")
+        if "asignado_nombre" not in cols:
+            cur.execute("ALTER TABLE avisos_recurrentes ADD COLUMN asignado_nombre TEXT")
+
     # --- admin inicial ---
     creado_admin = False
     total = cur.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
