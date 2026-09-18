@@ -53,7 +53,7 @@ const Map<String, String> traduccionesEs = {
     "tab_inicio": "Inicio",
     "tab_local": "Local",
     "tab_pendientes": "Pendientes",
-    "tab_avisos": "Recordatorios",
+    "tab_avisos": "Avisos",
     "tab_historial": "Historial",
     "titulo_dashboard": "Dashboard",
     "titulo_local": "Mis Registros Locales",
