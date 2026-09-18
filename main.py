@@ -1129,8 +1129,9 @@ class ServidorSincronizacion(QThread):
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
                 u = g.usuario_mantpro
-                # Cada trabajador ve solo los avisos asignados a él; los que
-                # todavía no están asignados a nadie solo los ve el admin.
+                # Cada trabajador ve sus avisos asignados más los que todavía
+                # no están asignados a nadie; los asignados a otro técnico no
+                # se le muestran. El admin los ve todos.
                 if usuarios.es_admin(u):
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
                               "asignado_a, COALESCE(asignado_nombre,'') FROM avisos_recurrentes")
@@ -1138,7 +1139,7 @@ class ServidorSincronizacion(QThread):
                 else:
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
                               "asignado_a, COALESCE(asignado_nombre,'') FROM avisos_recurrentes "
-                              "WHERE asignado_a = ?", (u['id'],))
+                              "WHERE asignado_a IS NULL OR asignado_a = ?", (u['id'],))
                     raw_avisos = c.fetchall()
                 conn.close()
 
@@ -4495,13 +4496,14 @@ class MaintenanceApp(QMainWindow):
                 new_t, new_i, new_f, new_d, new_uid, new_nombre = dlg.get_data()
                 self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre); self.refresh_avisos(); self.update_calendar_list()
     def _avisos_visibles(self):
-        """Igual que en el móvil: el admin ve todos los avisos, cada
-        trabajador ve únicamente los que tiene asignados a él."""
+        """Igual que en el móvil: el admin ve todos los avisos; cada
+        trabajador ve los suyos más los que no están asignados a nadie,
+        pero no los asignados a otro técnico."""
         avisos = self.db.obtener_avisos()
         if usuarios.es_admin():
             return avisos
         uid = usuarios.id_actual()
-        return [a for a in avisos if a[6] == uid]
+        return [a for a in avisos if a[6] is None or a[6] == uid]
 
     def refresh_avisos(self):
         self.table_avisos.setRowCount(0)
