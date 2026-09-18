@@ -391,7 +391,7 @@ Future<void> evaluarNotificacionesAvisos() async {
   if (prefs.getString('avisos_cache') != null) {
     try {
       final List<dynamic> d = json.decode(prefs.getString('avisos_cache')!);
-      String hoyStr = DateTime.now().toString().substring(0, 10);
+      final hoy = DateTime.now();
 
       String? strComp = prefs.getString('avisos_cola_completados');
       List<dynamic> colaComp = strComp != null ? json.decode(strComp) : [];
@@ -400,16 +400,17 @@ Future<void> evaluarNotificacionesAvisos() async {
       List<String> colaRest = strRest != null ? List<String>.from(json.decode(strRest)) : [];
 
       for (var i in d) {
-        String idStr = i['id'].toString();
-        String estado = i['estado'];
-        if (i['raw_inicio'] != null && estado == "FUTURO") {
-          if (hoyStr.compareTo(i['raw_inicio']) >= 0) estado = "PENDIENTE";
-        }
+        final a = AvisoPC.fromJson(i);
+        // Recalculamos con la fecha de hoy del propio móvil (no la del último
+        // sincronizado), así el aviso sigue siendo correcto aunque lleve
+        // meses sin conectar con el PC.
+        recalcularAviso(a, hoy);
 
+        String idStr = a.id.toString();
         bool marcadoListo = colaComp.any((x) => x['id'] == idStr);
         bool marcadoRestaurar = colaRest.contains(idStr);
 
-        if ((estado == "PENDIENTE" || marcadoRestaurar) && !marcadoListo) {
+        if ((a.estado == "PENDIENTE" || marcadoRestaurar) && !marcadoListo) {
           hayPendientes = true;
           break;
         }
@@ -453,7 +454,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.9.1';
+const String kAppVersion = '3.9.2';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -757,8 +758,111 @@ class AvisoPC {
   int id;
   String titulo, frecuencia, rango, estado, color;
   String? rawInicio, rawFin;
-  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin});
-  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin']);
+  // Datos "crudos" del ciclo (fecha de inicio original, duración de la ventana
+  // y última fecha completada) que permiten recalcular el estado del aviso con
+  // la fecha del propio móvil, sin depender de que el PC esté sincronizado.
+  String? fechaInicioRaw, ultimaCompletada;
+  int duracionDias;
+  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0});
+  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0);
+}
+
+/// Prioridad para ordenar avisos con los pendientes/sin hacer primero:
+/// 0 = pendiente (rojo), 1 = futuro (azul), 2 = ya realizado (verde).
+int _prioridadAviso(AvisoPC a) {
+  switch (a.estado) {
+    case "PENDIENTE": return 0;
+    case "FUTURO": return 1;
+    default: return 2;
+  }
+}
+
+List<AvisoPC> ordenarAvisosPendientesPrimero(List<AvisoPC> avisos) {
+  final lista = List<AvisoPC>.from(avisos);
+  lista.sort((a, b) {
+    final p = _prioridadAviso(a).compareTo(_prioridadAviso(b));
+    if (p != 0) return p;
+    return (a.rawInicio ?? '').compareTo(b.rawInicio ?? '');
+  });
+  return lista;
+}
+
+DateTime _parseFechaYMD(String s) {
+  final p = s.split('-');
+  return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+}
+
+String _fmtFechaYMD(DateTime d) =>
+    "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+
+/// Suma meses a una fecha igual que lo hace el PC: si el día no existe en el
+/// mes de destino (p.ej. 31 de un mes que solo tiene 30), lo recorta al 28
+/// para que el cálculo dé siempre el mismo resultado en el móvil y en el PC.
+DateTime _sumarMeses(DateTime d, int meses) {
+  final totalMes = d.month - 1 + meses;
+  final anio = d.year + totalMes ~/ 12;
+  final mes = totalMes % 12 + 1;
+  final ultimoDiaMes = DateTime(anio, mes + 1, 0).day;
+  final dia = d.day <= ultimoDiaMes ? d.day : 28;
+  return DateTime(anio, mes, dia);
+}
+
+/// Recalcula estado/color/rango de un aviso recurrente con la fecha actual
+/// del propio teléfono, a partir de sus datos crudos (fecha de inicio,
+/// frecuencia, duración y última completada). Así el aviso sigue apareciendo
+/// correcto y sigue disparando notificaciones aunque el móvil lleve meses sin
+/// sincronizar con el PC. Misma lógica (y mismo arreglo de "Diario") que en
+/// el PC.
+void recalcularAviso(AvisoPC a, DateTime hoy) {
+  if (a.fechaInicioRaw == null || a.fechaInicioRaw!.isEmpty) return;
+  DateTime ocurrencia;
+  try { ocurrencia = _parseFechaYMD(a.fechaInicioRaw!); } catch (_) { return; }
+  final hoyDia = DateTime(hoy.year, hoy.month, hoy.day);
+
+  // Un aviso "Diario" se resetea cada día: no le aplicamos la duración
+  // configurada, porque un margen de varios días haría que el de ayer
+  // siguiera contando como "hecho" hoy.
+  final durVentana = a.frecuencia == "Diario" ? 0 : a.duracionDias;
+
+  DateTime avanzar(DateTime d) {
+    switch (a.frecuencia) {
+      case "Diario": return d.add(const Duration(days: 1));
+      case "Semanal": return d.add(const Duration(days: 7));
+      case "Mensual": return _sumarMeses(d, 1);
+      case "Trimestral": return _sumarMeses(d, 3);
+      case "Semestral": return _sumarMeses(d, 6);
+      case "Anual": return DateTime(d.year + 1, d.month, d.day);
+      default: return d;
+    }
+  }
+
+  int salvaguarda = 0;
+  while (ocurrencia.add(Duration(days: durVentana)).isBefore(hoyDia)) {
+    final siguiente = avanzar(ocurrencia);
+    if (siguiente == ocurrencia) break;
+    ocurrencia = siguiente;
+    if (++salvaguarda > 5000) break;
+  }
+  final finOcurrencia = ocurrencia.add(Duration(days: durVentana));
+
+  final activo = !ocurrencia.isAfter(hoyDia) && !finOcurrencia.isBefore(hoyDia);
+  bool completado = false;
+  final ult = a.ultimaCompletada;
+  if (ult != null && ult.isNotEmpty) {
+    final sInicio = _fmtFechaYMD(ocurrencia), sFin = _fmtFechaYMD(finOcurrencia);
+    completado = ult.compareTo(sInicio) >= 0 && ult.compareTo(sFin) <= 0;
+  }
+
+  String estado = "FUTURO"; String color = "blue";
+  if (activo) {
+    if (completado) { estado = "OK"; color = "green"; } else { estado = "PENDIENTE"; color = "red"; }
+  } else if (completado) { estado = "OK"; color = "green"; }
+
+  a.estado = estado;
+  a.color = color;
+  a.rawInicio = _fmtFechaYMD(ocurrencia);
+  a.rawFin = _fmtFechaYMD(finOcurrencia);
+  a.rango = "${a.rawInicio} - ${a.rawFin}";
 }
 
 // ==========================================
@@ -1844,17 +1948,14 @@ class _TabAvisosState extends State<TabAvisos> {
         final List<dynamic> d = json.decode(prefs.getString('avisos_cache')!);
         List<AvisoPC> cacheados = d.map((x) => AvisoPC.fromJson(x)).toList();
 
-        // Auto-actualizar estado a rojo si ha llegado la fecha y no hemos sincronizado
-        String hoyStr = DateTime.now().toString().substring(0, 10);
-        for (var a in cacheados) {
-          if (a.rawInicio != null && a.estado == "FUTURO") {
-            if (hoyStr.compareTo(a.rawInicio!) >= 0) {
-              a.estado = "PENDIENTE";
-              a.color = "red";
-            }
-          }
-        }
-        setState(() => _avisos = cacheados);
+        // Recalculamos el ciclo de cada aviso con la fecha de hoy del propio
+        // móvil (no la del último sincronizado), así siguen apareciendo
+        // correctos y disparando notificaciones aunque pasen meses sin
+        // conectar con el PC.
+        final hoy = DateTime.now();
+        for (var a in cacheados) { recalcularAviso(a, hoy); }
+
+        setState(() => _avisos = ordenarAvisosPendientesPrimero(cacheados));
       } catch (e) { /* */ }
     }
     if (_urlPC != null) _sincronizar();
@@ -1903,7 +2004,8 @@ class _TabAvisosState extends State<TabAvisos> {
       final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
-        setState(() => _avisos = d.map((x) => AvisoPC.fromJson(x)).toList());
+        final lista = d.map((x) => AvisoPC.fromJson(x)).toList();
+        setState(() => _avisos = ordenarAvisosPendientesPrimero(lista));
         await prefs.setString('avisos_cache', res.body);
       }
     } catch (e) { /* */ } finally {
