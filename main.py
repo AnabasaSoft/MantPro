@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.9.1"
+APP_VERSION = "3.9.2"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -1144,9 +1144,14 @@ class ServidorSincronizacion(QThread):
                     if not freq: freq = "Anual"
                     freq = idiomas.normalizar_frecuencia(freq)
 
+                    # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
+                    # configurada, porque un margen de varios días haría que el de ayer
+                    # siguiera contando como "hecho" hoy.
+                    dur_ventana = 0 if freq == "Diario" else dur
+
                     # Calcular cuándo toca (Misma lógica matemática de antes)
                     ocurrencia = fi
-                    while (ocurrencia + timedelta(days=dur)) < hoy:
+                    while (ocurrencia + timedelta(days=dur_ventana)) < hoy:
                         if freq == "Diario": ocurrencia += timedelta(days=1)
                         elif freq == "Semanal": ocurrencia += timedelta(days=7)
                         elif freq == "Mensual":
@@ -1169,7 +1174,7 @@ class ServidorSincronizacion(QThread):
                         elif freq == "Anual": ocurrencia = ocurrencia.replace(year=ocurrencia.year + 1)
                         else: break
 
-                    fin_ocurrencia = ocurrencia + timedelta(days=dur)
+                    fin_ocurrencia = ocurrencia + timedelta(days=dur_ventana)
 
                     # --- CORRECCIÓN DE ESTADO ---
                     estado = "FUTURO"
@@ -1209,7 +1214,13 @@ class ServidorSincronizacion(QThread):
                         "estado": estado,
                         "color": color_code,
                         "raw_inicio": ocurrencia.strftime("%Y-%m-%d"),
-                        "raw_fin": fin_ocurrencia.strftime("%Y-%m-%d")
+                        "raw_fin": fin_ocurrencia.strftime("%Y-%m-%d"),
+                        # Datos "crudos" del aviso (fecha de inicio original, duración y última
+                        # completada) para que el móvil pueda recalcular el ciclo por su cuenta
+                        # con la fecha del propio teléfono, aunque lleve meses sin sincronizar.
+                        "fecha_inicio_raw": finicio,
+                        "duracion_dias": dur,
+                        "ultima_completada": ult or ""
                     })
 
                 return jsonify(lista_procesada)
@@ -3705,8 +3716,12 @@ class MaintenanceApp(QMainWindow):
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
             freq = idiomas.normalizar_frecuencia(freq)
+            # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
+            # configurada, porque un margen de varios días haría que el de ayer
+            # siguiera contando como "hecho" hoy.
+            dur_ventana = 0 if freq == "Diario" else dur
             ocurrencia = fi
-            while ocurrencia.addDays(dur) < sd:
+            while ocurrencia.addDays(dur_ventana) < sd:
                 if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
                 elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
                 elif freq == "Mensual": ocurrencia = ocurrencia.addMonths(1)
@@ -3714,7 +3729,7 @@ class MaintenanceApp(QMainWindow):
                 elif freq == "Semestral": ocurrencia = ocurrencia.addMonths(6)
                 elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
                 else: break
-            ff = ocurrencia.addDays(dur)
+            ff = ocurrencia.addDays(dur_ventana)
             if ocurrencia <= sd <= ff:
                 es_completado = (ult == ocurrencia.toString("yyyy-MM-dd"))
                 color_bg = "#27ae60" if es_completado else "#e74c3c"
@@ -4431,9 +4446,9 @@ class MaintenanceApp(QMainWindow):
         self.table_avisos.setRowCount(0)
         avisos = self.db.obtener_avisos()
         hoy = QDate.currentDate()
-        self.table_avisos.setRowCount(len(avisos))
 
-        for r, (aid, tit, finicio, freq, dur, ult) in enumerate(avisos):
+        filas_calculadas = []
+        for (aid, tit, finicio, freq, dur, ult) in avisos:
             if not finicio: finicio = f"{hoy.year()}-01-01"
             if not freq: freq = "Anual"
             freq = idiomas.normalizar_frecuencia(freq)
@@ -4441,8 +4456,13 @@ class MaintenanceApp(QMainWindow):
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             ocurrencia = fi
 
+            # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
+            # configurada, porque un margen de varios días haría que el de ayer
+            # siguiera contando como "hecho" hoy.
+            dur_ventana = 0 if freq == "Diario" else dur
+
             # Avanzamos la fecha hasta el ciclo actual
-            while ocurrencia.addDays(dur) < hoy:
+            while ocurrencia.addDays(dur_ventana) < hoy:
                 if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
                 elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
                 elif freq == "Mensual": ocurrencia = ocurrencia.addMonths(1)
@@ -4451,7 +4471,7 @@ class MaintenanceApp(QMainWindow):
                 elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
                 else: break
 
-            fin_ocurrencia = ocurrencia.addDays(dur)
+            fin_ocurrencia = ocurrencia.addDays(dur_ventana)
 
             # --- CORRECCIÓN CLAVE: RANGO FLEXIBLE ---
             s_inicio = ocurrencia.toString("yyyy-MM-dd")
@@ -4466,6 +4486,43 @@ class MaintenanceApp(QMainWindow):
                 if ult >= s_inicio and ult <= s_fin:
                     completado = True
 
+            # Colores de estado: azul=futuro, rojo=pendiente, verde=realizado
+            color = QColor("#2e86c1")  # Azul (futuro)
+            estado_txt = t("estado_futuro")
+            prioridad = 1  # Futuro
+
+            if es_activo:
+                if completado:
+                    color = QColor("#27ae60") # Verde
+                    estado_txt = t("estado_ok")
+                    prioridad = 2
+                else:
+                    color = QColor("#cb4335") # Rojo (un poco más oscuro)
+                    estado_txt = t("estado_pendiente")
+                    prioridad = 0  # Pendiente/sin hacer: va primero
+            elif completado:
+                 color = QColor("#27ae60")
+                 estado_txt = t("estado_ok")
+                 prioridad = 2
+
+            filas_calculadas.append({
+                "aid": aid, "tit": tit, "freq": freq, "ocurrencia": ocurrencia,
+                "fin_ocurrencia": fin_ocurrencia, "s_inicio": s_inicio,
+                "es_activo": es_activo, "completado": completado,
+                "color": color, "estado_txt": estado_txt, "prioridad": prioridad,
+            })
+
+        # Pendientes/sin hacer primero; dentro de cada grupo, por fecha de ocurrencia
+        filas_calculadas.sort(key=lambda f: (f["prioridad"], f["ocurrencia"]))
+
+        self.table_avisos.setRowCount(len(filas_calculadas))
+        patron_qt = idiomas.formato_fecha_corta_qt()
+        for r, f in enumerate(filas_calculadas):
+            aid, tit, freq = f["aid"], f["tit"], f["freq"]
+            ocurrencia, fin_ocurrencia = f["ocurrencia"], f["fin_ocurrencia"]
+            s_inicio, es_activo, completado = f["s_inicio"], f["es_activo"], f["completado"]
+            color, estado_txt = f["color"], f["estado_txt"]
+
             # Configurar celda
             cw = QWidget()
             cl = QHBoxLayout(cw); cl.setContentsMargins(0,0,0,0); cl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -4477,21 +4534,6 @@ class MaintenanceApp(QMainWindow):
             cl.addWidget(chk)
             self.table_avisos.setCellWidget(r, 0, cw)
 
-            # Colores de estado: azul=futuro, rojo=pendiente, verde=realizado
-            color = QColor("#2e86c1")  # Azul (futuro)
-            estado_txt = t("estado_futuro")
-
-            if es_activo:
-                if completado:
-                    color = QColor("#27ae60") # Verde
-                    estado_txt = t("estado_ok")
-                else:
-                    color = QColor("#cb4335") # Rojo (un poco más oscuro)
-                    estado_txt = t("estado_pendiente")
-            elif completado:
-                 color = QColor("#27ae60")
-                 estado_txt = t("estado_ok")
-
             # Rellenar fila
             item_t = QTableWidgetItem(tit)
             item_t.setData(Qt.ItemDataRole.UserRole, aid)
@@ -4499,7 +4541,6 @@ class MaintenanceApp(QMainWindow):
             self.table_avisos.setItem(r, 1, item_t)
             self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
 
-            patron_qt = idiomas.formato_fecha_corta_qt()
             rango = f"{ocurrencia.toString(patron_qt)} - {fin_ocurrencia.toString(patron_qt)}"
             self.table_avisos.setItem(r, 3, QTableWidgetItem(rango))
 
@@ -6032,8 +6073,12 @@ class MaintenanceApp(QMainWindow):
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
             freq = idiomas.normalizar_frecuencia(freq)
+            # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
+            # configurada, porque un margen de varios días haría que el de ayer
+            # siguiera contando como "hecho" hoy.
+            dur_ventana = 0 if freq == "Diario" else dur
             ocurrencia = fi
-            while ocurrencia.addDays(dur) < hoy:
+            while ocurrencia.addDays(dur_ventana) < hoy:
                 if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
                 elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
                 elif freq == "Mensual": ocurrencia = ocurrencia.addMonths(1)
@@ -6041,7 +6086,7 @@ class MaintenanceApp(QMainWindow):
                 elif freq == "Semestral": ocurrencia = ocurrencia.addMonths(6)
                 elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
                 else: break
-            fin_ocurrencia = ocurrencia.addDays(dur)
+            fin_ocurrencia = ocurrencia.addDays(dur_ventana)
             if ocurrencia <= hoy <= fin_ocurrencia and ult != ocurrencia.toString("yyyy-MM-dd"): pendientes_reales += 1
         self.lbl_count_avisos.setText(str(pendientes_reales))
         self.lbl_count_avisos.setStyleSheet("color: #e74c3c; font-size: 32px; font-weight: bold;" if pendientes_reales > 0 else "color: #2ecc71; font-size: 32px; font-weight: bold;")
