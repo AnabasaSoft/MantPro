@@ -1129,8 +1129,8 @@ class ServidorSincronizacion(QThread):
                 conn = sqlite3.connect(self.db_path)
                 c = conn.cursor()
                 u = g.usuario_mantpro
-                # Cada trabajador ve solo los avisos asignados a él (más los que
-                # todavía no están asignados a nadie); un admin los ve todos.
+                # Cada trabajador ve solo los avisos asignados a él; los que
+                # todavía no están asignados a nadie solo los ve el admin.
                 if usuarios.es_admin(u):
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
                               "asignado_a, COALESCE(asignado_nombre,'') FROM avisos_recurrentes")
@@ -1138,7 +1138,7 @@ class ServidorSincronizacion(QThread):
                 else:
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
                               "asignado_a, COALESCE(asignado_nombre,'') FROM avisos_recurrentes "
-                              "WHERE asignado_a IS NULL OR asignado_a = ?", (u['id'],))
+                              "WHERE asignado_a = ?", (u['id'],))
                     raw_avisos = c.fetchall()
                 conn.close()
 
@@ -3743,7 +3743,7 @@ class MaintenanceApp(QMainWindow):
         elif "Día Libre" in ti: c = "#F48FB1"
         self.lbl_info.setStyleSheet(f"font-weight:bold; font-size:16px; color:{c};"); self.lbl_info.setText(ti)
 
-        for aid, tit, finicio, freq, dur, ult, *_ in self.db.obtener_avisos():
+        for aid, tit, finicio, freq, dur, ult, *_ in self._avisos_visibles():
             if not finicio: continue
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
@@ -4473,12 +4473,18 @@ class MaintenanceApp(QMainWindow):
         self.in_av_asignar = QComboBox(); self._llenar_combo_usuarios(self.in_av_asignar, incluir_sin_asignar=True)
         f.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"), 2, 0); f.addWidget(self.in_av_asignar, 2, 1, 1, 3)
         b = QPushButton(t("btn_anadir_aviso")); b.clicked.connect(self.add_aviso); f.addWidget(b, 3, 0, 1, 4); g.setLayout(f); l.addWidget(g)
-        bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar_seleccionado"), clicked=self.edit_aviso)); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=self.del_aviso)); l.addLayout(bl); self.tab_avisos.setLayout(l)
+        self.grupo_crear_aviso = g
+        bl = QHBoxLayout()
+        self.btn_editar_aviso = QPushButton(t("btn_editar_seleccionado"), clicked=self.edit_aviso); bl.addWidget(self.btn_editar_aviso)
+        self.btn_borrar_aviso = QPushButton(t("btn_borrar_seleccionado"), clicked=self.del_aviso); bl.addWidget(self.btn_borrar_aviso)
+        l.addLayout(bl); self.tab_avisos.setLayout(l)
     def add_aviso(self):
+        if not usuarios.es_admin(): return
         tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentText(); dur = self.in_av_dur.value()
         uid = self.in_av_asignar.currentData(); nombre = self.in_av_asignar.currentText() if uid is not None else None
         if tit and self.db.agregar_aviso(tit, i, f, dur, uid, nombre): self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
     def edit_aviso(self):
+        if not usuarios.es_admin(): return
         r = self.table_avisos.currentRow()
         if r < 0: return
         id_aviso = self.table_avisos.item(r, 1).data(Qt.ItemDataRole.UserRole)
@@ -4488,10 +4494,23 @@ class MaintenanceApp(QMainWindow):
             if dlg.exec():
                 new_t, new_i, new_f, new_d, new_uid, new_nombre = dlg.get_data()
                 self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre); self.refresh_avisos(); self.update_calendar_list()
+    def _avisos_visibles(self):
+        """Igual que en el móvil: el admin ve todos los avisos, cada
+        trabajador ve únicamente los que tiene asignados a él."""
+        avisos = self.db.obtener_avisos()
+        if usuarios.es_admin():
+            return avisos
+        uid = usuarios.id_actual()
+        return [a for a in avisos if a[6] == uid]
+
     def refresh_avisos(self):
         self.table_avisos.setRowCount(0)
-        avisos = self.db.obtener_avisos()
+        avisos = self._avisos_visibles()
         hoy = QDate.currentDate()
+        es_admin = usuarios.es_admin()
+        if hasattr(self, 'grupo_crear_aviso'): self.grupo_crear_aviso.setEnabled(es_admin)
+        if hasattr(self, 'btn_editar_aviso'): self.btn_editar_aviso.setEnabled(es_admin)
+        if hasattr(self, 'btn_borrar_aviso'): self.btn_borrar_aviso.setEnabled(es_admin)
 
         filas_calculadas = []
         for (aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre) in avisos:
@@ -4628,6 +4647,7 @@ class MaintenanceApp(QMainWindow):
         self.refresh_dashboard()
 
     def del_aviso(self):
+        if not usuarios.es_admin(): return
         seleccion = self.table_avisos.selectionModel().selectedRows()
         if not seleccion:
             return
@@ -4636,6 +4656,7 @@ class MaintenanceApp(QMainWindow):
 
     def _menu_contextual_avisos(self, pos):
         """Menú con clic derecho sobre la tabla de avisos: eliminar o asignar a un trabajador."""
+        if not usuarios.es_admin(): return
         # Si se hace clic derecho directamente (sin haber seleccionado antes con
         # el izquierdo), seleccionamos la fila bajo el cursor para no dejar el
         # menú sin acciones sobre las que actuar.
@@ -4664,6 +4685,7 @@ class MaintenanceApp(QMainWindow):
 
     def _borrar_avisos_masivo(self, ids):
         """Borra uno o varios avisos recurrentes, previa confirmación."""
+        if not usuarios.es_admin(): return
         if not ids:
             return
         n = len(ids)
@@ -4686,6 +4708,7 @@ class MaintenanceApp(QMainWindow):
 
     def _asignar_avisos_masivo(self, ids):
         """Asigna uno o varios avisos recurrentes a un trabajador (o los deja sin asignar)."""
+        if not usuarios.es_admin(): return
         if not ids:
             return
 
@@ -6187,7 +6210,7 @@ class MaintenanceApp(QMainWindow):
         layout_stats.addStretch(); self.group_stats.setLayout(layout_stats); v_stats.addWidget(self.group_stats); h_split.addLayout(v_stats, 20); l.addLayout(h_split); self.tab_dashboard.setLayout(l)
 
     def refresh_dashboard(self):
-        avisos = self.db.obtener_avisos(); hoy = QDate.currentDate(); pendientes_reales = 0
+        avisos = self._avisos_visibles(); hoy = QDate.currentDate(); pendientes_reales = 0
         for aid, tit, finicio, freq, dur, ult, *_ in avisos:
             if not finicio: continue
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
