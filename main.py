@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.9.3"
+APP_VERSION = "3.9.4"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
