@@ -125,7 +125,8 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **✍️ Autoría de los Trabajos**: Cada intervención guarda quién la realizó, visible en el historial y en los informes
 - **🔒 Permisos por Registro**: un técnico solo puede editar o borrar sus propios trabajos; un administrador puede gestionar cualquiera, incluida la reasignación del autor de uno o varios registros a la vez
 - **📋 Auditoría de Cambios**: registro de quién edita o borra cada trabajo (no solo quién lo creó), consultable y filtrable por técnico y por tipo de acción desde "Registro de cambios" (solo administradores)
-- **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores)
+- **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores). Al volver a iniciar sesión desde el mismo dispositivo, su sesión anterior se sustituye automáticamente en vez de acumularse
+- **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas
 - **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia"
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
 - **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
@@ -415,6 +416,11 @@ del dispositivo, cuándo se inició, cuándo expira y si sigue activa o ya
 expiró. Se pueden seleccionar una o varias filas a la vez y revocarlas, lo que
 cierra la sesión de ese móvil sin necesidad de desactivar al usuario entero
 (que cerraría *todos* sus dispositivos de golpe).
+
+Si un usuario vuelve a iniciar sesión desde un dispositivo con el que ya tenía
+una sesión abierta (mismo fabricante y modelo), la sesión anterior de ese
+dispositivo se borra automáticamente al crear la nueva, en vez de quedarse
+acumulada como una sesión suelta más en el listado.
 
 ### Autoría de los trabajos
 
@@ -757,7 +763,7 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 ### Ideas de Mejora
 
 - [X] Implementar notificaciones push para recordatorios
-- [ ] Añadir gráficas de estadísticas más detalladas
+- [X] Añadir gráficas de estadísticas más detalladas
 - [ ] Integración con calendario de Google
 - [X] Modo oscuro (y modo claro, y tema retro estilo Windows 98)
 - [X] Multi-idioma (Español, Inglés, Euskara)
@@ -827,6 +833,13 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
   mañana a las 8:00 para comprobar la cantidad real de 5 materiales del
   almacén (al azar, distintos cada día) y permite corregirla al momento desde
   la propia notificación.
+- **Dashboard con KPIs y gráficos de fiabilidad**: tarjetas de MTBF y MTTR
+  medios de toda la planta, y gráficos de ranking de máquinas con más averías
+  y de averías por mes, dibujados a mano con `QPainter` sin depender de
+  ninguna librería de gráficos externa.
+- **Sustitución automática de sesión por dispositivo**: si un usuario vuelve a
+  iniciar sesión desde un móvil con el que ya tenía una sesión abierta, la
+  anterior se borra sola en vez de acumularse en el listado de sesiones.
 
 ## 🧭 Roadmap
 

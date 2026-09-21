@@ -565,6 +565,14 @@ def crear_token(usuario_id, dispositivo=None):
     token = secrets.token_urlsafe(32)
     ahora = datetime.now()
     con = _conn()
+    if dispositivo:
+        # Si ese mismo usuario ya tenía una sesión abierta desde el mismo
+        # dispositivo (p. ej. reconecta el móvil tras cerrar/reinstalar la
+        # app), la sustituimos en vez de dejarla acumulada como sesión suelta.
+        con.execute(
+            "DELETE FROM sesiones WHERE usuario_id = ? AND dispositivo = ?",
+            (usuario_id, dispositivo),
+        )
     con.execute(
         "INSERT INTO sesiones (token, usuario_id, dispositivo, creado, expira) "
         "VALUES (?, ?, ?, ?, ?)",

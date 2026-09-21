@@ -2860,6 +2860,104 @@ class GraficoCircularTrabajos(QWidget):
             painter.drawText(x_leyenda + 15, y + 9, f"{etiqueta} ({valor})")
 
 
+class GraficoBarrasRanking(QWidget):
+    """Gráfica de barras horizontales dibujada a mano con QPainter (sin
+    depender de ninguna librería de gráficos externa), para un ranking ya
+    ordenado de mayor a menor."""
+
+    def __init__(self, parent=None, color="#c0392b"):
+        super().__init__(parent)
+        self._datos = []
+        self._color = QColor(color)
+        self.setMinimumHeight(160)
+
+    def establecer_datos(self, datos):
+        """datos: lista de tuplas (etiqueta, valor), ya ordenada de mayor a menor."""
+        self._datos = datos
+        self.update()
+
+    def paintEvent(self, evento):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if not self._datos:
+            painter.setPen(QColor("#888888"))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
+                              tt("lbl_sin_datos_grafico", "Sin datos"))
+            return
+
+        maximo = max(valor for _, valor in self._datos) or 1
+        ancho, alto = self.width(), self.height()
+        alto_fila = alto / len(self._datos)
+        ancho_etiqueta = 130
+        ancho_valor = 30
+        painter.setFont(QFont(painter.font().family(), 9))
+        metrica = painter.fontMetrics()
+        for i, (etiqueta, valor) in enumerate(self._datos):
+            y = i * alto_fila
+            painter.setPen(QColor("#dcdcdc"))
+            etiqueta_elidida = metrica.elidedText(etiqueta, Qt.TextElideMode.ElideRight, ancho_etiqueta - 6)
+            painter.drawText(QRectF(4, y, ancho_etiqueta, alto_fila),
+                              Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, etiqueta_elidida)
+
+            x_barra = ancho_etiqueta + 8
+            ancho_disponible = max(ancho - x_barra - ancho_valor - 8, 10)
+            ancho_barra = max(ancho_disponible * (valor / maximo), 2)
+            alto_barra = min(alto_fila * 0.6, 22)
+            y_barra = y + (alto_fila - alto_barra) / 2
+            painter.setBrush(QBrush(self._color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(QRectF(x_barra, y_barra, ancho_barra, alto_barra), 3, 3)
+
+            painter.setPen(QColor("#dcdcdc"))
+            painter.drawText(QRectF(x_barra + ancho_disponible + 4, y, ancho_valor, alto_fila),
+                              Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, str(valor))
+
+
+class GraficoBarrasMensual(QWidget):
+    """Gráfica de barras verticales (evolución mes a mes) dibujada a mano con
+    QPainter, sin depender de ninguna librería de gráficos externa."""
+
+    def __init__(self, parent=None, color="#c0392b"):
+        super().__init__(parent)
+        self._datos = []
+        self._color = QColor(color)
+        self.setMinimumHeight(160)
+
+    def establecer_datos(self, datos):
+        """datos: lista de tuplas ('YYYY-MM', valor), en orden cronológico."""
+        self._datos = datos
+        self.update()
+
+    def paintEvent(self, evento):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if not self._datos or all(valor == 0 for _, valor in self._datos):
+            painter.setPen(QColor("#888888"))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
+                              tt("lbl_sin_datos_grafico", "Sin datos"))
+            return
+
+        maximo = max(valor for _, valor in self._datos) or 1
+        ancho, alto = self.width(), self.height()
+        alto_util = alto - 22
+        ancho_col = ancho / len(self._datos)
+        painter.setFont(QFont(painter.font().family(), 8))
+        for i, (mes, valor) in enumerate(self._datos):
+            x = i * ancho_col
+            alto_barra = max((valor / maximo) * (alto_util - 16), 1) if valor > 0 else 0
+            y_barra = alto_util - alto_barra
+            if valor > 0:
+                painter.setBrush(QBrush(self._color))
+                painter.setPen(Qt.PenStyle.NoPen)
+                ancho_barra = max(ancho_col * 0.5, 4)
+                painter.drawRoundedRect(QRectF(x + (ancho_col - ancho_barra) / 2, y_barra, ancho_barra, alto_barra), 2, 2)
+                painter.setPen(QColor("#dcdcdc"))
+                painter.drawText(QRectF(x, y_barra - 14, ancho_col, 14), Qt.AlignmentFlag.AlignCenter, str(valor))
+            painter.setPen(QColor("#aaaaaa"))
+            etiqueta_mes = f"{mes[5:7]}/{mes[2:4]}"
+            painter.drawText(QRectF(x, alto_util + 2, ancho_col, 18), Qt.AlignmentFlag.AlignCenter, etiqueta_mes)
+
+
 class DialogoEditarMaquina(QDialog):
     """Alta/edición de una máquina del listado de maquinaria."""
     def __init__(self, parent=None, maquina=None, padre_sugerido=None, excluir_ids=None):
@@ -4220,7 +4318,7 @@ class MaintenanceApp(QMainWindow):
         # Repintar las tablas con colores por etiqueta/estado, ya que sus celdas
         # se colorean con QColor fijos en el momento de rellenarlas y no se
         # actualizan solas al cambiar de tema.
-        if hasattr(self, 'dash_table'):
+        if hasattr(self, 'grafico_ranking_averias'):
             self.refresh_dashboard()
         if hasattr(self, 'h_table'):
             self.refresh_history()
@@ -6469,10 +6567,20 @@ class MaintenanceApp(QMainWindow):
         self.card_regs = QGroupBox(t("lbl_registros_este_mes")); self.card_regs.setStyleSheet(style_card)
         l_c3 = QVBoxLayout(); self.lbl_count_regs = QLabel("0"); self.lbl_count_regs.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l_c3.addWidget(self.lbl_count_regs); self.card_regs.setLayout(l_c3); h_cards.addWidget(self.card_regs)
+        style_card_pequena = "QGroupBox { border-radius: 8px; margin-top: 10px; font-weight: bold; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; } QLabel { font-size: 18px; font-weight: bold; }"
+        self.card_mtbf = QGroupBox(tt("lbl_mtbf_global", "MTBF medio")); self.card_mtbf.setStyleSheet(style_card_pequena)
+        l_c4 = QVBoxLayout(); self.lbl_mtbf_global = QLabel("--"); self.lbl_mtbf_global.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        l_c4.addWidget(self.lbl_mtbf_global); self.card_mtbf.setLayout(l_c4); h_cards.addWidget(self.card_mtbf)
+        self.card_mttr = QGroupBox(tt("lbl_mttr_global", "MTTR medio")); self.card_mttr.setStyleSheet(style_card_pequena)
+        l_c5 = QVBoxLayout(); self.lbl_mttr_global = QLabel("--"); self.lbl_mttr_global.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        l_c5.addWidget(self.lbl_mttr_global); self.card_mttr.setLayout(l_c5); h_cards.addWidget(self.card_mttr)
         l.addLayout(h_cards)
         h_split = QHBoxLayout()
-        v_list = QVBoxLayout(); v_list.addWidget(QLabel(t("lbl_ultimas_intervenciones")))
-        self.dash_table = QTableWidget(); self.setup_table(self.dash_table); self.configurar_deseleccion(self.dash_table); self.dash_table.setRowCount(15); self.dash_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.dash_table)); v_list.addWidget(self.dash_table)
+        v_list = QVBoxLayout()
+        v_list.addWidget(QLabel(tt("lbl_ranking_maquinas_averias", "Máquinas con más averías")))
+        self.grafico_ranking_averias = GraficoBarrasRanking(color="#c0392b"); v_list.addWidget(self.grafico_ranking_averias)
+        v_list.addWidget(QLabel(tt("lbl_averias_por_mes", "Averías por mes")))
+        self.grafico_averias_mes = GraficoBarrasMensual(color="#e67e22"); v_list.addWidget(self.grafico_averias_mes)
         h_split.addLayout(v_list, 80)
         v_stats = QVBoxLayout(); v_stats.addWidget(QLabel(t("lbl_distribucion")))
         self.group_stats = QGroupBox(); self.group_stats.setStyleSheet("QGroupBox { border-radius: 6px; }")
@@ -6514,7 +6622,13 @@ class MaintenanceApp(QMainWindow):
         todos = self.db.obtener_pendientes(); self.lbl_count_todos.setText(str(len(todos))); self.lbl_count_todos.setStyleSheet("color: #f1c40f; font-size: 32px; font-weight: bold;")
         registros = self.db.obtener_todas_cronologico(); mes_actual = hoy.toString("yyyy-MM"); count_mes = sum(1 for r in registros if r[1].startswith(mes_actual))
         self.lbl_count_regs.setText(str(count_mes)); self.lbl_count_regs.setStyleSheet("color: #3daee9; font-size: 32px; font-weight: bold;")
-        self.fill_t(self.dash_table, registros[:15])
+        self.grafico_ranking_averias.establecer_datos(maquinas.ranking_averias())
+        self.grafico_averias_mes.establecer_datos(maquinas.averias_por_mes())
+        indicadores = maquinas.indicadores_fiabilidad_global()
+        mtbf = indicadores["mtbf_dias"]
+        self.lbl_mtbf_global.setText(f"{mtbf:.0f} {tt('lbl_dias_abrev', 'días')}" if mtbf is not None else "--")
+        mttr = indicadores["mttr_horas"]
+        self.lbl_mttr_global.setText(f"{mttr:.1f} {tt('lbl_horas_abrev', 'h')}" if mttr is not None else "--")
         total_tareas = len(registros)
         if total_tareas > 0:
             c_elec = sum(1 for r in registros if "eléctrico" in r[3].lower() or "electrico" in r[3].lower())
