@@ -269,16 +269,17 @@ class ChequeadorActualizaciones(QThread):
 class GeneradorPDFThread(QThread):
     resultado = pyqtSignal(bool, str)
 
-    def __init__(self, lista_trabajos, carpeta_fotos, mapa_maquinas=None, graficos=None):
+    def __init__(self, lista_trabajos, carpeta_fotos, mapa_maquinas=None):
         super().__init__()
-        # Recibe una lista de diccionarios: [{"archivo": ruta, "titulo": tit, "datos": [...]}]
+        # Recibe una lista de diccionarios: [{"archivo": ruta, "titulo": tit,
+        # "datos": [...], "rango": (ini, fin) o None, "graficos": {...} o None}].
+        # "graficos" (rutas de los PNG ya renderizados en el hilo principal,
+        # porque QWidget.grab() no se puede usar fuera de él, más los
+        # indicadores) es específico de cada trabajo, ya que cada uno puede
+        # cubrir un periodo distinto (rango de fechas o mes).
         self.lista_trabajos = lista_trabajos
         self.carpeta_fotos = carpeta_fotos
         self.mapa_maquinas = mapa_maquinas or {}
-        # dict con las rutas de los PNG ya renderizados (en el hilo principal, ya
-        # que QWidget.grab() no se puede usar fuera de él) y los indicadores
-        # globales, o None si no hay datos suficientes para generar gráficos.
-        self.graficos = graficos
 
     def run(self):
         try:
@@ -375,12 +376,13 @@ class GeneradorPDFThread(QThread):
 
                 elements.append(tabla_pdf)
 
-                if self.graficos:
+                graficos = trabajo.get("graficos")
+                if graficos:
                     elements.append(PageBreak())
                     elements.append(Paragraph(tt("titulo_estadisticas_pdf", "Estadísticas del periodo"), styles["Title"]))
                     elements.append(Spacer(1, 6))
 
-                    ind = self.graficos["indicadores"]
+                    ind = graficos["indicadores"]
                     if ind["num_averias"] == 0 or ind["mtbf_dias"] is None:
                         texto_ind = (
                             f"<b>{tt('lbl_indicadores_fiabilidad', 'Indicadores de fiabilidad')}</b><br/>"
@@ -404,15 +406,15 @@ class GeneradorPDFThread(QThread):
                     ancho_grafico = 17 * cm
                     alto_grafico = ancho_grafico * 260 / 760
                     elements.append(Paragraph(tt("titulo_ranking_averias_pdf", "Máquinas con más averías"), styles["Heading2"]))
-                    elements.append(PDFImage(self.graficos["png_ranking"], width=ancho_grafico, height=alto_grafico))
+                    elements.append(PDFImage(graficos["png_ranking"], width=ancho_grafico, height=alto_grafico))
                     elements.append(Spacer(1, 14))
 
                     elements.append(Paragraph(tt("titulo_averias_mes_pdf", "Averías por mes"), styles["Heading2"]))
-                    elements.append(PDFImage(self.graficos["png_mensual"], width=ancho_grafico, height=alto_grafico))
+                    elements.append(PDFImage(graficos["png_mensual"], width=ancho_grafico, height=alto_grafico))
                     elements.append(Spacer(1, 14))
 
                     elements.append(Paragraph(tt("titulo_distribucion_pdf", "Distribución de trabajos por tipo"), styles["Heading2"]))
-                    elements.append(PDFImage(self.graficos["png_pie"], width=ancho_grafico, height=alto_grafico))
+                    elements.append(PDFImage(graficos["png_pie"], width=ancho_grafico, height=alto_grafico))
 
                 doc.build(elements)
 
@@ -420,8 +422,10 @@ class GeneradorPDFThread(QThread):
         except Exception as e:
             self.resultado.emit(False, str(e))
         finally:
-            if self.graficos and self.graficos.get("tmp_dir"):
-                shutil.rmtree(self.graficos["tmp_dir"], ignore_errors=True)
+            for trabajo in self.lista_trabajos:
+                graficos = trabajo.get("graficos")
+                if graficos and graficos.get("tmp_dir"):
+                    shutil.rmtree(graficos["tmp_dir"], ignore_errors=True)
 
 
 class BackupThread(QThread):
@@ -2854,10 +2858,11 @@ class GraficoCircularTrabajos(QWidget):
         QColor("#9b59b6"), QColor("#f1c40f"), QColor("#1abc9c"), QColor("#95a5a6"),
     ]
 
-    def __init__(self, parent=None, color_texto="#dcdcdc"):
+    def __init__(self, parent=None, color_texto="#dcdcdc", color_fondo=None):
         super().__init__(parent)
         self._datos = []
         self._color_texto = QColor(color_texto)
+        self._color_fondo = QColor(color_fondo) if color_fondo else None
         self.setMinimumHeight(180)
 
     def establecer_datos(self, datos):
@@ -2868,6 +2873,8 @@ class GraficoCircularTrabajos(QWidget):
     def paintEvent(self, evento):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self._color_fondo:
+            painter.fillRect(self.rect(), self._color_fondo)
         total = sum(valor for _, valor in self._datos)
         ancho, alto = self.width(), self.height()
 
@@ -2914,11 +2921,12 @@ class GraficoBarrasRanking(QWidget):
     depender de ninguna librería de gráficos externa), para un ranking ya
     ordenado de mayor a menor."""
 
-    def __init__(self, parent=None, color="#c0392b", color_texto="#dcdcdc"):
+    def __init__(self, parent=None, color="#c0392b", color_texto="#dcdcdc", color_fondo=None):
         super().__init__(parent)
         self._datos = []
         self._color = QColor(color)
         self._color_texto = QColor(color_texto)
+        self._color_fondo = QColor(color_fondo) if color_fondo else None
         self.setMinimumHeight(160)
 
     def establecer_datos(self, datos):
@@ -2929,6 +2937,8 @@ class GraficoBarrasRanking(QWidget):
     def paintEvent(self, evento):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self._color_fondo:
+            painter.fillRect(self.rect(), self._color_fondo)
         if not self._datos:
             painter.setPen(QColor("#888888"))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
@@ -2967,11 +2977,12 @@ class GraficoBarrasMensual(QWidget):
     """Gráfica de barras verticales (evolución mes a mes) dibujada a mano con
     QPainter, sin depender de ninguna librería de gráficos externa."""
 
-    def __init__(self, parent=None, color="#c0392b", color_texto="#dcdcdc"):
+    def __init__(self, parent=None, color="#c0392b", color_texto="#dcdcdc", color_fondo=None):
         super().__init__(parent)
         self._datos = []
         self._color = QColor(color)
         self._color_texto = QColor(color_texto)
+        self._color_fondo = QColor(color_fondo) if color_fondo else None
         self.setMinimumHeight(160)
 
     def establecer_datos(self, datos):
@@ -2982,6 +2993,8 @@ class GraficoBarrasMensual(QWidget):
     def paintEvent(self, evento):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self._color_fondo:
+            painter.fillRect(self.rect(), self._color_fondo)
         if not self._datos or all(valor == 0 for _, valor in self._datos):
             painter.setPen(QColor("#888888"))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
@@ -6749,7 +6762,7 @@ class MaintenanceApp(QMainWindow):
                 archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
                 if not archivo: return
                 titulo_pdf = t("titulo_reporte_rango").format(inicio=inicio, fin=fin) + sufijo_u
-                lista_trabajos.append({"archivo": archivo, "titulo": titulo_pdf, "datos": datos})
+                lista_trabajos.append({"archivo": archivo, "titulo": titulo_pdf, "datos": datos, "rango": (inicio, fin)})
 
             elif modo == "TODO":
                 c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
@@ -6759,7 +6772,7 @@ class MaintenanceApp(QMainWindow):
                 nombre_defecto = f"Reporte_Histórico_Completo_{datetime.now().strftime('%Y%m%d')}.pdf"
                 archivo = self.guardar_archivo_dialogo(t("title_guardar_pdf"), nombre_defecto, "PDF (*.pdf)")
                 if not archivo: return
-                lista_trabajos.append({"archivo": archivo, "titulo": t("titulo_reporte_historico") + sufijo_u, "datos": datos})
+                lista_trabajos.append({"archivo": archivo, "titulo": t("titulo_reporte_historico") + sufijo_u, "datos": datos, "rango": None})
 
             elif modo == "MESES":
                 c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
@@ -6784,7 +6797,7 @@ class MaintenanceApp(QMainWindow):
                 for mes, datos_mes in datos_por_mes.items():
                     archivo = os.path.join(carpeta_destino, f"Reporte_Mantenimiento_{mes}.pdf")
                     titulo_mes = t("titulo_reporte_mes").format(mes=mes) + sufijo_u
-                    lista_trabajos.append({"archivo": archivo, "titulo": titulo_mes, "datos": datos_mes})
+                    lista_trabajos.append({"archivo": archivo, "titulo": titulo_mes, "datos": datos_mes, "rango": (f"{mes}-01", f"{mes}-31")})
 
             conn.close()
         except Exception as e:
@@ -6793,7 +6806,10 @@ class MaintenanceApp(QMainWindow):
 
         if not lista_trabajos: return
 
-        graficos = self._generar_graficos_pdf() if incluir_graficos else None
+        if incluir_graficos:
+            for trabajo in lista_trabajos:
+                ini_rango, fin_rango = trabajo["rango"] if trabajo["rango"] else (None, None)
+                trabajo["graficos"] = self._generar_graficos_pdf(ini_rango, fin_rango)
 
         # Configurar UI de progreso
         self.progreso_pdf = QDialog(self)
@@ -6809,23 +6825,29 @@ class MaintenanceApp(QMainWindow):
         self.progreso_pdf.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
 
         # Iniciar Hilo
-        self.hilo_pdf = GeneradorPDFThread(lista_trabajos, self.carpeta_fotos, maquinas.mapa_rutas_completas(), graficos)
+        self.hilo_pdf = GeneradorPDFThread(lista_trabajos, self.carpeta_fotos, maquinas.mapa_rutas_completas())
         self.hilo_pdf.resultado.connect(self.pdf_finalizado)
         self.hilo_pdf.start()
 
         self.progreso_pdf.exec()
 
-    def _generar_graficos_pdf(self):
+    def _generar_graficos_pdf(self, fecha_inicio=None, fecha_fin=None):
         """Renderiza a PNG (en el hilo principal, porque QWidget.grab() no se
         puede usar desde el QThread que genera el PDF) los mismos gráficos del
         dashboard, con el texto en negro para que se lean sobre fondo blanco,
         y los guarda en una carpeta temporal que el hilo del PDF borra al
-        terminar. Si no hay ninguna avería registrada, no genera nada."""
-        indicadores = maquinas.indicadores_fiabilidad_global()
+        terminar. Si se indican fecha_inicio/fecha_fin ('YYYY-MM-DD'), los
+        gráficos y los indicadores solo tienen en cuenta ese periodo, para
+        que un PDF exportado por rango o por mes muestre sus propias
+        estadísticas y no las de todo el histórico. Si no hay ninguna avería
+        registrada en el periodo, no genera nada."""
+        indicadores = maquinas.indicadores_fiabilidad_global(fecha_inicio, fecha_fin)
         if indicadores["num_averias"] == 0:
             return None
 
         registros = self.db.obtener_todas_cronologico()
+        if fecha_inicio and fecha_fin:
+            registros = [r for r in registros if r[1] and fecha_inicio <= r[1] <= fecha_fin]
         total = len(registros)
         c_elec = sum(1 for r in registros if "eléctrico" in r[3].lower() or "electrico" in r[3].lower())
         c_mec = sum(1 for r in registros if "mecánico" in r[3].lower() or "mecanico" in r[3].lower())
@@ -6837,15 +6859,16 @@ class MaintenanceApp(QMainWindow):
         ] if total else []
 
         ancho, alto = 760, 260
-        grafico_ranking = GraficoBarrasRanking(color="#c0392b", color_texto="#000000")
-        grafico_ranking.establecer_datos(maquinas.ranking_averias())
+        color_fondo_pdf = "#f0f0f0"
+        grafico_ranking = GraficoBarrasRanking(color="#c0392b", color_texto="#000000", color_fondo=color_fondo_pdf)
+        grafico_ranking.establecer_datos(maquinas.ranking_averias(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin))
         grafico_ranking.resize(ancho, alto)
 
-        grafico_mensual = GraficoBarrasMensual(color="#e67e22", color_texto="#000000")
-        grafico_mensual.establecer_datos(maquinas.averias_por_mes())
+        grafico_mensual = GraficoBarrasMensual(color="#e67e22", color_texto="#000000", color_fondo=color_fondo_pdf)
+        grafico_mensual.establecer_datos(maquinas.averias_por_mes(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin))
         grafico_mensual.resize(ancho, alto)
 
-        grafico_pie = GraficoCircularTrabajos(color_texto="#000000")
+        grafico_pie = GraficoCircularTrabajos(color_texto="#000000", color_fondo=color_fondo_pdf)
         grafico_pie.establecer_datos(datos_pie)
         grafico_pie.resize(ancho, alto)
 
