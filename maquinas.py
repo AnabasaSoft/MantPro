@@ -326,15 +326,20 @@ def indicadores_fiabilidad(id_maquina):
     return {"num_averias": len(filas), "mtbf_dias": mtbf_dias, "mttr_horas": mttr_horas}
 
 
-def indicadores_fiabilidad_global():
+def indicadores_fiabilidad_global(fecha_inicio=None, fecha_fin=None):
     """Igual que indicadores_fiabilidad, pero con las averías de todas las
     máquinas juntas (y las que no tienen máquina asignada), para dar una
-    cifra de fiabilidad de toda la planta en el dashboard."""
+    cifra de fiabilidad de toda la planta en el dashboard. Si se indican
+    fecha_inicio/fecha_fin (formato 'YYYY-MM-DD'), solo se tienen en cuenta
+    las averías de ese rango (p. ej. para un PDF exportado por rango)."""
+    sql = "SELECT fecha, horas_paro FROM tareas WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != ''"
+    parametros = []
+    if fecha_inicio and fecha_fin:
+        sql += " AND fecha BETWEEN ? AND ?"
+        parametros = [fecha_inicio, fecha_fin]
+    sql += " ORDER BY fecha ASC, id ASC"
     con = _conn()
-    filas = con.execute(
-        "SELECT fecha, horas_paro FROM tareas WHERE tags LIKE '%Avería%' "
-        "AND fecha IS NOT NULL AND fecha != '' ORDER BY fecha ASC, id ASC"
-    ).fetchall()
+    filas = con.execute(sql, parametros).fetchall()
     con.close()
 
     fechas = []
@@ -355,26 +360,31 @@ def indicadores_fiabilidad_global():
     return {"num_averias": len(filas), "mtbf_dias": mtbf_dias, "mttr_horas": mttr_horas}
 
 
-def contar_averias(id_maquina):
+def contar_averias(id_maquina, fecha_inicio=None, fecha_fin=None):
     """Nº de trabajos marcados como 'Avería' vinculados directamente a esta
-    máquina (sin submáquinas)."""
+    máquina (sin submáquinas). Si se indican fecha_inicio/fecha_fin
+    ('YYYY-MM-DD'), solo cuenta las de ese rango."""
+    sql = "SELECT COUNT(*) FROM tareas WHERE maquina_id=? AND tags LIKE '%Avería%'"
+    parametros = [id_maquina]
+    if fecha_inicio and fecha_fin:
+        sql += " AND fecha BETWEEN ? AND ?"
+        parametros += [fecha_inicio, fecha_fin]
     con = _conn()
-    fila = con.execute(
-        "SELECT COUNT(*) FROM tareas WHERE maquina_id=? AND tags LIKE '%Avería%'",
-        (id_maquina,),
-    ).fetchone()
+    fila = con.execute(sql, parametros).fetchone()
     con.close()
     return fila[0] if fila else 0
 
 
-def ranking_averias(top_n=8):
+def ranking_averias(top_n=8, fecha_inicio=None, fecha_fin=None):
     """Máquinas de nivel superior con más averías (sumando las de sus
     submáquinas), de más a menos, para el ranking de "más problemáticas"
-    del dashboard. Solo incluye máquinas con al menos una avería."""
+    del dashboard. Solo incluye máquinas con al menos una avería. Si se
+    indican fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta las averías
+    de ese rango (p. ej. para un PDF exportado por rango)."""
     top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
 
     def total_averias(id_maquina):
-        return sum(contar_averias(i) for i in descendientes_ids(id_maquina))
+        return sum(contar_averias(i, fecha_inicio, fecha_fin) for i in descendientes_ids(id_maquina))
 
     datos = sorted(
         ((m["nombre"], total_averias(m["id"])) for m in top_level),
@@ -383,18 +393,36 @@ def ranking_averias(top_n=8):
     return [par for par in datos if par[1] > 0][:top_n]
 
 
-def averias_por_mes(n_meses=12):
-    """Nº de averías registradas en cada uno de los últimos n_meses meses
-    (incluido el actual), en orden cronológico. Devuelve una lista de tuplas
-    ('YYYY-MM', cantidad)."""
+def averias_por_mes(n_meses=12, fecha_inicio=None, fecha_fin=None):
+    """Nº de averías registradas por mes, en orden cronológico. Devuelve una
+    lista de tuplas ('YYYY-MM', cantidad). Sin fecha_inicio/fecha_fin,
+    cubre los últimos n_meses meses (incluido el actual), como en el
+    dashboard. Con fecha_inicio/fecha_fin ('YYYY-MM-DD'), cubre en su lugar
+    todos los meses de ese rango (p. ej. para un PDF exportado por rango)."""
+    sql = "SELECT substr(fecha,1,7) AS mes, COUNT(*) AS n FROM tareas WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != ''"
+    parametros = []
+    if fecha_inicio and fecha_fin:
+        sql += " AND fecha BETWEEN ? AND ?"
+        parametros = [fecha_inicio, fecha_fin]
+    sql += " GROUP BY mes"
     con = _conn()
-    filas = con.execute(
-        "SELECT substr(fecha,1,7) AS mes, COUNT(*) AS n FROM tareas "
-        "WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != '' "
-        "GROUP BY mes"
-    ).fetchall()
+    filas = con.execute(sql, parametros).fetchall()
     con.close()
     por_mes = {fila["mes"]: fila["n"] for fila in filas}
+
+    if fecha_inicio and fecha_fin:
+        inicio = datetime.strptime(fecha_inicio[:7], "%Y-%m")
+        fin = datetime.strptime(fecha_fin[:7], "%Y-%m")
+        meses = []
+        anio, mes = inicio.year, inicio.month
+        while (anio, mes) <= (fin.year, fin.month):
+            clave = f"{anio:04d}-{mes:02d}"
+            meses.append((clave, por_mes.get(clave, 0)))
+            mes += 1
+            if mes > 12:
+                mes = 1
+                anio += 1
+        return meses
 
     hoy = datetime.now()
     meses = []
