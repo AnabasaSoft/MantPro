@@ -170,7 +170,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.9.2"
+APP_VERSION = "3.9.3"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -865,12 +865,21 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
                 u = g.usuario_mantpro
                 solo_mios = request.args.get('solo_mios', '') in ('1', 'true', 'True')
+                columnas = ("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), "
+                            "COALESCE(prioridad,'Media') FROM pendientes")
                 if solo_mios:
-                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), COALESCE(prioridad,'Media') "
-                              "FROM pendientes WHERE asignado_a = ? ORDER BY id DESC", (u['id'],))
+                    c.execute(columnas + " WHERE asignado_a = ? ORDER BY id DESC", (u['id'],))
+                elif usuarios.es_admin(u):
+                    c.execute(columnas + " ORDER BY id DESC")
                 else:
-                    c.execute("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), COALESCE(prioridad,'Media') "
-                              "FROM pendientes ORDER BY id DESC")
+                    # Igual que en los avisos: cada técnico ve los suyos más los
+                    # que no están asignados a nadie y coinciden con su
+                    # especialidad (o no tienen ninguna); no ve los asignados a
+                    # otro técnico ni los restringidos a otra especialidad.
+                    especialidad_u = u.get('especialidad_id')
+                    c.execute(columnas + " WHERE asignado_a = ? OR (asignado_a IS NULL AND "
+                              "(especialidad_id IS NULL OR especialidad_id = ?)) ORDER BY id DESC",
+                              (u['id'], especialidad_u))
                 datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
                           "asignado_a": r[3], "asignado": r[4], "prioridad": r[5]} for r in c.fetchall()]
                 conn.close()
@@ -1130,23 +1139,27 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
                 u = g.usuario_mantpro
                 # Cada trabajador ve sus avisos asignados más los que todavía
-                # no están asignados a nadie; los asignados a otro técnico no
-                # se le muestran. El admin los ve todos.
+                # no están asignados a nadie y, de esos, solo los que no
+                # tienen especialidad o coinciden con la suya. Los asignados
+                # a otro técnico, o restringidos a otra especialidad, no se
+                # le muestran. El admin los ve todos.
                 if usuarios.es_admin(u):
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
-                              "asignado_a, COALESCE(asignado_nombre,'') FROM avisos_recurrentes")
+                              "asignado_a, COALESCE(asignado_nombre,''), especialidad_id FROM avisos_recurrentes")
                     raw_avisos = c.fetchall()
                 else:
+                    especialidad_u = u.get('especialidad_id')
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
-                              "asignado_a, COALESCE(asignado_nombre,'') FROM avisos_recurrentes "
-                              "WHERE asignado_a IS NULL OR asignado_a = ?", (u['id'],))
+                              "asignado_a, COALESCE(asignado_nombre,''), especialidad_id FROM avisos_recurrentes "
+                              "WHERE asignado_a = ? OR (asignado_a IS NULL AND (especialidad_id IS NULL OR especialidad_id = ?))",
+                              (u['id'], especialidad_u))
                     raw_avisos = c.fetchall()
                 conn.close()
 
                 lista_procesada = []
                 hoy = datetime.now().date()
 
-                for aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre in raw_avisos:
+                for aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre, especialidad_id in raw_avisos:
                     if not finicio: continue
                     try:
                         fi = datetime.strptime(finicio, "%Y-%m-%d").date()
@@ -1829,19 +1842,19 @@ class GestorBaseDatos:
             return res[0] if res else None
         except: return None
 
-    def agregar_aviso(self, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None):
+    def agregar_aviso(self, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO avisos_recurrentes (titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, asignado_a, asignado_nombre) VALUES (?,?,?,?,?,?,?)',
-                      (titulo, fecha_inicio, frecuencia, duracion, "", asignado_a, asignado_nombre))
+            c.execute('INSERT INTO avisos_recurrentes (titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, asignado_a, asignado_nombre, especialidad_id) VALUES (?,?,?,?,?,?,?,?)',
+                      (titulo, fecha_inicio, frecuencia, duracion, "", asignado_a, asignado_nombre, especialidad_id))
             conn.commit(); conn.close(); return True
         except Exception as e: return False
 
-    def actualizar_aviso(self, id_aviso, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None):
+    def actualizar_aviso(self, id_aviso, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('UPDATE avisos_recurrentes SET titulo=?, fecha_inicio=?, frecuencia=?, duracion_dias=?, asignado_a=?, asignado_nombre=? WHERE id=?',
-                      (titulo, fecha_inicio, frecuencia, duracion, asignado_a, asignado_nombre, id_aviso))
+            c.execute('UPDATE avisos_recurrentes SET titulo=?, fecha_inicio=?, frecuencia=?, duracion_dias=?, asignado_a=?, asignado_nombre=?, especialidad_id=? WHERE id=?',
+                      (titulo, fecha_inicio, frecuencia, duracion, asignado_a, asignado_nombre, especialidad_id, id_aviso))
             conn.commit(); conn.close(); return True
         except: return False
 
@@ -1849,7 +1862,7 @@ class GestorBaseDatos:
         try:
             conn = self.conectar(); c = conn.cursor()
             c.execute('SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, '
-                      'asignado_a, COALESCE(asignado_nombre,\'\') FROM avisos_recurrentes')
+                      'asignado_a, COALESCE(asignado_nombre,\'\'), especialidad_id FROM avisos_recurrentes')
             return c.fetchall()
         except: return []
     def borrar_aviso(self, i):
@@ -1860,6 +1873,13 @@ class GestorBaseDatos:
             conn = self.conectar(); c = conn.cursor()
             c.execute('UPDATE avisos_recurrentes SET asignado_a=?, asignado_nombre=? WHERE id=?',
                       (asignado_a, asignado_nombre, id_aviso))
+            conn.commit(); conn.close(); return True
+        except: return False
+    def asignar_especialidad_aviso(self, id_aviso, especialidad_id):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute('UPDATE avisos_recurrentes SET especialidad_id=? WHERE id=?',
+                      (especialidad_id, id_aviso))
             conn.commit(); conn.close(); return True
         except: return False
     def marcar_aviso_completado(self, id_aviso, fecha_completada, estado):
@@ -1952,19 +1972,19 @@ class GestorBaseDatos:
     def obtener_dias_especiales(self):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT fecha,tipo FROM dias_especiales'); return {r[0]:r[1] for r in c.fetchall()}
         except: return {}
-    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media"):
+    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media", especialidad_id=None):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad) VALUES (?,?,?,?,?)',
-                      (t, d, asignado_a, asignado_nombre, prioridad))
+            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad,especialidad_id) VALUES (?,?,?,?,?,?)',
+                      (t, d, asignado_a, asignado_nombre, prioridad, especialidad_id))
             conn.commit(); conn.close(); return True
         except Exception as e:
             print(f"Error agregar_pendiente: {e}"); return False
     def obtener_pendientes(self):
-        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre, prioridad)."""
+        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id)."""
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,''),COALESCE(prioridad,'Media') FROM pendientes ORDER BY id DESC")
+            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,''),COALESCE(prioridad,'Media'),especialidad_id FROM pendientes ORDER BY id DESC")
             return c.fetchall()
         except: return []
     def asignar_pendiente(self, id_p, asignado_a, asignado_nombre):
@@ -1974,13 +1994,20 @@ class GestorBaseDatos:
                       (asignado_a, asignado_nombre, id_p))
             conn.commit(); conn.close(); return True
         except: return False
+    def asignar_especialidad_pendiente(self, id_p, especialidad_id):
+        try:
+            conn = self.conectar(); c = conn.cursor()
+            c.execute('UPDATE pendientes SET especialidad_id=? WHERE id=?',
+                      (especialidad_id, id_p))
+            conn.commit(); conn.close(); return True
+        except: return False
     def borrar_pendiente(self,i):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('DELETE FROM pendientes WHERE id=?',(i,)); conn.commit(); conn.close(); return True
         except: return False
-    def actualizar_pendiente(self, i, t, d, prioridad="Media"):
+    def actualizar_pendiente(self, i, t, d, prioridad="Media", especialidad_id=None):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('UPDATE pendientes SET titulo=?, detalles=?, prioridad=? WHERE id=?', (t, d, prioridad, i))
+            c.execute('UPDATE pendientes SET titulo=?, detalles=?, prioridad=?, especialidad_id=? WHERE id=?', (t, d, prioridad, especialidad_id, i))
             conn.commit(); conn.close(); return True
         except: return False
 
@@ -3331,10 +3358,10 @@ class EditDialog(QDialog):
         return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro)
 
 class DialogoEditarPendiente(QDialog):
-    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media"):
+    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_tarea_pendiente"))
-        self.resize(550, 650)
+        self.resize(550, 700)
         self.ruta_foto_seleccionada = ruta_foto
         l = QVBoxLayout()
         l.addWidget(QLabel(t("lbl_titulo"))); self.t = QLineEdit(titulo); l.addWidget(self.t)
@@ -3348,6 +3375,24 @@ class DialogoEditarPendiente(QDialog):
         self.combo_prioridad.setCurrentIndex(idx_prio if idx_prio >= 0 else 1)
         fila_prioridad.addWidget(self.combo_prioridad, 1)
         l.addLayout(fila_prioridad)
+        fila_asig = QHBoxLayout()
+        fila_asig.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"))
+        self.combo_asignar = QComboBox()
+        if parent is not None and hasattr(parent, "_llenar_combo_usuarios"):
+            parent._llenar_combo_usuarios(self.combo_asignar, incluir_sin_asignar=True)
+        idx_asig = self.combo_asignar.findData(asignado_a)
+        self.combo_asignar.setCurrentIndex(idx_asig if idx_asig >= 0 else 0)
+        fila_asig.addWidget(self.combo_asignar, 1)
+        l.addLayout(fila_asig)
+        fila_especialidad = QHBoxLayout()
+        fila_especialidad.addWidget(QLabel(tt("usuarios_col_especialidad", "Especialidad") + ":"))
+        self.combo_especialidad = QComboBox()
+        if parent is not None and hasattr(parent, "_llenar_combo_especialidades"):
+            parent._llenar_combo_especialidades(self.combo_especialidad)
+        idx_esp = self.combo_especialidad.findData(especialidad_id)
+        self.combo_especialidad.setCurrentIndex(idx_esp if idx_esp >= 0 else 0)
+        fila_especialidad.addWidget(self.combo_especialidad, 1)
+        l.addLayout(fila_especialidad)
         l.addWidget(QLabel(t("lbl_foto_adjunta")))
         self.lbl_preview = QLabel(t("lbl_sin_foto")); self.lbl_preview.setFixedSize(400, 300)
         self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
@@ -3375,7 +3420,12 @@ class DialogoEditarPendiente(QDialog):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada): VisorFoto(self.ruta_foto_seleccionada, self).exec()
     def borrar_foto(self):
         self.ruta_foto_seleccionada = ""; self.actualizar_vista_foto()
-    def get_data(self): return self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada, self.combo_prioridad.currentData()
+    def get_data(self):
+        uid = self.combo_asignar.currentData()
+        nombre = self.combo_asignar.currentText() if uid is not None else None
+        especialidad_id = self.combo_especialidad.currentData()
+        return (self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada,
+                self.combo_prioridad.currentData(), uid, nombre, especialidad_id)
 
 class CompleteDialog(QDialog):
     def __init__(self, parent=None, titulo="", detalles=""):
@@ -3425,9 +3475,9 @@ class CompleteDialog(QDialog):
         return (self.de.date().toString("yyyy-MM-dd"), ", ".join(lista_tags), self.foto_filename)
 
 class AvisoEditDialog(QDialog):
-    def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None):
+    def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None):
         super().__init__(parent)
-        self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 450)
+        self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 500)
         l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = _estilo_label_dialogo()
         l.addWidget(QLabel(t("lbl_titulo_aviso"), styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
         l.addWidget(QLabel(t("lbl_fecha_inicio"), styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
@@ -3443,6 +3493,12 @@ class AvisoEditDialog(QDialog):
         idx = self.combo_asignar.findData(asignado_a)
         self.combo_asignar.setCurrentIndex(idx if idx >= 0 else 0)
         l.addWidget(self.combo_asignar)
+        l.addWidget(QLabel(tt("usuarios_col_especialidad", "Especialidad") + ":", styleSheet=lbl_style)); self.combo_especialidad = QComboBox(); self.combo_especialidad.setMinimumHeight(35)
+        if parent is not None and hasattr(parent, "_llenar_combo_especialidades"):
+            parent._llenar_combo_especialidades(self.combo_especialidad)
+        idx_e = self.combo_especialidad.findData(especialidad_id)
+        self.combo_especialidad.setCurrentIndex(idx_e if idx_e >= 0 else 0)
+        l.addWidget(self.combo_especialidad)
         l.addStretch()
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -3451,7 +3507,8 @@ class AvisoEditDialog(QDialog):
     def get_data(self):
         uid = self.combo_asignar.currentData()
         nombre = self.combo_asignar.currentText() if uid is not None else None
-        return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentText(), self.dur.value(), uid, nombre)
+        especialidad_id = self.combo_especialidad.currentData()
+        return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentText(), self.dur.value(), uid, nombre, especialidad_id)
 
 class DialogoExportarPDF(QDialog):
     def __init__(self, parent=None):
@@ -3840,6 +3897,7 @@ class MaintenanceApp(QMainWindow):
                 item_d.setIcon(icon_vacio)
 
             item_t = QTableWidgetItem(traducir_tags_bd(tags))
+            item_t.setData(Qt.ItemDataRole.UserRole, tags)
             item_u = QTableWidgetItem(autor)
             item_p = QTableWidgetItem(traducir_prioridad(prioridad))
             colores_prioridad = {
@@ -4449,6 +4507,7 @@ class MaintenanceApp(QMainWindow):
         self.configurar_deseleccion(self.table_avisos); self.table_avisos.setHorizontalHeaderLabels([t("hdr_estado"), t("hdr_titulo"), t("hdr_frecuencia"), t("hdr_proxima"), t("hdr_sit"), t("hdr_asignado")])
         self.table_avisos.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table_avisos.setColumnWidth(3, 140)
+        self.table_avisos.setColumnWidth(5, 160)
         self.table_avisos.cellDoubleClicked.connect(lambda r, c: self.edit_aviso())
         # Selección múltiple (Ctrl+Click, Shift+Click) + menú contextual para
         # eliminar o asignar varios avisos a la vez a un trabajador.
@@ -4473,7 +4532,9 @@ class MaintenanceApp(QMainWindow):
         f.addWidget(QLabel(t("lbl_duracion")), 1, 2); f.addWidget(self.in_av_dur, 1, 3)
         self.in_av_asignar = QComboBox(); self._llenar_combo_usuarios(self.in_av_asignar, incluir_sin_asignar=True)
         f.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"), 2, 0); f.addWidget(self.in_av_asignar, 2, 1, 1, 3)
-        b = QPushButton(t("btn_anadir_aviso")); b.clicked.connect(self.add_aviso); f.addWidget(b, 3, 0, 1, 4); g.setLayout(f); l.addWidget(g)
+        self.in_av_especialidad = QComboBox(); self._llenar_combo_especialidades(self.in_av_especialidad)
+        f.addWidget(QLabel(tt("usuarios_col_especialidad", "Especialidad") + ":"), 3, 0); f.addWidget(self.in_av_especialidad, 3, 1, 1, 3)
+        b = QPushButton(t("btn_anadir_aviso")); b.clicked.connect(self.add_aviso); f.addWidget(b, 4, 0, 1, 4); g.setLayout(f); l.addWidget(g)
         self.grupo_crear_aviso = g
         bl = QHBoxLayout()
         self.btn_editar_aviso = QPushButton(t("btn_editar_seleccionado"), clicked=self.edit_aviso); bl.addWidget(self.btn_editar_aviso)
@@ -4483,7 +4544,8 @@ class MaintenanceApp(QMainWindow):
         if not usuarios.es_admin(): return
         tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentText(); dur = self.in_av_dur.value()
         uid = self.in_av_asignar.currentData(); nombre = self.in_av_asignar.currentText() if uid is not None else None
-        if tit and self.db.agregar_aviso(tit, i, f, dur, uid, nombre): self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
+        especialidad_id = self.in_av_especialidad.currentData()
+        if tit and self.db.agregar_aviso(tit, i, f, dur, uid, nombre, especialidad_id): self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
     def edit_aviso(self):
         if not usuarios.es_admin(): return
         r = self.table_avisos.currentRow()
@@ -4491,19 +4553,22 @@ class MaintenanceApp(QMainWindow):
         id_aviso = self.table_avisos.item(r, 1).data(Qt.ItemDataRole.UserRole)
         avisos = self.db.obtener_avisos(); datos = next((a for a in avisos if a[0] == id_aviso), None)
         if datos:
-            dlg = AvisoEditDialog(self, datos[1], datos[2], datos[3], datos[4], datos[6])
+            dlg = AvisoEditDialog(self, datos[1], datos[2], datos[3], datos[4], datos[6], datos[8])
             if dlg.exec():
-                new_t, new_i, new_f, new_d, new_uid, new_nombre = dlg.get_data()
-                self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre); self.refresh_avisos(); self.update_calendar_list()
+                new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad = dlg.get_data()
+                self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad); self.refresh_avisos(); self.update_calendar_list()
     def _avisos_visibles(self):
         """Igual que en el móvil: el admin ve todos los avisos; cada
-        trabajador ve los suyos más los que no están asignados a nadie,
-        pero no los asignados a otro técnico."""
+        trabajador ve los suyos más los que no están asignados a nadie
+        (y, si no están asignados, coinciden con su especialidad o no
+        tienen ninguna), pero no los asignados a otro técnico ni los
+        restringidos a otra especialidad."""
         avisos = self.db.obtener_avisos()
         if usuarios.es_admin():
             return avisos
         uid = usuarios.id_actual()
-        return [a for a in avisos if a[6] is None or a[6] == uid]
+        especialidad = usuarios.especialidad_actual()
+        return [a for a in avisos if a[6] == uid or (a[6] is None and (a[8] is None or a[8] == especialidad))]
 
     def refresh_avisos(self):
         self.table_avisos.setRowCount(0)
@@ -4515,7 +4580,7 @@ class MaintenanceApp(QMainWindow):
         if hasattr(self, 'btn_borrar_aviso'): self.btn_borrar_aviso.setEnabled(es_admin)
 
         filas_calculadas = []
-        for (aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre) in avisos:
+        for (aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre, especialidad_id) in avisos:
             if not finicio: finicio = f"{hoy.year()}-01-01"
             if not freq: freq = "Anual"
             freq = idiomas.normalizar_frecuencia(freq)
@@ -4709,7 +4774,9 @@ class MaintenanceApp(QMainWindow):
             self.update_calendar_list()
 
     def _asignar_avisos_masivo(self, ids):
-        """Asigna uno o varios avisos recurrentes a un trabajador (o los deja sin asignar)."""
+        """Asigna uno o varios avisos recurrentes a un trabajador y/o a una
+        especialidad (o los deja sin asignar), de forma independiente: si solo
+        se marca la especialidad, el técnico ya asignado no se toca, y viceversa."""
         if not usuarios.es_admin(): return
         if not ids:
             return
@@ -4720,9 +4787,21 @@ class MaintenanceApp(QMainWindow):
         lay.addWidget(QLabel(
             tt("lbl_asignar_avisos_a", "Asignar {n} aviso(s) a:").format(n=len(ids))))
 
+        chk_tecnico = QCheckBox(tt("chk_cambiar_tecnico", "Cambiar técnico asignado"))
+        lay.addWidget(chk_tecnico)
         combo = QComboBox()
         self._llenar_combo_usuarios(combo, incluir_sin_asignar=True)
+        combo.setEnabled(False)
+        chk_tecnico.toggled.connect(combo.setEnabled)
         lay.addWidget(combo)
+
+        chk_especialidad = QCheckBox(tt("chk_cambiar_especialidad", "Cambiar especialidad"))
+        lay.addWidget(chk_especialidad)
+        combo_esp = QComboBox()
+        self._llenar_combo_especialidades(combo_esp)
+        combo_esp.setEnabled(False)
+        chk_especialidad.toggled.connect(combo_esp.setEnabled)
+        lay.addWidget(combo_esp)
 
         caja = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -4734,11 +4813,17 @@ class MaintenanceApp(QMainWindow):
 
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
+        if not chk_tecnico.isChecked() and not chk_especialidad.isChecked():
+            return
 
         uid = combo.currentData()
         nombre = combo.currentText() if uid is not None else None
+        especialidad_id = combo_esp.currentData()
         for id_aviso in ids:
-            self.db.asignar_aviso(id_aviso, uid, nombre)
+            if chk_tecnico.isChecked():
+                self.db.asignar_aviso(id_aviso, uid, nombre)
+            if chk_especialidad.isChecked():
+                self.db.asignar_especialidad_aviso(id_aviso, especialidad_id)
         self.refresh_avisos()
 
     def init_history_tab(self):
@@ -4783,6 +4868,15 @@ class MaintenanceApp(QMainWindow):
         self.combo_filtro_historial = QComboBox()
         self.combo_filtro_historial.currentIndexChanged.connect(self.aplicar_filtros_historial)
         fila_usuario.addWidget(self.combo_filtro_historial, 1)
+
+        fila_usuario.addWidget(QLabel(tt("hdr_tipo_historial", "Tipo") + ":"))
+        self.combo_filtro_tipo_historial = QComboBox()
+        self.combo_filtro_tipo_historial.addItem(tt("filtro_todos", "Todos"), "TODOS")
+        self.combo_filtro_tipo_historial.addItem(tt("filtro_trabajos_averias", "Trabajos y averías"), "TRABAJOS")
+        self.combo_filtro_tipo_historial.addItem(tt("filtro_avisos_preventivos", "Avisos preventivos"), "PREVENTIVOS")
+        self.combo_filtro_tipo_historial.currentIndexChanged.connect(self.aplicar_filtros_historial)
+        fila_usuario.addWidget(self.combo_filtro_tipo_historial, 1)
+
         right_panel.addLayout(fila_usuario)
 
         self.h_table = QTableWidget()
@@ -4817,9 +4911,10 @@ class MaintenanceApp(QMainWindow):
         self.aplicar_filtros_historial()
 
     def aplicar_filtros_historial(self, *_):
-        """Combina el filtro de fecha (árbol) con el de técnico (combo)."""
+        """Combina el filtro de fecha (árbol), el de técnico (combo) y el de tipo (trabajos/averías vs. avisos preventivos)."""
         filtro_fecha = getattr(self, '_filtro_fecha_historial', "TODO") or "TODO"
         filtro_usuario = self.combo_filtro_historial.currentData() if hasattr(self, 'combo_filtro_historial') else "TODOS"
+        filtro_tipo = self.combo_filtro_tipo_historial.currentData() if hasattr(self, 'combo_filtro_tipo_historial') else "TODOS"
         visibles = 0
 
         for row in range(self.h_table.rowCount()):
@@ -4836,10 +4931,19 @@ class MaintenanceApp(QMainWindow):
                 if not item_usuario or item_usuario.text() != filtro_usuario:
                     mostrar = False
 
+            if mostrar and filtro_tipo not in (None, "TODOS"):
+                item_tags = self.h_table.item(row, 2)
+                tags_crudas = item_tags.data(Qt.ItemDataRole.UserRole) if item_tags else ""
+                es_preventivo = "Aviso Recurrente" in (tags_crudas or "")
+                if filtro_tipo == "PREVENTIVOS" and not es_preventivo:
+                    mostrar = False
+                elif filtro_tipo == "TRABAJOS" and es_preventivo:
+                    mostrar = False
+
             self.h_table.setRowHidden(row, not mostrar)
             if mostrar: visibles += 1
 
-        if filtro_usuario not in (None, "TODOS"):
+        if filtro_usuario not in (None, "TODOS") or filtro_tipo not in (None, "TODOS"):
             self.statusBar().showMessage(t("msg_mostrando_resultados").format(n=visibles), 3000)
 
     def recargar_combo_historial(self):
@@ -4873,6 +4977,19 @@ class MaintenanceApp(QMainWindow):
         fl.addStretch(); l.addLayout(fl)
         self.s_table = QTableWidget(); self.setup_table(self.s_table); self.configurar_deseleccion(self.s_table); self.s_table.cellDoubleClicked.connect(lambda r, c: self.edit_rec(self.s_table)); l.addWidget(self.s_table)
         bl = QHBoxLayout(); bl.addWidget(QPushButton(t("btn_editar"), clicked=lambda: self.edit_rec(self.s_table))); bl.addWidget(QPushButton(t("btn_borrar_seleccionado"), clicked=lambda: self.del_rec(self.s_table))); l.addLayout(bl); self.tab_search.setLayout(l)
+    def _llenar_combo_especialidades(self, combo, incluir_ninguna=True):
+        """Rellena un combo con el catálogo de especialidades, conservando la selección."""
+        anterior = combo.currentData() if combo.count() > 0 else "__SIN_SELECCION_PREVIA__"
+        combo.blockSignals(True)
+        combo.clear()
+        if incluir_ninguna:
+            combo.addItem(tt("especialidades_ninguna", "Sin especialidad"), None)
+        for e in usuarios.listar_especialidades():
+            combo.addItem(e["nombre"], e["id"])
+        idx = combo.findData(anterior)
+        combo.setCurrentIndex(idx if idx >= 0 else 0)
+        combo.blockSignals(False)
+
     def _llenar_combo_usuarios(self, combo, incluir_todos=False, incluir_sin_asignar=False):
         """Rellena un combo con los usuarios activos, conservando la selección."""
         # Si el combo aún no tenía nada cargado (primer llenado), no hay
@@ -4902,6 +5019,9 @@ class MaintenanceApp(QMainWindow):
         fila_filtro.addWidget(self.combo_filtro_todos, 1)
         ll.addLayout(fila_filtro)
         self.todo_list = QListWidget(); self.configurar_deseleccion(self.todo_list); self.todo_list.setAlternatingRowColors(True)
+        self.todo_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.todo_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.todo_list.customContextMenuRequested.connect(self._menu_contextual_todos)
         self.todo_list.itemDoubleClicked.connect(self.edit_todo); ll.addWidget(self.todo_list); l.addLayout(ll, 60)
         rl = QVBoxLayout(); g = QGroupBox(t("lbl_nuevo_trabajo")); f = QVBoxLayout()
         self.in_todo_t = QLineEdit(); self.in_todo_t.setPlaceholderText(t("ph_titulo")); f.addWidget(self.in_todo_t)
@@ -4912,6 +5032,12 @@ class MaintenanceApp(QMainWindow):
         self._llenar_combo_usuarios(self.combo_asignar, incluir_sin_asignar=True)
         fila_asig.addWidget(self.combo_asignar, 1)
         f.addLayout(fila_asig)
+        fila_especialidad_todo = QHBoxLayout()
+        fila_especialidad_todo.addWidget(QLabel(tt("usuarios_col_especialidad", "Especialidad") + ":"))
+        self.combo_especialidad_todo = QComboBox()
+        self._llenar_combo_especialidades(self.combo_especialidad_todo)
+        fila_especialidad_todo.addWidget(self.combo_especialidad_todo, 1)
+        f.addLayout(fila_especialidad_todo)
         fila_prioridad_todo = QHBoxLayout()
         fila_prioridad_todo.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
         self.combo_prioridad_todo = QComboBox()
@@ -5776,13 +5902,14 @@ class MaintenanceApp(QMainWindow):
         uid = self.combo_asignar.currentData()
         nombre = self.combo_asignar.currentText() if uid is not None else None
         prioridad = self.combo_prioridad_todo.currentData()
-        if tit and self.db.agregar_pendiente(tit, d, uid, nombre, prioridad):
+        especialidad_id = self.combo_especialidad_todo.currentData()
+        if tit and self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id):
             self.in_todo_t.clear(); self.in_todo_d.clear(); self.combo_prioridad_todo.setCurrentIndex(1); self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
                 self.servidor.pendiente_actualizado.emit()
 
     def reasignar_todo(self):
-        """Cambia el técnico asignado del pendiente seleccionado."""
+        """Cambia el técnico asignado y/o la especialidad del pendiente seleccionado."""
         row = self.todo_list.currentRow()
         if row < 0: return
         item = self.todo_list.item(row)
@@ -5798,6 +5925,12 @@ class MaintenanceApp(QMainWindow):
         idx = combo.findData(item.data(Qt.ItemDataRole.UserRole + 3))
         if idx >= 0: combo.setCurrentIndex(idx)
         lay.addWidget(combo)
+        lay.addWidget(QLabel(tt("usuarios_col_especialidad", "Especialidad") + ":"))
+        combo_esp = QComboBox()
+        self._llenar_combo_especialidades(combo_esp)
+        idx_esp = combo_esp.findData(item.data(Qt.ItemDataRole.UserRole + 5))
+        if idx_esp >= 0: combo_esp.setCurrentIndex(idx_esp)
+        lay.addWidget(combo_esp)
         caja = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         caja.accepted.connect(dlg.accept); caja.rejected.connect(dlg.reject)
         lay.addWidget(caja)
@@ -5805,10 +5938,116 @@ class MaintenanceApp(QMainWindow):
 
         uid = combo.currentData()
         nombre = combo.currentText() if uid is not None else None
-        if self.db.asignar_pendiente(pid, uid, nombre):
+        especialidad_id = combo_esp.currentData()
+        ok = self.db.asignar_pendiente(pid, uid, nombre)
+        ok = self.db.asignar_especialidad_pendiente(pid, especialidad_id) and ok
+        if ok:
             self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
                 self.servidor.pendiente_actualizado.emit()
+
+    def _menu_contextual_todos(self, pos):
+        """Menú con clic derecho sobre la lista de trabajos: eliminar o asignar
+        técnico/especialidad a varios trabajos a la vez."""
+        if not self.todo_list.selectedItems():
+            item = self.todo_list.itemAt(pos)
+            if item is not None:
+                item.setSelected(True)
+        seleccion = [it for it in self.todo_list.selectedItems() if it.data(Qt.ItemDataRole.UserRole) is not None]
+        if not seleccion:
+            return
+        ids = [it.data(Qt.ItemDataRole.UserRole) for it in seleccion]
+        n = len(ids)
+
+        menu = QMenu(self)
+        texto_asignar = tt("ctx_asignar_avisos", "👤 Asignar a...") if n == 1 else \
+                         tt("ctx_asignar_trabajos_n", "👤 Asignar a... ({n} trabajos)").format(n=n)
+        menu.addAction(texto_asignar, lambda: self._asignar_todos_masivo(ids))
+
+        menu.addSeparator()
+
+        texto_borrar = tt("ctx_eliminar_trabajos", "🗑️ Eliminar") if n == 1 else \
+                        tt("ctx_eliminar_trabajos_n", "🗑️ Eliminar ({n} trabajos)").format(n=n)
+        menu.addAction(texto_borrar, lambda: self._borrar_todos_masivo(ids))
+
+        menu.exec(self.todo_list.viewport().mapToGlobal(pos))
+
+    def _borrar_todos_masivo(self, ids):
+        """Borra uno o varios trabajos pendientes, previa confirmación."""
+        if not ids:
+            return
+        n = len(ids)
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(t("title_confirmar_borrado"))
+        msg.setText(t("msg_confirmar_borrar_pendiente") if n == 1 else
+                    tt("msg_confirmar_borrar_pendientes_n", "¿Estás seguro de borrar estos {n} trabajos pendientes definitivamente?").format(n=n))
+
+        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+
+        msg.exec()
+
+        if msg.clickedButton() == btn_si:
+            for id_p in ids:
+                self.db.borrar_pendiente(id_p)
+            self.refresh_todos()
+            if hasattr(self, 'servidor') and self.servidor:
+                self.servidor.pendiente_actualizado.emit()
+
+    def _asignar_todos_masivo(self, ids):
+        """Asigna uno o varios trabajos pendientes a un técnico y/o a una
+        especialidad (o los deja sin asignar), de forma independiente: si solo
+        se marca la especialidad, el técnico ya asignado no se toca, y viceversa."""
+        if not ids:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tt("lbl_asignar_a", "Asignar a"))
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel(
+            tt("lbl_asignar_trabajos_a", "Asignar {n} trabajo(s) a:").format(n=len(ids))))
+
+        chk_tecnico = QCheckBox(tt("chk_cambiar_tecnico", "Cambiar técnico asignado"))
+        lay.addWidget(chk_tecnico)
+        combo = QComboBox()
+        self._llenar_combo_usuarios(combo, incluir_sin_asignar=True)
+        combo.setEnabled(False)
+        chk_tecnico.toggled.connect(combo.setEnabled)
+        lay.addWidget(combo)
+
+        chk_especialidad = QCheckBox(tt("chk_cambiar_especialidad", "Cambiar especialidad"))
+        lay.addWidget(chk_especialidad)
+        combo_esp = QComboBox()
+        self._llenar_combo_especialidades(combo_esp)
+        combo_esp.setEnabled(False)
+        chk_especialidad.toggled.connect(combo_esp.setEnabled)
+        lay.addWidget(combo_esp)
+
+        caja = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
+        caja.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        caja.accepted.connect(dlg.accept)
+        caja.rejected.connect(dlg.reject)
+        lay.addWidget(caja)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        if not chk_tecnico.isChecked() and not chk_especialidad.isChecked():
+            return
+
+        uid = combo.currentData()
+        nombre = combo.currentText() if uid is not None else None
+        especialidad_id = combo_esp.currentData()
+        for id_p in ids:
+            if chk_tecnico.isChecked():
+                self.db.asignar_pendiente(id_p, uid, nombre)
+            if chk_especialidad.isChecked():
+                self.db.asignar_especialidad_pendiente(id_p, especialidad_id)
+        self.refresh_todos()
+        if hasattr(self, 'servidor') and self.servidor:
+            self.servidor.pendiente_actualizado.emit()
 
     def refresh_todos(self, *_):
         self.todo_list.clear()
@@ -5826,7 +6065,7 @@ class MaintenanceApp(QMainWindow):
         ps = sorted(ps, key=lambda p: orden_prioridad.get(p[5], 2))
 
         iconos_prioridad = {"Crítica": "🔴", "Alta": "🟠", "Media": "⬜", "Baja": "🟢"}
-        for i, tit, d, asig_id, asig_nombre, prioridad in ps:
+        for i, tit, d, asig_id, asig_nombre, prioridad, especialidad_id in ps:
             # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
             d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
             d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
@@ -5855,6 +6094,7 @@ class MaintenanceApp(QMainWindow):
             it.setData(Qt.ItemDataRole.UserRole + 2, d)
             it.setData(Qt.ItemDataRole.UserRole + 3, asig_id)
             it.setData(Qt.ItemDataRole.UserRole + 4, prioridad)
+            it.setData(Qt.ItemDataRole.UserRole + 5, especialidad_id)
 
             if tiene_foto:
                 it.setToolTip("📸 Tiene foto adjunta")
@@ -6726,6 +6966,8 @@ class MaintenanceApp(QMainWindow):
         titulo_actual = item.data(Qt.ItemDataRole.UserRole + 1)
         detalles_raw = item.data(Qt.ItemDataRole.UserRole + 2)
         prioridad_actual = item.data(Qt.ItemDataRole.UserRole + 4) or "Media"
+        especialidad_actual_id = item.data(Qt.ItemDataRole.UserRole + 5)
+        asignado_actual_id = item.data(Qt.ItemDataRole.UserRole + 3)
 
         # --- LÓGICA DE LIMPIEZA VISUAL ---
         ruta_foto_actual = ""
@@ -6751,10 +6993,10 @@ class MaintenanceApp(QMainWindow):
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
 
         # Abrimos el diálogo con el texto LIMPIO
-        dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual)
+        dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual, asignado_actual_id, especialidad_actual_id)
 
         if dlg.exec():
-            nuevo_t, nuevo_d, nueva_foto, nueva_prioridad = dlg.get_data()
+            nuevo_t, nuevo_d, nueva_foto, nueva_prioridad, nuevo_asignado_id, nuevo_asignado_nombre, nueva_especialidad_id = dlg.get_data()
 
             if nuevo_t:
                 desc_final = nuevo_d
@@ -6777,7 +7019,8 @@ class MaintenanceApp(QMainWindow):
                     desc_final += f"\n[FOTO: {nombre_final}]"
 
                 # Guardamos en BD (con la REF oculta de nuevo)
-                if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad):
+                if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad, nueva_especialidad_id):
+                    self.db.asignar_pendiente(pid, nuevo_asignado_id, nuevo_asignado_nombre)
                     self.refresh_todos()
                     self.statusBar().showMessage(t("msg_pendiente_actualizado"), 3000)
 
