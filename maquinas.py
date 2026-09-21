@@ -324,3 +324,85 @@ def indicadores_fiabilidad(id_maquina):
     mttr_horas = (sum(horas) / len(horas)) if horas else None
 
     return {"num_averias": len(filas), "mtbf_dias": mtbf_dias, "mttr_horas": mttr_horas}
+
+
+def indicadores_fiabilidad_global():
+    """Igual que indicadores_fiabilidad, pero con las averías de todas las
+    máquinas juntas (y las que no tienen máquina asignada), para dar una
+    cifra de fiabilidad de toda la planta en el dashboard."""
+    con = _conn()
+    filas = con.execute(
+        "SELECT fecha, horas_paro FROM tareas WHERE tags LIKE '%Avería%' "
+        "AND fecha IS NOT NULL AND fecha != '' ORDER BY fecha ASC, id ASC"
+    ).fetchall()
+    con.close()
+
+    fechas = []
+    for fila in filas:
+        try:
+            fechas.append(datetime.strptime(fila["fecha"], "%Y-%m-%d"))
+        except (ValueError, TypeError):
+            pass
+
+    mtbf_dias = None
+    if len(fechas) >= 2:
+        total_dias = (fechas[-1] - fechas[0]).days
+        mtbf_dias = total_dias / (len(fechas) - 1)
+
+    horas = [fila["horas_paro"] for fila in filas if fila["horas_paro"] is not None]
+    mttr_horas = (sum(horas) / len(horas)) if horas else None
+
+    return {"num_averias": len(filas), "mtbf_dias": mtbf_dias, "mttr_horas": mttr_horas}
+
+
+def contar_averias(id_maquina):
+    """Nº de trabajos marcados como 'Avería' vinculados directamente a esta
+    máquina (sin submáquinas)."""
+    con = _conn()
+    fila = con.execute(
+        "SELECT COUNT(*) FROM tareas WHERE maquina_id=? AND tags LIKE '%Avería%'",
+        (id_maquina,),
+    ).fetchone()
+    con.close()
+    return fila[0] if fila else 0
+
+
+def ranking_averias(top_n=8):
+    """Máquinas de nivel superior con más averías (sumando las de sus
+    submáquinas), de más a menos, para el ranking de "más problemáticas"
+    del dashboard. Solo incluye máquinas con al menos una avería."""
+    top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
+
+    def total_averias(id_maquina):
+        return sum(contar_averias(i) for i in descendientes_ids(id_maquina))
+
+    datos = sorted(
+        ((m["nombre"], total_averias(m["id"])) for m in top_level),
+        key=lambda par: par[1], reverse=True,
+    )
+    return [par for par in datos if par[1] > 0][:top_n]
+
+
+def averias_por_mes(n_meses=12):
+    """Nº de averías registradas en cada uno de los últimos n_meses meses
+    (incluido el actual), en orden cronológico. Devuelve una lista de tuplas
+    ('YYYY-MM', cantidad)."""
+    con = _conn()
+    filas = con.execute(
+        "SELECT substr(fecha,1,7) AS mes, COUNT(*) AS n FROM tareas "
+        "WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != '' "
+        "GROUP BY mes"
+    ).fetchall()
+    con.close()
+    por_mes = {fila["mes"]: fila["n"] for fila in filas}
+
+    hoy = datetime.now()
+    meses = []
+    for i in range(n_meses - 1, -1, -1):
+        anio, mes = hoy.year, hoy.month - i
+        while mes <= 0:
+            mes += 12
+            anio -= 1
+        clave = f"{anio:04d}-{mes:02d}"
+        meses.append((clave, por_mes.get(clave, 0)))
+    return meses
