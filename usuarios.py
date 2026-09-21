@@ -176,6 +176,24 @@ def inicializar():
             nombre  TEXT    NOT NULL UNIQUE COLLATE NOCASE
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS usuario_especialidades (
+            usuario_id      INTEGER NOT NULL,
+            especialidad_id INTEGER NOT NULL,
+            PRIMARY KEY (usuario_id, especialidad_id),
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+            FOREIGN KEY (especialidad_id) REFERENCES especialidades(id) ON DELETE CASCADE
+        )
+    """)
+    # Migración: un técnico podía tener antes una única especialidad, guardada
+    # en la columna especialidad_id de usuarios. Se traslada ese valor a la
+    # nueva tabla muchos-a-muchos (usuario_especialidades) la primera vez que
+    # se detecta, para no perder la asignación ya existente.
+    if "especialidad_id" in _columnas(con, "usuarios"):
+        cur.execute("""
+            INSERT OR IGNORE INTO usuario_especialidades (usuario_id, especialidad_id)
+            SELECT id, especialidad_id FROM usuarios WHERE especialidad_id IS NOT NULL
+        """)
     # Migración: cada usuario que aún no tenga fila en usuario_roles recibe
     # su rol único de siempre como primer rol (así los usuarios ya existentes
     # no pierden permisos al pasar al modelo de varios roles por usuario).
@@ -278,11 +296,7 @@ def obtener_roles(con, usuario_id):
 
 def _a_dict(fila, con=None):
     roles = obtener_roles(con, fila["id"]) if con is not None else [fila["rol"]]
-    especialidad_id = fila["especialidad_id"] if "especialidad_id" in fila.keys() else None
-    especialidad_nombre = None
-    if especialidad_id and con is not None:
-        f = con.execute("SELECT nombre FROM especialidades WHERE id = ?", (especialidad_id,)).fetchone()
-        especialidad_nombre = f["nombre"] if f else None
+    especialidades = _especialidades_de_usuario(con, fila["id"]) if con is not None else []
     return {
         "id": fila["id"],
         "login": fila["login"],
@@ -291,9 +305,20 @@ def _a_dict(fila, con=None):
         "roles": roles,
         "activo": bool(fila["activo"]),
         "debe_cambiar": bool(fila["debe_cambiar"]),
-        "especialidad_id": especialidad_id,
-        "especialidad_nombre": especialidad_nombre,
+        # Un técnico puede tener varias especialidades a la vez.
+        "especialidad_ids": [e["id"] for e in especialidades],
+        "especialidad_nombres": [e["nombre"] for e in especialidades],
     }
+
+
+def _especialidades_de_usuario(con, usuario_id):
+    filas = con.execute(
+        "SELECT e.id, e.nombre FROM especialidades e "
+        "JOIN usuario_especialidades ue ON ue.especialidad_id = e.id "
+        "WHERE ue.usuario_id = ? ORDER BY e.nombre COLLATE NOCASE",
+        (usuario_id,),
+    ).fetchall()
+    return [dict(f) for f in filas]
 
 
 ROLES = ("admin", "tecnico", "almacen")
@@ -329,9 +354,9 @@ def id_actual():
     return SESION_ACTUAL["id"] if SESION_ACTUAL else None
 
 
-def especialidad_actual():
-    """Id de especialidad del usuario en sesión, o None si no tiene."""
-    return SESION_ACTUAL.get("especialidad_id") if SESION_ACTUAL else None
+def especialidades_actuales():
+    """Ids de las especialidades del usuario en sesión (lista vacía si no tiene)."""
+    return SESION_ACTUAL.get("especialidad_ids") or [] if SESION_ACTUAL else []
 
 
 # ---------------------------------------------------------------- CRUD
@@ -378,9 +403,10 @@ def obtener_ultimo_usuario():
         return None
 
 
-def crear_usuario(login, nombre, password, roles=("tecnico",), debe_cambiar=True, especialidad_id=None):
+def crear_usuario(login, nombre, password, roles=("tecnico",), debe_cambiar=True, especialidad_ids=None):
     """Devuelve (ok, mensaje). `roles` acepta uno o varios valores de ROLES
-    (p.ej. un usuario puede ser a la vez "tecnico" y "almacen")."""
+    (p.ej. un usuario puede ser a la vez "tecnico" y "almacen"). `especialidad_ids`
+    acepta cero, una o varias especialidades a la vez."""
     login = (login or "").strip()
     nombre = (nombre or "").strip()
     if not login or not nombre:
@@ -395,15 +421,16 @@ def crear_usuario(login, nombre, password, roles=("tecnico",), debe_cambiar=True
         cur = con.cursor()
         cur.execute(
             "INSERT INTO usuarios (login, nombre, password_hash, rol, activo, "
-            "debe_cambiar, creado, especialidad_id) VALUES (?, ?, ?, ?, 1, ?, ?, ?)",
+            "debe_cambiar, creado) VALUES (?, ?, ?, ?, 1, ?, ?)",
             (login, nombre, hash_password(password), rol_principal, int(debe_cambiar),
-             datetime.now().isoformat(timespec="seconds"), especialidad_id),
+             datetime.now().isoformat(timespec="seconds")),
         )
         usuario_id = cur.lastrowid
         cur.executemany(
             "INSERT INTO usuario_roles (usuario_id, rol) VALUES (?, ?)",
             [(usuario_id, r) for r in roles],
         )
+        establecer_especialidades_usuario(usuario_id, especialidad_ids, con=con)
         con.commit()
         return True, "Usuario creado."
     except sqlite3.IntegrityError:
@@ -412,11 +439,11 @@ def crear_usuario(login, nombre, password, roles=("tecnico",), debe_cambiar=True
         con.close()
 
 
-def actualizar_usuario(usuario_id, nombre=None, roles=None, activo=None, especialidad_id=-1):
+def actualizar_usuario(usuario_id, nombre=None, roles=None, activo=None, especialidad_ids=None):
     """Si se indica `roles` (lista de valores de ROLES), sustituye por completo
-    el conjunto de roles del usuario. `especialidad_id` solo se toca si se pasa
-    explícitamente (-1 es el valor por defecto que significa "no tocar"; usa
-    None para dejar al usuario sin especialidad)."""
+    el conjunto de roles del usuario. `especialidad_ids` solo se toca si se pasa
+    explícitamente (None es el valor por defecto que significa "no tocar"; pasa
+    una lista, vacía o no, para sustituir el conjunto de especialidades)."""
     campos, valores = [], []
     if nombre is not None:
         campos.append("nombre = ?"); valores.append(nombre.strip())
@@ -427,9 +454,7 @@ def actualizar_usuario(usuario_id, nombre=None, roles=None, activo=None, especia
         campos.append("rol = ?"); valores.append(rol_principal)
     if activo is not None:
         campos.append("activo = ?"); valores.append(int(bool(activo)))
-    if especialidad_id != -1:
-        campos.append("especialidad_id = ?"); valores.append(especialidad_id)
-    if not campos:
+    if not campos and especialidad_ids is None:
         return False, "Nada que actualizar."
 
     con = _conn()
@@ -439,14 +464,17 @@ def actualizar_usuario(usuario_id, nombre=None, roles=None, activo=None, especia
         con.close()
         return False, "Debe quedar al menos un administrador activo."
 
-    valores.append(usuario_id)
-    con.execute(f"UPDATE usuarios SET {', '.join(campos)} WHERE id = ?", valores)
+    if campos:
+        valores.append(usuario_id)
+        con.execute(f"UPDATE usuarios SET {', '.join(campos)} WHERE id = ?", valores)
     if roles_validos is not None:
         con.execute("DELETE FROM usuario_roles WHERE usuario_id = ?", (usuario_id,))
         con.executemany(
             "INSERT INTO usuario_roles (usuario_id, rol) VALUES (?, ?)",
             [(usuario_id, r) for r in roles_validos],
         )
+    if especialidad_ids is not None:
+        establecer_especialidades_usuario(usuario_id, especialidad_ids, con=con)
     if activo is False:
         con.execute("DELETE FROM sesiones WHERE usuario_id = ?", (usuario_id,))
     con.commit()
@@ -544,11 +572,37 @@ def renombrar_especialidad(especialidad_id, nombre_nuevo):
         con.close()
 
 
+def especialidades_de_usuario(usuario_id):
+    """Especialidades (lista de dicts id/nombre) asignadas a un usuario."""
+    con = _conn()
+    resultado = _especialidades_de_usuario(con, usuario_id)
+    con.close()
+    return resultado
+
+
+def establecer_especialidades_usuario(usuario_id, especialidad_ids, con=None):
+    """Sustituye por completo el conjunto de especialidades de un usuario.
+    Un técnico puede tener cero, una o varias a la vez."""
+    cerrar = con is None
+    if con is None:
+        con = _conn()
+    ids = sorted({int(e) for e in (especialidad_ids or [])})
+    con.execute("DELETE FROM usuario_especialidades WHERE usuario_id = ?", (usuario_id,))
+    if ids:
+        con.executemany(
+            "INSERT INTO usuario_especialidades (usuario_id, especialidad_id) VALUES (?, ?)",
+            [(usuario_id, eid) for eid in ids],
+        )
+    if cerrar:
+        con.commit()
+        con.close()
+
+
 def borrar_especialidad(especialidad_id):
     """Borra la especialidad y desvincula a quien la tuviera asignada (usuarios,
     pendientes/trabajos y avisos recurrentes), en vez de dejar referencias rotas."""
     con = _conn()
-    con.execute("UPDATE usuarios SET especialidad_id = NULL WHERE especialidad_id = ?", (especialidad_id,))
+    con.execute("DELETE FROM usuario_especialidades WHERE especialidad_id = ?", (especialidad_id,))
     if _tabla_existe(con, "pendientes"):
         con.execute("UPDATE pendientes SET especialidad_id = NULL WHERE especialidad_id = ?", (especialidad_id,))
     if _tabla_existe(con, "avisos_recurrentes"):
