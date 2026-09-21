@@ -219,25 +219,131 @@ class DialogoCambioPassword(QDialog):
 
 # --------------------------------------------------------- gestión (solo admin)
 
+class DialogoEspecialidades(QDialog):
+    """CRUD del catálogo de especialidades (p.ej. Electricista, Mecánico...)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(t("especialidades_titulo", "Especialidades"))
+        self.setModal(True)
+        self.resize(360, 400)
+
+        layout = QVBoxLayout(self)
+
+        self.tabla = QTableWidget(0, 2)
+        self.tabla.setHorizontalHeaderLabels([t("especialidades_col_nombre", "Nombre"), "ID"])
+        self.tabla.setColumnHidden(1, True)
+        self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.tabla)
+
+        alta = QHBoxLayout()
+        self.nueva_especialidad = QLineEdit()
+        self.nueva_especialidad.setPlaceholderText(t("especialidades_col_nombre", "Nombre"))
+        boton_alta = QPushButton(t("usuarios_anadir", "➕ Añadir"))
+        alta.addWidget(self.nueva_especialidad, 1)
+        alta.addWidget(boton_alta)
+        layout.addLayout(alta)
+
+        acciones = QHBoxLayout()
+        boton_renombrar = QPushButton(t("especialidades_renombrar", "✏️ Renombrar"))
+        boton_borrar = QPushButton(t("especialidades_borrar", "🗑️ Borrar"))
+        boton_cerrar = QPushButton(t("cerrar", "Cerrar"))
+        acciones.addWidget(boton_renombrar)
+        acciones.addWidget(boton_borrar)
+        acciones.addStretch()
+        acciones.addWidget(boton_cerrar)
+        layout.addLayout(acciones)
+
+        boton_alta.clicked.connect(self._anadir)
+        boton_renombrar.clicked.connect(self._renombrar)
+        boton_borrar.clicked.connect(self._borrar)
+        boton_cerrar.clicked.connect(self.accept)
+
+        self.refrescar()
+
+    def refrescar(self):
+        datos = usuarios.listar_especialidades()
+        self.tabla.setRowCount(len(datos))
+        for fila, e in enumerate(datos):
+            self.tabla.setItem(fila, 0, QTableWidgetItem(e["nombre"]))
+            self.tabla.setItem(fila, 1, QTableWidgetItem(str(e["id"])))
+
+    def _seleccionada(self):
+        fila = self.tabla.currentRow()
+        if fila < 0:
+            QMessageBox.information(
+                self, t("aviso", "Aviso"),
+                t("especialidades_selecciona", "Selecciona una especialidad de la lista."))
+            return None
+        return int(self.tabla.item(fila, 1).text())
+
+    def _anadir(self):
+        ok, mensaje = usuarios.crear_especialidad(self.nueva_especialidad.text())
+        if ok:
+            self.nueva_especialidad.clear()
+            self.refrescar()
+        else:
+            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+
+    def _renombrar(self):
+        eid = self._seleccionada()
+        if eid is None:
+            return
+        fila = self.tabla.currentRow()
+        actual = self.tabla.item(fila, 0).text()
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("especialidades_renombrar", "✏️ Renombrar"))
+        lay = QVBoxLayout(dlg)
+        campo = QLineEdit(actual)
+        lay.addWidget(campo)
+        caja = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.accepted.connect(dlg.accept); caja.rejected.connect(dlg.reject)
+        lay.addWidget(caja)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        ok, mensaje = usuarios.renombrar_especialidad(eid, campo.text())
+        if not ok:
+            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        self.refrescar()
+
+    def _borrar(self):
+        eid = self._seleccionada()
+        if eid is None:
+            return
+        respuesta = QMessageBox.question(
+            self, t("aviso", "Aviso"),
+            t("especialidades_confirmar_borrar",
+              "¿Borrar esta especialidad? Los usuarios, trabajos y avisos que la "
+              "tuvieran asignada quedarán sin especialidad."))
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        usuarios.borrar_especialidad(eid)
+        self.refrescar()
+
+
 class DialogoGestionUsuarios(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(t("usuarios_titulo", "Gestión de usuarios"))
         self.setModal(True)
-        self.resize(720, 420)
+        self.resize(820, 420)
 
         layout = QVBoxLayout(self)
 
-        self.tabla = QTableWidget(0, 6)
+        self.tabla = QTableWidget(0, 7)
         self.tabla.setHorizontalHeaderLabels([
             t("usuarios_col_login", "Usuario"),
             t("usuarios_col_nombre", "Nombre"),
             t("usuarios_col_rol", "Rol"),
+            t("usuarios_col_especialidad", "Especialidad"),
             t("usuarios_col_estado", "Estado"),
             t("usuarios_col_acceso", "Último acceso"),
             "ID",
         ])
-        self.tabla.setColumnHidden(5, True)
+        self.tabla.setColumnHidden(6, True)
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.horizontalHeader().setSectionResizeMode(
@@ -255,11 +361,13 @@ class DialogoGestionUsuarios(QDialog):
         self.nueva_password.setPlaceholderText(t("login_password", "Contraseña"))
         self.selector_roles, self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin = \
             self._crear_selector_roles()
+        self.combo_especialidad_alta = QComboBox()
+        self._llenar_combo_especialidades(self.combo_especialidad_alta)
         self.chk_cambiar = QCheckBox(t("usuarios_forzar_cambio", "Pedir cambio al entrar"))
         self.chk_cambiar.setChecked(True)
         boton_alta = QPushButton(t("usuarios_anadir", "➕ Añadir"))
         for w in (self.nuevo_login, self.nuevo_nombre, self.nueva_password,
-                  self.selector_roles, self.chk_cambiar, boton_alta):
+                  self.selector_roles, self.combo_especialidad_alta, self.chk_cambiar, boton_alta):
             alta.addWidget(w)
         layout.addLayout(alta)
 
@@ -267,19 +375,25 @@ class DialogoGestionUsuarios(QDialog):
         acciones = QHBoxLayout()
         boton_reset = QPushButton(t("usuarios_reset", "🔑 Restablecer contraseña"))
         boton_rol = QPushButton(t("usuarios_cambiar_rol", "🎚 Cambiar rol"))
+        boton_especialidad = QPushButton(t("usuarios_cambiar_especialidad", "🔧 Especialidad"))
         boton_estado = QPushButton(t("usuarios_activar", "🚫 Activar / Desactivar"))
+        boton_gestionar_especialidades = QPushButton(t("especialidades_titulo", "Especialidades") + "...")
         boton_cerrar = QPushButton(t("cerrar", "Cerrar"))
         acciones.addWidget(boton_reset)
         acciones.addWidget(boton_rol)
+        acciones.addWidget(boton_especialidad)
         acciones.addWidget(boton_estado)
         acciones.addStretch()
+        acciones.addWidget(boton_gestionar_especialidades)
         acciones.addWidget(boton_cerrar)
         layout.addLayout(acciones)
 
         boton_alta.clicked.connect(self._anadir)
         boton_reset.clicked.connect(self._reset)
         boton_rol.clicked.connect(self._cambiar_rol)
+        boton_especialidad.clicked.connect(self._cambiar_especialidad)
         boton_estado.clicked.connect(self._alternar_estado)
+        boton_gestionar_especialidades.clicked.connect(self._gestionar_especialidades)
         boton_cerrar.clicked.connect(self.accept)
 
         self.refrescar()
@@ -335,6 +449,14 @@ class DialogoGestionUsuarios(QDialog):
             (chk_tecnico, "tecnico"), (chk_almacen, "almacen"), (chk_admin, "admin")
         ) if chk.isChecked()]
 
+    @staticmethod
+    def _llenar_combo_especialidades(combo, incluir_ninguna=True):
+        combo.clear()
+        if incluir_ninguna:
+            combo.addItem(t("especialidades_ninguna", "Sin especialidad"), None)
+        for e in usuarios.listar_especialidades():
+            combo.addItem(e["nombre"], e["id"])
+
     def refrescar(self):
         datos = usuarios.listar_usuarios()
         self.tabla.setRowCount(len(datos))
@@ -343,6 +465,7 @@ class DialogoGestionUsuarios(QDialog):
                 u["login"],
                 u["nombre"],
                 self._texto_roles(u.get("roles")),
+                u.get("especialidad_nombre") or "—",
                 t("activo", "Activo") if u["activo"] else t("inactivo", "Inactivo"),
                 u.get("ultimo_acceso") or "—",
                 str(u["id"]),
@@ -360,7 +483,7 @@ class DialogoGestionUsuarios(QDialog):
                 self, t("aviso", "Aviso"),
                 t("usuarios_selecciona", "Selecciona un usuario de la lista."))
             return None
-        return int(self.tabla.item(fila, 5).text())
+        return int(self.tabla.item(fila, 6).text())
 
     # -------------------------------------------------- acciones
 
@@ -372,15 +495,49 @@ class DialogoGestionUsuarios(QDialog):
             self.nueva_password.text(),
             roles,
             self.chk_cambiar.isChecked(),
+            self.combo_especialidad_alta.currentData(),
         )
         if ok:
             self.nuevo_login.clear(); self.nuevo_nombre.clear(); self.nueva_password.clear()
             self.chk_rol_tecnico.setChecked(True)
             self.chk_rol_almacen.setChecked(False)
             self.chk_rol_admin.setChecked(False)
+            self.combo_especialidad_alta.setCurrentIndex(0)
             self.refrescar()
         else:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+
+    def _cambiar_especialidad(self):
+        uid = self._seleccionado()
+        if uid is None:
+            return
+        actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("usuarios_cambiar_especialidad", "🔧 Especialidad"))
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel(t("usuarios_col_especialidad", "Especialidad") + ":"))
+        combo = QComboBox()
+        self._llenar_combo_especialidades(combo)
+        idx = combo.findData(actual.get("especialidad_id"))
+        combo.setCurrentIndex(idx if idx >= 0 else 0)
+        lay.addWidget(combo)
+        caja = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.accepted.connect(dlg.accept); caja.rejected.connect(dlg.reject)
+        lay.addWidget(caja)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        ok, mensaje = usuarios.actualizar_usuario(uid, especialidad_id=combo.currentData())
+        if not ok:
+            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        self.refrescar()
+
+    def _gestionar_especialidades(self):
+        DialogoEspecialidades(self).exec()
+        self._llenar_combo_especialidades(self.combo_especialidad_alta)
+        self.refrescar()
 
     def _reset(self):
         uid = self._seleccionado()
