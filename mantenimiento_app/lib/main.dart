@@ -94,6 +94,7 @@ class AuthService {
   static int? usuarioId;
 
   static bool get autenticado => token != null && token!.isNotEmpty;
+  static bool get esAdmin => roles.contains('admin');
 
   /// Carga la sesión guardada (llamar también en tareas de segundo plano).
   static Future<void> cargar() async {
@@ -662,6 +663,34 @@ class MaquinasCache {
   }
 }
 
+/// Caché local del catálogo de especialidades (igual que MaquinasCache), para
+/// poder elegir especialidad al crear un trabajo aunque no haya conexión.
+class EspecialidadesCache {
+  static const _clave = 'especialidades_cache';
+
+  static Future<List<Map<String, dynamic>>> obtener() async {
+    final prefs = await SharedPreferences.getInstance();
+    final datos = prefs.getString(_clave);
+    if (datos == null) return [];
+    try {
+      return List<Map<String, dynamic>>.from(
+          (json.decode(datos) as List).map((e) => Map<String, dynamic>.from(e)));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> sincronizar(String ip) async {
+    try {
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/especialidades")).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_clave, res.body);
+      }
+    } catch (_) {}
+  }
+}
+
 class Registro {
   int? id;
   String titulo, detalles, tags;
@@ -675,6 +704,8 @@ class Registro {
   /// Código fijo en español ("Baja", "Media", "Alta", "Crítica").
   String prioridad;
   List<Map<String, dynamic>> materiales; // [{material_id, nombre, cantidad}]
+  /// Solo se usa al crear/editar un trabajo pendiente (no aplica al historial).
+  int? especialidadId;
 
   Registro({
     this.id,
@@ -689,7 +720,8 @@ class Registro {
     this.maquinaId,
     this.maquinaNombre,
     this.prioridad = 'Media',
-    List<Map<String, dynamic>>? materiales
+    List<Map<String, dynamic>>? materiales,
+    this.especialidadId
   }) : materiales = materiales ?? [];
 
   Map<String, dynamic> toJson() => {
@@ -705,7 +737,8 @@ class Registro {
     'maquinaId': maquinaId,
     'maquinaNombre': maquinaNombre,
     'prioridad': prioridad,
-    'materiales': materiales
+    'materiales': materiales,
+    'especialidadId': especialidadId
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -724,7 +757,8 @@ class Registro {
     materiales: json['materiales'] != null
         ? List<Map<String, dynamic>>.from(
             (json['materiales'] as List).map((e) => Map<String, dynamic>.from(e)))
-        : []
+        : [],
+    especialidadId: json['especialidadId']
   );
 }
 
@@ -737,7 +771,9 @@ class PendientePC {
   /// Código fijo en español ("Baja", "Media", "Alta", "Crítica"), igual que
   /// en el PC. Se traduce solo al mostrarlo, ver traducirPrioridad().
   String prioridad;
-  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media'});
+  int? especialidadId;
+  String? especialidad;
+  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad});
   factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
         id: json['id'],
         titulo: json['titulo'],
@@ -745,10 +781,13 @@ class PendientePC {
         asignadoA: json['asignado_a'],
         asignado: (json['asignado'] as String?)?.isEmpty == true ? null : json['asignado'],
         prioridad: (json['prioridad'] as String?) ?? 'Media',
+        especialidadId: json['especialidad_id'],
+        especialidad: json['especialidad'],
       );
   Map<String, dynamic> toJson() => {
         'id': id, 'titulo': titulo, 'detalles': detalles,
         'asignado_a': asignadoA, 'asignado': asignado, 'prioridad': prioridad,
+        'especialidad_id': especialidadId, 'especialidad': especialidad,
       };
   /// true si el trabajo es del usuario que tiene la sesión abierta.
   bool get esMio => asignadoA != null && asignadoA == AuthService.usuarioId;
@@ -1545,6 +1584,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       r.fields['detalles'] = d['detalles'];
       if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
       if (d.containsKey('prioridad') && d['prioridad'] != null) r.fields['prioridad'] = d['prioridad'];
+      if (d.containsKey('especialidad_id') && d['especialidad_id'] != null) r.fields['especialidad_id'] = d['especialidad_id'].toString();
 
       // --- ENVÍO DE FECHA ---
       if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
@@ -1854,9 +1894,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             String ru = DateTime.now().millisecondsSinceEpoch.toString();
             if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
             String d = "${r.detalles} [REF:$ru]";
-            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad};
+            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId};
             setState(() => _colaNuevos.add(mapTempNuevo));
-            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad)));
+            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad, especialidadId: r.especialidadId)));
             _guardarCache();
             _sincronizarTodo(silencioso: true);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_pendiente_creado"))));
@@ -2415,11 +2455,14 @@ class _FormScreenState extends State<FormScreen> {
   String _prioridad = 'Media';
   List<Map<String, dynamic>> _materiales = [];
   int? _maquinaId;
+  int? _especialidadId;
   List<MapEntry<String, int?>> _arbolMaquinas = MaquinasCache.arbol([]);
+  List<Map<String, dynamic>> _especialidades = [];
   @override void initState() { super.initState();
-    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; _prioridad = widget.pendientePC!.prioridad; }
+    if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; _prioridad = widget.pendientePC!.prioridad; _especialidadId = widget.pendientePC!.especialidadId; }
     if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _maquinaId = r.maquinaId; _prioridad = r.prioridad; }
     _cargarMaquinas();
+    _cargarEspecialidades();
   }
   Future<void> _cargarMaquinas() async {
     if (widget.urlPC != null) await MaquinasCache.sincronizar(widget.urlPC!);
@@ -2427,6 +2470,15 @@ class _FormScreenState extends State<FormScreen> {
     if (!mounted) return;
     setState(() => _arbolMaquinas = MaquinasCache.arbol(planas));
   }
+  Future<void> _cargarEspecialidades() async {
+    if (widget.urlPC != null) await EspecialidadesCache.sincronizar(widget.urlPC!);
+    final lista = await EspecialidadesCache.obtener();
+    if (!mounted) return;
+    setState(() => _especialidades = lista);
+  }
+  /// Un técnico solo puede fijar la especialidad al CREAR el trabajo; para
+  /// modificarla en uno ya existente hace falta ser admin (igual que en el PC).
+  bool get _puedeEditarEspecialidad => widget.esCrearPendiente || AuthService.esAdmin;
   Future<void> _anadirMaterial() async {
     if (widget.urlPC == null) return;
     final resultado = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => _DialogoSeleccionarMaterial(urlPC: widget.urlPC!));
@@ -2447,7 +2499,7 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -2469,6 +2521,17 @@ class _FormScreenState extends State<FormScreen> {
                 .map((p) => DropdownMenuItem(value: p, child: Text(traducirPrioridad(p))))
                 .toList(),
             onChanged: (v) => setState(() => _prioridad = v ?? 'Media'),
+          ),
+          const SizedBox(height: 15),
+          DropdownButtonFormField<int?>(
+            value: _especialidades.any((e) => e['id'] == _especialidadId) ? _especialidadId : null,
+            decoration: InputDecoration(labelText: tt("lbl_especialidad", "Especialidad")),
+            isExpanded: true,
+            items: [
+              DropdownMenuItem<int?>(value: null, child: Text(tt("lbl_sin_especialidad", "Sin especialidad"))),
+              ..._especialidades.map((e) => DropdownMenuItem<int?>(value: e['id'] as int?, child: Text(e['nombre']?.toString() ?? ''))),
+            ],
+            onChanged: _puedeEditarEspecialidad ? (v) => setState(() => _especialidadId = v) : null,
           ),
           const SizedBox(height: 15),
         ],
@@ -2719,6 +2782,8 @@ class SincronizadorGlobal {
         r.fields['titulo'] = d['titulo'];
         r.fields['detalles'] = d['detalles'];
         if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
+        if (d.containsKey('prioridad') && d['prioridad'] != null) r.fields['prioridad'] = d['prioridad'];
+        if (d.containsKey('especialidad_id') && d['especialidad_id'] != null) r.fields['especialidad_id'] = d['especialidad_id'].toString();
         if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
         if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
         if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));

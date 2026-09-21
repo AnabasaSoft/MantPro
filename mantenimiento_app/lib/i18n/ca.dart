@@ -65,6 +65,8 @@ const Map<String, String> traduccionesCa = {
     "tag_mecanico": "Mecànic",
     "tag_preventivo": "Preventiu",
     "lbl_prioridad": "Prioritat",
+    "lbl_especialidad": "Especialitat",
+    "lbl_sin_especialidad": "Sense especialitat",
     "prioridad_baja": "Baixa",
     "prioridad_media": "Mitjana",
     "prioridad_alta": "Alta",

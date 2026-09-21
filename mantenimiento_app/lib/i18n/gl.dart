@@ -65,6 +65,8 @@ const Map<String, String> traduccionesGl = {
     "tag_mecanico": "Mecánico",
     "tag_preventivo": "Preventivo",
     "lbl_prioridad": "Prioridade",
+    "lbl_especialidad": "Especialidade",
+    "lbl_sin_especialidad": "Sen especialidade",
     "prioridad_baja": "Baixa",
     "prioridad_media": "Media",
     "prioridad_alta": "Alta",

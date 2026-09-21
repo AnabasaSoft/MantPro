@@ -173,4 +173,6 @@ const Map<String, String> traduccionesEn = {
     "msg_sincronizando_todo": "Syncing everything...",
     "tooltip_reenviar_fotos": "Resend local photos to the PC",
   "lbl_prioridad": "Priority",
+  "lbl_especialidad": "Specialty",
+  "lbl_sin_especialidad": "No specialty",
 };
