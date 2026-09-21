@@ -925,13 +925,18 @@ class ServidorSincronizacion(QThread):
                     c.execute(columnas + " ORDER BY id DESC")
                 else:
                     # Igual que en los avisos: cada técnico ve los suyos más los
-                    # que no están asignados a nadie y coinciden con su
-                    # especialidad (o no tienen ninguna); no ve los asignados a
-                    # otro técnico ni los restringidos a otra especialidad.
-                    especialidad_u = u.get('especialidad_id')
+                    # que no están asignados a nadie y coinciden con alguna de
+                    # sus especialidades (o no tienen ninguna); no ve los
+                    # asignados a otro técnico ni los restringidos a una
+                    # especialidad que no tiene.
+                    especialidades_u = u.get('especialidad_ids') or []
+                    interrogantes = ", ".join("?" * len(especialidades_u))
+                    condicion_especialidad = (
+                        f"especialidad_id IS NULL OR especialidad_id IN ({interrogantes})"
+                        if especialidades_u else "especialidad_id IS NULL")
                     c.execute(columnas + " WHERE asignado_a = ? OR (asignado_a IS NULL AND "
-                              "(especialidad_id IS NULL OR especialidad_id = ?)) ORDER BY id DESC",
-                              (u['id'], especialidad_u))
+                              f"({condicion_especialidad})) ORDER BY id DESC",
+                              (u['id'], *especialidades_u))
                 filas = c.fetchall()
                 conn.close()
                 especialidades_por_id = {e['id']: e['nombre'] for e in usuarios.listar_especialidades()}
@@ -1214,11 +1219,15 @@ class ServidorSincronizacion(QThread):
                               "asignado_a, COALESCE(asignado_nombre,''), especialidad_id FROM avisos_recurrentes")
                     raw_avisos = c.fetchall()
                 else:
-                    especialidad_u = u.get('especialidad_id')
+                    especialidades_u = u.get('especialidad_ids') or []
+                    interrogantes = ", ".join("?" * len(especialidades_u))
+                    condicion_especialidad = (
+                        f"especialidad_id IS NULL OR especialidad_id IN ({interrogantes})"
+                        if especialidades_u else "especialidad_id IS NULL")
                     c.execute("SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, "
                               "asignado_a, COALESCE(asignado_nombre,''), especialidad_id FROM avisos_recurrentes "
-                              "WHERE asignado_a = ? OR (asignado_a IS NULL AND (especialidad_id IS NULL OR especialidad_id = ?))",
-                              (u['id'], especialidad_u))
+                              f"WHERE asignado_a = ? OR (asignado_a IS NULL AND ({condicion_especialidad}))",
+                              (u['id'], *especialidades_u))
                     raw_avisos = c.fetchall()
                 conn.close()
 
@@ -4753,15 +4762,15 @@ class MaintenanceApp(QMainWindow):
     def _avisos_visibles(self):
         """Igual que en el móvil: el admin ve todos los avisos; cada
         trabajador ve los suyos más los que no están asignados a nadie
-        (y, si no están asignados, coinciden con su especialidad o no
-        tienen ninguna), pero no los asignados a otro técnico ni los
-        restringidos a otra especialidad."""
+        (y, si no están asignados, coinciden con alguna de sus especialidades
+        o no tienen ninguna), pero no los asignados a otro técnico ni los
+        restringidos a una especialidad que no tiene."""
         avisos = self.db.obtener_avisos()
         if usuarios.es_admin():
             return avisos
         uid = usuarios.id_actual()
-        especialidad = usuarios.especialidad_actual()
-        return [a for a in avisos if a[6] == uid or (a[6] is None and (a[8] is None or a[8] == especialidad))]
+        especialidades = usuarios.especialidades_actuales()
+        return [a for a in avisos if a[6] == uid or (a[6] is None and (a[8] is None or a[8] in especialidades))]
 
     def refresh_avisos(self):
         self.table_avisos.setRowCount(0)

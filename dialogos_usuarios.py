@@ -324,6 +324,42 @@ class DialogoEspecialidades(QDialog):
         self.refrescar()
 
 
+class DialogoSeleccionEspecialidades(QDialog):
+    """Ventana con un tick por especialidad, para que un técnico pueda tener
+    más de una a la vez (en vez del desplegable de selección única de antes)."""
+
+    def __init__(self, parent=None, seleccionadas=None):
+        super().__init__(parent)
+        self.setWindowTitle(t("usuarios_cambiar_especialidad", "🔧 Especialidad"))
+        self.setModal(True)
+        self.resize(320, 320)
+        seleccionadas = set(seleccionadas or [])
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(t("usuarios_col_especialidad", "Especialidad") + ":"))
+
+        self._checks = []
+        datos = usuarios.listar_especialidades()
+        if not datos:
+            layout.addWidget(QLabel(t("especialidades_ninguna", "Sin especialidad")))
+        for e in datos:
+            chk = QCheckBox(e["nombre"])
+            chk.setChecked(e["id"] in seleccionadas)
+            chk.setProperty("especialidad_id", e["id"])
+            layout.addWidget(chk)
+            self._checks.append(chk)
+        layout.addStretch()
+
+        caja = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        caja.accepted.connect(self.accept); caja.rejected.connect(self.reject)
+        layout.addWidget(caja)
+
+    def seleccion(self):
+        """Ids de las especialidades marcadas."""
+        return [chk.property("especialidad_id") for chk in self._checks if chk.isChecked()]
+
+
 class DialogoGestionUsuarios(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -361,13 +397,15 @@ class DialogoGestionUsuarios(QDialog):
         self.nueva_password.setPlaceholderText(t("login_password", "Contraseña"))
         self.selector_roles, self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin = \
             self._crear_selector_roles()
-        self.combo_especialidad_alta = QComboBox()
-        self._llenar_combo_especialidades(self.combo_especialidad_alta)
+        self._especialidades_alta_ids = []
+        self.boton_especialidad_alta = QPushButton()
+        self.boton_especialidad_alta.clicked.connect(self._elegir_especialidades_alta)
+        self._actualizar_boton_especialidades_alta()
         self.chk_cambiar = QCheckBox(t("usuarios_forzar_cambio", "Pedir cambio al entrar"))
         self.chk_cambiar.setChecked(True)
         boton_alta = QPushButton(t("usuarios_anadir", "➕ Añadir"))
         for w in (self.nuevo_login, self.nuevo_nombre, self.nueva_password,
-                  self.selector_roles, self.combo_especialidad_alta, self.chk_cambiar, boton_alta):
+                  self.selector_roles, self.boton_especialidad_alta, self.chk_cambiar, boton_alta):
             alta.addWidget(w)
         layout.addLayout(alta)
 
@@ -457,6 +495,19 @@ class DialogoGestionUsuarios(QDialog):
         for e in usuarios.listar_especialidades():
             combo.addItem(e["nombre"], e["id"])
 
+    def _actualizar_boton_especialidades_alta(self):
+        nombres = [e["nombre"] for e in usuarios.listar_especialidades()
+                   if e["id"] in self._especialidades_alta_ids]
+        texto = ", ".join(nombres) if nombres else t("especialidades_ninguna", "Sin especialidad")
+        self.boton_especialidad_alta.setText("🔧 " + texto)
+
+    def _elegir_especialidades_alta(self):
+        dlg = DialogoSeleccionEspecialidades(self, self._especialidades_alta_ids)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._especialidades_alta_ids = dlg.seleccion()
+        self._actualizar_boton_especialidades_alta()
+
     def refrescar(self):
         datos = usuarios.listar_usuarios()
         self.tabla.setRowCount(len(datos))
@@ -465,7 +516,7 @@ class DialogoGestionUsuarios(QDialog):
                 u["login"],
                 u["nombre"],
                 self._texto_roles(u.get("roles")),
-                u.get("especialidad_nombre") or "—",
+                ", ".join(u.get("especialidad_nombres") or []) or "—",
                 t("activo", "Activo") if u["activo"] else t("inactivo", "Inactivo"),
                 u.get("ultimo_acceso") or "—",
                 str(u["id"]),
@@ -495,14 +546,15 @@ class DialogoGestionUsuarios(QDialog):
             self.nueva_password.text(),
             roles,
             self.chk_cambiar.isChecked(),
-            self.combo_especialidad_alta.currentData(),
+            self._especialidades_alta_ids,
         )
         if ok:
             self.nuevo_login.clear(); self.nuevo_nombre.clear(); self.nueva_password.clear()
             self.chk_rol_tecnico.setChecked(True)
             self.chk_rol_almacen.setChecked(False)
             self.chk_rol_admin.setChecked(False)
-            self.combo_especialidad_alta.setCurrentIndex(0)
+            self._especialidades_alta_ids = []
+            self._actualizar_boton_especialidades_alta()
             self.refrescar()
         else:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
@@ -513,30 +565,20 @@ class DialogoGestionUsuarios(QDialog):
             return
         actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
 
-        dlg = QDialog(self)
-        dlg.setWindowTitle(t("usuarios_cambiar_especialidad", "🔧 Especialidad"))
-        lay = QVBoxLayout(dlg)
-        lay.addWidget(QLabel(t("usuarios_col_especialidad", "Especialidad") + ":"))
-        combo = QComboBox()
-        self._llenar_combo_especialidades(combo)
-        idx = combo.findData(actual.get("especialidad_id"))
-        combo.setCurrentIndex(idx if idx >= 0 else 0)
-        lay.addWidget(combo)
-        caja = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        caja.accepted.connect(dlg.accept); caja.rejected.connect(dlg.reject)
-        lay.addWidget(caja)
+        dlg = DialogoSeleccionEspecialidades(self, actual.get("especialidad_ids"))
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
-        ok, mensaje = usuarios.actualizar_usuario(uid, especialidad_id=combo.currentData())
+        ok, mensaje = usuarios.actualizar_usuario(uid, especialidad_ids=dlg.seleccion())
         if not ok:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
         self.refrescar()
 
     def _gestionar_especialidades(self):
         DialogoEspecialidades(self).exec()
-        self._llenar_combo_especialidades(self.combo_especialidad_alta)
+        ids_validos = {e["id"] for e in usuarios.listar_especialidades()}
+        self._especialidades_alta_ids = [i for i in self._especialidades_alta_ids if i in ids_validos]
+        self._actualizar_boton_especialidades_alta()
         self.refrescar()
 
     def _reset(self):
