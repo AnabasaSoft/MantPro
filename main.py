@@ -1668,6 +1668,10 @@ class ServidorSincronizacion(QThread):
                     return jsonify({"status": "error", "message": "El nombre del material es obligatorio."}), 400
                 seccion_id = datos.get('seccion_id')
                 seccion_id = int(seccion_id) if seccion_id else None
+                if seccion_id is None:
+                    balda_id = datos.get('balda_id')
+                    if balda_id:
+                        seccion_id = almacen.seccion_para_balda(int(balda_id))
 
                 foto_final = material.get('foto')
                 filename, _ = self._procesar_foto(request, 'foto')
