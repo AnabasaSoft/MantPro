@@ -483,6 +483,12 @@ class _MainScreenState extends State<MainScreen> {
       PantallaBajoMinimo(),
     ];
     WidgetsBinding.instance.addPostFrameCallback((_) => comprobarActualizacionGitHub(context));
+    // Igual que en mantenimiento_app: se reevalúa siempre que se abre la
+    // pantalla principal y cada vez que se sincronizan datos, sin depender de
+    // que en ese momento haya sesión o PC vinculado (se basa en la caché
+    // local de materiales, que puede llevar tiempo guardada).
+    evaluarNotificacionStock();
+    datosSincronizadosNotifier.addListener(_alSincronizarDatos);
     _sincronizarAlArrancar();
     // Mientras la app está abierta, reintenta enviar lo pendiente y refresca
     // los roles del usuario, para detectar sin reconectar cambios hechos
@@ -492,9 +498,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
+    datosSincronizadosNotifier.removeListener(_alSincronizarDatos);
     _timerSincronizacion?.cancel();
     super.dispose();
   }
+
+  void _alSincronizarDatos() => evaluarNotificacionStock();
 
   Future<void> _sincronizarAlArrancar() async {
     final prefs = await SharedPreferences.getInstance();
