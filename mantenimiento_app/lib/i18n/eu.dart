@@ -125,6 +125,8 @@ const Map<String, String> traduccionesEu = {
     "tag_mecanico": "Mekanikoa",
     "tag_preventivo": "Prebentziozkoa",
     "lbl_prioridad": "Lehentasuna",
+    "lbl_especialidad": "Espezialitatea",
+    "lbl_sin_especialidad": "Espezialitaterik gabe",
     "prioridad_baja": "Baxua",
     "prioridad_media": "Ertaina",
     "prioridad_alta": "Altua",

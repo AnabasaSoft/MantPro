@@ -866,7 +866,7 @@ class ServidorSincronizacion(QThread):
                 u = g.usuario_mantpro
                 solo_mios = request.args.get('solo_mios', '') in ('1', 'true', 'True')
                 columnas = ("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), "
-                            "COALESCE(prioridad,'Media') FROM pendientes")
+                            "COALESCE(prioridad,'Media'), especialidad_id FROM pendientes")
                 if solo_mios:
                     c.execute(columnas + " WHERE asignado_a = ? ORDER BY id DESC", (u['id'],))
                 elif usuarios.es_admin(u):
@@ -880,11 +880,22 @@ class ServidorSincronizacion(QThread):
                     c.execute(columnas + " WHERE asignado_a = ? OR (asignado_a IS NULL AND "
                               "(especialidad_id IS NULL OR especialidad_id = ?)) ORDER BY id DESC",
                               (u['id'], especialidad_u))
-                datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
-                          "asignado_a": r[3], "asignado": r[4], "prioridad": r[5]} for r in c.fetchall()]
+                filas = c.fetchall()
                 conn.close()
+                especialidades_por_id = {e['id']: e['nombre'] for e in usuarios.listar_especialidades()}
+                datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
+                          "asignado_a": r[3], "asignado": r[4], "prioridad": r[5],
+                          "especialidad_id": r[6], "especialidad": especialidades_por_id.get(r[6])} for r in filas]
                 return jsonify(datos)
             except Exception as e: return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/especialidades', methods=['GET'])
+        @requiere_token
+        def api_get_especialidades():
+            try:
+                return jsonify(usuarios.listar_especialidades())
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/completar_pendiente', methods=['POST'])
         @requiere_token
@@ -947,6 +958,9 @@ class ServidorSincronizacion(QThread):
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
                 prioridad = request.form.get('prioridad') or 'Media'
+                especialidad_id = request.form.get('especialidad_id') or None
+                if especialidad_id is not None:
+                    especialidad_id = int(especialidad_id)
                 filename, ruta_foto = self._procesar_foto(request, 'foto')
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename: detalles += f"\n[FOTO: {filename}]"
@@ -957,8 +971,8 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
                 # Un pendiente creado desde el móvil queda asignado a quien lo crea
                 usuario = g.usuario_mantpro
-                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad) VALUES (?,?,?,?,?)',
-                          (titulo, detalles, usuario['id'], usuario['nombre'], prioridad))
+                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id) VALUES (?,?,?,?,?,?)',
+                          (titulo, detalles, usuario['id'], usuario['nombre'], prioridad, especialidad_id))
                 conn.commit()
                 conn.close()
 
@@ -3393,9 +3407,15 @@ class DialogoEditarPendiente(QDialog):
         self.combo_especialidad.setCurrentIndex(idx_esp if idx_esp >= 0 else 0)
         fila_especialidad.addWidget(self.combo_especialidad, 1)
         l.addLayout(fila_especialidad)
+        # Un técnico solo puede fijar la asignación/especialidad al CREAR un
+        # trabajo; modificarlas en uno ya existente es cosa exclusiva de admin.
+        if not usuarios.es_admin():
+            self.combo_asignar.setEnabled(False)
+            self.combo_especialidad.setEnabled(False)
         l.addWidget(QLabel(t("lbl_foto_adjunta")))
-        self.lbl_preview = QLabel(t("lbl_sin_foto")); self.lbl_preview.setFixedSize(400, 300)
-        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
+        self.lbl_preview = LabelArrastrable(); self.lbl_preview.setFixedSize(400, 300)
+        self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_preview.archivo_soltado.connect(self.procesar_foto_arrastrada)
         h_center = QHBoxLayout(); h_center.addStretch(); h_center.addWidget(self.lbl_preview); h_center.addStretch(); l.addLayout(h_center)
         h_btns = QHBoxLayout(); self.lbl_nombre = QLabel(""); self.lbl_nombre.setStyleSheet("color: #777; font-size: 10px;"); h_btns.addWidget(self.lbl_nombre); h_btns.addStretch()
         btn_ver = QPushButton(t("btn_ver_grande")); btn_ver.clicked.connect(self.ver_grande); h_btns.addWidget(btn_ver)
@@ -3416,6 +3436,8 @@ class DialogoEditarPendiente(QDialog):
     def seleccionar_foto(self):
         dlg = DialogoSelectorFoto(self)
         if dlg.exec() and dlg.selectedFiles(): self.ruta_foto_seleccionada = dlg.selectedFiles()[0]; self.actualizar_vista_foto()
+    def procesar_foto_arrastrada(self, ruta):
+        self.ruta_foto_seleccionada = ruta; self.actualizar_vista_foto()
     def ver_grande(self):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada): VisorFoto(self.ruta_foto_seleccionada, self).exec()
     def borrar_foto(self):
@@ -5051,8 +5073,8 @@ class MaintenanceApp(QMainWindow):
         b_ok = QPushButton(t("btn_completar"), clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
         b_edit = QPushButton(t("btn_editar"), clicked=self.edit_todo); b_edit.setStyleSheet("background-color:#2980b9; color: white;"); fa.addWidget(b_edit)
         b_del = QPushButton(t("btn_eliminar"), clicked=self.del_todo); b_del.setStyleSheet("background-color:#c0392b; color: white;"); fa.addWidget(b_del)
-        b_asig = QPushButton(tt("btn_reasignar", "👤 Reasignar"), clicked=self.reasignar_todo)
-        b_asig.setStyleSheet("background-color:#8e44ad; color: white;"); fa.addWidget(b_asig)
+        self.b_asig_todo = QPushButton(tt("btn_reasignar", "👤 Reasignar"), clicked=self.reasignar_todo)
+        self.b_asig_todo.setStyleSheet("background-color:#8e44ad; color: white;"); fa.addWidget(self.b_asig_todo)
         ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
 
     # ==========================================
@@ -5909,7 +5931,11 @@ class MaintenanceApp(QMainWindow):
                 self.servidor.pendiente_actualizado.emit()
 
     def reasignar_todo(self):
-        """Cambia el técnico asignado y/o la especialidad del pendiente seleccionado."""
+        """Cambia el técnico asignado y/o la especialidad del pendiente seleccionado.
+        Solo un admin puede modificar la asignación/especialidad de un trabajo ya
+        existente; un técnico solo puede fijarlas al crear el trabajo."""
+        if not usuarios.es_admin():
+            return
         row = self.todo_list.currentRow()
         if row < 0: return
         item = self.todo_list.item(row)
@@ -5960,11 +5986,11 @@ class MaintenanceApp(QMainWindow):
         n = len(ids)
 
         menu = QMenu(self)
-        texto_asignar = tt("ctx_asignar_avisos", "👤 Asignar a...") if n == 1 else \
-                         tt("ctx_asignar_trabajos_n", "👤 Asignar a... ({n} trabajos)").format(n=n)
-        menu.addAction(texto_asignar, lambda: self._asignar_todos_masivo(ids))
-
-        menu.addSeparator()
+        if usuarios.es_admin():
+            texto_asignar = tt("ctx_asignar_avisos", "👤 Asignar a...") if n == 1 else \
+                             tt("ctx_asignar_trabajos_n", "👤 Asignar a... ({n} trabajos)").format(n=n)
+            menu.addAction(texto_asignar, lambda: self._asignar_todos_masivo(ids))
+            menu.addSeparator()
 
         texto_borrar = tt("ctx_eliminar_trabajos", "🗑️ Eliminar") if n == 1 else \
                         tt("ctx_eliminar_trabajos_n", "🗑️ Eliminar ({n} trabajos)").format(n=n)
@@ -5998,7 +6024,11 @@ class MaintenanceApp(QMainWindow):
     def _asignar_todos_masivo(self, ids):
         """Asigna uno o varios trabajos pendientes a un técnico y/o a una
         especialidad (o los deja sin asignar), de forma independiente: si solo
-        se marca la especialidad, el técnico ya asignado no se toca, y viceversa."""
+        se marca la especialidad, el técnico ya asignado no se toca, y viceversa.
+        Solo un admin puede modificar la asignación/especialidad de trabajos ya
+        existentes; un técnico solo puede fijarlas al crear el trabajo."""
+        if not usuarios.es_admin():
+            return
         if not ids:
             return
 
@@ -6051,6 +6081,8 @@ class MaintenanceApp(QMainWindow):
 
     def refresh_todos(self, *_):
         self.todo_list.clear()
+        if hasattr(self, 'b_asig_todo'):
+            self.b_asig_todo.setEnabled(usuarios.es_admin())
         ps = self.db.obtener_pendientes()
 
         # Filtro por técnico asignado
@@ -7018,9 +7050,16 @@ class MaintenanceApp(QMainWindow):
 
                     desc_final += f"\n[FOTO: {nombre_final}]"
 
+                # La asignación/especialidad de un trabajo ya existente solo la
+                # puede tocar un admin; un técnico solo las fija al crearlo.
+                if not usuarios.es_admin():
+                    nueva_especialidad_id = especialidad_actual_id
+                    nuevo_asignado_id, nuevo_asignado_nombre = None, None
+
                 # Guardamos en BD (con la REF oculta de nuevo)
                 if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad, nueva_especialidad_id):
-                    self.db.asignar_pendiente(pid, nuevo_asignado_id, nuevo_asignado_nombre)
+                    if usuarios.es_admin():
+                        self.db.asignar_pendiente(pid, nuevo_asignado_id, nuevo_asignado_nombre)
                     self.refresh_todos()
                     self.statusBar().showMessage(t("msg_pendiente_actualizado"), 3000)
 
