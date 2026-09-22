@@ -306,6 +306,7 @@ class StockApi {
       final idx = lista.indexWhere((a) => a.id == e['id']);
       if (idx == -1) continue;
       final a = lista[idx];
+      final borraFoto = e['borrarFoto'] == true;
       lista[idx] = Articulo(
         id: a.id,
         codigo: e['codigo'] ?? a.codigo,
@@ -315,8 +316,13 @@ class StockApi {
         stockActual: a.stockActual,
         stockMinimo: double.tryParse('${e['stock_minimo']}') ?? a.stockMinimo,
         seccionId: int.tryParse('${e['seccion_id']}') ?? a.seccionId,
-        foto: a.foto,
+        // Mientras la edición esté pendiente de enviar, el nombre de foto del
+        // servidor puede no reflejar todavía un cambio de foto hecho sin
+        // conexión (o un borrado pedido sin conexión): se refleja aparte en
+        // fotoLocal, que la pantalla muestra con prioridad si existe.
+        foto: borraFoto ? null : a.foto,
         ubicacion: a.ubicacion,
+        fotoLocal: borraFoto ? null : (e['fotoPath'] as String?),
       );
     }
 
@@ -349,6 +355,7 @@ class StockApi {
         // existe todavía ninguna sección (ni implícita) donde colgarlo, el
         // árbol lo tiene que ubicar por balda en vez de por sección.
         baldaIdPendiente: seccionId == null ? int.tryParse('${n['balda_id']}') : null,
+        fotoLocal: n['fotoPath'] as String?,
       ));
     }
     return lista;
@@ -514,8 +521,19 @@ class StockApi {
       await prefs.setString(kStockColaNuevos, json.encode(cola));
     } else {
       final cola = leerColaMapas(prefs, kStockColaEdiciones);
+      // Si ya había una edición pendiente de este artículo con una foto sin
+      // enviar todavía, y esta vez no se ha tocado la foto, no hay que
+      // perderla: se conserva la que estaba en cola.
+      final anteriores = cola.where((e) => e['id'] == id);
+      final fotoPathAnterior = anteriores.isEmpty ? null : anteriores.first['fotoPath'] as String?;
       cola.removeWhere((e) => e['id'] == id);
-      cola.add({'localId': localId, 'id': id, ...campos, 'fotoPath': foto?.path, 'borrarFoto': borrarFoto});
+      cola.add({
+        'localId': localId,
+        'id': id,
+        ...campos,
+        'fotoPath': borrarFoto ? null : (foto?.path ?? fotoPathAnterior),
+        'borrarFoto': borrarFoto,
+      });
       await prefs.setString(kStockColaEdiciones, json.encode(cola));
     }
 
