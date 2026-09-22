@@ -1873,7 +1873,10 @@ class GestorBaseDatos:
         maquinas.inicializar()
 
     def conectar(self):
-        return sqlite3.connect(self.db_name)
+        # timeout=20: igual que en almacen.py/usuarios.py/maquinas.py, para no
+        # dar "database is locked" cuando el hilo del servidor Flask lee
+        # mientras el PC está escribiendo mucho seguido en mantenimiento.db.
+        return sqlite3.connect(self.db_name, timeout=20)
 
     def inicializar_tablas(self):
         try:
@@ -6655,7 +6658,7 @@ class MaintenanceApp(QMainWindow):
         l.addLayout(h_cards)
         h_split = QHBoxLayout()
         v_list = QVBoxLayout()
-        v_list.addWidget(QLabel(tt("lbl_ranking_maquinas_averias", "Máquinas con más averías")))
+        v_list.addWidget(QLabel(tt("lbl_ranking_maquinas_trabajos", "Máquinas con más trabajos")))
         self.grafico_ranking_averias = GraficoBarrasRanking(color="#c0392b"); v_list.addWidget(self.grafico_ranking_averias)
         v_list.addWidget(QLabel(tt("lbl_averias_por_mes", "Averías por mes")))
         self.grafico_averias_mes = GraficoBarrasMensual(color="#e67e22"); v_list.addWidget(self.grafico_averias_mes)
@@ -6700,7 +6703,7 @@ class MaintenanceApp(QMainWindow):
         todos = self.db.obtener_pendientes(); self.lbl_count_todos.setText(str(len(todos))); self.lbl_count_todos.setStyleSheet("color: #f1c40f; font-size: 32px; font-weight: bold;")
         registros = self.db.obtener_todas_cronologico(); mes_actual = hoy.toString("yyyy-MM"); count_mes = sum(1 for r in registros if r[1].startswith(mes_actual))
         self.lbl_count_regs.setText(str(count_mes)); self.lbl_count_regs.setStyleSheet("color: #3daee9; font-size: 32px; font-weight: bold;")
-        self.grafico_ranking_averias.establecer_datos(maquinas.ranking_averias())
+        self.grafico_ranking_averias.establecer_datos(maquinas.ranking_trabajos())
         self.grafico_averias_mes.establecer_datos(maquinas.averias_por_mes())
         indicadores = maquinas.indicadores_fiabilidad_global()
         mtbf = indicadores["mtbf_dias"]

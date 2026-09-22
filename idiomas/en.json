@@ -140,7 +140,7 @@
   "lbl_lista_pendientes": "PENDING LIST",
   "lbl_ultimas_intervenciones": "📋 Latest Interventions",
   "lbl_distribucion": "📊 Breakdown",
-  "lbl_ranking_maquinas_averias": "📉 Machines with most breakdowns",
+  "lbl_ranking_maquinas_trabajos": "📉 Machines with most work orders",
   "lbl_averias_por_mes": "📈 Breakdowns per month",
   "lbl_sin_datos_grafico": "No data",
   "lbl_mtbf_global": "Average MTBF",
