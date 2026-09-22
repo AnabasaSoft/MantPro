@@ -88,6 +88,11 @@ class Articulo {
   // el árbol del almacén usa este campo para mostrarlo suelto bajo su balda
   // mientras sigue pendiente de sincronizar.
   final int? baldaIdPendiente;
+  // Ruta local de una foto tomada sin conexión (alta o edición) que todavía
+  // no se ha podido subir al PC: mientras esté pendiente, [foto] (el nombre
+  // en el servidor) puede no reflejarla todavía, así que la pantalla debe
+  // enseñar esta en su lugar.
+  final String? fotoLocal;
 
   Articulo({
     required this.id,
@@ -101,6 +106,7 @@ class Articulo {
     required this.foto,
     required this.ubicacion,
     this.baldaIdPendiente,
+    this.fotoLocal,
   });
 
   bool get bajoMinimo => stockActual <= 0 || stockActual < stockMinimo;
@@ -132,6 +138,7 @@ class Articulo {
         foto: foto,
         ubicacion: ubicacion,
         baldaIdPendiente: baldaIdPendiente,
+        fotoLocal: fotoLocal,
       );
 }
 

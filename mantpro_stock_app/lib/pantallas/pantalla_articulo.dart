@@ -4,6 +4,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../api.dart';
 import '../i18n/strings.dart';
 import '../modelos.dart';
@@ -169,9 +171,16 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
   Future<void> _elegirFoto(ImageSource origen) async {
     final picker = ImagePicker();
     final archivo = await picker.pickImage(source: origen, maxWidth: 1600, imageQuality: 85);
-    if (archivo != null) {
-      setState(() { _fotoNueva = File(archivo.path); _borrarFoto = false; });
-    }
+    if (archivo == null) return;
+    // Se copia a una carpeta propia de la app (en vez de quedarse con la ruta
+    // temporal del selector de imágenes) para que la foto siga existiendo si
+    // hay que reintentar el envío más tarde por falta de conexión: el sistema
+    // puede borrar esa carpeta temporal antes de que se sincronice.
+    final dir = await getApplicationDocumentsDirectory();
+    final destino = path.join(
+        dir.path, 'stock_${DateTime.now().millisecondsSinceEpoch}${path.extension(archivo.path)}');
+    final copia = await File(archivo.path).copy(destino);
+    setState(() { _fotoNueva = copia; _borrarFoto = false; });
   }
 
   Future<void> _guardar() async {
@@ -342,6 +351,12 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               child: Image.network(StockApi.urlFoto(_ip!, m.foto!),
                   height: 220, width: double.infinity, fit: BoxFit.cover),
             )
+          else if (m.fotoLocal != null && File(m.fotoLocal!).existsSync())
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(File(m.fotoLocal!),
+                  height: 220, width: double.infinity, fit: BoxFit.cover),
+            )
           else
             Container(
               height: 160,
@@ -462,6 +477,13 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
                   child: Image.network(StockApi.urlFoto(_ip!, _material!.foto!),
                       height: 180, width: 260, fit: BoxFit.cover),
                 )
+              else if (!_borrarFoto &&
+                  _material?.fotoLocal != null &&
+                  File(_material!.fotoLocal!).existsSync())
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(_material!.fotoLocal!), height: 180, width: 260, fit: BoxFit.cover),
+                )
               else
                 Container(
                   height: 180,
@@ -484,7 +506,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               icon: const Icon(Icons.photo_library),
               label: Text(tt('btn_galeria', 'Galería')),
             ),
-            if (_fotoNueva != null || (_material?.foto != null && !_borrarFoto))
+            if (_fotoNueva != null ||
+                ((_material?.foto != null || _material?.fotoLocal != null) && !_borrarFoto))
               TextButton.icon(
                 onPressed: () => setState(() { _fotoNueva = null; _borrarFoto = true; }),
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
