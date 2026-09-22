@@ -140,7 +140,7 @@
   "lbl_lista_pendientes": "LISTA DE PENDENTES",
   "lbl_ultimas_intervenciones": "📋 Últimas Intervencións",
   "lbl_distribucion": "📊 Distribución",
-  "lbl_ranking_maquinas_averias": "📉 Máquinas con máis avarías",
+  "lbl_ranking_maquinas_trabajos": "📉 Máquinas con máis traballos",
   "lbl_averias_por_mes": "📈 Avarías por mes",
   "lbl_sin_datos_grafico": "Sen datos",
   "lbl_mtbf_global": "MTBF medio",

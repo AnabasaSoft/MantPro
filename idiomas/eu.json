@@ -140,7 +140,7 @@
   "lbl_lista_pendientes": "EGITEKE DAUDENEN ZERRENDA",
   "lbl_ultimas_intervenciones": "📋 Azken Esku-hartzeak",
   "lbl_distribucion": "📊 Banaketa",
-  "lbl_ranking_maquinas_averias": "📉 Matxura gehien dituzten makinak",
+  "lbl_ranking_maquinas_trabajos": "📉 Lan gehien dituzten makinak",
   "lbl_averias_por_mes": "📈 Hilabeteko matxurak",
   "lbl_sin_datos_grafico": "Daturik ez",
   "lbl_mtbf_global": "MTBF batez bestekoa",

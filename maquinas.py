@@ -44,7 +44,10 @@ def configurar_db(ruta):
 
 
 def _conn():
-    con = sqlite3.connect(RUTA_DB)
+    # timeout=20: igual que en almacen.py/usuarios.py, para no dar "database
+    # is locked" cuando el hilo del servidor Flask lee mientras el PC está
+    # escribiendo mucho seguido en mantenimiento.db.
+    con = sqlite3.connect(RUTA_DB, timeout=20)
     con.row_factory = sqlite3.Row
     return con
 
@@ -230,12 +233,37 @@ def borrar_maquina(id_maquina):
 
 # ---------------------------------------------------------------- trabajos por máquina
 
-def contar_trabajos(id_maquina):
-    """Nº de trabajos vinculados directamente a esta máquina (sin submáquinas)."""
+def contar_trabajos(id_maquina, fecha_inicio=None, fecha_fin=None):
+    """Nº de trabajos vinculados directamente a esta máquina (sin submáquinas),
+    sea cual sea su etiqueta (avería, urgente, preventivo...). Si se indican
+    fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta los de ese rango."""
+    sql = "SELECT COUNT(*) FROM tareas WHERE maquina_id=?"
+    parametros = [id_maquina]
+    if fecha_inicio and fecha_fin:
+        sql += " AND fecha BETWEEN ? AND ?"
+        parametros += [fecha_inicio, fecha_fin]
     con = _conn()
-    fila = con.execute("SELECT COUNT(*) FROM tareas WHERE maquina_id=?", (id_maquina,)).fetchone()
+    fila = con.execute(sql, parametros).fetchone()
     con.close()
     return fila[0] if fila else 0
+
+
+def ranking_trabajos(top_n=8, fecha_inicio=None, fecha_fin=None):
+    """Máquinas de nivel superior con más trabajos en total (sumando las de sus
+    submáquinas), de más a menos, sea cual sea la etiqueta del trabajo (avería,
+    urgente, preventivo...), para el ranking "más solicitadas" del dashboard.
+    Solo incluye máquinas con al menos un trabajo. Si se indican
+    fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta los de ese rango."""
+    top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
+
+    def total_trabajos(id_maquina):
+        return sum(contar_trabajos(i, fecha_inicio, fecha_fin) for i in descendientes_ids(id_maquina))
+
+    datos = sorted(
+        ((m["nombre"], total_trabajos(m["id"])) for m in top_level),
+        key=lambda par: par[1], reverse=True,
+    )
+    return [par for par in datos if par[1] > 0][:top_n]
 
 
 def anios_de_maquina(id_maquina):
