@@ -455,7 +455,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.9.5';
+const String kAppVersion = '3.9.6';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -2476,8 +2476,11 @@ class _FormScreenState extends State<FormScreen> {
     if (!mounted) return;
     setState(() => _especialidades = lista);
   }
-  /// Un técnico solo puede fijar la especialidad al CREAR el trabajo; para
-  /// modificarla en uno ya existente hace falta ser admin (igual que en el PC).
+  /// La especialidad solo tiene sentido en los trabajos pendientes (sirve
+  /// para que cada técnico vea los suyos), no al registrar un trabajo nuevo
+  /// directamente. Al crear un pendiente el propio técnico puede fijarla;
+  /// para modificarla en uno ya existente hace falta ser admin (igual que en el PC).
+  bool get _muestraEspecialidad => widget.esCrearPendiente || widget.pendientePC != null;
   bool get _puedeEditarEspecialidad => widget.esCrearPendiente || AuthService.esAdmin;
   Future<void> _anadirMaterial() async {
     if (widget.urlPC == null) return;
@@ -2522,17 +2525,19 @@ class _FormScreenState extends State<FormScreen> {
                 .toList(),
             onChanged: (v) => setState(() => _prioridad = v ?? 'Media'),
           ),
-          const SizedBox(height: 15),
-          DropdownButtonFormField<int?>(
-            value: _especialidades.any((e) => e['id'] == _especialidadId) ? _especialidadId : null,
-            decoration: InputDecoration(labelText: tt("lbl_especialidad", "Especialidad")),
-            isExpanded: true,
-            items: [
-              DropdownMenuItem<int?>(value: null, child: Text(tt("lbl_sin_especialidad", "Sin especialidad"))),
-              ..._especialidades.map((e) => DropdownMenuItem<int?>(value: e['id'] as int?, child: Text(e['nombre']?.toString() ?? ''))),
-            ],
-            onChanged: _puedeEditarEspecialidad ? (v) => setState(() => _especialidadId = v) : null,
-          ),
+          if (_muestraEspecialidad) ...[
+            const SizedBox(height: 15),
+            DropdownButtonFormField<int?>(
+              value: _especialidades.any((e) => e['id'] == _especialidadId) ? _especialidadId : null,
+              decoration: InputDecoration(labelText: tt("lbl_especialidad", "Especialidad")),
+              isExpanded: true,
+              items: [
+                DropdownMenuItem<int?>(value: null, child: Text(tt("lbl_sin_especialidad", "Sin especialidad"))),
+                ..._especialidades.map((e) => DropdownMenuItem<int?>(value: e['id'] as int?, child: Text(e['nombre']?.toString() ?? ''))),
+              ],
+              onChanged: _puedeEditarEspecialidad ? (v) => setState(() => _especialidadId = v) : null,
+            ),
+          ],
           const SizedBox(height: 15),
         ],
         DropdownButtonFormField<int?>(
