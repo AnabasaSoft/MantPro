@@ -1711,7 +1711,7 @@ class ServidorSincronizacion(QThread):
                     seccion_id, filename or None, float(datos.get('stock_inicial') or 0),
                     usuario['id'], usuario['nombre'])
                 self.stock_actualizado.emit()
-                return jsonify({"status": "ok", "id": material_id})
+                return jsonify({"status": "ok", "id": material_id, "foto": filename or None})
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -1747,7 +1747,7 @@ class ServidorSincronizacion(QThread):
                     datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
                     seccion_id, foto_final, usuario['id'], usuario['nombre'])
                 self.stock_actualizado.emit()
-                return jsonify({"status": "ok"})
+                return jsonify({"status": "ok", "foto": foto_final})
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -7168,8 +7168,10 @@ class MaintenanceApp(QMainWindow):
 
     def _fotos_en_uso(self):
         """Nombres de fichero de foto referenciados desde cualquier sitio de la
-        BD (trabajos, pendientes y fotos de máquinas). Se usa tanto para saber
-        qué es basura como para saber qué hace falta restaurar de un backup."""
+        BD (trabajos, pendientes, fotos de máquinas y fotos de materiales del
+        almacén, que comparten la misma carpeta aunque vivan en almacen.db).
+        Se usa tanto para saber qué es basura como para saber qué hace falta
+        restaurar de un backup."""
         fotos_en_uso = set(); conn = self.db.conectar(); c = conn.cursor()
         c.execute("SELECT descripcion FROM tareas")
         for row in c.fetchall():
@@ -7187,6 +7189,9 @@ class MaintenanceApp(QMainWindow):
         for row in c.fetchall():
             if row[0]: fotos_en_uso.add(row[0].strip())
         conn.close()
+        for material in almacen.listar_materiales():
+            foto = material.get('foto')
+            if foto: fotos_en_uso.add(foto.strip())
         return fotos_en_uso
 
     def limpiar_fotos_huerfanas(self, silencioso=False, limpiar_backups=False):

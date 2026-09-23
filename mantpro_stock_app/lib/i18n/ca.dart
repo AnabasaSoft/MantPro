@@ -131,4 +131,7 @@ const Map<String, String> traduccionesCa = {
     "msg_nueva_version_cuerpo": "Tens la versió {actual} instal·lada i a GitHub ja hi ha la {nueva}.",
     "btn_luego": "Més tard",
     "btn_descargar": "Descarregar",
+    "msg_sin_actualizaciones_sin_conexion": "❌ No s'han pogut comprovar actualitzacions (sense connexió)",
+    "msg_ya_ultima_version": "✅ Ja tens l'última versió",
+    "tooltip_buscar_actualizaciones": "Cercar actualitzacions",
 };
