@@ -129,4 +129,7 @@ const Map<String, String> traduccionesEu = {
     "msg_nueva_version_cuerpo": "{actual} bertsioa instalatuta duzu eta GitHub-en jada {nueva} dago.",
     "btn_luego": "Geroago",
     "btn_descargar": "Deskargatu",
+    "msg_sin_actualizaciones_sin_conexion": "❌ Ezin izan da eguneraketarik egiaztatu (konexiorik gabe)",
+    "msg_ya_ultima_version": "✅ Dagoeneko azken bertsioa duzu",
+    "tooltip_buscar_actualizaciones": "Eguneraketak bilatu",
 };

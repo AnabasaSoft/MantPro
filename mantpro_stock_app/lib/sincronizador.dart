@@ -37,7 +37,18 @@ class StockSincronizador {
       final streamed = await req.send().timeout(const Duration(seconds: 20));
       final res = await http.Response.fromStream(streamed);
       await comprobar401(res.statusCode);
-      if (res.statusCode == 200) return _ResultadoEnvio.ok;
+      if (res.statusCode == 200) {
+        // Si se ha subido una foto desde este móvil, el PC devuelve el
+        // nombre de fichero definitivo: dejamos cacheada localmente la copia
+        // que ya teníamos, para no tener que descargarla de vuelta.
+        if (fotoPath != null && File(fotoPath).existsSync()) {
+          try {
+            final nombreFoto = (json.decode(res.body) as Map)['foto'] as String?;
+            if (nombreFoto != null) await StockApi.guardarFotoEnCache(nombreFoto, fotoPath);
+          } catch (_) {}
+        }
+        return _ResultadoEnvio.ok;
+      }
       if (res.statusCode == 403) return _ResultadoEnvio.sinPermiso;
       return _ResultadoEnvio.error;
     } catch (_) {

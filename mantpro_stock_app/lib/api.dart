@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'modelos.dart';
 import 'i18n/strings.dart';
@@ -429,7 +431,12 @@ class StockApi {
       final movs = ((datos['material']['movimientos'] as List?) ?? [])
           .map((x) => Movimiento.fromJson(x))
           .toList();
-      return (m, movs);
+      // Aunque haya conexión con el PC, hay que aplicar encima las ediciones,
+      // movimientos y borrados de fotos que todavía estén pendientes de
+      // enviar: si no, al reabrir el artículo se vería la versión antigua del
+      // servidor (p. ej. sin la foto recién hecha) hasta que se sincronice.
+      final conPendientes = await _conPendientes([m]);
+      return (conPendientes.isNotEmpty ? conPendientes.first : m, movs);
     } on ApiException {
       rethrow;
     } catch (_) {
@@ -446,6 +453,54 @@ class StockApi {
   static String urlFoto(String ip, String foto) => 'http://$ip/api/foto/$foto';
 
   static Future<String> ipActual() => _ip();
+
+  /// Ruta donde se cachea localmente la foto de un material una vez
+  /// descargada del PC, o copiada tras subirla desde este móvil: así, igual
+  /// que en la app de trabajos, una foto que ya tenemos en el dispositivo no
+  /// hace falta volver a descargarla cada vez que se abre el artículo.
+  static Future<String> _rutaFotoCache(String nombreFoto) async {
+    final dir = await getApplicationDocumentsDirectory();
+    return path.join(dir.path, 'stock_foto_$nombreFoto');
+  }
+
+  /// Copia local ya existente de [nombreFoto], o null si todavía hay que
+  /// pedírsela al PC.
+  static Future<File?> fotoCacheada(String nombreFoto) async {
+    final f = File(await _rutaFotoCache(nombreFoto));
+    return f.existsSync() ? f : null;
+  }
+
+  /// Deja en la caché local, bajo el nombre que le ha asignado el servidor,
+  /// una foto que ya tenemos en el móvil (p. ej. la que se acaba de subir),
+  /// para no tener que descargarla de vuelta del PC más adelante.
+  static Future<void> guardarFotoEnCache(String nombreFoto, String origenPath) async {
+    final destino = await _rutaFotoCache(nombreFoto);
+    if (path.equals(origenPath, destino)) return;
+    try {
+      await File(origenPath).copy(destino);
+    } catch (_) {}
+  }
+
+  /// Descarga del PC la foto [nombreFoto] y la deja cacheada en local.
+  static Future<File?> _descargarYCachearFoto(String ip, String nombreFoto) async {
+    try {
+      final res = await httpGetAuth(Uri.parse(urlFoto(ip, nombreFoto))).timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) return null;
+      final f = File(await _rutaFotoCache(nombreFoto));
+      await f.writeAsBytes(res.bodyBytes);
+      return f;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Foto de un material lista para mostrar sin esperar red: la copia local
+  /// ya cacheada si existe, o si no la descarga del PC una sola vez.
+  static Future<File?> fotoParaMostrar(String ip, String nombreFoto) async {
+    final cache = await fotoCacheada(nombreFoto);
+    if (cache != null) return cache;
+    return _descargarYCachearFoto(ip, nombreFoto);
+  }
 
   /// Crea o edita un artículo. Si [id] es null, crea uno nuevo.
   ///

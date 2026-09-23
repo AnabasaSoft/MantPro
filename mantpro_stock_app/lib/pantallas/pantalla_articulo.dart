@@ -345,18 +345,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (m.foto != null && _ip != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(StockApi.urlFoto(_ip!, m.foto!),
-                  height: 220, width: double.infinity, fit: BoxFit.cover),
-            )
-          else if (m.fotoLocal != null && File(m.fotoLocal!).existsSync())
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(File(m.fotoLocal!),
-                  height: 220, width: double.infinity, fit: BoxFit.cover),
-            )
+          if (m.foto != null || m.fotoLocal != null)
+            _fotoMaterial(nombreFoto: m.foto, fotoLocal: m.fotoLocal, height: 220)
           else
             Container(
               height: 160,
@@ -445,6 +435,41 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
     );
   }
 
+  /// Muestra la foto de un material dando prioridad a lo que ya haya en el
+  /// móvil (recién hecha o ya cacheada de una descarga anterior), y solo
+  /// pidiéndosela al PC si no hay ninguna copia local todavía.
+  Widget _fotoMaterial({required String? nombreFoto, required String? fotoLocal, required double height, double? width}) {
+    final w = width ?? double.infinity;
+    if (fotoLocal != null && File(fotoLocal).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(File(fotoLocal), height: height, width: w, fit: BoxFit.cover),
+      );
+    }
+    if (nombreFoto != null && _ip != null) {
+      return FutureBuilder<File?>(
+        future: StockApi.fotoParaMostrar(_ip!, nombreFoto),
+        builder: (context, snap) {
+          if (snap.data != null) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(snap.data!, height: height, width: w, fit: BoxFit.cover),
+            );
+          }
+          if (snap.connectionState != ConnectionState.done) {
+            return SizedBox(
+                height: height, width: w, child: const Center(child: CircularProgressIndicator()));
+          }
+          return SizedBox(
+              height: height,
+              width: w,
+              child: const Center(child: Icon(Icons.broken_image, color: Colors.red)));
+        },
+      );
+    }
+    return SizedBox(height: height, width: w);
+  }
+
   Widget _filaDato(String etiqueta, String valor, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -471,19 +496,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
                   borderRadius: BorderRadius.circular(12),
                   child: Image.file(_fotoNueva!, height: 180, width: 260, fit: BoxFit.cover),
                 )
-              else if (!_borrarFoto && _material?.foto != null && _ip != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(StockApi.urlFoto(_ip!, _material!.foto!),
-                      height: 180, width: 260, fit: BoxFit.cover),
-                )
-              else if (!_borrarFoto &&
-                  _material?.fotoLocal != null &&
-                  File(_material!.fotoLocal!).existsSync())
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(File(_material!.fotoLocal!), height: 180, width: 260, fit: BoxFit.cover),
-                )
+              else if (!_borrarFoto && (_material?.foto != null || _material?.fotoLocal != null))
+                _fotoMaterial(nombreFoto: _material?.foto, fotoLocal: _material?.fotoLocal, height: 180, width: 260)
               else
                 Container(
                   height: 180,

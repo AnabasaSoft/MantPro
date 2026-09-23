@@ -154,13 +154,13 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
       headers: {'Accept': 'application/vnd.github+json'},
     ).timeout(const Duration(seconds: 6));
     await prefs.setInt('update_ultima_comprobacion', DateTime.now().millisecondsSinceEpoch);
-    if (res.statusCode != 200) return;
+    if (res.statusCode != 200) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); return; }
     final data = json.decode(res.body);
     final String tag = (data['tag_name'] ?? '').toString();
     final String urlRelease = (data['html_url'] ?? 'https://github.com/$kRepoOwner/$kRepoName/releases').toString();
     final String notas = (data['body'] ?? '').toString();
     if (tag.isEmpty) return;
-    if (_compararVersiones(tag, kAppVersion) <= 0) return;
+    if (_compararVersiones(tag, kAppVersion) <= 0) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: false); return; }
     final descartada = prefs.getString('update_descartada');
     if (!forzar && descartada == tag) return;
     if (!context.mounted) return;
@@ -175,7 +175,11 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
         ElevatedButton.icon(icon: const Icon(Icons.download), label: Text(t("btn_descargar")), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
       ],
     ));
-  } catch (_) {} // sin conexión o GitHub caído: no molestamos
+  } catch (e) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); } // sin conexión o GitHub caído: no molestamos
+}
+
+void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? t("msg_sin_actualizaciones_sin_conexion") : t("msg_ya_ultima_version"))));
 }
 
 void main() async {
@@ -582,6 +586,7 @@ class _MainScreenState extends State<MainScreen> {
         ];
         return Scaffold(
           appBar: AppBar(title: Text(titulos[_indiceActual]), actions: [
+            IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
             IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
             IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
             PopupMenuButton<String>(

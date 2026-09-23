@@ -129,4 +129,7 @@ const Map<String, String> traduccionesEs = {
     "msg_nueva_version_cuerpo": "Tienes la versión {actual} instalada y en GitHub ya está la {nueva}.",
     "btn_luego": "Luego",
     "btn_descargar": "Descargar",
+    "msg_sin_actualizaciones_sin_conexion": "❌ No se pudo comprobar actualizaciones (sin conexión)",
+    "msg_ya_ultima_version": "✅ Ya tienes la última versión",
+    "tooltip_buscar_actualizaciones": "Buscar actualizaciones",
 };
