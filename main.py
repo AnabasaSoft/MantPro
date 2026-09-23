@@ -3106,6 +3106,8 @@ class DialogoEditarMaquina(QDialog):
         self.lbl_preview = QLabel(tt("lbl_sin_foto", "Sin foto")); self.lbl_preview.setFixedSize(200, 150)
         self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
+        self.lbl_preview.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_preview.mousePressEvent = self._click_preview
         h_center = QHBoxLayout(); h_center.addWidget(self.lbl_preview); h_center.addStretch()
         l.addLayout(h_center)
         h_foto = QHBoxLayout()
@@ -3163,6 +3165,14 @@ class DialogoEditarMaquina(QDialog):
         self.ruta_foto_seleccionada = ""
         self.foto_nombre_existente = None
         self._refrescar_preview()
+
+    def _click_preview(self, event):
+        """Si ya hay foto la abre en grande (igual que en los trabajos); si no
+        hay ninguna, abre directamente el selector de fichero."""
+        if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
+            VisorFoto(self.ruta_foto_seleccionada, self).exec()
+        else:
+            self.seleccionar_foto()
 
     def _validar_aceptar(self):
         if not self.campo_nombre.text().strip():
@@ -3239,6 +3249,8 @@ class DialogoEditarMaterial(QDialog):
         self.lbl_preview = QLabel(tt("lbl_sin_foto", "Sin foto")); self.lbl_preview.setFixedSize(200, 150)
         self.lbl_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_preview.setStyleSheet(_estilo_zona_arrastre())
+        self.lbl_preview.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_preview.mousePressEvent = self._click_preview
         h_center = QHBoxLayout(); h_center.addWidget(self.lbl_preview); h_center.addStretch()
         l.addLayout(h_center)
         h_foto = QHBoxLayout()
@@ -3321,6 +3333,14 @@ class DialogoEditarMaterial(QDialog):
         self.ruta_foto_seleccionada = ""
         self.foto_nombre_existente = None
         self._refrescar_preview()
+
+    def _click_preview(self, event):
+        """Si ya hay foto la abre en grande (igual que en los trabajos); si no
+        hay ninguna, abre directamente el selector de fichero."""
+        if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
+            VisorFoto(self.ruta_foto_seleccionada, self).exec()
+        else:
+            self.seleccionar_foto()
 
     def _validar_aceptar(self):
         if not self.campo_nombre.text().strip():
@@ -5309,6 +5329,8 @@ class MaintenanceApp(QMainWindow):
         self.lbl_foto_maquina.setMinimumSize(220, 220)
         self.lbl_foto_maquina.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
+        self.lbl_foto_maquina.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_foto_maquina.mousePressEvent = self._maquina_ver_foto_grande
         v_foto.addWidget(self.lbl_foto_maquina)
 
         self.lbl_indicadores_maquina = QLabel("")
@@ -5362,6 +5384,17 @@ class MaintenanceApp(QMainWindow):
             self.lbl_foto_maquina.setPixmap(QPixmap()); self.lbl_foto_maquina.setText(tt("lbl_sin_foto", "Sin foto"))
             self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
         self._actualizar_indicadores_maquina(datos["id"] if datos and datos.get("tipo") == "maquina" else None)
+
+    def _maquina_ver_foto_grande(self, event):
+        """Abre en grande la foto de la máquina seleccionada en el árbol,
+        igual que al pulsar una foto de un trabajo."""
+        item = self.arbol_maquinas.currentItem()
+        datos = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if not datos or datos.get("tipo") != "maquina": return
+        maquina = maquinas.obtener_maquina(datos["id"])
+        if not maquina or not maquina.get("foto"): return
+        ruta = os.path.join(self.carpeta_fotos, maquina["foto"])
+        if os.path.exists(ruta): VisorFoto(ruta, self).exec()
 
     def _actualizar_indicadores_maquina(self, id_maquina):
         """Muestra MTBF/MTTR de la máquina seleccionada (y sus submáquinas)."""
