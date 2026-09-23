@@ -4,14 +4,16 @@ Cosas detectadas durante una revisión de redundancias en el código (2026-09-22
 pendientes de decidir si merece la pena abordarlas. No son bugs urgentes, son
 limpieza/consolidación de código duplicado.
 
-## 1. `maquinas.py`: funciones de conteo/ranking casi clonadas
+## 1. ~~`maquinas.py`: funciones de conteo/ranking casi clonadas~~ (RESUELTO)
 
 `contar_trabajos`/`contar_averias` y `ranking_trabajos`/`ranking_averias`
-tienen exactamente la misma estructura; la única diferencia real es el filtro
-`AND tags LIKE '%Avería%'`. Podrían unificarse en una sola función
-parametrizada por filtro de tag, en vez de mantener dos copias que hay que
-recordar actualizar en paralelo (como ya pasó al añadir `ranking_trabajos`
-para el ranking del dashboard).
+tenían exactamente la misma estructura; la única diferencia real era el
+filtro `AND tags LIKE '%Avería%'`. Corregido: ahora comparten base común,
+`_contar_tareas(id_maquina, fecha_inicio, fecha_fin, solo_averias)` y
+`_ranking_por(contador, top_n, fecha_inicio, fecha_fin)`, y las cuatro
+funciones públicas quedan como envoltorios de una línea que solo fijan el
+parámetro que las distingue. La firma y el comportamiento de las cuatro
+funciones públicas no cambian, así que no afecta a quien ya las use.
 
 ## 2. ~~`main.py`: combo de prioridad copiado 4 veces~~ (RESUELTO)
 
@@ -22,12 +24,18 @@ valor_actual)` junto a `_llenar_combo_especialidades`/`_llenar_combo_usuarios`
 en `MaintenanceApp`, y los cuatro puntos lo usan ahora (los dos diálogos lo
 llaman a través de `parent`, igual que ya hacían con los otros dos combos).
 
-## 3. `main.py`: checkboxes de etiquetas duplicados
+## 3. ~~`main.py`: checkboxes de etiquetas duplicados~~ (RESUELTO)
 
 La construcción de los checks Urgente/Eléctrico/Mecánico/Preventivo(/Avería)
-y su posterior recomposición en texto (`final_tags`/`lista_tags`) se repite
-casi idéntica en `EditDialog`, `CompleteDialog` y la pestaña Registro. Podría
-extraerse un helper que cree los checkboxes y otro que los serialice a texto.
+y su posterior recomposición en texto (`final_tags`/`lista_tags`) se repetía
+casi idéntica en `EditDialog`, `CompleteDialog` y la pestaña Registro.
+Corregido: se han añadido dos helpers a nivel de módulo,
+`_crear_checks_etiquetas(host, layout, incluir_averia=True)` (crea los
+checks, los estiliza y los añade al layout) y `_tags_desde_checks(host,
+incluir_averia=True)` (los serializa a la lista de etiquetas), usados ahora
+en los tres sitios. De paso queda corregida una pequeña inconsistencia: los
+checks de `EditDialog` no llevaban el estilo común (`_estilo_check_etiqueta`)
+que sí tenían los otros dos sitios; ahora los tres se ven igual.
 
 ## 4. ~~Timeout de conexión SQLite inconsistente entre módulos~~ (RESUELTO)
 
