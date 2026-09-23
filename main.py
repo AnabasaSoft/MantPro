@@ -3496,10 +3496,8 @@ class EditDialog(QDialog):
         fila_prioridad = QHBoxLayout()
         fila_prioridad.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
         self.combo_prioridad = QComboBox()
-        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
-            self.combo_prioridad.addItem(tt(clave, cod), cod)
-        idx_prio = self.combo_prioridad.findData(prioridad or "Media")
-        self.combo_prioridad.setCurrentIndex(idx_prio if idx_prio >= 0 else 1)
+        if parent is not None and hasattr(parent, "_llenar_combo_prioridad"):
+            parent._llenar_combo_prioridad(self.combo_prioridad, prioridad)
         fila_prioridad.addWidget(self.combo_prioridad, 1)
         fila_prioridad.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
         self.spin_horas_paro = QDoubleSpinBox(); self.spin_horas_paro.setRange(0, 999); self.spin_horas_paro.setDecimals(1)
@@ -3598,10 +3596,8 @@ class DialogoEditarPendiente(QDialog):
         fila_prioridad = QHBoxLayout()
         fila_prioridad.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
         self.combo_prioridad = QComboBox()
-        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
-            self.combo_prioridad.addItem(tt(clave, cod), cod)
-        idx_prio = self.combo_prioridad.findData(prioridad or "Media")
-        self.combo_prioridad.setCurrentIndex(idx_prio if idx_prio >= 0 else 1)
+        if parent is not None and hasattr(parent, "_llenar_combo_prioridad"):
+            parent._llenar_combo_prioridad(self.combo_prioridad, prioridad)
         fila_prioridad.addWidget(self.combo_prioridad, 1)
         l.addLayout(fila_prioridad)
         fila_asig = QHBoxLayout()
@@ -5249,6 +5245,17 @@ class MaintenanceApp(QMainWindow):
             combo.addItem(u["nombre"], u["id"])
         idx = combo.findData(anterior)
         combo.setCurrentIndex(idx if idx >= 0 else 0)
+        combo.blockSignals(False)
+
+    def _llenar_combo_prioridad(self, combo, valor_actual=None):
+        """Rellena un combo con los niveles de prioridad, seleccionando valor_actual (o Media por defecto)."""
+        combo.blockSignals(True)
+        combo.clear()
+        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"),
+                           ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
+            combo.addItem(tt(clave, cod), cod)
+        idx = combo.findData(valor_actual or "Media")
+        combo.setCurrentIndex(idx if idx >= 0 else 1)
         combo.blockSignals(False)
 
     def init_todo_tab(self):
