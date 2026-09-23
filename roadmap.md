@@ -13,19 +13,14 @@ parametrizada por filtro de tag, en vez de mantener dos copias que hay que
 recordar actualizar en paralelo (como ya pasó al añadir `ranking_trabajos`
 para el ranking del dashboard).
 
-## 2. `main.py`: combo de prioridad copiado 4 veces
+## 2. ~~`main.py`: combo de prioridad copiado 4 veces~~ (RESUELTO)
 
-El bucle que rellena el combo de prioridad:
-
-```python
-for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
-    combo.addItem(tt(clave, cod), cod)
-```
-
-aparece literalmente igual en `EditDialog`, `DialogoEditarPendiente`, la
-pestaña Registro y la pestaña Pendientes. Ya existen helpers como
-`_llenar_combo_especialidades`/`_llenar_combo_usuarios`; falta el equivalente
-`_llenar_combo_prioridad(combo, valor_actual)`.
+El bucle que rellena el combo de prioridad aparecía literalmente igual en
+`EditDialog`, `DialogoEditarPendiente`, la pestaña Registro y la pestaña
+Pendientes. Corregido: se ha añadido `_llenar_combo_prioridad(combo,
+valor_actual)` junto a `_llenar_combo_especialidades`/`_llenar_combo_usuarios`
+en `MaintenanceApp`, y los cuatro puntos lo usan ahora (los dos diálogos lo
+llaman a través de `parent`, igual que ya hacían con los otros dos combos).
 
 ## 3. `main.py`: checkboxes de etiquetas duplicados
 

@@ -4653,9 +4653,7 @@ class MaintenanceApp(QMainWindow):
         fila_prioridad_entry = QHBoxLayout()
         fila_prioridad_entry.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
         self.combo_prioridad_entry = QComboBox()
-        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
-            self.combo_prioridad_entry.addItem(tt(clave, cod), cod)
-        self.combo_prioridad_entry.setCurrentIndex(1)
+        self._llenar_combo_prioridad(self.combo_prioridad_entry)
         fila_prioridad_entry.addWidget(self.combo_prioridad_entry, 1)
         fila_prioridad_entry.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
         self.spin_horas_paro_entry = QDoubleSpinBox(); self.spin_horas_paro_entry.setRange(0, 999); self.spin_horas_paro_entry.setDecimals(1)
@@ -5290,9 +5288,7 @@ class MaintenanceApp(QMainWindow):
         fila_prioridad_todo = QHBoxLayout()
         fila_prioridad_todo.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
         self.combo_prioridad_todo = QComboBox()
-        for cod, clave in (("Baja", "prioridad_baja"), ("Media", "prioridad_media"), ("Alta", "prioridad_alta"), ("Crítica", "prioridad_critica")):
-            self.combo_prioridad_todo.addItem(tt(clave, cod), cod)
-        self.combo_prioridad_todo.setCurrentIndex(1)
+        self._llenar_combo_prioridad(self.combo_prioridad_todo)
         fila_prioridad_todo.addWidget(self.combo_prioridad_todo, 1)
         f.addLayout(fila_prioridad_todo)
         f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
