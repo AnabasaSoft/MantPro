@@ -2860,6 +2860,18 @@ class _ItemArbolOrdenable(QTreeWidgetItem):
         return super().__lt__(otro)
 
 
+class _ItemTablaOrdenable(QTableWidgetItem):
+    """QTableWidgetItem que, si tiene guardada una clave de orden en
+    UserRole+1 (un número), la usa para comparar en vez del texto mostrado.
+    Así "10" no queda antes que "2" al pulsar la cabecera para ordenar."""
+    def __lt__(self, otro):
+        clave_propia = self.data(Qt.ItemDataRole.UserRole + 1)
+        clave_otro = otro.data(Qt.ItemDataRole.UserRole + 1)
+        if clave_propia is not None and clave_otro is not None:
+            return clave_propia < clave_otro
+        return super().__lt__(otro)
+
+
 class GraficoCircularTrabajos(QWidget):
     """Gráfica circular dibujada a mano con QPainter (sin depender de ninguna
     librería de gráficos externa) que reparte un total de trabajos entre un
@@ -5611,6 +5623,7 @@ class MaintenanceApp(QMainWindow):
             tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")])
         self.tabla_stock.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_stock.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.tabla_stock.setSortingEnabled(True)
         self.tabla_stock.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla_stock.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tabla_stock.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -5655,6 +5668,7 @@ class MaintenanceApp(QMainWindow):
             tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")])
         self.tabla_stock_alertas.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_stock_alertas.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.tabla_stock_alertas.setSortingEnabled(True)
         self.tabla_stock_alertas.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla_stock_alertas.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tabla_stock_alertas.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -5688,17 +5702,28 @@ class MaintenanceApp(QMainWindow):
     def refresh_stock_alertas(self):
         if not hasattr(self, "tabla_stock_alertas"): return
         materiales = almacen.materiales_bajo_minimo()
+        header = self.tabla_stock_alertas.horizontalHeader()
+        # Al pulsar una cabecera para ordenar, Qt guarda esa columna y sentido en
+        # el propio header; los recuperamos para que el orden elegido por el
+        # usuario sobreviva a los refrescos automáticos de la tabla en vez de
+        # volver siempre al orden natural de la base de datos.
+        col_orden, orden = header.sortIndicatorSection(), header.sortIndicatorOrder()
+        self.tabla_stock_alertas.setSortingEnabled(False)
         self.tabla_stock_alertas.setRowCount(len(materiales))
         for fila, m in enumerate(materiales):
             ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
+            claves = {3: m["stock_actual"], 4: m["stock_minimo"]}
             color = self._color_stock(m["stock_actual"], m["stock_minimo"])
             for col, val in enumerate(valores):
-                item = QTableWidgetItem(val)
+                item = _ItemTablaOrdenable(val)
+                if col in claves: item.setData(Qt.ItemDataRole.UserRole + 1, claves[col])
                 if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
                 if col == 3 and color is not None: item.setForeground(QBrush(color))
                 self.tabla_stock_alertas.setItem(fila, col, item)
+        self.tabla_stock_alertas.setSortingEnabled(True)
+        if col_orden >= 0: self.tabla_stock_alertas.sortItems(col_orden, orden)
         if hasattr(self, "tabs") and hasattr(self, "tab_stock_alertas"):
             idx = self.tabs.indexOf(self.tab_stock_alertas)
             if idx >= 0:
@@ -5763,17 +5788,24 @@ class MaintenanceApp(QMainWindow):
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
         zona_id = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
         materiales = almacen.listar_materiales(texto or None, zona_id)
+        header = self.tabla_stock.horizontalHeader()
+        col_orden, orden = header.sortIndicatorSection(), header.sortIndicatorOrder()
+        self.tabla_stock.setSortingEnabled(False)
         self.tabla_stock.setRowCount(len(materiales))
         for fila, m in enumerate(materiales):
             ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
+            claves = {3: m["stock_actual"], 4: m["stock_minimo"]}
             color = self._color_stock(m["stock_actual"], m["stock_minimo"])
             for col, val in enumerate(valores):
-                item = QTableWidgetItem(val)
+                item = _ItemTablaOrdenable(val)
+                if col in claves: item.setData(Qt.ItemDataRole.UserRole + 1, claves[col])
                 if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
                 if col == 3 and color is not None: item.setForeground(QBrush(color))
                 self.tabla_stock.setItem(fila, col, item)
+        self.tabla_stock.setSortingEnabled(True)
+        if col_orden >= 0: self.tabla_stock.sortItems(col_orden, orden)
         if hasattr(self, "btn_configurar_almacen"):
             self.btn_configurar_almacen.setVisible(usuarios.es_admin())
         self.refresh_historial_stock()
