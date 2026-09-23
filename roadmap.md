@@ -56,10 +56,16 @@ la GUI por la base de datos. Corregido: ahora todos pasan por
 módulo (`timeout=20` + modo WAL), en vez de repetir `sqlite3.connect` con
 timeouts distintos en cada método.
 
-## 6. Gráficas dibujadas a mano con boilerplate repetido (prioridad baja)
+## 6. ~~Gráficas dibujadas a mano con boilerplate repetido~~ (RESUELTO)
 
 `GraficoCircularTrabajos`, `GraficoBarrasRanking` y `GraficoBarrasMensual`
-repiten el mismo boilerplate de constructor (`color_texto`, `color_fondo`,
-`setMinimumHeight`, estado vacío "sin datos"). La lógica de pintado en sí es
-distinta en cada una, así que el ahorro de extraer una clase base sería
-modesto; queda como mejora opcional, no prioritaria.
+repetían el mismo boilerplate de constructor (`color_texto`, `color_fondo`,
+`setMinimumHeight`, estado vacío "sin datos"). Corregido: se ha extraído
+`_GraficoBase(QWidget)`, que centraliza `establecer_datos`, el `paintEvent`
+común (fondo + estado vacío) y dos puntos de extensión, `_hay_datos()` y
+`_texto_vacio()`, para las dos gráficas cuyo criterio de "vacío" no es
+simplemente "lista sin elementos" (la circular filtra los valores a 0 al
+guardar los datos; la mensual considera vacío que todos los meses sean 0).
+Cada subclase se queda solo con su `_dibujar(painter)`, que es la única
+parte que de verdad cambiaba entre las tres. Probado en modo offscreen
+(`QT_QPA_PLATFORM=offscreen`) con datos y sin datos en las tres gráficas.
