@@ -233,11 +233,13 @@ def borrar_maquina(id_maquina):
 
 # ---------------------------------------------------------------- trabajos por máquina
 
-def contar_trabajos(id_maquina, fecha_inicio=None, fecha_fin=None):
-    """Nº de trabajos vinculados directamente a esta máquina (sin submáquinas),
-    sea cual sea su etiqueta (avería, urgente, preventivo...). Si se indican
-    fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta los de ese rango."""
+def _contar_tareas(id_maquina, fecha_inicio=None, fecha_fin=None, solo_averias=False):
+    """Base común de contar_trabajos/contar_averias: cuenta las tareas de
+    maquina_id, opcionalmente filtrando por tag 'Avería' y/o por rango de
+    fecha ('YYYY-MM-DD')."""
     sql = "SELECT COUNT(*) FROM tareas WHERE maquina_id=?"
+    if solo_averias:
+        sql += " AND tags LIKE '%Avería%'"
     parametros = [id_maquina]
     if fecha_inicio and fecha_fin:
         sql += " AND fecha BETWEEN ? AND ?"
@@ -248,22 +250,36 @@ def contar_trabajos(id_maquina, fecha_inicio=None, fecha_fin=None):
     return fila[0] if fila else 0
 
 
+def contar_trabajos(id_maquina, fecha_inicio=None, fecha_fin=None):
+    """Nº de trabajos vinculados directamente a esta máquina (sin submáquinas),
+    sea cual sea su etiqueta (avería, urgente, preventivo...). Si se indican
+    fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta los de ese rango."""
+    return _contar_tareas(id_maquina, fecha_inicio, fecha_fin)
+
+
+def _ranking_por(contador, top_n=8, fecha_inicio=None, fecha_fin=None):
+    """Base común de ranking_trabajos/ranking_averias: suma contador() sobre
+    cada máquina de nivel superior (incluyendo sus submáquinas) y devuelve
+    las top_n con más total, de más a menos, descartando las que están a 0."""
+    top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
+
+    def total(id_maquina):
+        return sum(contador(i, fecha_inicio, fecha_fin) for i in descendientes_ids(id_maquina))
+
+    datos = sorted(
+        ((m["nombre"], total(m["id"])) for m in top_level),
+        key=lambda par: par[1], reverse=True,
+    )
+    return [par for par in datos if par[1] > 0][:top_n]
+
+
 def ranking_trabajos(top_n=8, fecha_inicio=None, fecha_fin=None):
     """Máquinas de nivel superior con más trabajos en total (sumando las de sus
     submáquinas), de más a menos, sea cual sea la etiqueta del trabajo (avería,
     urgente, preventivo...), para el ranking "más solicitadas" del dashboard.
     Solo incluye máquinas con al menos un trabajo. Si se indican
     fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta los de ese rango."""
-    top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
-
-    def total_trabajos(id_maquina):
-        return sum(contar_trabajos(i, fecha_inicio, fecha_fin) for i in descendientes_ids(id_maquina))
-
-    datos = sorted(
-        ((m["nombre"], total_trabajos(m["id"])) for m in top_level),
-        key=lambda par: par[1], reverse=True,
-    )
-    return [par for par in datos if par[1] > 0][:top_n]
+    return _ranking_por(contar_trabajos, top_n, fecha_inicio, fecha_fin)
 
 
 def anios_de_maquina(id_maquina):
@@ -392,15 +408,7 @@ def contar_averias(id_maquina, fecha_inicio=None, fecha_fin=None):
     """Nº de trabajos marcados como 'Avería' vinculados directamente a esta
     máquina (sin submáquinas). Si se indican fecha_inicio/fecha_fin
     ('YYYY-MM-DD'), solo cuenta las de ese rango."""
-    sql = "SELECT COUNT(*) FROM tareas WHERE maquina_id=? AND tags LIKE '%Avería%'"
-    parametros = [id_maquina]
-    if fecha_inicio and fecha_fin:
-        sql += " AND fecha BETWEEN ? AND ?"
-        parametros += [fecha_inicio, fecha_fin]
-    con = _conn()
-    fila = con.execute(sql, parametros).fetchone()
-    con.close()
-    return fila[0] if fila else 0
+    return _contar_tareas(id_maquina, fecha_inicio, fecha_fin, solo_averias=True)
 
 
 def ranking_averias(top_n=8, fecha_inicio=None, fecha_fin=None):
@@ -409,16 +417,7 @@ def ranking_averias(top_n=8, fecha_inicio=None, fecha_fin=None):
     del dashboard. Solo incluye máquinas con al menos una avería. Si se
     indican fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta las averías
     de ese rango (p. ej. para un PDF exportado por rango)."""
-    top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
-
-    def total_averias(id_maquina):
-        return sum(contar_averias(i, fecha_inicio, fecha_fin) for i in descendientes_ids(id_maquina))
-
-    datos = sorted(
-        ((m["nombre"], total_averias(m["id"])) for m in top_level),
-        key=lambda par: par[1], reverse=True,
-    )
-    return [par for par in datos if par[1] > 0][:top_n]
+    return _ranking_por(contar_averias, top_n, fecha_inicio, fecha_fin)
 
 
 def averias_por_mes(n_meses=12, fecha_inicio=None, fecha_fin=None):

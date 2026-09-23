@@ -2203,6 +2203,37 @@ def _estilo_check_etiqueta():
     return "font-weight: bold; color: #bbb;" if oscuro else "font-weight: bold; color: #555;"
 
 
+def _crear_checks_etiquetas(host, layout, incluir_averia=True):
+    """Crea los checkboxes de 'etiquetas rápidas' (Urgente/Eléctrico/Mecánico/
+    Preventivo y, si procede, Avería), los deja guardados en host.chk_urgente/
+    chk_electrico/chk_mecanico/chk_prev/chk_averia y los añade a layout con el
+    estilo común. Evita repetir esta construcción en cada diálogo/pestaña."""
+    host.chk_urgente = QCheckBox(t("tag_urgente"))
+    host.chk_electrico = QCheckBox(t("tag_electrico"))
+    host.chk_mecanico = QCheckBox(t("tag_mecanico"))
+    host.chk_prev = QCheckBox(t("tag_preventivo"))
+    checks = [host.chk_urgente, host.chk_electrico, host.chk_mecanico, host.chk_prev]
+    if incluir_averia:
+        host.chk_averia = QCheckBox(tt("tag_averia", "Avería"))
+        checks.append(host.chk_averia)
+    for c in checks:
+        c.setStyleSheet(_estilo_check_etiqueta())
+        layout.addWidget(c)
+
+
+def _tags_desde_checks(host, incluir_averia=True):
+    """Devuelve la lista de etiquetas marcadas en los checks creados por
+    _crear_checks_etiquetas, en el mismo orden en que se guardaban antes de
+    unificar esta lógica (para no alterar el texto ya guardado en BD)."""
+    tags = []
+    if host.chk_urgente.isChecked(): tags.append("Urgente")
+    if host.chk_electrico.isChecked(): tags.append("Eléctrico")
+    if host.chk_mecanico.isChecked(): tags.append("Mecánico")
+    if host.chk_prev.isChecked(): tags.append("Preventivo")
+    if incluir_averia and host.chk_averia.isChecked(): tags.append("Avería")
+    return tags
+
+
 def _estilo_label_dialogo():
     """Estilo de las etiquetas de campo de formularios de diálogo (p.ej. AvisoEditDialog),
     adaptado al tema para que no queden en gris clarito sobre fondo claro."""
@@ -3470,9 +3501,7 @@ class EditDialog(QDialog):
         self.actualizar_vista_foto()
         l.addWidget(QLabel(t("lbl_etiquetas")))
         h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
-        self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
-        self.chk_averia = QCheckBox(tt("tag_averia", "Avería"))
+        _crear_checks_etiquetas(self, h_tags)
         lista_actual = [t.strip().lower() for t in tags.split(',')]
         def check_and_clean(texto_check, chk_box):
             if texto_check.lower() in lista_actual:
@@ -3485,8 +3514,6 @@ class EditDialog(QDialog):
         check_and_clean("preventivo", self.chk_prev)
         check_and_clean("avería", self.chk_averia)
         if "averia" in lista_actual: self.chk_averia.setChecked(True); lista_actual.remove("averia")
-        h_tags.addWidget(self.chk_urgente); h_tags.addWidget(self.chk_electrico)
-        h_tags.addWidget(self.chk_mecanico); h_tags.addWidget(self.chk_prev); h_tags.addWidget(self.chk_averia)
         l.addLayout(h_tags)
         texto_manual = ", ".join([x for x in tags.split(',') if x.strip().lower() in lista_actual])
         self.tag = QLineEdit(); self.tag.setText(texto_manual); self.tag.setPlaceholderText(t("ph_otros_tags"))
@@ -3569,12 +3596,7 @@ class EditDialog(QDialog):
         if self.ref_oculta: d += f" {self.ref_oculta}"
         if self.foto_filename: d += f"\n[FOTO: {self.foto_filename}]"
         if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename: d += f"\n[FOTO_DESPUES: {self.foto_despues_filename}]"
-        final_tags = []
-        if self.chk_urgente.isChecked(): final_tags.append("Urgente")
-        if self.chk_electrico.isChecked(): final_tags.append("Eléctrico")
-        if self.chk_mecanico.isChecked(): final_tags.append("Mecánico")
-        if self.chk_prev.isChecked(): final_tags.append("Preventivo")
-        if self.chk_averia.isChecked(): final_tags.append("Avería")
+        final_tags = _tags_desde_checks(self)
         manual = self.tag.text().strip()
         if manual: final_tags.append(manual)
         usuario_id = self.combo_autor.currentData()
@@ -3676,9 +3698,7 @@ class CompleteDialog(QDialog):
         self.lbl_foto.mousePressEvent = self.click_foto; self.lbl_foto.archivo_soltado.connect(self.procesar_foto); l.addWidget(self.lbl_foto)
         btn = QPushButton(t("btn_buscar_foto_manual")); btn.clicked.connect(self.buscar_foto); l.addWidget(btn)
         l.addWidget(QLabel(t("lbl_etiquetas_rapidas"))); h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
-        self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
-        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev]: c.setStyleSheet(_estilo_check_etiqueta()); h_tags.addWidget(c)
+        _crear_checks_etiquetas(self, h_tags, incluir_averia=False)
         l.addLayout(h_tags)
         l.addWidget(QLabel(t("lbl_otros_tags"))); self.tag = QLineEdit(); self.tag.setPlaceholderText(t("ph_ejemplo_tags")); l.addWidget(self.tag)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
@@ -3699,11 +3719,7 @@ class CompleteDialog(QDialog):
             self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
     def get_data(self):
-        lista_tags = []
-        if self.chk_urgente.isChecked(): lista_tags.append("Urgente")
-        if self.chk_electrico.isChecked(): lista_tags.append("Eléctrico")
-        if self.chk_mecanico.isChecked(): lista_tags.append("Mecánico")
-        if self.chk_prev.isChecked(): lista_tags.append("Preventivo")
+        lista_tags = _tags_desde_checks(self, incluir_averia=False)
         manual = self.tag.text().strip(); (lista_tags.append(manual) if manual else None)
         return (self.de.date().toString("yyyy-MM-dd"), ", ".join(lista_tags), self.foto_filename)
 
@@ -4643,10 +4659,7 @@ class MaintenanceApp(QMainWindow):
         l.addLayout(fila_maquina_entry)
         l.addWidget(QLabel(t("lbl_etiquetas_rapidas")))
         h_tags = QHBoxLayout()
-        self.chk_urgente = QCheckBox(t("tag_urgente")); self.chk_electrico = QCheckBox(t("tag_electrico"))
-        self.chk_mecanico = QCheckBox(t("tag_mecanico")); self.chk_prev = QCheckBox(t("tag_preventivo"))
-        self.chk_averia = QCheckBox(tt("tag_averia", "Avería"))
-        for c in [self.chk_urgente, self.chk_electrico, self.chk_mecanico, self.chk_prev, self.chk_averia]: c.setStyleSheet(_estilo_check_etiqueta()); h_tags.addWidget(c)
+        _crear_checks_etiquetas(self, h_tags)
         l.addLayout(h_tags)
         self.itag = QLineEdit(); self.itag.setPlaceholderText(t("ph_otras_etiquetas")); l.addWidget(self.itag)
 
@@ -4707,12 +4720,7 @@ class MaintenanceApp(QMainWindow):
         if de: full_desc += f"\n{de}"
         if self.entry_foto_filename: full_desc += f"\n[FOTO: {self.entry_foto_filename}]"
         if self.entry_foto_despues_filename: full_desc += f"\n[FOTO_DESPUES: {self.entry_foto_despues_filename}]"
-        lista_tags = []
-        if self.chk_urgente.isChecked(): lista_tags.append("Urgente")
-        if self.chk_electrico.isChecked(): lista_tags.append("Eléctrico")
-        if self.chk_mecanico.isChecked(): lista_tags.append("Mecánico")
-        if self.chk_prev.isChecked(): lista_tags.append("Preventivo")
-        if self.chk_averia.isChecked(): lista_tags.append("Avería")
+        lista_tags = _tags_desde_checks(self)
         manuales = self.itag.text().strip()
         if manuales: lista_tags.append(manuales)
         maquina_id = self.combo_maquina_entry.currentData()
