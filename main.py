@@ -171,7 +171,7 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.9.8"
+APP_VERSION = "3.9.9"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -309,14 +309,13 @@ class GeneradorPDFThread(QThread):
                     return Paragraph(texto, style_header)
 
                 data_tabla = [[cab(t("hdr_fecha")), cab(t("hdr_descripcion")), cab(tt("hdr_maquina", "Máquina")),
-                               cab(tt("hdr_realizado_por", "Realizado por")), cab(tt("hdr_prioridad", "Prioridad")),
+                               cab(tt("hdr_realizado_por", "Realizado por")),
                                cab(t("hdr_foto_antes")), cab(t("hdr_foto_despues"))]]
 
                 for fila_pdf in trabajo["datos"]:
                     fecha, desc, tags = fila_pdf[0], fila_pdf[1], fila_pdf[2]
                     autor = fila_pdf[3] if len(fila_pdf) > 3 and fila_pdf[3] else usuarios.ETIQUETA_HISTORICO
                     maquina_nombre = self.mapa_maquinas.get(fila_pdf[4], "-") if len(fila_pdf) > 4 and fila_pdf[4] else "-"
-                    prioridad_txt = traducir_prioridad(fila_pdf[5]) if len(fila_pdf) > 5 else traducir_prioridad("Media")
                     fecha_formateada = idiomas.formato_fecha_localizada(fecha)
 
                     desc_visual = desc
@@ -354,10 +353,10 @@ class GeneradorPDFThread(QThread):
                     desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
-                    data_tabla.append([Paragraph(fecha_formateada, style_cell), p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), Paragraph(prioridad_txt, style_cell), img_obj, img_obj_d])
+                    data_tabla.append([Paragraph(fecha_formateada, style_cell), p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), img_obj, img_obj_d])
 
                 ancho_foto = 3.0 * cm
-                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.2*cm, 2.2*cm, 2.4*cm, 1.8*cm, ancho_foto, ancho_foto])
+                tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.5*cm, 2.4*cm, 2.6*cm, ancho_foto, ancho_foto])
                 tabla_pdf.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -970,7 +969,6 @@ class ServidorSincronizacion(QThread):
                 titulo = request.form.get('titulo') or "Sin Título"
                 detalles = request.form.get('detalles', '')
                 tags = request.form.get('tags', '')
-                prioridad = request.form.get('prioridad') or 'Media'
 
                 # --- LEER FECHA DEL MÓVIL ---
                 fecha_movil = request.form.get('fecha')
@@ -999,9 +997,9 @@ class ServidorSincronizacion(QThread):
                         # para no duplicar el trabajo.
                         return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
                     # Usamos el INSERT completo para alimentar todas las columnas
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, prioridad) VALUES (?,?,?,?,?,?,?,?)',
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
                               (fecha_final, desc_final, tags, raw_desc, filename,
-                               usuario['id'], usuario['nombre'], prioridad))
+                               usuario['id'], usuario['nombre']))
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo)
@@ -1976,21 +1974,21 @@ class GestorBaseDatos:
             conn.commit(); conn.close(); return True
         except: return False
 
-    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, prioridad="Media", horas_paro=None):
+    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, horas_paro=None):
         """Guarda un registro atribuido al usuario que ha iniciado sesión."""
         if usuario_id is None: usuario_id = usuarios.id_actual()
         if usuario_nombre is None: usuario_nombre = usuarios.nombre_actual()
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id,prioridad,horas_paro) VALUES (?,?,?,?,?,?,?,?)',
-                      (f, d, t, usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro))
+            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id,horas_paro) VALUES (?,?,?,?,?,?,?)',
+                      (f, d, t, usuario_id, usuario_nombre, maquina_id, horas_paro))
             conn.commit(); conn.close(); return True
         except Exception as e:
             print(f"Error agregar_tarea: {e}"); return False
     def obtener_todas_cronologico(self, filtro_usuario=None):
         try:
             conn=self.conectar(); c=conn.cursor()
-            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id,COALESCE(prioridad,'Media') FROM tareas"
+            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id FROM tareas"
             params = []
             if filtro_usuario:
                 sql += " WHERE usuario_nombre = ?"
@@ -2017,26 +2015,26 @@ class GestorBaseDatos:
             return True
         except Exception as e:
             print(f"Error borrar_tarea: {e}"); return False
-    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, prioridad="Media", horas_paro=None):
+    def actualizar_tarea(self, i, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, horas_paro=None):
         try:
             conn = self.conectar(); c = conn.cursor()
             if usuario_id is not None:
-                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=?, maquina_id=?, prioridad=?, horas_paro=? WHERE id=?',
-                          (f, d, t, usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro, i))
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, usuario_id=?, usuario_nombre=?, maquina_id=?, horas_paro=? WHERE id=?',
+                          (f, d, t, usuario_id, usuario_nombre, maquina_id, horas_paro, i))
             else:
-                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, maquina_id=?, prioridad=?, horas_paro=? WHERE id=?', (f, d, t, maquina_id, prioridad, horas_paro, i))
+                c.execute('UPDATE tareas SET fecha=?, descripcion=?, tags=?, maquina_id=?, horas_paro=? WHERE id=?', (f, d, t, maquina_id, horas_paro, i))
             conn.commit(); conn.close(); return True
         except: return False
     def obtener_tarea_por_id(self, i):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media'), horas_paro FROM tareas WHERE id=?", (i,))
+            c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id, horas_paro FROM tareas WHERE id=?", (i,))
             return c.fetchone()
         except: return None
     def buscar_tareas_avanzado(self, texto, fecha=None):
         try:
             conn = self.conectar(); c = conn.cursor(); param_texto = f"%{texto}%"
-            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
+            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
             parametros = [param_texto, param_texto]
             if fecha: query += " AND fecha = ?"; parametros.append(fecha)
             query += " ORDER BY fecha DESC, id DESC"; c.execute(query, parametros); return c.fetchall()
@@ -3423,7 +3421,7 @@ class DialogoMovimientoStock(QDialog):
 
 
 class EditDialog(QDialog):
-    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, prioridad="Media", horas_paro=None):
+    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, horas_paro=None):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
@@ -3514,20 +3512,15 @@ class EditDialog(QDialog):
         self.tag = QLineEdit(); self.tag.setText(texto_manual); self.tag.setPlaceholderText(t("ph_otros_tags"))
         l.addWidget(self.tag)
 
-        # --- Prioridad y horas de parada (para MTBF/MTTR) ---
-        fila_prioridad = QHBoxLayout()
-        fila_prioridad.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
-        self.combo_prioridad = QComboBox()
-        if parent is not None and hasattr(parent, "_llenar_combo_prioridad"):
-            parent._llenar_combo_prioridad(self.combo_prioridad, prioridad)
-        fila_prioridad.addWidget(self.combo_prioridad, 1)
-        fila_prioridad.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
+        # --- Horas de parada (para MTBF/MTTR) ---
+        fila_horas_paro = QHBoxLayout()
+        fila_horas_paro.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
         self.spin_horas_paro = QDoubleSpinBox(); self.spin_horas_paro.setRange(0, 999); self.spin_horas_paro.setDecimals(1)
         self.spin_horas_paro.setSuffix(" h"); self.spin_horas_paro.setEnabled(self.chk_averia.isChecked())
         if horas_paro is not None: self.spin_horas_paro.setValue(horas_paro)
         self.chk_averia.toggled.connect(self.spin_horas_paro.setEnabled)
-        fila_prioridad.addWidget(self.spin_horas_paro)
-        l.addLayout(fila_prioridad)
+        fila_horas_paro.addWidget(self.spin_horas_paro)
+        l.addLayout(fila_horas_paro)
 
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -3597,9 +3590,8 @@ class EditDialog(QDialog):
         usuario_id = self.combo_autor.currentData()
         usuario_nombre = self.combo_autor.currentText() if usuario_id is not None else usuarios.ETIQUETA_HISTORICO
         maquina_id = self.combo_maquina.currentData()
-        prioridad = self.combo_prioridad.currentData()
         horas_paro = self.spin_horas_paro.value() if self.chk_averia.isChecked() else None
-        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id, prioridad, horas_paro)
+        return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id, horas_paro)
 
 class DialogoEditarPendiente(QDialog):
     def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None):
@@ -4118,7 +4110,6 @@ class MaintenanceApp(QMainWindow):
             id_t, fecha, desc, tags = fila[0], fila[1], fila[2], fila[3]
             autor = fila[4] if len(fila) > 4 else ""
             if not autor: autor = usuarios.ETIQUETA_HISTORICO
-            prioridad = fila[6] if len(fila) > 6 else "Media"
             # LIMPIEZA VISUAL (FOTO Y REF)
             desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
             desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
@@ -4148,12 +4139,6 @@ class MaintenanceApp(QMainWindow):
             item_t = QTableWidgetItem(traducir_tags_bd(tags))
             item_t.setData(Qt.ItemDataRole.UserRole, tags)
             item_u = QTableWidgetItem(autor)
-            item_p = QTableWidgetItem(traducir_prioridad(prioridad))
-            colores_prioridad = {
-                "Crítica": QColor("#8e1616"), "Alta": QColor("#c0392b" if not oscuro else "#a94442"),
-            }
-            if prioridad in colores_prioridad:
-                item_p.setBackground(colores_prioridad[prioridad]); item_p.setForeground(QColor("#ffffff"))
 
             if color_bg:
                 item_f.setBackground(color_bg); item_d.setBackground(color_bg)
@@ -4164,8 +4149,6 @@ class MaintenanceApp(QMainWindow):
             table.setItem(r, 0, item_f); table.setItem(r, 1, item_d); table.setItem(r, 2, item_t)
             if table.columnCount() > 3:
                 table.setItem(r, 3, item_u)
-            if table.columnCount() > 4:
-                table.setItem(r, 4, item_p)
 
     def search(self):
         texto = self.s_in.text().strip(); fecha = None
@@ -4658,17 +4641,13 @@ class MaintenanceApp(QMainWindow):
         l.addLayout(h_tags)
         self.itag = QLineEdit(); self.itag.setPlaceholderText(t("ph_otras_etiquetas")); l.addWidget(self.itag)
 
-        fila_prioridad_entry = QHBoxLayout()
-        fila_prioridad_entry.addWidget(QLabel(tt("lbl_prioridad", "Prioridad") + ":"))
-        self.combo_prioridad_entry = QComboBox()
-        self._llenar_combo_prioridad(self.combo_prioridad_entry)
-        fila_prioridad_entry.addWidget(self.combo_prioridad_entry, 1)
-        fila_prioridad_entry.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
+        fila_horas_paro_entry = QHBoxLayout()
+        fila_horas_paro_entry.addWidget(QLabel(tt("lbl_horas_paro", "Horas de parada (si es avería)") + ":"))
         self.spin_horas_paro_entry = QDoubleSpinBox(); self.spin_horas_paro_entry.setRange(0, 999); self.spin_horas_paro_entry.setDecimals(1)
         self.spin_horas_paro_entry.setSuffix(" h"); self.spin_horas_paro_entry.setEnabled(False)
         self.chk_averia.toggled.connect(self.spin_horas_paro_entry.setEnabled)
-        fila_prioridad_entry.addWidget(self.spin_horas_paro_entry)
-        l.addLayout(fila_prioridad_entry)
+        fila_horas_paro_entry.addWidget(self.spin_horas_paro_entry)
+        l.addLayout(fila_horas_paro_entry)
 
         b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
     def borrar_foto_entry(self):
@@ -4719,14 +4698,13 @@ class MaintenanceApp(QMainWindow):
         manuales = self.itag.text().strip()
         if manuales: lista_tags.append(manuales)
         maquina_id = self.combo_maquina_entry.currentData()
-        prioridad = self.combo_prioridad_entry.currentData()
         horas_paro = self.spin_horas_paro_entry.value() if self.chk_averia.isChecked() else None
-        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, prioridad=prioridad, horas_paro=horas_paro):
+        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, horas_paro=horas_paro):
             self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)
             self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False); self.chk_averia.setChecked(False)
-            self.combo_maquina_entry.setCurrentIndex(0); self.combo_prioridad_entry.setCurrentIndex(1)
+            self.combo_maquina_entry.setCurrentIndex(0)
             self.borrar_foto_entry(); self.borrar_foto_entry_d(); self.refresh_all(); self.setup_autocompletado()
     def setup_autocompletado(self):
         d = self.db.obtener_todas_las_descripciones()
@@ -5986,8 +5964,8 @@ class MaintenanceApp(QMainWindow):
         if hasattr(self, 'arbol_maquinas'):
             self.refrescar_arbol_maquinas()
     def setup_table(self, tabla_widget):
-        tabla_widget.setColumnCount(5); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "PRIORIDAD")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
-        tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tabla_widget.setColumnCount(4); tabla_widget.setHorizontalHeaderLabels([t("hdr_fecha"), t("hdr_descripcion"), t("hdr_tags"), tt("hdr_realizado_por", "Realizado por")]); tabla_widget.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch); # La columna del técnico se ajusta al contenido (cabecera o nombre, lo que sea más ancho)
+        tabla_widget.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents); tabla_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); tabla_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); tabla_widget.setAlternatingRowColors(True); tabla_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     def configurar_deseleccion(self, widget):
         clase_base = type(widget)
         def click_inteligente(event):
@@ -6023,12 +6001,11 @@ class MaintenanceApp(QMainWindow):
             uid = d[4] if len(d) > 4 else None
             unombre = d[5] if len(d) > 5 else ""
             maquina_id = d[6] if len(d) > 6 else None
-            prioridad = d[7] if len(d) > 7 else "Media"
-            horas_paro = d[8] if len(d) > 8 else None
-            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id, prioridad=prioridad, horas_paro=horas_paro)
+            horas_paro = d[7] if len(d) > 7 else None
+            dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id, horas_paro=horas_paro)
             if dlg.exec():
-                fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nueva_prioridad, nuevas_horas_paro = dlg.get_data()
-                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nueva_prioridad, nuevas_horas_paro)
+                fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro = dlg.get_data()
+                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro)
                 self.refresh_all()
                 if hasattr(self, 'arbol_maquinas'):
                     self.refrescar_arbol_maquinas()
@@ -6123,7 +6100,6 @@ class MaintenanceApp(QMainWindow):
         uid_original = d[4] if len(d) > 4 else None
         unombre_original = d[5] if len(d) > 5 else ""
         maquina_id = d[6] if len(d) > 6 else None
-        prioridad_original = d[7] if len(d) > 7 else "Media"
 
         texto_aviso = tt("msg_confirmar_revertir_pendiente",
             "El trabajo volverá a la pestaña Pendientes y desaparecerá del historial. ¿Continuar?")
@@ -6160,7 +6136,7 @@ class MaintenanceApp(QMainWindow):
         titulo = lineas[0].strip()
         detalles = "\n".join(lineas[1:]).strip()
 
-        if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None, prioridad_original):
+        if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None):
             QMessageBox.critical(self, t("aviso"), tt("msg_error_revertir", "No se ha podido revertir el trabajo a pendiente."))
             return
 
@@ -6421,7 +6397,6 @@ class MaintenanceApp(QMainWindow):
         id_pendiente = item.data(Qt.ItemDataRole.UserRole)
         titulo = item.data(Qt.ItemDataRole.UserRole + 1)
         detalles_originales = item.data(Qt.ItemDataRole.UserRole + 2)
-        prioridad_pendiente = item.data(Qt.ItemDataRole.UserRole + 4) or "Media"
 
         # Usamos la nueva clase de diálogo
         dialogo = CompleteDialog(self, titulo, detalles_originales)
@@ -6441,7 +6416,7 @@ class MaintenanceApp(QMainWindow):
             if foto_nueva: desc_final += f"\n[FOTO: {os.path.basename(foto_nueva)}]"
 
             # Guardar en Historial y borrar de Pendientes
-            if self.db.agregar_tarea(fecha, desc_final, tags, prioridad=prioridad_pendiente):
+            if self.db.agregar_tarea(fecha, desc_final, tags):
                 self.db.borrar_pendiente(id_pendiente)
                 self.refresh_todos()
                 self.refresh_all()
@@ -6569,7 +6544,7 @@ class MaintenanceApp(QMainWindow):
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
-                writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")])
+                writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD al formato corto del idioma activo
                     fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
@@ -6589,8 +6564,7 @@ class MaintenanceApp(QMainWindow):
 
                     autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
                     maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
-                    prioridad_txt = traducir_prioridad(tarea[6]) if len(tarea) > 6 else traducir_prioridad("Media")
-                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, prioridad_txt, foto_antes, foto_despues])
+                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -6615,7 +6589,7 @@ class MaintenanceApp(QMainWindow):
             center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
 
             # Nuevos encabezados
-            headers = [tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_prioridad", "Prioridad"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")]
+            headers = [tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")]
             for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
 
             # Ajuste de anchura de columnas
@@ -6624,9 +6598,8 @@ class MaintenanceApp(QMainWindow):
             worksheet.set_column('C:C', 60) # Descripción ancha
             worksheet.set_column('D:D', 25) # Máquina
             worksheet.set_column('E:E', 20) # Realizado por
-            worksheet.set_column('F:F', 12) # Prioridad
-            worksheet.set_column('G:G', 25) # Foto Antes
-            worksheet.set_column('H:H', 25) # Foto Después
+            worksheet.set_column('F:F', 25) # Foto Antes
+            worksheet.set_column('G:G', 25) # Foto Después
 
             # --- FUNCIÓN INTERNA PARA CALCULAR LA ESCALA PERFECTA ---
             def obtener_opciones_img(ruta_img):
@@ -6671,9 +6644,6 @@ class MaintenanceApp(QMainWindow):
                 autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
                 worksheet.write(row, 4, autor, center)
 
-                prioridad_txt = traducir_prioridad(tarea[6]) if len(tarea) > 6 else traducir_prioridad("Media")
-                worksheet.write(row, 5, prioridad_txt, center)
-
                 # Incrustar FOTO ANTES
                 m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
                 if m:
@@ -6682,12 +6652,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta):
                         opc = obtener_opciones_img(ruta)
                         if opc:
-                            try: worksheet.insert_image(row, 6, ruta, opc)
-                            except: worksheet.write(row, 6, "Err Img", center)
+                            try: worksheet.insert_image(row, 5, ruta, opc)
+                            except: worksheet.write(row, 5, "Err Img", center)
                         else:
-                            worksheet.write(row, 6, "Err Img", center)
-                    else: worksheet.write(row, 6, "No File", center)
-                else: worksheet.write(row, 6, "-", center)
+                            worksheet.write(row, 5, "Err Img", center)
+                    else: worksheet.write(row, 5, "No File", center)
+                else: worksheet.write(row, 5, "-", center)
 
                 # Incrustar FOTO DESPUÉS
                 m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
@@ -6697,12 +6667,12 @@ class MaintenanceApp(QMainWindow):
                     if os.path.exists(ruta_d):
                         opc = obtener_opciones_img(ruta_d)
                         if opc:
-                            try: worksheet.insert_image(row, 7, ruta_d, opc)
-                            except: worksheet.write(row, 7, "Err Img", center)
+                            try: worksheet.insert_image(row, 6, ruta_d, opc)
+                            except: worksheet.write(row, 6, "Err Img", center)
                         else:
-                            worksheet.write(row, 7, "Err Img", center)
-                    else: worksheet.write(row, 7, "No File", center)
-                else: worksheet.write(row, 7, "-", center)
+                            worksheet.write(row, 6, "Err Img", center)
+                    else: worksheet.write(row, 6, "No File", center)
+                else: worksheet.write(row, 6, "-", center)
 
                 worksheet.set_row(row, 90) # Altura de fila fija
                 row += 1
@@ -6841,7 +6811,7 @@ class MaintenanceApp(QMainWindow):
             lista_trabajos = []
 
             if modo == "RANGO" and inicio and fin:
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
                           "WHERE fecha BETWEEN ? AND ?" + cond_u + " ORDER BY fecha DESC, id DESC",
                           [inicio, fin] + param_u)
                 datos = c.fetchall()
@@ -6853,7 +6823,7 @@ class MaintenanceApp(QMainWindow):
                 lista_trabajos.append({"archivo": archivo, "titulo": titulo_pdf, "datos": datos, "rango": (inicio, fin)})
 
             elif modo == "TODO":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
@@ -6863,7 +6833,7 @@ class MaintenanceApp(QMainWindow):
                 lista_trabajos.append({"archivo": archivo, "titulo": t("titulo_reporte_historico") + sufijo_u, "datos": datos, "rango": None})
 
             elif modo == "MESES":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, COALESCE(prioridad,'Media') FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return

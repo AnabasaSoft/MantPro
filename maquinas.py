@@ -74,8 +74,6 @@ def inicializar():
     if "maquina_id" not in cols:
         cur.execute("ALTER TABLE tareas ADD COLUMN maquina_id INTEGER")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_tareas_maquina ON tareas(maquina_id)")
-    if "prioridad" not in cols:
-        cur.execute("ALTER TABLE tareas ADD COLUMN prioridad TEXT DEFAULT 'Media'")
     if "horas_paro" not in cols:
         cur.execute("ALTER TABLE tareas ADD COLUMN horas_paro REAL")
 

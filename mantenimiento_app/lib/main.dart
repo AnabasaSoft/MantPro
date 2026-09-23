@@ -455,7 +455,7 @@ Future<void> evaluarNotificacionesAvisos() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás.
-const String kAppVersion = '3.9.8';
+const String kAppVersion = '3.9.9';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -2482,6 +2482,11 @@ class _FormScreenState extends State<FormScreen> {
   /// para modificarla en uno ya existente hace falta ser admin (igual que en el PC).
   bool get _muestraEspecialidad => widget.esCrearPendiente || widget.pendientePC != null;
   bool get _puedeEditarEspecialidad => widget.esCrearPendiente || AuthService.esAdmin;
+  /// Igual que la especialidad: la prioridad solo sirve para decidir qué
+  /// pendiente atacar primero, así que solo tiene sentido al crear/gestionar
+  /// un pendiente. Un trabajo nuevo directo (o su edición antes de
+  /// sincronizar) no la usa ni la envía al PC.
+  bool get _muestraPrioridad => widget.esCrearPendiente || widget.pendientePC != null;
   Future<void> _anadirMaterial() async {
     if (widget.urlPC == null) return;
     final resultado = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => _DialogoSeleccionarMaterial(urlPC: widget.urlPC!));
@@ -2517,14 +2522,17 @@ class _FormScreenState extends State<FormScreen> {
         Wrap(spacing: 8, children: [FilterChip(label: Text('🚨 ${t("tag_urgente")}'), selected: _u, onSelected: (v)=>setState(()=>_u=v)), FilterChip(label: Text('⚡ ${t("tag_electrico")}'), selected: _e, onSelected: (v)=>setState(()=>_e=v)), FilterChip(label: Text('⚙️ ${t("tag_mecanico")}'), selected: _m, onSelected: (v)=>setState(()=>_m=v)), FilterChip(label: Text('🛡️ ${t("tag_preventivo")}'), selected: _p, onSelected: (v)=>setState(()=>_p=v))]),
         TextField(controller: _tag, decoration: InputDecoration(labelText: t("lbl_tags_extra"))), const SizedBox(height: 15),
         if (!widget.esHistorial) ...[
-          DropdownButtonFormField<String>(
-            value: _prioridad,
-            decoration: InputDecoration(labelText: t("lbl_prioridad")),
-            items: const ['Baja', 'Media', 'Alta', 'Crítica']
-                .map((p) => DropdownMenuItem(value: p, child: Text(traducirPrioridad(p))))
-                .toList(),
-            onChanged: (v) => setState(() => _prioridad = v ?? 'Media'),
-          ),
+          if (_muestraPrioridad) ...[
+            DropdownButtonFormField<String>(
+              value: _prioridad,
+              decoration: InputDecoration(labelText: t("lbl_prioridad")),
+              items: const ['Baja', 'Media', 'Alta', 'Crítica']
+                  .map((p) => DropdownMenuItem(value: p, child: Text(traducirPrioridad(p))))
+                  .toList(),
+              onChanged: (v) => setState(() => _prioridad = v ?? 'Media'),
+            ),
+            const SizedBox(height: 15),
+          ],
           if (_muestraEspecialidad) ...[
             const SizedBox(height: 15),
             DropdownButtonFormField<int?>(
