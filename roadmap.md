@@ -42,16 +42,16 @@ que el hilo del servidor Flask podía chocar con el PC escribiendo mucho
 seguido ("database is locked"). Corregido: ambos usan ahora
 `sqlite3.connect(..., timeout=20)`, igual que los otros dos módulos.
 
-## 5. `main.py`: conexiones SQLite sueltas sin helper centralizado
+## 5. ~~`main.py`: conexiones SQLite sueltas sin helper centralizado~~ (RESUELTO)
 
-Dentro de `ServidorSincronizacion` (el hilo del servidor Flask) hay más de
+Dentro de `ServidorSincronizacion` (el hilo del servidor Flask) había más de
 una decena de `sqlite3.connect(self.db_path)` repartidos método a método,
 con timeouts inconsistentes (la mayoría sin timeout, es decir 5s por
-defecto; un par con `timeout=10`). Es precisamente el hilo que compite con
-la GUI por la base de datos, así que sería el candidato ideal para usar un
-único helper de conexión (tipo `_conn()` de `maquinas.py`/`almacen.py`) con
-`timeout=20`, en vez de repetir `sqlite3.connect`/try/except/close en cada
-método.
+defecto; un par con `timeout=10`). Era precisamente el hilo que compite con
+la GUI por la base de datos. Corregido: ahora todos pasan por
+`self._conn()`, que reutiliza el `get_db_connection()` ya existente en el
+módulo (`timeout=20` + modo WAL), en vez de repetir `sqlite3.connect` con
+timeouts distintos en cada método.
 
 ## 6. Gráficas dibujadas a mano con boilerplate repetido (prioridad baja)
 

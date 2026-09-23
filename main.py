@@ -766,6 +766,12 @@ class ServidorSincronizacion(QThread):
         self.server_port = 5000
         usuarios.configurar_db(db_path)
 
+        # Reutilizamos get_db_connection (timeout=20 + modo WAL) para que
+        # este hilo (servidor Flask para las apps móviles) no lance
+        # "database is locked" al chocar con la GUI, igual que ya se hacía
+        # en un par de rutas de esta misma clase.
+        self._conn = lambda: get_db_connection(self.db_path)
+
         # --- AUTENTICACIÓN POR TOKEN ---------------------------------------
         def _token_peticion():
             cabecera = request.headers.get('Authorization', '')
@@ -913,7 +919,7 @@ class ServidorSincronizacion(QThread):
         @requiere_token
         def api_get_pendientes():
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 u = g.usuario_mantpro
                 solo_mios = request.args.get('solo_mios', '') in ('1', 'true', 'True')
@@ -1023,8 +1029,7 @@ class ServidorSincronizacion(QThread):
                 if filename: detalles += f"\n[FOTO: {filename}]"
                 if filename_d: detalles += f"\n[FOTO_DESPUES: {filename_d}]"
 
-                # Timeout de 10s para esperar si la BD está ocupada
-                conn = sqlite3.connect(self.db_path, timeout=10)
+                conn = self._conn()
                 c = conn.cursor()
                 # Un pendiente creado desde el móvil queda asignado a quien lo crea
                 usuario = g.usuario_mantpro
@@ -1058,7 +1063,7 @@ class ServidorSincronizacion(QThread):
                 if filename_d:
                     detalles += f"\n[FOTO_DESPUES: {filename_d}]"
 
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 # Actualizamos título y detalles (y prioridad si el móvil la ha enviado)
                 if prioridad:
@@ -1079,7 +1084,7 @@ class ServidorSincronizacion(QThread):
             # (Mantener código original)
             try:
                 id_p = request.form.get('id')
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 c.execute('DELETE FROM pendientes WHERE id=?', (id_p,))
                 conn.commit()
@@ -1096,7 +1101,7 @@ class ServidorSincronizacion(QThread):
         @requiere_token
         def api_dashboard():
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 # 1. Contar pendientes
                 c.execute("SELECT COUNT(*) FROM pendientes")
@@ -1142,7 +1147,7 @@ class ServidorSincronizacion(QThread):
                 limit = max(1, min(limit, 200))
                 offset = page * limit
 
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
 
                 mes = request.args.get('mes', '')
@@ -1206,7 +1211,7 @@ class ServidorSincronizacion(QThread):
         @requiere_token
         def api_avisos():
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 u = g.usuario_mantpro
                 # Cada trabajador ve sus avisos asignados más los que todavía
@@ -1363,7 +1368,7 @@ class ServidorSincronizacion(QThread):
 
                 # 4. CONEXIÓN BASE DE DATOS
                 print("Intentando conectar a BD...")
-                conn = sqlite3.connect(self.db_path, timeout=10) # Timeout alto para evitar bloqueos
+                conn = self._conn()
                 c = conn.cursor()
 
                 # 5. ACTUALIZAR AVISO
@@ -1423,7 +1428,7 @@ class ServidorSincronizacion(QThread):
             # Versión ligera y SIN LIMIT, usada solo por la herramienta de "reenviar fotos"
             # del móvil para poder revisar TODO el histórico, no solo los últimos 50.
             try:
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 c.execute("SELECT id, descripcion FROM tareas ORDER BY fecha DESC, id DESC")
                 resultados = []
@@ -1448,7 +1453,7 @@ class ServidorSincronizacion(QThread):
                 desc_final = request.form.get('detalles') # Ya viene formateada desde el móvil (sin tags FOTO)
                 tags = request.form.get('tags')
 
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
 
                 # Recuperamos la descripción actual para no perder fotos que no se reenvían en esta edición
@@ -1504,7 +1509,7 @@ class ServidorSincronizacion(QThread):
                 if not filename:
                     return jsonify({"status": "error", "message": "No se recibió ningún archivo"}), 400
 
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 c.execute("SELECT descripcion FROM tareas WHERE id=?", (id_t,))
                 row = c.fetchone()
@@ -1539,7 +1544,7 @@ class ServidorSincronizacion(QThread):
             try:
                 id_aviso = request.form.get('id')
 
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
 
                 # 1. Obtener datos actuales del aviso
@@ -1582,7 +1587,7 @@ class ServidorSincronizacion(QThread):
                 usuario = g.usuario_mantpro
                 id_t = request.form.get('id')
 
-                conn = sqlite3.connect(self.db_path)
+                conn = self._conn()
                 c = conn.cursor()
                 c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE id=?", (id_t,))
                 d = c.fetchone()
