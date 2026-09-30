@@ -917,18 +917,32 @@ GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
 ## 🙏 Agradecimientos
 
-- **PyQt6** - Framework GUI multiplataforma
-- **Flutter** - SDK para desarrollo móvil
-- **ReportLab** - Generación de PDFs
-- **SQLite** - Base de datos embebida
-- **Flask** - Microframework web para el servidor de sincronización
+- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/): framework GUI multiplataforma para la app de escritorio
+- [Flutter](https://flutter.dev/): SDK para las apps móviles
+- [ReportLab](https://www.reportlab.com/): generación de informes en PDF
+- [SQLite](https://www.sqlite.org/): base de datos embebida
+- [Flask](https://flask.palletsprojects.com/): microframework web para el servidor de sincronización
+- La comunidad open source, por su apoyo y sus contribuciones
 
 ---
 
-<p align="center">
-  Hecho con ❤️ por AnabasaSoft
-</p>
+<div align="center">
 
-<p align="center">
-  <sub>Si este proyecto te ha sido útil, ¡dale una ⭐️!</sub>
-</p>
+<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
+
+**Desarrollado con ❤️ por [Anabasa Software](https://anabasasoft.github.io)**
+
+📧 Email: [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) • 🌐 Portafolio: [anabasasoft.github.io](https://anabasasoft.github.io)
+
+⭐ Si te gusta este proyecto, dale una estrella en GitHub
+
+</div>
+
+<div align="center">
+  <br/>
+  <p><code>>_ sudo buy-me-a-coffee --theme=dark --force</code></p>
+  <a href="https://www.buymeacoffee.com/danitxu" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-black.png" alt="Buy Me A Coffee" style="height: 50px !important;width: 180px !important; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;">
+  </a>
+  <br/>
+</div>
