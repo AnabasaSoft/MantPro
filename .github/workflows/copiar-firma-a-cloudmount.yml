@@ -1,0 +1,26 @@
+# WORKFLOW TEMPORAL: copia los secrets de firma GPG de este repo a CloudMount-Wizard,
+# para firmar sus paquetes con la misma clave de AnabasaSoft sin que nadie vea su valor.
+# Se lanza a mano una sola vez y después se borra junto con el secret TRANSFER_TOKEN.
+name: Copiar clave de firma a CloudMount (temporal)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  copiar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copiar GPG_KEY_ID y GPG_PRIVATE_KEY_BASE64
+        env:
+          GH_TOKEN: ${{ secrets.TRANSFER_TOKEN }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_PRIVATE_KEY_BASE64: ${{ secrets.GPG_PRIVATE_KEY_BASE64 }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Falta el secret TRANSFER_TOKEN en este repo"
+            exit 1
+          fi
+          # gh lee el valor por la entrada estándar: nunca aparece en el log
+          printf '%s' "$GPG_KEY_ID" | gh secret set GPG_KEY_ID -R AnabasaSoft/CloudMount-Wizard
+          printf '%s' "$GPG_PRIVATE_KEY_BASE64" | gh secret set GPG_PRIVATE_KEY_BASE64 -R AnabasaSoft/CloudMount-Wizard
+          gh secret list -R AnabasaSoft/CloudMount-Wizard
