@@ -240,7 +240,7 @@ Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la c
 
 3. Comprueba que la clave se ha importado correctamente:
    ```bash
-   rpm -qa gpg-pubkey* --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+   rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
    ```
 
 4. Verifica la firma del paquete descargado:
