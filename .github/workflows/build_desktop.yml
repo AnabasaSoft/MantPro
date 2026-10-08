@@ -29,11 +29,10 @@ jobs:
         pip install pyinstaller
         pip install PyQt6 reportlab requests flask qrcode xlsxwriter
 
-    - name: Generar EXE
-      run: |
-        pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=icono.png --add-data "idiomas;idiomas" main.py
-
-    - name: Build Windows Installer (Inno Setup)
+    # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
+    # nunca del valor que haya quedado escrito a mano en el código: así no
+    # hace falta correr bump_version.py antes de taguear un release.
+    - name: Preparar versión desde el tag
       shell: bash
       run: |
         TAG_NAME=${GITHUB_REF_NAME}
@@ -42,6 +41,16 @@ jobs:
         if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
           CLEAN_VERSION="0.0"
         fi
+        echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
+        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" main.py
+
+    - name: Generar EXE
+      run: |
+        pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=icono.png --add-data "idiomas;idiomas" main.py
+
+    - name: Build Windows Installer (Inno Setup)
+      shell: bash
+      run: |
         iscc //DMyAppVersion="$CLEAN_VERSION" mantpro.iss
 
     - name: Subir EXE (Artefacto)
@@ -94,6 +103,20 @@ jobs:
       run: |
         pip install pyinstaller
         pip install PyQt6 reportlab requests flask qrcode xlsxwriter
+
+    # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
+    # nunca del valor que haya quedado escrito a mano en el código: así no
+    # hace falta correr bump_version.py antes de taguear un release.
+    - name: Preparar versión desde el tag
+      shell: bash
+      run: |
+        TAG_NAME=${GITHUB_REF_NAME}
+        CLEAN_VERSION=${TAG_NAME#v}
+        if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
+          CLEAN_VERSION="0.0"
+        fi
+        echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
+        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" main.py
 
     # --- PASO 1: GENERAR BINARIO STANDALONE ---
     - name: Generar Binario Linux
@@ -155,12 +178,6 @@ jobs:
     # --- PASO 5: EMPAQUETAR DEB Y RPM ---
     - name: Crear paquetes DEB y RPM
       run: |
-        TAG_NAME=${GITHUB_REF_NAME}
-        CLEAN_VERSION=${TAG_NAME#v}
-        if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
-          CLEAN_VERSION="1.0"
-        fi
-
         # 1. Preparar una carpeta limpia con la estructura de Linux
         mkdir -p LinuxPkg/usr/bin
         mkdir -p LinuxPkg/usr/share/pixmaps
