@@ -33,6 +33,21 @@ jobs:
     - name: Instalar Dependencias Flutter
       run: flutter pub get
 
+    # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
+    # nunca del valor que haya quedado escrito a mano en el código: así no
+    # hace falta correr bump_version.py antes de taguear un release.
+    - name: Preparar versión desde el tag
+      run: |
+        TAG_NAME=${GITHUB_REF_NAME}
+        CLEAN_VERSION=${TAG_NAME#v}
+        if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
+          CLEAN_VERSION="0.0.0"
+        fi
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
+        BUILD_NUMBER=$(( ${MAJOR:-0} * 100 + ${MINOR:-0} * 10 + ${PATCH:-0} ))
+        sed -i "s/^version: .*/version: $CLEAN_VERSION+$BUILD_NUMBER/" pubspec.yaml
+        sed -i "s/const String kAppVersion = '.*';/const String kAppVersion = '$CLEAN_VERSION';/" lib/main.dart
+
     - name: Preparar firma de la APK
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -91,6 +106,21 @@ jobs:
 
     - name: Instalar Dependencias Flutter
       run: flutter pub get
+
+    # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
+    # nunca del valor que haya quedado escrito a mano en el código: así no
+    # hace falta correr bump_version.py antes de taguear un release.
+    - name: Preparar versión desde el tag
+      run: |
+        TAG_NAME=${GITHUB_REF_NAME}
+        CLEAN_VERSION=${TAG_NAME#v}
+        if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
+          CLEAN_VERSION="0.0.0"
+        fi
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
+        BUILD_NUMBER=$(( ${MAJOR:-0} * 100 + ${MINOR:-0} * 10 + ${PATCH:-0} ))
+        sed -i "s/^version: .*/version: $CLEAN_VERSION+$BUILD_NUMBER/" pubspec.yaml
+        sed -i "s/const String kAppVersion = '.*';/const String kAppVersion = '$CLEAN_VERSION';/" lib/main.dart
 
     - name: Preparar firma de la APK
       env:
