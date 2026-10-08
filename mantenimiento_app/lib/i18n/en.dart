@@ -43,6 +43,7 @@ const Map<String, String> traduccionesEn = {
         "estado_ok": "OK",
         "estado_pendiente": "PENDING",
         "estado_futuro": "Future",
+        "estado_atrasado": "Overdue",
         "estado_listo_subir": "READY (Upload)",
         "estado_pendiente_subir": "PENDING (Upload)",
         "notif_titulo": "⚠️ Preventive Maintenance",
