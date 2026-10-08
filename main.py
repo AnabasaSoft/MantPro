@@ -1246,67 +1246,71 @@ class ServidorSincronizacion(QThread):
                     if not freq: freq = "Anual"
                     freq = idiomas.normalizar_frecuencia(freq)
 
-                    # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
-                    # configurada, porque un margen de varios días haría que el de ayer
-                    # siguiera contando como "hecho" hoy.
+                    # Un aviso "Diario" no necesita ventana: un margen de varios días
+                    # daría un "rango" confuso para un recordatorio de todos los días.
                     dur_ventana = 0 if freq == "Diario" else dur
 
-                    # Calcular cuándo toca (Misma lógica matemática de antes)
-                    ocurrencia = fi
-                    while (ocurrencia + timedelta(days=dur_ventana)) < hoy:
-                        if freq == "Diario": ocurrencia += timedelta(days=1)
-                        elif freq == "Semanal": ocurrencia += timedelta(days=7)
+                    def _avanzar(fecha):
+                        if freq == "Diario": return fecha + timedelta(days=1)
+                        elif freq == "Semanal": return fecha + timedelta(days=7)
                         elif freq == "Mensual":
-                            ny = ocurrencia.year + (ocurrencia.month // 12)
-                            nm = (ocurrencia.month % 12) + 1
-                            try: ocurrencia = ocurrencia.replace(year=ny, month=nm)
-                            except: ocurrencia = ocurrencia.replace(year=ny, month=nm, day=28)
+                            ny = fecha.year + (fecha.month // 12)
+                            nm = (fecha.month % 12) + 1
+                            try: return fecha.replace(year=ny, month=nm)
+                            except: return fecha.replace(year=ny, month=nm, day=28)
                         elif freq == "Trimestral":
-                             m_add = ocurrencia.month + 3
-                             ny = ocurrencia.year + (m_add - 1) // 12
+                             m_add = fecha.month + 3
+                             ny = fecha.year + (m_add - 1) // 12
                              nm = (m_add - 1) % 12 + 1
-                             try: ocurrencia = ocurrencia.replace(year=ny, month=nm)
-                             except: ocurrencia = ocurrencia.replace(year=ny, month=nm, day=28)
+                             try: return fecha.replace(year=ny, month=nm)
+                             except: return fecha.replace(year=ny, month=nm, day=28)
                         elif freq == "Semestral":
-                             m_add = ocurrencia.month + 6
-                             ny = ocurrencia.year + (m_add - 1) // 12
+                             m_add = fecha.month + 6
+                             ny = fecha.year + (m_add - 1) // 12
                              nm = (m_add - 1) % 12 + 1
-                             try: ocurrencia = ocurrencia.replace(year=ny, month=nm)
-                             except: ocurrencia = ocurrencia.replace(year=ny, month=nm, day=28)
-                        elif freq == "Anual": ocurrencia = ocurrencia.replace(year=ocurrencia.year + 1)
-                        else: break
+                             try: return fecha.replace(year=ny, month=nm)
+                             except: return fecha.replace(year=ny, month=nm, day=28)
+                        elif freq == "Anual": return fecha.replace(year=fecha.year + 1)
+                        else: return fecha
+
+                    # La fecha en que toca la próxima vez se cuenta desde la ÚLTIMA
+                    # VEZ QUE SE HIZO DE VERDAD (ult), no desde el calendario fijo
+                    # original. Así, si te retrasas, el aviso se queda en
+                    # "Pendiente" (no salta al ciclo siguiente sin más) hasta que
+                    # lo completas, y el siguiente se cuenta desde ese día real.
+                    if ult:
+                        try:
+                            fecha_ult = datetime.strptime(ult, "%Y-%m-%d").date()
+                            ocurrencia = _avanzar(fecha_ult)
+                        except: ocurrencia = fi
+                    else:
+                        ocurrencia = fi
 
                     fin_ocurrencia = ocurrencia + timedelta(days=dur_ventana)
 
-                    # --- CORRECCIÓN DE ESTADO ---
+                    # Completado "para hoy" solo si se hizo justo hoy: ahora esa
+                    # fecha decide cuándo toca el siguiente, no si el ciclo
+                    # actual ya está hecho.
                     estado = "FUTURO"
                     color_code = "blue"
+                    es_completado = (ult == hoy.strftime("%Y-%m-%d"))
+                    es_activo = hoy >= ocurrencia
+                    # Distinguimos "toca ahora" (dentro del margen configurado)
+                    # de "se ha pasado ese margen sin hacerlo" (atrasado).
+                    es_atrasado = hoy > fin_ocurrencia
 
-                    es_activo = (ocurrencia <= hoy <= fin_ocurrencia)
-
-                    # Lógica corregida: Si la última completada (ult) es posterior o igual a la fecha de ocurrencia, está OK.
-                    # Antes solo miraba si era EXACTAMENTE igual.
-                    es_completado = False
-                    if ult:
-                        fecha_ult = datetime.strptime(ult, "%Y-%m-%d").date()
-                        if fecha_ult >= ocurrencia:
-                            es_completado = True
-
-                    if es_activo:
-                        if es_completado:
-                            estado = "OK"
-                            color_code = "green"
-                        else:
-                            estado = "PENDIENTE"
-                            color_code = "red"
-                    elif hoy < ocurrencia:
+                    if es_completado:
+                        estado = "OK"
+                        color_code = "green"
+                    elif es_atrasado:
+                        estado = "ATRASADO"
+                        color_code = "red"
+                    elif es_activo:
+                        estado = "PENDIENTE"
+                        color_code = "orange"
+                    else:
                         estado = "FUTURO"
                         color_code = "blue"
-
-                    # Caso especial: Si ya lo completé hoy (aunque fuera futuro), que salga verde
-                    if ult == hoy.strftime("%Y-%m-%d"):
-                         estado = "OK"
-                         color_code = "green"
 
                     lista_procesada.append({
                         "id": aid,
@@ -4047,25 +4051,41 @@ class MaintenanceApp(QMainWindow):
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
             freq = idiomas.normalizar_frecuencia(freq)
-            # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
-            # configurada, porque un margen de varios días haría que el de ayer
-            # siguiera contando como "hecho" hoy.
+            # Un aviso "Diario" no necesita ventana: un margen de varios días
+            # daría un "rango" confuso para un recordatorio de todos los días.
             dur_ventana = 0 if freq == "Diario" else dur
-            ocurrencia = fi
-            while ocurrencia.addDays(dur_ventana) < sd:
-                if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
-                elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
-                elif freq == "Mensual": ocurrencia = ocurrencia.addMonths(1)
-                elif freq == "Trimestral": ocurrencia = ocurrencia.addMonths(3)
-                elif freq == "Semestral": ocurrencia = ocurrencia.addMonths(6)
-                elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
-                else: break
+
+            def _avanzar_cal(fecha):
+                if freq == "Diario": return fecha.addDays(1)
+                elif freq == "Semanal": return fecha.addDays(7)
+                elif freq == "Mensual": return fecha.addMonths(1)
+                elif freq == "Trimestral": return fecha.addMonths(3)
+                elif freq == "Semestral": return fecha.addMonths(6)
+                elif freq == "Anual": return fecha.addYears(1)
+                else: return fecha
+
+            # Misma lógica que en refresh_avisos: la próxima fecha se cuenta
+            # desde la última vez que se completó de verdad, no desde el
+            # calendario fijo, así que un aviso atrasado se sigue mostrando
+            # en cualquier día desde que toca en adelante (no solo en su
+            # ventana de margen original).
+            if ult:
+                fecha_ult = QDate.fromString(ult, "yyyy-MM-dd")
+                ocurrencia = _avanzar_cal(fecha_ult) if fecha_ult.isValid() else fi
+            else:
+                ocurrencia = fi
             ff = ocurrencia.addDays(dur_ventana)
-            if ocurrencia <= sd <= ff:
-                es_completado = (ult == ocurrencia.toString("yyyy-MM-dd"))
-                color_bg = "#27ae60" if es_completado else "#e74c3c"
-                estado_txt = f"[{t('estado_ok')}]" if es_completado else f"[{t('estado_pendiente')}]"
-                it = QListWidgetItem(f"⚠️ AVISO: {tit} {estado_txt}")
+
+            if ult and sd.toString("yyyy-MM-dd") == ult:
+                # El día exacto en que se completó: feedback visual en verde.
+                it = QListWidgetItem(f"⚠️ AVISO: {tit} [{t('estado_ok')}]")
+                it.setBackground(QColor("#27ae60")); it.setForeground(Qt.GlobalColor.white)
+                self.task_list.addItem(it)
+            elif sd >= ocurrencia:
+                atrasado = sd > ff
+                color_bg = "#cb4335" if atrasado else "#e67e22"
+                clave_estado = "estado_atrasado" if atrasado else "estado_pendiente"
+                it = QListWidgetItem(f"⚠️ AVISO: {tit} [{t(clave_estado)}]")
                 it.setBackground(QColor(color_bg)); it.setForeground(Qt.GlobalColor.white)
                 self.task_list.addItem(it)
 
@@ -4803,56 +4823,61 @@ class MaintenanceApp(QMainWindow):
             freq = idiomas.normalizar_frecuencia(freq)
 
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
-            ocurrencia = fi
 
-            # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
-            # configurada, porque un margen de varios días haría que el de ayer
-            # siguiera contando como "hecho" hoy.
+            # Un aviso "Diario" no necesita ventana: un margen de varios días
+            # daría un "rango" confuso para un recordatorio que es de todos
+            # los días.
             dur_ventana = 0 if freq == "Diario" else dur
 
-            # Avanzamos la fecha hasta el ciclo actual
-            while ocurrencia.addDays(dur_ventana) < hoy:
-                if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
-                elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
-                elif freq == "Mensual": ocurrencia = ocurrencia.addMonths(1)
-                elif freq == "Trimestral": ocurrencia = ocurrencia.addMonths(3)
-                elif freq == "Semestral": ocurrencia = ocurrencia.addMonths(6)
-                elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
-                else: break
+            def _avanzar(fecha):
+                if freq == "Diario": return fecha.addDays(1)
+                elif freq == "Semanal": return fecha.addDays(7)
+                elif freq == "Mensual": return fecha.addMonths(1)
+                elif freq == "Trimestral": return fecha.addMonths(3)
+                elif freq == "Semestral": return fecha.addMonths(6)
+                elif freq == "Anual": return fecha.addYears(1)
+                else: return fecha
+
+            # La fecha en que toca la próxima vez se cuenta desde la ÚLTIMA VEZ
+            # QUE SE HIZO DE VERDAD (ult), no desde el calendario fijo original.
+            # Así, si te retrasas, el aviso se queda en "Pendiente" (no salta al
+            # ciclo siguiente sin más) hasta que lo completas, y en cuanto lo
+            # haces, el siguiente se cuenta a partir de ese día real.
+            if ult:
+                fecha_ult = QDate.fromString(ult, "yyyy-MM-dd")
+                ocurrencia = _avanzar(fecha_ult) if fecha_ult.isValid() else fi
+            else:
+                ocurrencia = fi
 
             fin_ocurrencia = ocurrencia.addDays(dur_ventana)
-
-            # --- CORRECCIÓN CLAVE: RANGO FLEXIBLE ---
             s_inicio = ocurrencia.toString("yyyy-MM-dd")
-            s_fin = fin_ocurrencia.toString("yyyy-MM-dd")
 
-            es_activo = (ocurrencia <= hoy <= fin_ocurrencia)
-            completado = False
+            # Completado "para hoy" solo si se hizo justo hoy: evita que un
+            # aviso quede marcado en verde permanentemente por una fecha
+            # antigua, ya que ahora esa fecha es la que decide cuándo toca el
+            # siguiente, no si el ciclo actual está "hecho".
+            completado = (ult == hoy.toString("yyyy-MM-dd"))
+            es_activo = hoy >= ocurrencia
+            # Distinguimos "toca ahora" (dentro del margen configurado) de
+            # "se ha pasado ese margen sin hacerlo" (atrasado).
+            es_atrasado = hoy > fin_ocurrencia
 
-            # Si hay fecha de última completada (ult), comprobamos si cae DENTRO del rango
-            # Antes comprobábamos si era EXACTAMENTE igual al inicio (ult == s_inicio)
-            if ult:
-                if ult >= s_inicio and ult <= s_fin:
-                    completado = True
-
-            # Colores de estado: azul=futuro, rojo=pendiente, verde=realizado
-            color = QColor("#2e86c1")  # Azul (futuro)
-            estado_txt = t("estado_futuro")
-            prioridad = 1  # Futuro
-
-            if es_activo:
-                if completado:
-                    color = QColor("#27ae60") # Verde
-                    estado_txt = t("estado_ok")
-                    prioridad = 2
-                else:
-                    color = QColor("#cb4335") # Rojo (un poco más oscuro)
-                    estado_txt = t("estado_pendiente")
-                    prioridad = 0  # Pendiente/sin hacer: va primero
-            elif completado:
-                 color = QColor("#27ae60")
-                 estado_txt = t("estado_ok")
-                 prioridad = 2
+            if completado:
+                color = QColor("#27ae60") # Verde
+                estado_txt = t("estado_ok")
+                prioridad = 3
+            elif es_atrasado:
+                color = QColor("#cb4335") # Rojo (atrasado)
+                estado_txt = t("estado_atrasado")
+                prioridad = 0  # Atrasado: lo más urgente, va primero
+            elif es_activo:
+                color = QColor("#e67e22") # Naranja (toca ahora, dentro del margen)
+                estado_txt = t("estado_pendiente")
+                prioridad = 1
+            else:
+                color = QColor("#2e86c1") # Azul (futuro)
+                estado_txt = t("estado_futuro")
+                prioridad = 2
 
             filas_calculadas.append({
                 "aid": aid, "tit": tit, "freq": freq, "ocurrencia": ocurrencia,
@@ -4880,7 +4905,7 @@ class MaintenanceApp(QMainWindow):
             chk = QCheckBox()
             chk.setChecked(completado)
             # Al marcar manual en PC, seguimos usando el inicio para mantener el orden
-            chk.toggled.connect(lambda k, x=aid, d=s_inicio, t=tit: self.tog_aviso(x, d, k, t))
+            chk.toggled.connect(lambda k, x=aid, t=tit: self.tog_aviso(x, k, t))
             chk.setEnabled(es_activo or completado)
             cl.addWidget(chk)
             self.table_avisos.setCellWidget(r, 0, cw)
@@ -4902,25 +4927,35 @@ class MaintenanceApp(QMainWindow):
             texto_asignado = asignado_nombre if asignado_nombre else tt("lbl_sin_asignar", "Sin asignar")
             self.table_avisos.setItem(r, 5, QTableWidgetItem(texto_asignado))
 
-    def tog_aviso(self, id_aviso, fecha_ocurrencia, estado, titulo):
-        # Actualizar fecha última completada
-        self.db.marcar_aviso_completado(id_aviso, fecha_ocurrencia, estado)
-
+    def tog_aviso(self, id_aviso, estado, titulo):
         desc_historial = f"Mantenimiento Preventivo: {titulo}"
 
         if estado:
-            # MARCADO -> Añadir al historial
+            # MARCADO -> se completa con la fecha real de HOY (no la fecha que
+            # tocaba): así el siguiente ciclo se cuenta a partir de cuándo se
+            # ha hecho el trabajo de verdad, no de cuándo estaba programado.
+            hoy = QDate.currentDate().toString("yyyy-MM-dd")
+            self.db.marcar_aviso_completado(id_aviso, hoy, True)
             tags = "Preventivo, Aviso Recurrente"
-            self.db.agregar_tarea(fecha_ocurrencia, desc_historial, tags)
+            self.db.agregar_tarea(hoy, desc_historial, tags)
             self.statusBar().showMessage(t("msg_guardado_historial").format(titulo=titulo), 3000)
-            self.statusBar().showMessage(f"🗑️ Eliminado del historial: {titulo}", 3000)
         else:
-            # DESMARCADO -> Borrar del historial
+            # DESMARCADO -> averiguamos qué fecha tenía registrada para borrar
+            # justo esa entrada del historial, y restauramos como "última
+            # completada" la vez anterior a esa (si la hay) en vez de dejarlo
+            # siempre en "nunca", igual que ya hace la API para el móvil.
+            avisos = self.db.obtener_avisos()
+            datos = next((a for a in avisos if a[0] == id_aviso), None)
+            fecha_actual = datos[5] if datos else None
             try:
                 with get_db_connection(self.db.db_name) as conn:
                     c = conn.cursor()
-                    c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_ocurrencia, desc_historial))
+                    if fecha_actual:
+                        c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_actual, desc_historial))
+                    c.execute("SELECT MAX(fecha) FROM tareas WHERE descripcion=?", (desc_historial,))
+                    prev_fecha = c.fetchone()[0]
                     conn.commit()
+                self.db.marcar_aviso_completado(id_aviso, prev_fecha, prev_fecha is not None)
                 self.statusBar().showMessage(t("msg_eliminado_historial").format(titulo=titulo), 3000)
             except Exception as e:
                 print(f"Error borrando historial: {e}")

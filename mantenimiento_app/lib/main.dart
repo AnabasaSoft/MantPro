@@ -832,13 +832,14 @@ class AvisoPC {
   factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0);
 }
 
-/// Prioridad para ordenar avisos con los pendientes/sin hacer primero:
-/// 0 = pendiente (rojo), 1 = futuro (azul), 2 = ya realizado (verde).
+/// Prioridad para ordenar avisos con los más urgentes primero:
+/// 0 = atrasado (rojo), 1 = pendiente (naranja), 2 = futuro (azul), 3 = ya realizado (verde).
 int _prioridadAviso(AvisoPC a) {
   switch (a.estado) {
-    case "PENDIENTE": return 0;
-    case "FUTURO": return 1;
-    default: return 2;
+    case "ATRASADO": return 0;
+    case "PENDIENTE": return 1;
+    case "FUTURO": return 2;
+    default: return 3;
   }
 }
 
@@ -880,13 +881,12 @@ DateTime _sumarMeses(DateTime d, int meses) {
 /// el PC.
 void recalcularAviso(AvisoPC a, DateTime hoy) {
   if (a.fechaInicioRaw == null || a.fechaInicioRaw!.isEmpty) return;
-  DateTime ocurrencia;
-  try { ocurrencia = _parseFechaYMD(a.fechaInicioRaw!); } catch (_) { return; }
+  DateTime fechaInicio;
+  try { fechaInicio = _parseFechaYMD(a.fechaInicioRaw!); } catch (_) { return; }
   final hoyDia = DateTime(hoy.year, hoy.month, hoy.day);
 
-  // Un aviso "Diario" se resetea cada día: no le aplicamos la duración
-  // configurada, porque un margen de varios días haría que el de ayer
-  // siguiera contando como "hecho" hoy.
+  // Un aviso "Diario" no necesita ventana: un margen de varios días daría un
+  // "rango" confuso para un recordatorio de todos los días.
   final durVentana = a.frecuencia == "Diario" ? 0 : a.duracionDias;
 
   DateTime avanzar(DateTime d) {
@@ -901,27 +901,32 @@ void recalcularAviso(AvisoPC a, DateTime hoy) {
     }
   }
 
-  int salvaguarda = 0;
-  while (ocurrencia.add(Duration(days: durVentana)).isBefore(hoyDia)) {
-    final siguiente = avanzar(ocurrencia);
-    if (siguiente == ocurrencia) break;
-    ocurrencia = siguiente;
-    if (++salvaguarda > 5000) break;
+  // La fecha en que toca la próxima vez se cuenta desde la ÚLTIMA VEZ QUE SE
+  // HIZO DE VERDAD (ultimaCompletada), no desde el calendario fijo original.
+  // Así, si te retrasas, el aviso se queda en "Pendiente" (no salta al ciclo
+  // siguiente sin más) hasta que lo completas, y el siguiente se cuenta a
+  // partir de ese día real. Misma lógica que en el PC.
+  final ult = a.ultimaCompletada;
+  DateTime ocurrencia;
+  if (ult != null && ult.isNotEmpty) {
+    try { ocurrencia = avanzar(_parseFechaYMD(ult)); } catch (_) { ocurrencia = fechaInicio; }
+  } else {
+    ocurrencia = fechaInicio;
   }
   final finOcurrencia = ocurrencia.add(Duration(days: durVentana));
 
-  final activo = !ocurrencia.isAfter(hoyDia) && !finOcurrencia.isBefore(hoyDia);
-  bool completado = false;
-  final ult = a.ultimaCompletada;
-  if (ult != null && ult.isNotEmpty) {
-    final sInicio = _fmtFechaYMD(ocurrencia), sFin = _fmtFechaYMD(finOcurrencia);
-    completado = ult.compareTo(sInicio) >= 0 && ult.compareTo(sFin) <= 0;
-  }
+  // Completado "para hoy" solo si se hizo justo hoy: ahora esa fecha decide
+  // cuándo toca el siguiente, no si el ciclo actual ya está hecho.
+  final completado = ult == _fmtFechaYMD(hoyDia);
+  final activo = !hoyDia.isBefore(ocurrencia);
+  // Distinguimos "toca ahora" (dentro del margen configurado) de "se ha
+  // pasado ese margen sin hacerlo" (atrasado).
+  final atrasado = hoyDia.isAfter(finOcurrencia);
 
   String estado = "FUTURO"; String color = "blue";
-  if (activo) {
-    if (completado) { estado = "OK"; color = "green"; } else { estado = "PENDIENTE"; color = "red"; }
-  } else if (completado) { estado = "OK"; color = "green"; }
+  if (completado) { estado = "OK"; color = "green"; }
+  else if (atrasado) { estado = "ATRASADO"; color = "red"; }
+  else if (activo) { estado = "PENDIENTE"; color = "orange"; }
 
   a.estado = estado;
   a.color = color;
@@ -2133,9 +2138,9 @@ class _TabAvisosState extends State<TabAvisos> {
           : RefreshIndicator(onRefresh: _sincronizar, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(10), itemCount: _avisos.length, itemBuilder: (ctx, i) {
             final a = _avisos[i]; String id = a.id.toString(); bool ec = _colaCompletados.any((x) => x['id'] == id); bool er = _colaRestaurar.contains(id);
             String st = traducirEstadoAviso(a.estado); String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
-            Color c = cl == 'red' ? Colors.redAccent : (cl == 'green' ? Colors.green : Colors.blue);
-            Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
-            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon(cl=='red'?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text(a.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text("${t('lbl_proxima')}${a.rango}", style: const TextStyle(fontSize: 12)), trailing: w));
+            Color c = cl == 'red' ? Colors.redAccent : (cl == 'orange' ? Colors.orange : (cl == 'green' ? Colors.green : Colors.blue));
+            Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red' || cl == 'orange') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
+            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text(a.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
           }))),
       ]),
       floatingActionButton: FloatingActionButton(mini: true, backgroundColor: p>0?Colors.white:Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : Icon(Icons.sync, color: p>0?Colors.orange:Colors.white), onPressed: _sincronizar),

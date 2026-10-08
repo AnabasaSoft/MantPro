@@ -42,6 +42,7 @@ const Map<String, String> traduccionesEu = {
     "estado_ok": "OK",
     "estado_pendiente": "ZAIN",
     "estado_futuro": "Etorkizuna",
+    "estado_atrasado": "Atzeratuta",
     "estado_listo_subir": "PREST (Igo)",
     "estado_pendiente_subir": "ZAIN (Igo)",
     "notif_titulo": "⚠️ Prebentziozko Mantentzea",

@@ -42,6 +42,7 @@ const Map<String, String> traduccionesGl = {
     "estado_ok": "OK",
     "estado_pendiente": "PENDENTE",
     "estado_futuro": "Futuro",
+    "estado_atrasado": "Atrasado",
     "estado_listo_subir": "LISTO (Subir)",
     "estado_pendiente_subir": "PENDENTE (Subir)",
     "notif_titulo": "⚠️ Mantemento Preventivo",
