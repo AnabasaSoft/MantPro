@@ -1,3 +1,5 @@
+🌐 **English** · [Español](README.es.md) · [Euskara](README.eu.md)
+
 # MantPro
 
 <p align="center">
@@ -5,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>CMMS gratuito y open source para gestionar el mantenimiento preventivo y correctivo de tu planta, taller o flota, desde PC y Android.</strong>
+  <strong>Free and open source CMMS to manage preventive and corrective maintenance for your plant, workshop or fleet, from PC and Android.</strong>
 </p>
 
 <p align="center">
@@ -14,236 +16,234 @@
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
-  <img src="https://img.shields.io/badge/Sin%20suscripción-100%25%20gratis-orange.svg" alt="Sin suscripción">
+  <img src="https://img.shields.io/badge/No%20subscription-100%25%20free-orange.svg" alt="No subscription">
 </p>
 
 ---
 
-## 🧩 ¿Qué problema resuelve?
+## 🧩 What problem does it solve?
 
-En muchos talleres y plantas pequeñas o medianas, el mantenimiento se lleva
-entre papeles, un Excel compartido y mensajes de WhatsApp. Funciona, hasta que
-alguien necesita saber **qué se le ha hecho a una máquina en concreto**, quién
-lo hizo, cuándo y con qué material, y esa información está repartida entre
-tres sitios distintos (o en ninguno).
+In many small and medium-sized workshops and plants, maintenance is tracked
+with paper, a shared Excel file and WhatsApp messages. It works, until
+someone needs to know **what has been done to a specific machine**, who did
+it, when and with what material, and that information is spread across three
+different places (or none at all).
 
-**MantPro centraliza eso**: cada técnico registra su intervención desde el
-móvil, en el momento, con fotos de antes y después si hace falta, y todo
-queda ordenado en el PC por máquina, por fecha y por persona, listo para
-consultarlo o sacar un informe en PDF.
+**MantPro brings it all together**: each technician logs their work from
+their phone, on the spot, with before and after photos if needed, and
+everything is organised on the PC by machine, by date and by person, ready
+to be looked up or turned into a PDF report.
 
-## 🎯 ¿Para quién es?
+## 🎯 Who is it for?
 
-Pensado para quien lleva el mantenimiento del día a día, no para departamentos
-de IT: técnicos de mantenimiento, responsables de planta, talleres, PYMEs
-industriales y encargados de almacén que necesitan un control real de
-máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
+Designed for the people who run day-to-day maintenance, not for IT
+departments: maintenance technicians, plant managers, workshops, industrial
+SMEs and warehouse staff who need real control over machines, jobs and stock
+without relying on scattered spreadsheets.
 
-## 🆚 ¿Por qué MantPro y no un CMMS comercial?
+## 🆚 Why MantPro and not a commercial CMMS?
 
-- **Open source y gratis**: código abierto bajo AGPL-3.0, sin límite de
-  técnicos, máquinas o registros
-- **Sin suscripción**: no se paga por usuario ni por mes de uso
-- **Tus datos, en tu infraestructura**: la base de datos vive en tu propio PC;
-  no dependes de que un servicio en la nube de terceros siga existiendo el año
-  que viene
-- **Offline de verdad**: el móvil funciona sin conexión a internet ni al PC
-  durante toda la jornada, y sincroniza en cuanto vuelve a haber red
-- **Hecho desde el propio mantenimiento**: las funciones han ido saliendo de
-  necesidades reales de taller (fotos de antes/después, vínculo a máquina,
-  stock de recambios, avisos recurrentes...), no de una lista de requisitos
-  genérica de CMMS
+- **Open source and free**: open code under AGPL-3.0, with no limit on
+  technicians, machines or records
+- **No subscription**: no per-user or per-month fees
+- **Your data, on your infrastructure**: the database lives on your own PC;
+  you do not depend on a third-party cloud service still existing next year
+- **Truly offline**: the phone works without an internet or PC connection
+  for the whole working day, and syncs as soon as the network is back
+- **Built from inside maintenance**: the features came from real workshop
+  needs (before/after photos, machine links, spare parts stock, recurring
+  alerts...), not from a generic CMMS requirements list
 
-## 🎬 Vídeo de demostración
+## 🎬 Demo video
 
 https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
-## 📸 Capturas de Pantalla
+## 📸 Screenshots
 
-### Aplicación de Escritorio
+### Desktop Application
 
 <p align="center">
   <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Gestión de Almacén" width="45%"/>
+  <img src="Capturas/Almacen.png" alt="Warehouse management" width="45%"/>
 </p>
 
-### Aplicación Móvil
+### Mobile Application
 
 <p align="center">
-  <img src="Capturas/Dashboard-movil.jpg" alt="Dashboard Móvil" width="30%"/>
-  <img src="Capturas/Almacen-movil.jpg" alt="Almacén Móvil" width="30%"/>
-  <img src="Capturas/Historial-movil.jpg" alt="Historial Móvil" width="30%"/>
+  <img src="Capturas/Dashboard-movil.jpg" alt="Mobile dashboard" width="30%"/>
+  <img src="Capturas/Almacen-movil.jpg" alt="Mobile warehouse" width="30%"/>
+  <img src="Capturas/Historial-movil.jpg" alt="Mobile history" width="30%"/>
 </p>
 
 ---
 
-## 📋 Índice
+## 📋 Table of Contents
 
-- [¿Qué problema resuelve?](#-qué-problema-resuelve)
-- [¿Para quién es?](#-para-quién-es)
-- [¿Por qué MantPro?](#-por-qué-mantpro-y-no-un-cmms-comercial)
-- [Vídeo de demostración](#-vídeo-de-demostración)
-- [Capturas de Pantalla](#-capturas-de-pantalla)
-- [Descargas](#-descargas)
-- [Características](#-características)
-- [Requisitos](#-requisitos)
-- [Instalación](#-instalación)
-- [Uso](#-uso)
-- [Usuarios y Acceso](#-usuarios-y-acceso)
-- [Maquinaria](#-maquinaria)
-- [Stock de Almacén](#-stock-de-almacén)
-- [Sincronización PC-Móvil](#-sincronización-pc-móvil)
-- [Copias de Seguridad](#-copias-de-seguridad)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Contribuir](#-contribuir)
+- [What problem does it solve?](#-what-problem-does-it-solve)
+- [Who is it for?](#-who-is-it-for)
+- [Why MantPro?](#-why-mantpro-and-not-a-commercial-cmms)
+- [Demo video](#-demo-video)
+- [Screenshots](#-screenshots)
+- [Downloads](#-downloads)
+- [Features](#-features)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Users and Access](#-users-and-access)
+- [Machinery](#-machinery)
+- [Warehouse Stock](#-warehouse-stock)
+- [PC-Mobile Sync](#-pc-mobile-sync)
+- [Backups](#-backups)
+- [Project Structure](#-project-structure)
+- [Contributing](#-contributing)
 - [Roadmap](#-roadmap)
-- [Licencia](#-licencia)
-- [Contacto](#-contacto)
+- [License](#-license)
+- [Contact](#-contact)
 
 ---
 
-## 📦 Descargas
+## 📦 Downloads
 
-Puedes descargar las versiones precompiladas desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
+You can download the prebuilt versions from [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
-- **Windows**: Ejecutable `.exe` para Windows
-- **Linux**: 
-  - Binario ejecutable de Linux
-  - AppImage portable
-  - También disponible en **AUR** (Arch User Repository)
-- **Android**: Archivos `.apk` para instalación directa
-  - `MantPro.apk`: app de trabajos de mantenimiento
-  - `MantProStock.apk`: app de stock de almacén
-
----
-
-## ✨ Características
-
-### 💻 Aplicación de Escritorio (PC)
-
-- **👥 Gestión de Usuarios**: Login con usuario y contraseña, roles de administrador y técnico, alta y baja de usuarios, y restablecimiento de contraseñas
-- **✍️ Autoría de los Trabajos**: Cada intervención guarda quién la realizó, visible en el historial y en los informes
-- **🔒 Permisos por Registro**: un técnico solo puede editar o borrar sus propios trabajos; un administrador puede gestionar cualquiera, incluida la reasignación del autor de uno o varios registros a la vez
-- **📋 Auditoría de Cambios**: registro de quién edita o borra cada trabajo (no solo quién lo creó), consultable y filtrable por técnico y por tipo de acción desde "Registro de cambios" (solo administradores)
-- **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores). Al volver a iniciar sesión desde el mismo dispositivo, su sesión anterior se sustituye automáticamente en vez de acumularse
-- **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas
-- **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia"
-- **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
-- **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
-- **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
-- **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones
-- **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
-- **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
-- **👤 Filtro por Técnico**: Filtra el historial y las exportaciones (PDF, CSV y Excel) por la persona que hizo el trabajo
-- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas
-- **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
-- **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
-- **↩️ Revertir a Pendiente**: si un trabajo se completó por error, se puede devolver a Pendientes con un clic desde el historial (con aviso si tenía máquina vinculada, ya que se perdería ese dato), quedando registrado en la auditoría
-- **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente
-- **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
-- **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
-- **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico e indicando la máquina/submáquina de cada trabajo, si la tiene
-
-### 📱 Aplicación Móvil (Android)
-
-- **🔐 Acceso con Usuario**: Cada técnico inicia sesión una vez y la sesión queda guardada en el dispositivo
-- **📝 Registro Rápido**: Captura de intervenciones sobre el terreno, firmadas automáticamente con su usuario
-- **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
-- **✏️ Editor de Imágenes**: Dibuja sobre las fotos para marcar áreas de interés
-- **🔄 Sincronización Automática**: Envío automático de datos al PC mediante código QR
-- **💾 Almacenamiento Local**: Guarda registros offline hasta sincronizar
-- **📋 Trabajos Pendientes**: Visualiza y gestiona tareas asignadas desde el PC, con filtro **"Solo míos"**
-- **🔄 Puesta al Día al Abrir**: Al arrancar, la app sincroniza en segundo plano los datos de todas las pestañas
-- **🔁 Resincronizar a Mano**: Las pestañas Pendientes, Historial y Recordatorios tienen su propio botón para reenviar de inmediato lo que el móvil tenga y el PC todavía no
-- **↩️ Revertir a Pendiente**: manteniendo pulsado un registro del Historial se puede devolver a la pestaña Pendientes si se completó por error
-- **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
-- **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
-- **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
-- **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén))
-- **🏭 Vincular Máquina**: Selecciona en un desplegable la máquina o submáquina en la que se ha hecho el trabajo, tanto al crear un registro nuevo como al editar uno ya sincronizado del historial
-
-### 📦 Aplicación Móvil de Stock (Android)
-
-Aplicación independiente (`mantpro_stock_app`), pensada para consultar y mover
-stock de almacén desde el móvil sin necesidad de la app de trabajos.
-
-- **🔐 Acceso con Usuario**: usa el mismo sistema de usuarios y sesión que la app de trabajos
-- **🗂️ Navegación del Almacén**: árbol de estanterías > baldas > secciones, igual que en el PC
-- **🔎 Búsqueda de Materiales**: por nombre, código, descripción o ubicación
-- **➕➖ Entradas y Salidas**: registra movimientos de stock desde el móvil, con motivo opcional
-- **🔀 Traslados**: mover un material de sección queda reflejado en su historial de movimientos
-- **🎨 Aviso Visual de Stock**: cantidad en rojo por debajo del mínimo, en verde por encima y en el color por defecto si coincide exactamente
-- **⚠️ Stock Bajo Mínimo**: pestaña dedicada a los materiales en alerta
-- **🔄 Auto-actualización**: la pantalla se refresca sola al detectar cambios, tanto si el cambio se hizo en el propio móvil como en el PC
-- **🔌 Modo Offline**: consulta con la última información sincronizada si no hay conexión con el PC
-- **🔔 Recordatorio Diario de Comprobación de Stock**: notificación automática a las 8:00 AM (hora local) invitando a revisar la cantidad real de 5 materiales del almacén, elegidos al azar y distintos cada día; al pulsarla se abre una pantalla para corregir la cantidad de cada uno sin buscarlos a mano. Si no hay ningún material dado de alta, no se muestra ninguna notificación
+- **Windows**: `.exe` executable for Windows
+- **Linux**:
+  - Linux executable binary
+  - Portable AppImage
+  - Also available on the **AUR** (Arch User Repository)
+- **Android**: `.apk` files for direct installation
+  - `MantPro.apk`: maintenance jobs app
+  - `MantProStock.apk`: warehouse stock app
 
 ---
 
-## 🔧 Requisitos
+## ✨ Features
 
-### Aplicación de Escritorio
+### 💻 Desktop Application (PC)
 
-- **Python**: 3.8 o superior
-- **Sistema Operativo**: Windows o Linux
-- **Dependencias Python**:
+- **👥 User Management**: Username and password login, administrator and technician roles, adding and deactivating users, and password resets
+- **✍️ Job Authorship**: Each job records who carried it out, visible in the history and in reports
+- **🔒 Per-Record Permissions**: a technician can only edit or delete their own jobs; an administrator can manage any of them, including reassigning the author of one or several records at once
+- **📋 Change Auditing**: a log of who edits or deletes each job (not just who created it), searchable and filterable by technician and action type from "Change log" (administrators only)
+- **🔐 Device Sessions**: lists the phones linked to each user, with their real model, and lets you revoke one or several specific sessions without deactivating the whole user (administrators only). When someone signs in again from the same device, their previous session is replaced automatically instead of piling up
+- **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries
+- **🎨 Visual Themes**: choose between dark mode (default), light mode or a retro style inspired by Windows 98, from the "Appearance" menu
+- **📅 Interactive Calendar**: View and manage maintenance tasks with colour codes (public holidays, vacations, days with tasks)
+- **📝 Full History**: A record of every job carried out, with before/after photos
+- **📄 PDF Reports**: Automatic generation of professional reports with a customisable logo
+- **📸 Image Management**: Storage and display of job photos
+- **📱 Mobile Sync**: Built-in server (starts automatically) to sync with the mobile app via QR code
+- **🔍 Search**: Advanced search by date, tags and content
+- **👤 Filter by Technician**: Filter the history and exports (PDF, CSV and Excel) by the person who did the job
+- **📦 Backup/Restore**: full manual backup (database + photos) choosing where to save it, incremental automatic backup when closing the app (see [Backups](#-backups)), and restore with a progress bar, with a `File > Restore` submenu to pick any manual backup or go straight to the automatic ones
+- **🏷️ Tags**: Categorisation with labels (Urgent, Electrical, Mechanical, Preventive)
+- **🔨 Pending Tasks**: Management of pending jobs (create, complete, edit, delete) and **assignment to a specific technician**
+- **↩️ Revert to Pending**: if a job was completed by mistake, it can be sent back to Pending with one click from the history (with a warning if it had a linked machine, since that data would be lost), and it is recorded in the audit log
+- **🔁 Reminders**: Maintenance alerts that repeat automatically
+- **📦 Warehouse Stock Control**: Configurable structure of shelving units, shelves and sections, material records with photo, stock in/out with history and low-stock alerts
+- **🏭 Machinery Control**: Tree of machines and sub-machines with an attached photo, job counter per year and month, and a direct link from every job logged or edited (see [Machinery](#-machinery))
+- **📊 Export**: To PDF, CSV and Excel, with an optional technician filter and showing each job's machine/sub-machine, if it has one
+
+### 📱 Mobile Application (Android)
+
+- **🔐 User Sign-in**: Each technician signs in once and the session is kept on the device
+- **📝 Quick Logging**: Capture jobs in the field, automatically signed with the user's name
+- **📷 Built-in Camera**: Take photos and annotate them
+- **✏️ Image Editor**: Draw on photos to mark areas of interest
+- **🔄 Automatic Sync**: Data is sent to the PC automatically after pairing via QR code
+- **💾 Local Storage**: Keeps records offline until they are synced
+- **📋 Pending Jobs**: View and manage tasks assigned from the PC, with an **"Only mine"** filter
+- **🔄 Catch-up on Open**: When it starts, the app syncs the data of every tab in the background
+- **🔁 Manual Resync**: The Pending, History and Reminders tabs each have their own button to immediately resend whatever the phone has and the PC does not yet
+- **↩️ Revert to Pending**: long-pressing a record in the History lets you send it back to the Pending tab if it was completed by mistake
+- **🏷️ Quick Tags**: Fast tagging with checkboxes
+- **🔌 Offline Mode**: Work without a connection and sync when you are able to
+- **⏰ Daily Reminders**: Automatic notification at 8:00 AM (local time) if there are pending jobs not yet completed
+- **🧰 Materials Used**: Add the warehouse materials you used to the job, searching by name or code; they are deducted from stock automatically when saving (see [Materials used in a job](#-warehouse-stock))
+- **🏭 Link Machine**: Choose from a drop-down list the machine or sub-machine the job was done on, both when creating a new record and when editing one already synced in the history
+
+### 📦 Mobile Stock Application (Android)
+
+A standalone app (`mantpro_stock_app`) for checking and moving warehouse stock
+from your phone without needing the jobs app.
+
+- **🔐 User Sign-in**: uses the same user and session system as the jobs app
+- **🗂️ Warehouse Browsing**: shelving unit > shelf > section tree, just like on the PC
+- **🔎 Material Search**: by name, code, description or location
+- **➕➖ Stock In and Out**: log stock movements from your phone, with an optional reason
+- **🔀 Transfers**: moving a material to another section is recorded in its movement history
+- **🎨 Visual Stock Indicator**: quantity in red below the minimum, in green above it and in the default colour if it matches exactly
+- **⚠️ Low Stock**: a dedicated tab for materials on alert
+- **🔄 Auto-refresh**: the screen refreshes itself when it detects changes, whether they were made on the phone itself or on the PC
+- **🔌 Offline Mode**: browse the latest synced information when there is no connection to the PC
+- **🔔 Daily Stock Check Reminder**: automatic notification at 8:00 AM (local time) inviting you to check the real quantity of 5 warehouse materials, picked at random and different each day; tapping it opens a screen to correct each quantity without searching for them by hand. If no materials have been added, no notification is shown
+
+---
+
+## 🔧 Requirements
+
+### Desktop Application
+
+- **Python**: 3.8 or later
+- **Operating System**: Windows or Linux
+- **Python dependencies**:
   - PyQt6
   - Flask
   - ReportLab
   - qrcode
   - requests
   - xlsxwriter
-  - sqlite3 (incluido en Python)
+  - sqlite3 (included with Python)
 
-### Aplicación Móvil
+### Mobile Application
 
-Aplica tanto a `mantenimiento_app` (trabajos) como a `mantpro_stock_app` (stock):
+Applies to both `mantenimiento_app` (jobs) and `mantpro_stock_app` (stock):
 
-- **Flutter**: 3.0 o superior
-- **Dart SDK**: 2.17 o superior
+- **Flutter**: 3.0 or later
+- **Dart SDK**: 2.17 or later
 - **Android**: API Level 21+ (Android 5.0+)
 
 ---
 
-## 📥 Instalación
+## 📥 Installation
 
-### Aplicación de Escritorio
+### Desktop Application
 
-#### Opción 1: Descarga Precompilada (Recomendado)
+#### Option 1: Prebuilt Download (Recommended)
 
-Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
+Download the version for your system from [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
-- **Windows**: Descarga y ejecuta el `.exe`
-- **Linux**: 
-  - Descarga el binario ejecutable y dale permisos de ejecución: `chmod +x mantpro`
-  - O usa el **AppImage** (sin instalación): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
-  - Los paquetes **`.deb`** y **`.rpm`** están firmados digitalmente con GPG (ver [Verificar la firma de los paquetes](#-verificar-la-firma-de-los-paquetes-linux))
-  - **Arch Linux**: Disponible en AUR: `yay -S mantpro` o `paru -S mantpro`
+- **Windows**: Download and run the `.exe`
+- **Linux**:
+  - Download the executable binary and make it executable: `chmod +x mantpro`
+  - Or use the **AppImage** (no installation): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
+  - The **`.deb`** and **`.rpm`** packages are digitally signed with GPG (see [Verifying the package signature](#-verifying-the-package-signature-linux))
+  - **Arch Linux**: Available on the AUR: `yay -S mantpro` or `paru -S mantpro`
 
-#### 🔏 Verificar la firma de los paquetes (Linux)
+#### 🔏 Verifying the package signature (Linux)
 
-Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la clave GPG oficial de AnabasaSoft. Para verificarlos antes de instalar:
+The `.deb` and `.rpm` packages published in each release are signed with AnabasaSoft's official GPG key. To verify them before installing:
 
-1. Descarga la clave pública del repositorio ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) a un fichero (**no uses `curl | rpm --import -`**, algunas versiones de `rpm` no admiten leer la clave por la entrada estándar y fallan con `falló la lectura para importar`):
+1. Download the public key from the repository ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) to a file (**do not use `curl | rpm --import -`**: some versions of `rpm` cannot read the key from standard input and fail with `read failed`):
    ```bash
    curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
    ```
 
-2. Importa la clave (solo hace falta una vez por equipo):
+2. Import the key (only needed once per machine):
    ```bash
-   # Fedora, openSUSE, RHEL... (paquete .rpm)
+   # Fedora, openSUSE, RHEL... (.rpm package)
    sudo rpm --import /tmp/anabasasoft_public.asc
 
-   # Debian, Ubuntu... (paquete .deb, requiere dpkg-sig)
+   # Debian, Ubuntu... (.deb package, requires dpkg-sig)
    gpg --import /tmp/anabasasoft_public.asc
    ```
 
-3. Comprueba que la clave se ha importado correctamente:
+3. Check that the key was imported correctly:
    ```bash
    rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
    ```
 
-4. Verifica la firma del paquete descargado:
+4. Verify the signature of the downloaded package:
    ```bash
    # RPM
    rpm --checksig mantpro-*.rpm
@@ -251,678 +251,670 @@ Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la c
    # DEB
    dpkg-sig --verify mantpro_*.deb
    ```
-   Una firma correcta muestra `OK` en la línea de la firma (en vez de `NOKEY` o `MISSING KEYS`).
+   A correct signature shows `OK` on the signature line (instead of `NOKEY` or `MISSING KEYS`).
 
-Una firma válida confirma que el paquete procede de AnabasaSoft y no ha sido modificado.
+A valid signature confirms that the package comes from AnabasaSoft and has not been modified.
 
-#### Opción 2: Instalación desde Código Fuente
+#### Option 2: Installing from Source
 
-1. **Clonar el repositorio**:
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/AnabasaSoft/MantPro.git
    cd MantPro
    ```
 
-2. **Crear entorno virtual** (recomendado):
+2. **Create a virtual environment** (recommended):
    ```bash
    python -m venv venv
-   source venv/bin/activate  # En Windows: venv\Scripts\activate
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Instalar dependencias**:
+3. **Install the dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Ejecutar la aplicación**:
+4. **Run the application**:
    ```bash
    python main.py
    ```
 
-### Aplicación Móvil
+### Mobile Application
 
-#### Opción 1: Descarga Directa (Recomendado)
+#### Option 1: Direct Download (Recommended)
 
-Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) e instálalo en tu dispositivo Android: `MantPro.apk` para trabajos, `MantProStock.apk` para el stock de almacén. Son apps independientes y puedes instalar una, otra o ambas.
+Download the matching `.apk` from [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) and install it on your Android device: `MantPro.apk` for jobs, `MantProStock.apk` for warehouse stock. They are independent apps and you can install either one or both.
 
-**Nota**: Es posible que necesites habilitar "Orígenes desconocidos" en la configuración de seguridad de tu dispositivo.
+**Note**: You may need to enable "Unknown sources" in your device's security settings.
 
-#### Opción 2: Compilar desde Código Fuente
+#### Option 2: Building from Source
 
-1. **Navegar al directorio móvil** (`mantenimiento_app` para trabajos, `mantpro_stock_app` para stock):
+1. **Go to the mobile directory** (`mantenimiento_app` for jobs, `mantpro_stock_app` for stock):
    ```bash
    cd mantenimiento_app
    ```
 
-2. **Instalar dependencias**:
+2. **Install the dependencies**:
    ```bash
    flutter pub get
    ```
 
-3. **Ejecutar en dispositivo/emulador**:
+3. **Run on a device/emulator**:
    ```bash
    flutter run
    ```
 
-4. **Compilar APK (Android)**:
+4. **Build the APK (Android)**:
    ```bash
    flutter build apk --release
    ```
 
 ---
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Primera Configuración
+### Initial Setup
 
-#### Aplicación de Escritorio
+#### Desktop Application
 
-1. **Iniciar la aplicación**: Ejecuta `python main.py` (el servidor de sincronización arranca solo, no hace falta iniciarlo a mano)
-2. **Primer acceso**: En el primer arranque se crea el usuario `admin` con contraseña `admin`. La aplicación **obliga a cambiarla** al entrar
-3. **Crear los usuarios**: Menú `Herramientas` > `👥 Gestión de usuarios` > da de alta a cada técnico
-4. **Configurar logo** (opcional): Menú `Archivo` > `📄 Opciones PDF` > `🖼️ Añadir / Cambiar Logo`
-5. **Registrar un trabajo**: Pestaña "📝 Registrar" > rellena resumen/detalles > "💾 GUARDAR REGISTRO"
-6. **Crear un pendiente**: Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" (Título + Detalles + "Asignar a") > "Añadir"
+1. **Start the application**: Run `python main.py` (the sync server starts on its own, there is no need to start it by hand)
+2. **First sign-in**: On first launch the user `admin` is created with password `admin`. The application **forces you to change it** when you sign in
+3. **Create the users**: `Tools` menu > `👥 User management` > add each technician
+4. **Set up the logo** (optional): `File` menu > `📄 PDF Options` > `🖼️ Add / Change Logo`
+5. **Log a job**: "📝 New Entry" tab > fill in summary/details > "💾 SAVE RECORD"
+6. **Create a pending task**: "🔨 Pending" tab > "New Job" group (Title + Details + "Assign to") > "Add"
 
-#### Aplicación Móvil
+#### Mobile Application
 
-1. **Instalar la app** en tu dispositivo móvil
-2. **Conectar con PC**:
-   - Asegúrate de que el PC y el móvil están en la misma red WiFi
-   - En el PC: Menú `Herramientas` > `📲 Sincronizar App (QR)`
-   - En el móvil: Tap en "Vincular PC" y escanea el código
-3. **Iniciar sesión**: Introduce el usuario y la contraseña que te haya creado el administrador. La sesión queda guardada: solo hay que hacerlo una vez
-4. **Listo**: Ya puedes registrar intervenciones desde el móvil
+1. **Install the app** on your mobile device
+2. **Connect to the PC**:
+   - Make sure the PC and the phone are on the same Wi-Fi network
+   - On the PC: `Tools` menu > `📲 Sync App (QR)`
+   - On the phone: tap "Link PC" and scan the code
+3. **Sign in**: Enter the username and password the administrator created for you. The session is kept: you only need to do this once
+4. **Done**: You can now log jobs from your phone
 
-### Flujo de Trabajo Típico
+### Typical Workflow
 
-#### Desde el PC
+#### From the PC
 
-1. **Crear y asignar una tarea pendiente**:
-   - Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" > rellena Título y Detalles, elige el técnico en "Asignar a" > "Añadir"
-   - Gestiónala con los botones "✅ Completar", "✏️ Editar", "❌ Eliminar" o "👤 Reasignar"
-   - El desplegable "Ver los de" filtra la lista por técnico (incluye "Sin asignar")
+1. **Create and assign a pending task**:
+   - "🔨 Pending" tab > "New Job" group > fill in Title and Details, choose the technician in "Assign to" > "Add"
+   - Manage it with the "✅ Complete", "✏️ Edit", "❌ Delete" or "👤 Reassign" buttons
+   - The "Show those of" drop-down filters the list by technician (including "Unassigned")
 
-2. **Revisar trabajos completados**:
-   - Los trabajos sincronizados desde el móvil aparecen automáticamente
-   - Revisa fotos (antes/después) y detalles en la pestaña "🗂 Historial" o en el "📅 Calendario"
-   - La columna "Realizado por" indica quién hizo cada trabajo, y el desplegable de arriba permite ver solo los de una persona
+2. **Review completed jobs**:
+   - Jobs synced from the phone appear automatically
+   - Check photos (before/after) and details in the "📋 History" tab or in the "📅 Calendar"
+   - The "Performed by" column shows who did each job, and the drop-down above lets you see only one person's jobs
 
-3. **Generar reportes**:
-   - Menú `Archivo` > `📄 Opciones PDF` > `📄 Generar PDF Ahora`
-   - En el diálogo puedes elegir el técnico, y su nombre aparece en el título del informe
-   - O exporta a `📄 CSV` / `📊 Excel` desde el mismo menú `Archivo`
+3. **Generate reports**:
+   - `File` menu > `📄 PDF Options` > `📄 Generate PDF Now`
+   - In the dialog you can choose the technician, and their name appears in the report title
+   - Or export to `📄 CSV` / `📊 Excel` from the same `File` menu
 
-#### Desde el Móvil
+#### From the Phone
 
-1. **Vincular con el PC e iniciar sesión** (solo la primera vez, o si cambias de red):
-   - Tap en "Vincular PC" y escanea el QR que muestra el PC
-   - Introduce tu usuario y contraseña
-   - El móvil guarda la dirección del PC y tu sesión para sincronizar automáticamente a partir de ahí
+1. **Link to the PC and sign in** (only the first time, or if you change networks):
+   - Tap "Link PC" and scan the QR code shown on the PC
+   - Enter your username and password
+   - The phone stores the PC's address and your session to sync automatically from then on
 
-2. **Registrar intervención**:
-   - Tap en "Nuevo" o selecciona un trabajo pendiente ya sincronizado desde el PC
-   - Con el chip "Solo míos" ves únicamente los trabajos que te han asignado
-   - Completa título y detalles
-   - Toma foto "antes" y, opcionalmente, foto "después" con la cámara
-   - Dibuja/anota sobre la foto si es necesario
-   - Selecciona tags apropiados
-   - Guarda
+2. **Log a job**:
+   - Tap "New" or pick a pending job already synced from the PC
+   - With the "Only mine" chip you only see the jobs assigned to you
+   - Fill in the title and details
+   - Take a "before" photo and, optionally, an "after" photo with the camera
+   - Draw/annotate on the photo if needed
+   - Select the appropriate tags
+   - Save
 
-3. **Sincronizar**:
-   - Al abrir la app se sincroniza todo en segundo plano (verás un indicador en la barra superior)
-   - También puedes forzarlo tirando de la lista hacia abajo o con el icono de sincronización
-   - Los registros se envían al PC y se eliminan del móvil al confirmar el envío
-   - Todo funciona sin conexión: lo pendiente se guarda y se sube cuando hay cobertura
+3. **Sync**:
+   - When you open the app everything syncs in the background (you will see an indicator in the top bar)
+   - You can also force it by pulling the list down or with the sync icon
+   - Records are sent to the PC and removed from the phone once delivery is confirmed
+   - Everything works offline: pending data is kept and uploaded when there is coverage
 
 ---
 
-## 👥 Usuarios y Acceso
+## 👥 Users and Access
 
 ### Roles
 
-Un mismo usuario puede tener **uno o varios roles a la vez** (por ejemplo,
-técnico y almacén). Roles disponibles:
+A single user can have **one or several roles at the same time** (for example,
+technician and warehouse). Available roles:
 
-| Rol | Puede hacer |
+| Role | Can do |
 |-----|-------------|
-| **Administrador** | Todo lo del técnico y lo de almacén, más dar de alta y de baja usuarios, cambiar roles, restablecer contraseñas, editar o borrar **cualquier** registro del historial, reasignar el autor de uno o varios registros a la vez, y consultar el registro de auditoría de cambios |
-| **Técnico** | Registrar trabajos, completar pendientes y avisos, editar o borrar **solo sus propios** registros del historial, y cambiar su propia contraseña |
-| **Almacén** | Dar de alta o editar materiales y registrar entradas/salidas de stock desde la app móvil **MantPro Stock** |
+| **Administrator** | Everything a technician and warehouse user can do, plus adding and deactivating users, changing roles, resetting passwords, editing or deleting **any** history record, reassigning the author of one or several records at once, and viewing the change audit log |
+| **Technician** | Log jobs, complete pending tasks and alerts, edit or delete **only their own** history records, and change their own password |
+| **Warehouse** | Add or edit materials and log stock in/out from the **MantPro Stock** mobile app |
 
-Siempre debe quedar **al menos un administrador activo**: la aplicación impide
-quitarle el rol o desactivarlo al último que queda.
+There must always be **at least one active administrator**: the application
+prevents removing the role from, or deactivating, the last one left.
 
-> Desde la aplicación de escritorio, cualquier usuario (sea cual sea su rol)
-> puede registrar movimientos de stock; el rol **Almacén** es lo que habilita
-> esa misma gestión (altas, ediciones y movimientos) desde el móvil.
+> In the desktop application, any user (whatever their role) can log stock
+> movements; the **Warehouse** role is what enables that same management
+> (adding, editing and movements) from the phone.
 
-### Gestión desde el PC
+### Management from the PC
 
-- **Alta**: `Herramientas` > `👥 Gestión de usuarios` > rellena usuario, nombre,
-  contraseña y rol > "➕ Añadir". Si dejas marcado "Pedir cambio al entrar", la
-  persona tendrá que definir su propia contraseña en el primer acceso.
-- **Baja**: se hace de forma **lógica** (el usuario queda inactivo). Nunca se
-  borra, para no romper la autoría de los trabajos que ya hizo.
-- **Restablecer contraseña**: útil cuando alguien la olvida. Al cambiarla se
-  cierran automáticamente todas las sesiones abiertas de esa persona en el móvil.
-- **Cambiar la propia contraseña**: `Herramientas` > `🔑 Cambiar mi contraseña`.
+- **Add**: `Tools` > `👥 User management` > fill in username, name,
+  password and role > "➕ Add". If you leave "Require change at sign-in" ticked,
+  the person will have to set their own password the first time they sign in.
+- **Deactivate**: done **logically** (the user becomes inactive). Users are
+  never deleted, so that the authorship of the jobs they already did is kept.
+- **Reset password**: useful when someone forgets it. Changing it
+  automatically closes all of that person's open sessions on the phone.
+- **Change your own password**: `Tools` > `🔑 Change my password`.
 
-### Sesiones de dispositivos
+### Device sessions
 
-`Herramientas` > `🔐 Sesiones de dispositivos` (solo administradores) lista
-todas las sesiones abiertas en el móvil de todos los usuarios, con el modelo
-del dispositivo, cuándo se inició, cuándo expira y si sigue activa o ya
-expiró. Se pueden seleccionar una o varias filas a la vez y revocarlas, lo que
-cierra la sesión de ese móvil sin necesidad de desactivar al usuario entero
-(que cerraría *todos* sus dispositivos de golpe).
+`Tools` > `🔐 Device sessions` (administrators only) lists every open mobile
+session for every user, with the device model, when it started, when it
+expires and whether it is still active or already expired. You can select one
+or several rows at once and revoke them, which closes the session on that
+phone without having to deactivate the whole user (which would close *all*
+their devices in one go).
 
-Si un usuario vuelve a iniciar sesión desde un dispositivo con el que ya tenía
-una sesión abierta (mismo fabricante y modelo), la sesión anterior de ese
-dispositivo se borra automáticamente al crear la nueva, en vez de quedarse
-acumulada como una sesión suelta más en el listado.
+If a user signs in again from a device on which they already had an open
+session (same manufacturer and model), that device's previous session is
+deleted automatically when the new one is created, instead of piling up as
+one more stray session in the list.
 
-### Autoría de los trabajos
+### Job authorship
 
-Cada registro guarda el técnico que lo hizo, tanto si se creó en el PC como si
-llegó del móvil. Los registros anteriores a la implantación del sistema de
-usuarios quedaron marcados como **`Histórico`**.
+Each record stores the technician who did it, whether it was created on the
+PC or arrived from the phone. Records from before the user system was
+introduced are marked as **`Histórico`** (legacy).
 
-En el móvil, la atribución la decide **siempre el servidor** a partir del token
-de la sesión, nunca un dato enviado por la app. Un dispositivo no puede firmar
-trabajos en nombre de otra persona.
+On the phone, attribution is **always decided by the server** from the
+session token, never from data sent by the app. A device cannot sign jobs on
+someone else's behalf.
 
-Desde el PC, un técnico solo puede editar o borrar sus propios registros del
-historial; un administrador puede hacerlo con cualquiera. Con clic derecho sobre
-una o varias filas del historial (selección múltiple con Ctrl/Shift), un
-administrador puede además **reasignar el autor** en bloque, quedando cada
-cambio anotado en el registro de auditoría.
+On the PC, a technician can only edit or delete their own history records;
+an administrator can do so with any of them. By right-clicking one or several
+history rows (multiple selection with Ctrl/Shift), an administrator can also
+**reassign the author** in bulk, with each change written to the audit log.
 
-### Registro de cambios (auditoría)
+### Change log (audit)
 
-Cada vez que se edita o se borra un trabajo queda constancia de quién lo hizo,
-cuándo y qué cambió. Los administradores pueden consultarlo desde
-`Herramientas` > `📋 Registro de cambios`, con filtros por técnico y por tipo de
-acción (editar/borrar).
+Every time a job is edited or deleted, a record is kept of who did it, when
+and what changed. Administrators can view it from `Tools` > `📋 Change log`,
+with filters by technician and by action type (edit/delete).
 
-### Sesión en el móvil
+### Session on the phone
 
-El técnico inicia sesión una vez y el token queda guardado en el dispositivo. La
-sesión se cierra sola si el administrador desactiva al usuario o le restablece la
-contraseña; en ese caso la app vuelve a la pantalla de acceso **sin perder los
-registros que aún estén pendientes de subir**.
+The technician signs in once and the token is stored on the device. The
+session ends on its own if the administrator deactivates the user or resets
+their password; in that case the app returns to the sign-in screen **without
+losing any records still waiting to be uploaded**.
 
 ---
 
-## 🏭 Maquinaria
+## 🏭 Machinery
 
-> Gestión disponible desde la aplicación de escritorio, con el vínculo a la
-> máquina también seleccionable desde el móvil al registrar o editar un
-> trabajo.
+> Managed from the desktop application, with the machine link also
+> selectable from the phone when logging or editing a job.
 
-Pestaña "🏭 Máquinas" del PC, pensada para llevar el control de averías e
-intervenciones de cada equipo a lo largo del tiempo.
+The PC's "🏭 Machines" tab is designed to keep track of breakdowns and work
+on each piece of equipment over time.
 
-- **🌳 Árbol de maquinaria**: las máquinas pueden tener submáquinas (por
-  ejemplo, una línea con varios equipos), formando una jerarquía tan profunda
-  como haga falta
-- **📅 Trabajos organizados por año y mes**: al expandir una máquina se ven los
-  años con trabajos, y al expandir un año, los meses; cada nivel muestra un
-  contador de cuántos trabajos tiene, con carga bajo demanda para no ralentizar
-  el árbol
-- **🖱️ Acceso directo al trabajo**: haciendo doble clic sobre un trabajo del
-  árbol se abre directamente su ficha de edición
-- **📸 Foto de la máquina**: cada máquina o submáquina puede tener una foto
-  adjunta, visible en un recuadro junto al árbol al seleccionarla
-- **🔗 Vínculo desde cada trabajo**: al registrar un trabajo nuevo (PC o móvil)
-  o editar uno existente se puede elegir a qué máquina/submáquina pertenece
-- **📊 En las exportaciones**: la máquina o submáquina vinculada aparece como
-  columna adicional en las exportaciones a PDF, CSV y Excel
+- **🌳 Machinery tree**: machines can have sub-machines (for example, a
+  line with several pieces of equipment), forming a hierarchy as deep as
+  needed
+- **📅 Jobs organised by year and month**: expanding a machine shows the
+  years with jobs, and expanding a year shows the months; each level shows a
+  count of how many jobs it has, loaded on demand so the tree stays fast
+- **🖱️ Direct access to the job**: double-clicking a job in the tree opens
+  its edit form directly
+- **📸 Machine photo**: each machine or sub-machine can have an attached
+  photo, shown in a box next to the tree when it is selected
+- **🔗 Link from each job**: when logging a new job (PC or phone) or editing
+  an existing one, you can choose which machine/sub-machine it belongs to
+- **📊 In exports**: the linked machine or sub-machine appears as an extra
+  column in PDF, CSV and Excel exports
 
 ---
 
-## 📦 Stock de Almacén
+## 📦 Warehouse Stock
 
-> Gestión completa desde la aplicación de escritorio, con consulta y
-> movimientos también disponibles desde el móvil (`mantpro_stock_app`). Vive
-> en su propia base de datos (`almacen.db`), independiente de la de los
-> trabajos de mantenimiento.
+> Fully managed from the desktop application, with lookups and movements
+> also available from the phone (`mantpro_stock_app`). It lives in its own
+> database (`almacen.db`), separate from the maintenance jobs database.
 
-### Estructura del almacén
+### Warehouse structure
 
-El almacén se organiza en tres niveles, inspirados en las convenciones
-habituales de codificación de ubicaciones de almacén:
+The warehouse is organised in three levels, inspired by common warehouse
+location coding conventions:
 
 ```
-Estantería → Balda → Sección
+Shelving unit → Shelf → Section
 ```
 
-- Al crear una estantería se define el **número de baldas**, el **número de
-  secciones por balda** (0 = sin secciones predefinidas, se pueden añadir
-  luego) y si tiene **hueco en el suelo** bajo la balda inferior, que se
-  gestiona como una balda especial ("Suelo")
-- Las baldas se numeran de abajo a arriba empezando en 1, para poder añadir
-  baldas nuevas sin tener que renumerar las existentes
-- No se puede eliminar una estantería, balda o sección mientras contenga
-  material ubicado
+- When creating a shelving unit you define the **number of shelves**, the
+  **number of sections per shelf** (0 = no predefined sections, they can be
+  added later) and whether it has **floor space** below the bottom shelf,
+  which is handled as a special shelf ("Floor")
+- Shelves are numbered from bottom to top starting at 1, so new shelves can
+  be added without renumbering the existing ones
+- A shelving unit, shelf or section cannot be deleted while it holds any
+  material
 
-La estructura se gestiona desde el botón **"⚙️ Configurar almacén"** de la
-pestaña "📦 Stock de almacén", visible **solo para administradores**.
+The structure is managed from the **"⚙️ Configure warehouse"** button in the
+"📦 Warehouse stock" tab, visible **to administrators only**.
 
-### Materiales
+### Materials
 
-- Alta y edición con código (opcional), nombre, descripción, unidad, stock
-  mínimo, ubicación (estantería / balda / sección) y **foto adjunta**
-- Búsqueda por **nombre, código, descripción o ubicación**
-- El stock se resalta en **rojo** por debajo del mínimo, en **verde** por
-  encima y en el color por defecto si coincide exactamente con el mínimo,
-  tanto en el PC como en el móvil
-- Seleccionando varios materiales a la vez (Ctrl/Shift + clic derecho) en el
-  PC se pueden **mover de ubicación** o **eliminar** en bloque
+- Add and edit with code (optional), name, description, unit, minimum
+  stock, location (shelving unit / shelf / section) and **attached photo**
+- Search by **name, code, description or location**
+- Stock is highlighted in **red** below the minimum, in **green** above it
+  and in the default colour if it matches the minimum exactly, both on the
+  PC and on the phone
+- By selecting several materials at once (Ctrl/Shift + right click) on the
+  PC you can **move them to another location** or **delete** them in bulk
 
-### Entradas, salidas y traslados
+### Stock in, stock out and transfers
 
-- **Cualquier usuario** puede registrar entradas y salidas de stock; solo la
-  configuración de la estructura del almacén está restringida a administradores
-- Cada movimiento queda registrado con fecha, cantidad, usuario y un motivo
-  opcional, visible en el historial junto a cada material
-- Las salidas registradas a mano (PC o `mantpro_stock_app`) no pueden dejar
-  el stock en negativo
-- Cambiar la ubicación de un material también queda registrado en su
-  historial, como un movimiento de tipo **traslado** (de qué sección a qué
-  sección)
+- **Any user** can log stock in and out; only configuring the warehouse
+  structure is restricted to administrators
+- Each movement is recorded with date, quantity, user and an optional
+  reason, visible in the history next to each material
+- Stock-outs logged by hand (PC or `mantpro_stock_app`) cannot take stock
+  below zero
+- Changing a material's location is also recorded in its history, as a
+  **transfer** movement (from which section to which section)
 
-### Material usado en un trabajo (MantPro)
+### Materials used in a job (MantPro)
 
-Al completar un trabajo desde la app **MantPro** (móvil), se puede añadir el
-material que se ha empleado buscándolo por nombre o código e indicando la
-cantidad. Al guardar el trabajo, ese material se descuenta automáticamente
-del almacén, con el motivo "Usado en trabajo: ..." para mantener la
-trazabilidad.
+When completing a job from the **MantPro** app (phone), you can add the
+materials used by searching for them by name or code and entering the
+quantity. When the job is saved, that material is automatically deducted
+from the warehouse, with the reason "Used in job: ..." to keep it traceable.
 
-A diferencia de las salidas manuales, **este descuento sí puede dejar el
-stock en negativo**: el material ya se ha usado físicamente para hacer el
-trabajo aunque no hubiera stock registrado suficiente, así que bloquear el
-movimiento no tendría sentido. El stock negativo se verá tanto en el PC
-como en `mantpro_stock_app`, y sirve como aviso de que hay que comprobar y
-reponer ese material cuanto antes.
+Unlike manual stock-outs, **this deduction can take stock below zero**: the
+material has already been physically used to do the job even if there was
+not enough stock recorded, so blocking the movement would make no sense.
+Negative stock is shown both on the PC and in `mantpro_stock_app`, and
+serves as a warning that the material needs checking and restocking as soon
+as possible.
 
-### Alertas de stock bajo mínimo
+### Low stock alerts
 
-La pestaña **"⚠️ Stock bajo mínimo"** muestra, en una vista aparte, los
-materiales sin stock o por debajo del mínimo establecido. El propio título de
-la pestaña indica cuántos materiales están en alerta, y desde ahí se puede
-saltar directamente al material en "Stock de almacén" o registrar una entrada
-sin cambiar de pestaña.
+The **"⚠️ Low stock"** tab shows, in a separate view, the materials that
+are out of stock or below the set minimum. The tab title itself shows how
+many materials are on alert, and from there you can jump straight to the
+material in "Warehouse stock" or log a stock-in without switching tabs.
 
 ---
 
-## 🔄 Sincronización PC-Móvil
+## 🔄 PC-Mobile Sync
 
-### Cómo Funciona
+### How It Works
 
-MantPro utiliza un sistema de sincronización basado en:
+MantPro uses a sync system based on:
 
-1. **Servidor Flask** integrado en la app de escritorio
-2. **Códigos QR** para conexión rápida y segura
-3. **API REST autenticada por token**: todos los endpoints de datos exigen una
-   sesión válida; si el token deja de valer, el servidor responde `401` y el
-   móvil vuelve al login
-4. **WiFi local** - sin necesidad de internet
-5. **Sincronización completa al abrir la app**, en segundo plano y sin bloquear
-   la interfaz
+1. A **Flask server** built into the desktop app
+2. **QR codes** for quick and secure pairing
+3. A **token-authenticated REST API**: every data endpoint requires a valid
+   session; if the token is no longer valid, the server responds with `401`
+   and the phone goes back to the sign-in screen
+4. **Local Wi-Fi** - no internet needed
+5. **Full sync when the app opens**, in the background and without blocking
+   the interface
 
-> ⚠️ El tráfico viaja por **HTTP dentro de la red local**. El sistema de usuarios
-> aporta trazabilidad (saber quién hizo cada trabajo), no protección frente a
-> alguien con acceso a esa misma red.
+> ⚠️ Traffic travels over **HTTP within the local network**. The user system
+> provides traceability (knowing who did each job), not protection against
+> someone with access to that same network.
 
-### Configuración de Red
+### Network Setup
 
-Para que la sincronización funcione:
+For sync to work:
 
-- ✅ PC y móvil deben estar en la **misma red WiFi**
-- ✅ El **firewall** debe permitir conexiones en el puerto 5000 (o el configurado)
-- ✅ Si usas Windows, puede que necesites crear una excepción de firewall
+- ✅ The PC and the phone must be on the **same Wi-Fi network**
+- ✅ The **firewall** must allow connections on port 5000 (or the configured one)
+- ✅ On Windows, you may need to create a firewall exception
 
-### Solución de Problemas
+### Troubleshooting
 
-**El móvil no conecta con el PC:**
-- Verifica que ambos dispositivos están en la misma red
-- Comprueba que el servidor está activo en el PC (icono verde)
-- Prueba a desactivar temporalmente el firewall del PC
-- Regenera el código QR y vuelve a escanearlo
+**The phone cannot connect to the PC:**
+- Check that both devices are on the same network
+- Check that the server is running on the PC (green icon)
+- Try temporarily disabling the PC's firewall
+- Regenerate the QR code and scan it again
 
-**No puedo iniciar sesión desde el móvil:**
-- Comprueba que MantPro está abierto en el PC: el login se valida contra él
-- Verifica el usuario y la contraseña con el administrador; puede restablecerla
-- Si el PC ha cambiado de IP, vuelve a escanear el QR desde el propio login ("Vincular otro PC")
+**I cannot sign in from the phone:**
+- Check that MantPro is open on the PC: sign-in is validated against it
+- Check your username and password with the administrator; they can reset it
+- If the PC's IP address has changed, scan the QR code again from the sign-in screen itself ("Link another PC")
 
-**La app me ha devuelto a la pantalla de acceso:**
-- Es normal si el administrador ha restablecido tu contraseña o ha desactivado tu usuario
-- Tus registros sin subir **no se pierden**: vuelve a entrar y se sincronizan
+**The app sent me back to the sign-in screen:**
+- This is normal if the administrator has reset your password or deactivated your user
+- Your records not yet uploaded **are not lost**: sign in again and they will sync
 
-**He olvidado la contraseña de administrador:**
-- Otro administrador puede restablecerla desde `Herramientas` > `👥 Gestión de usuarios`
-- Si no hay ningún otro administrador, hay que restablecerla directamente sobre
-  la tabla `usuarios` de la base de datos
+**I forgot the administrator password:**
+- Another administrator can reset it from `Tools` > `👥 User management`
+- If there is no other administrator, it has to be reset directly in the
+  `usuarios` table of the database
 
-**Las fotos no se sincronizan:**
-- Verifica que hay espacio suficiente en el disco del PC
-- Comprueba los permisos de la carpeta `fotos_recibidas`
-- Asegúrate de que la foto se guardó correctamente en el móvil
+**Photos are not syncing:**
+- Check that there is enough space on the PC's disk
+- Check the permissions of the `fotos_recibidas` folder
+- Make sure the photo was saved correctly on the phone
 
-**No me llega la notificación diaria de avisos pendientes (Android):**
-- Comprueba que el permiso de notificaciones está concedido: `Ajustes → Apps → MantPro → Notificaciones`
-- En fabricantes como **OPPO/Realme (ColorOS), Xiaomi (MIUI) o Huawei**, el sistema puede matar la alarma programada aunque el permiso esté dado. Hay que además:
-  - `Ajustes → Batería → Uso de batería por app → MantPro` → ponerlo en **"Sin restricciones"**
-  - `Ajustes → Batería → Inicio automático` → **activar** MantPro
-- La notificación se reevalúa cada vez que abres el Dashboard, así que si acabas de marcar un trabajo como completado, ábrelo de nuevo para que se cancele/reprograme correctamente.
+**I do not get the daily pending alerts notification (Android):**
+- Check that the notification permission is granted: `Settings → Apps → MantPro → Notifications`
+- On brands such as **OPPO/Realme (ColorOS), Xiaomi (MIUI) or Huawei**, the system may kill the scheduled alarm even when the permission is granted. You also need to:
+  - `Settings → Battery → App battery usage → MantPro` → set it to **"Unrestricted"**
+  - `Settings → Battery → Auto-launch` → **enable** MantPro
+- The notification is re-evaluated every time you open the Dashboard, so if you have just marked a job as completed, open it again so the notification is cancelled/rescheduled correctly.
 
-**No me llega la notificación diaria de comprobación de stock (MantPro Stock):**
-- Se aplican las mismas comprobaciones que en MantPro (permiso de notificaciones y exclusión de la optimización de batería, ver arriba)
-- Si el almacén no tiene ningún material dado de alta, no se muestra ninguna notificación: es el comportamiento esperado
-- Se reevalúa cada vez que la app sincroniza con el PC (al abrir y cada 25 segundos mientras está abierta)
-
----
-
-## 💾 Copias de Seguridad
-
-MantPro distingue entre dos tipos de copia, pensados para momentos distintos:
-
-### Backup automático (al cerrar la app)
-
-Cada vez que se cierra el programa se hace, en segundo plano y sin necesidad de
-intervención, un backup rápido pensado para no notarse aunque pasen los años:
-
-- **Bases de datos**: `mantenimiento.db` y `almacen.db` se empaquetan enteras en
-  un ZIP (`auto_backup_db_<fecha>.zip`) cada vez, rotando y conservando solo los
-  3 más recientes.
-- **Fotos**: en vez de volver a comprimir todo el historial de fotos en cada
-  cierre, se mantienen unos ZIP incrementales por año (`fotos_backup_<año>.zip`):
-  cada cierre solo añade a su ZIP del año que corresponda las fotos que todavía
-  no estuvieran dentro, sin tocar ni recomprimir las de años anteriores. Así el
-  tiempo de cierre no crece con el tiempo de uso de la aplicación.
-
-Mientras se hace esta copia se muestra una ventana con una barra de progreso que
-retiene el foco, y el cierre real de la aplicación espera a que termine.
-
-### Backup manual (menú Archivo)
-
-`Archivo > Backup` sigue generando, como siempre, un único ZIP
-(`backup_completo_<fecha>.zip`) con las dos bases de datos y **todas** las fotos
-juntas y comprimidas, en la ubicación que elijas. `Archivo > Restaurar` se abre
-como submenú con dos opciones: **"Restaurar..."**, para elegir cualquier ZIP a
-mano, y **"Restaurar desde copia automática..."**, que abre directamente la
-carpeta `backups_auto`. En ambos casos, si el ZIP elegido es un backup
-automático, se restaura primero la base de datos y, con ella ya restaurada, se
-calcula qué fotos hacen falta y se extraen únicamente de los
-`fotos_backup_<año>.zip` correspondientes, en vez de volcarlas todas. Las tres
-operaciones (backup, y ambas restauraciones) muestran su propia barra de
-progreso con foco.
-
-### Limpieza de fotos huérfanas
-
-`Herramientas > Limpiar fotos huérfanas` borra las fotos de `fotos_recibidas`
-que ya no estén referenciadas por ningún trabajo, pendiente o máquina. Al cerrar
-la aplicación y antes de un backup manual también se limpia `fotos_recibidas`
-en silencio, pero **solo** esa opción del menú Herramientas revisa además los
-`fotos_backup_<año>.zip` y los reescribe sin las fotos huérfanas que pudieran
-contener, para no arrastrarlas indefinidamente.
+**I do not get the daily stock check notification (MantPro Stock):**
+- The same checks as for MantPro apply (notification permission and exclusion from battery optimisation, see above)
+- If the warehouse has no materials added, no notification is shown: this is the expected behaviour
+- It is re-evaluated every time the app syncs with the PC (when opening it and every 25 seconds while it is open)
 
 ---
 
-## 📁 Estructura del Proyecto
+## 💾 Backups
+
+MantPro distinguishes between two kinds of backup, meant for different moments:
+
+### Automatic backup (when closing the app)
+
+Every time the program is closed, a quick backup is made in the background
+with no user intervention, designed to stay unnoticeable even as the years go by:
+
+- **Databases**: `mantenimiento.db` and `almacen.db` are packed whole into a
+  ZIP (`auto_backup_db_<date>.zip`) every time, rotating and keeping only the
+  3 most recent.
+- **Photos**: instead of recompressing the whole photo history on every
+  close, incremental ZIPs are kept per year (`fotos_backup_<year>.zip`):
+  each close only adds to the matching year's ZIP the photos that were not
+  already in it, without touching or recompressing those from previous
+  years. This way, closing time does not grow with how long the application
+  has been in use.
+
+While this backup runs, a window with a progress bar holds the focus, and the
+application only actually closes once it has finished.
+
+### Manual backup (File menu)
+
+`File > Backup` still generates, as always, a single ZIP
+(`backup_completo_<date>.zip`) with both databases and **all** the photos
+together and compressed, in the location you choose. `File > Restore` opens
+as a submenu with two options: **"Restore..."**, to pick any ZIP by hand,
+and **"Restore from automatic backup..."**, which opens the `backups_auto`
+folder directly. In both cases, if the chosen ZIP is an automatic backup,
+the database is restored first and, with it restored, the photos that are
+needed are worked out and extracted only from the matching
+`fotos_backup_<year>.zip` files, instead of dumping them all. All three
+operations (backup and both restores) show their own progress bar with focus.
+
+### Cleaning up orphan photos
+
+`Tools > Clean up orphan photos` deletes the photos in `fotos_recibidas`
+that are no longer referenced by any job, pending task or machine. When the
+application closes and before a manual backup, `fotos_recibidas` is also
+cleaned silently, but **only** that option in the Tools menu also goes
+through the `fotos_backup_<year>.zip` files and rewrites them without any
+orphan photos they may contain, so they are not carried along forever.
+
+---
+
+## 📁 Project Structure
 
 ```
 MantPro/
-├── main.py                      # Aplicación principal de escritorio
-├── usuarios.py                  # Usuarios, contraseñas, roles y sesiones
-├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
-├── almacen.py                   # Stock de almacén: estructura, materiales y movimientos
-├── maquinas.py                  # Árbol de maquinaria y su histórico de trabajos
-├── idiomas.py                   # Traducciones del escritorio (ES / EN / EU)
-├── requirements.txt             # Dependencias Python
-├── logo.png                     # Logo de la aplicación
-├── README.md                    # Este archivo
-├── fotos_recibidas/             # Carpeta de imágenes
-├── mantenimiento.db             # Base de datos SQLite (trabajos de mantenimiento)
-├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
-├── mantenimiento_app/           # Aplicación móvil Flutter (trabajos)
-│   ├── lib/main.dart            # Código principal móvil
-│   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
-│   ├── pubspec.yaml             # Dependencias Flutter
-│   └── android/                 # Configuración Android
-├── mantpro_stock_app/           # Aplicación móvil Flutter (stock de almacén)
-│   ├── lib/modelos.dart         # Modelos de datos y regla de color de stock
-│   ├── lib/pantallas/           # Pantallas: almacén, artículo, búsqueda, bajo mínimo...
-│   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
-│   ├── pubspec.yaml             # Dependencias Flutter
-│   └── android/                 # Configuración Android
-├── backups/                     # Backups manuales completos (BD + fotos)
-├── backups_auto/                # Backups automáticos al cerrar (BD rotativa + fotos por año)
-└── docs/                        # Documentación adicional
+├── main.py                      # Main desktop application
+├── usuarios.py                  # Users, passwords, roles and sessions
+├── dialogos_usuarios.py         # PyQt6 dialogs: sign-in and user management
+├── almacen.py                   # Warehouse stock: structure, materials and movements
+├── maquinas.py                  # Machinery tree and its job history
+├── idiomas.py                   # Desktop translations (ES / EN / EU)
+├── requirements.txt             # Python dependencies
+├── logo.png                     # Application logo
+├── README.md                    # This file
+├── fotos_recibidas/             # Image folder
+├── mantenimiento.db             # SQLite database (maintenance jobs)
+├── almacen.db                   # SQLite database (warehouse stock, separate)
+├── mantenimiento_app/           # Flutter mobile app (jobs)
+│   ├── lib/main.dart            # Main mobile code
+│   ├── lib/i18n/strings.dart    # Mobile translations (ES / EN / EU)
+│   ├── pubspec.yaml             # Flutter dependencies
+│   └── android/                 # Android configuration
+├── mantpro_stock_app/           # Flutter mobile app (warehouse stock)
+│   ├── lib/modelos.dart         # Data models and stock colour rule
+│   ├── lib/pantallas/           # Screens: warehouse, item, search, low stock...
+│   ├── lib/i18n/strings.dart    # Mobile translations (ES / EN / EU)
+│   ├── pubspec.yaml             # Flutter dependencies
+│   └── android/                 # Android configuration
+├── backups/                     # Full manual backups (database + photos)
+├── backups_auto/                # Automatic backups on close (rotating database + photos per year)
+└── docs/                        # Additional documentation
 ```
 
-> Los datos (base de datos, fotos y backups) no viven necesariamente junto al
-> código: si no existe `mantenimiento.db` en la carpeta actual, la aplicación usa
-> `~/.local/share/MantPro` en Linux o `%APPDATA%\MantPro` en Windows.
+> The data (database, photos and backups) does not necessarily live next to
+> the code: if there is no `mantenimiento.db` in the current folder, the
+> application uses `~/.local/share/MantPro` on Linux or `%APPDATA%\MantPro`
+> on Windows.
 
-### Base de Datos
+### Database
 
-La aplicación utiliza SQLite con las siguientes tablas:
+The application uses SQLite with the following tables:
 
-- **`tareas`**: Registro de intervenciones realizadas (fecha, descripción, tags,
-  fotos, **quién lo realizó** (`usuario_id` y `usuario_nombre`) y la
-  **máquina vinculada** (`maquina_id`), si tiene una)
-- **`maquinas`**: Árbol de maquinaria (nombre, máquina superior, notas y foto)
-- **`pendientes`**: Tareas pendientes de realizar (título, detalles y
-  **técnico asignado**: `asignado_a` y `asignado_nombre`)
-- **`usuarios`**: Personas que usan la aplicación (login, nombre, hash de la
-  contraseña, rol y si está activo)
-- **`sesiones`**: Tokens de los móviles vinculados, con su fecha de caducidad
-- **`avisos_recurrentes`**: Avisos de mantenimiento que se repiten automáticamente
-- **`dias_especiales`**: Festivos, vacaciones y días marcados en el calendario
-- **`auditoria`**: Historial de quién edita o borra cada trabajo, con fecha,
-  acción y detalle
-- **`config`**: Configuración interna de la aplicación (logo, provincia, etc.)
+- **`tareas`**: Record of completed jobs (date, description, tags, photos,
+  **who did it** (`usuario_id` and `usuario_nombre`) and the **linked
+  machine** (`maquina_id`), if any)
+- **`maquinas`**: Machinery tree (name, parent machine, notes and photo)
+- **`pendientes`**: Pending tasks (title, details and **assigned
+  technician**: `asignado_a` and `asignado_nombre`)
+- **`usuarios`**: People who use the application (login, name, password
+  hash, role and whether they are active)
+- **`sesiones`**: Tokens of the linked phones, with their expiry date
+- **`avisos_recurrentes`**: Maintenance alerts that repeat automatically
+- **`dias_especiales`**: Public holidays, vacations and days marked on the calendar
+- **`auditoria`**: History of who edits or deletes each job, with date,
+  action and details
+- **`config`**: Internal application settings (logo, province, etc.)
 
-Las contraseñas se guardan con **PBKDF2-SHA256** (200.000 iteraciones y salt por
-usuario), nunca en claro. Las tablas y columnas nuevas se crean solas al
-arrancar, sin perder los datos existentes.
+Passwords are stored with **PBKDF2-SHA256** (200,000 iterations and a
+per-user salt), never in plain text. New tables and columns are created
+automatically at startup, without losing existing data.
 
-> 🔐 `mantenimiento.db` contiene hashes de contraseñas y tokens de sesión.
-> Está en `.gitignore` por algo: no la subas nunca al repositorio.
+> 🔐 `mantenimiento.db` contains password hashes and session tokens.
+> It is in `.gitignore` for a reason: never push it to the repository.
 
-El stock de almacén vive en su propia base de datos, **`almacen.db`**, separada
-a propósito de la de los trabajos:
+Warehouse stock lives in its own database, **`almacen.db`**, deliberately
+kept separate from the jobs database:
 
-- **`estanterias`**: nombre y si tiene hueco en el suelo
-- **`baldas`**: baldas de cada estantería, numeradas de abajo a arriba (la
-  balda `0` representa el hueco de suelo)
-- **`secciones`**: subdivisiones dentro de cada balda
-- **`materiales`**: código, nombre, descripción, unidad, stock actual, stock
-  mínimo, ubicación (sección) y foto
-- **`movimientos`**: histórico de entradas y salidas, con fecha, cantidad,
-  usuario y motivo
+- **`estanterias`**: name and whether it has floor space
+- **`baldas`**: shelves of each shelving unit, numbered from bottom to top
+  (shelf `0` represents the floor space)
+- **`secciones`**: subdivisions within each shelf
+- **`materiales`**: code, name, description, unit, current stock, minimum
+  stock, location (section) and photo
+- **`movimientos`**: history of stock in and out, with date, quantity, user
+  and reason
 
-Se crea automáticamente en el primer arranque y se incluye en los backups
-(manuales y automáticos al cerrar la app) junto con `mantenimiento.db`.
-
----
-
-## 🤝 Contribuir
-
-¡Las contribuciones son bienvenidas! Si quieres mejorar MantPro:
-
-1. **Fork** el proyecto
-2. Crea una **rama** para tu feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un **Pull Request**
-
-### Ideas de Mejora
-
-- [X] Implementar notificaciones push para recordatorios
-- [X] Añadir gráficas de estadísticas más detalladas
-- [ ] Integración con calendario de Google
-- [X] Modo oscuro (y modo claro, y tema retro estilo Windows 98)
-- [X] Multi-idioma (Español, Inglés, Euskara)
-- [X] Exportación a Excel
-- [X] Registro de auditoría de ediciones y borrados
-- [X] Control de stock de material de almacén
-- [ ] API para integración con otros sistemas
-- [ ] Firma digital de trabajos completados
+It is created automatically on first launch and included in backups (manual
+and automatic on close) together with `mantenimiento.db`.
 
 ---
 
-## ✅ Hecho
+## 🤝 Contributing
 
-- **Gestión de usuarios**: login con usuario y contraseña en PC y móvil, roles
-  múltiples por usuario (administrador / técnico / almacén), alta y baja
-  lógica de usuarios, cambio y restablecimiento de contraseña.
-- **Autoría de los trabajos**: cada registro guarda quién lo realizó. Los
-  registros anteriores al sistema de usuarios quedan marcados como `Histórico`.
-- **Sesión persistente en el móvil**: el técnico inicia sesión una vez y el
-  token queda guardado en el dispositivo.
-- **API autenticada**: todos los endpoints de datos exigen token; un `401`
-  cierra la sesión del móvil y devuelve al login sin perder los registros
-  locales pendientes de enviar.
-- **Pendientes asignados**: el PC asigna cada trabajo a un técnico y el móvil
-  puede filtrar por "Solo míos".
-- **Filtro por técnico** en el histórico y en la exportación a PDF, CSV y Excel.
-- **Auditoría de ediciones**: se registra quién edita o borra un trabajo (no
-  solo quién lo creó), consultable y filtrable por técnico/acción desde
-  "Registro de cambios".
-- **Permisos por registro**: un técnico solo puede editar o borrar sus propios
-  trabajos; un administrador puede gestionar cualquiera y reasignar el autor
-  de uno o varios registros a la vez (selección múltiple + menú contextual).
-- **Temas visuales**: modo oscuro (por defecto), claro o clásico estilo
-  Windows 98, seleccionable desde el menú "Apariencia" y recordado entre
-  sesiones.
-- **Backup a demanda con selección de destino**: al generar una copia de
-  seguridad manual se puede elegir dónde guardarla, en vez de ir siempre a la
-  carpeta `backups` por defecto.
-- **Control de stock de almacén**: estructura configurable de estanterías,
-  baldas y secciones (solo administradores), ficha de materiales con foto,
-  entradas y salidas con historial (cualquier usuario), traslados entre
-  ubicaciones registrados en el historial, selección múltiple con menú
-  contextual para mover o eliminar en bloque, y una pestaña dedicada a los
-  materiales sin stock o por debajo de su mínimo. Con base de datos propia
-  (`almacen.db`) y app móvil independiente (`mantpro_stock_app`) para
-  consultar y mover stock desde el teléfono.
-- **Sesiones de dispositivos**: listar los móviles vinculados a cada usuario,
-  con su modelo real de dispositivo, y poder revocar una o varias sesiones
-  concretas sin tener que desactivar al usuario entero.
-- **Listado de maquinaria**: árbol de máquinas y submáquinas con foto adjunta,
-  contador de trabajos por año y mes, y vínculo de cada trabajo (PC o móvil) a
-  la máquina en la que se ha hecho, incluido en las exportaciones a PDF, CSV
-  y Excel.
-- **Backup automático incremental**: el cierre de la aplicación ya no reempaqueta
-  todo el historial de fotos cada vez; las bases de datos rotan en un ZIP y las
-  fotos se reparten en ZIP incrementales por año, con una barra de progreso con
-  foco tanto en el cierre como en el backup y la restauración manuales (ver
-  [Copias de Seguridad](#-copias-de-seguridad)).
-- **Revertir un trabajo a pendiente**: deshacer por error la finalización de un
-  trabajo, tanto desde el historial del PC como manteniendo pulsado el registro
-  en el móvil, con aviso de pérdida de la máquina vinculada si la tenía y
-  restauración automática del aviso recurrente de origen, si venía de uno.
-- **Restaurar desde copia automática**: `Archivo > Restaurar` se abre como
-  submenú para elegir entre un backup manual cualquiera o ir directo a la
-  carpeta de copias automáticas al cerrar la app.
-- **Recordatorio diario de stock**: la app `mantpro_stock_app` avisa cada
-  mañana a las 8:00 para comprobar la cantidad real de 5 materiales del
-  almacén (al azar, distintos cada día) y permite corregirla al momento desde
-  la propia notificación.
-- **Dashboard con KPIs y gráficos de fiabilidad**: tarjetas de MTBF y MTTR
-  medios de toda la planta, y gráficos de ranking de máquinas con más averías
-  y de averías por mes, dibujados a mano con `QPainter` sin depender de
-  ninguna librería de gráficos externa.
-- **Sustitución automática de sesión por dispositivo**: si un usuario vuelve a
-  iniciar sesión desde un móvil con el que ya tenía una sesión abierta, la
-  anterior se borra sola en vez de acumularse en el listado de sesiones.
+Contributions are welcome! If you want to improve MantPro:
+
+1. **Fork** the project
+2. Create a **branch** for your feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** to the branch (`git push origin feature/AmazingFeature`)
+5. Open a **Pull Request**
+
+### Improvement Ideas
+
+- [X] Push notifications for reminders
+- [X] More detailed statistics charts
+- [ ] Google Calendar integration
+- [X] Dark mode (and light mode, and a retro Windows 98-style theme)
+- [X] Multi-language (Spanish, English, Basque, Catalan, Galician)
+- [X] Excel export
+- [X] Audit log of edits and deletions
+- [X] Warehouse materials stock control
+- [ ] API for integration with other systems
+- [ ] Digital signature of completed jobs
+
+---
+
+## ✅ Done
+
+- **User management**: username and password sign-in on PC and phone,
+  multiple roles per user (administrator / technician / warehouse), logical
+  adding and deactivation of users, password change and reset.
+- **Job authorship**: each record stores who carried it out. Records from
+  before the user system are marked as `Histórico` (legacy).
+- **Persistent session on the phone**: the technician signs in once and the
+  token is stored on the device.
+- **Authenticated API**: every data endpoint requires a token; a `401`
+  closes the session on the phone and returns to sign-in without losing the
+  local records waiting to be sent.
+- **Assigned pending tasks**: the PC assigns each job to a technician and the
+  phone can filter by "Only mine".
+- **Filter by technician** in the history and in PDF, CSV and Excel exports.
+- **Edit auditing**: who edits or deletes a job is recorded (not just who
+  created it), searchable and filterable by technician/action from
+  "Change log".
+- **Per-record permissions**: a technician can only edit or delete their own
+  jobs; an administrator can manage any of them and reassign the author of
+  one or several records at once (multiple selection + context menu).
+- **Visual themes**: dark mode (default), light mode or classic Windows
+  98 style, selectable from the "Appearance" menu and remembered between
+  sessions.
+- **On-demand backup with a choice of destination**: when making a manual
+  backup you can choose where to save it, instead of always using the
+  default `backups` folder.
+- **Warehouse stock control**: configurable structure of shelving units,
+  shelves and sections (administrators only), material records with photo,
+  stock in/out with history (any user), transfers between locations recorded
+  in the history, multiple selection with a context menu to move or delete in
+  bulk, and a dedicated tab for materials out of stock or below their
+  minimum. With its own database (`almacen.db`) and a standalone mobile app
+  (`mantpro_stock_app`) to check and move stock from the phone.
+- **Device sessions**: list the phones linked to each user, with their real
+  device model, and revoke one or several specific sessions without having
+  to deactivate the whole user.
+- **Machinery list**: tree of machines and sub-machines with an attached
+  photo, job counter per year and month, and a link from each job (PC or
+  phone) to the machine it was done on, included in PDF, CSV and Excel
+  exports.
+- **Incremental automatic backup**: closing the application no longer
+  repackages the whole photo history every time; the databases rotate in a
+  ZIP and the photos are split into incremental ZIPs per year, with a
+  progress bar holding focus both when closing and during manual backup and
+  restore (see [Backups](#-backups)).
+- **Revert a job to pending**: undo a job that was completed by mistake,
+  both from the PC history and by long-pressing the record on the phone,
+  with a warning about losing the linked machine if it had one and automatic
+  restoration of the originating recurring alert, if it came from one.
+- **Restore from automatic backup**: `File > Restore` opens as a submenu to
+  choose between any manual backup or going straight to the folder of
+  automatic backups made on close.
+- **Daily stock reminder**: the `mantpro_stock_app` app reminds you every
+  morning at 8:00 to check the real quantity of 5 warehouse materials (random,
+  different each day) and lets you correct it right away from the
+  notification itself.
+- **Dashboard with KPIs and reliability charts**: plant-wide average MTBF and
+  MTTR cards, and charts ranking the machines with the most breakdowns and
+  showing breakdowns per month, hand-drawn with `QPainter` without relying on
+  any external charting library.
+- **Automatic per-device session replacement**: if a user signs in again
+  from a phone on which they already had an open session, the previous one is
+  deleted on its own instead of piling up in the session list.
 
 ## 🧭 Roadmap
 
-- [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
-- [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
-oficina, sin depender de estar en la misma WiFi que el PC.
-- [ ] **Firma digital de trabajos completados**: capturar en el móvil, con el
-dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
-finalizado, y adjuntarla al registro apoyándose en el sistema de
-usuarios ya existente.
+- [ ] **Per-technician statistics** on the dashboard: jobs per person and month.
+- [ ] **Remote sync**: being able to sync from outside the office network,
+without needing to be on the same Wi-Fi as the PC.
+- [ ] **Digital signature of completed jobs**: capture on the phone, with a
+finger or stylus, the signature of the person receiving the work when it is
+marked as finished, and attach it to the record, building on the existing
+user system.
 
-### 🔒 Nota sobre seguridad
+### 🔒 Security note
 
-La sincronización viaja por HTTP dentro de la red local. El sistema de usuarios
-está pensado para **trazabilidad** (saber quién hizo cada trabajo), no como
-barrera frente a alguien con acceso a esa misma red. Si en el futuro se expone
-el servidor fuera de la red local, el tráfico debe ir cifrado (VPN o túnel con
-HTTPS).
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la **GNU Affero General Public License v3.0 (AGPL-3.0)**.
-Ver el archivo `LICENSE` para el texto completo.
-
-Copyright (C) 2026 AnabasaSoft
-
-### Qué significa en la práctica
-
-- ✅ Puedes **usar** MantPro libremente, también en tu empresa y con fines comerciales
-- ✅ Puedes **estudiar, modificar y redistribuir** el código
-- ⚠️ Si distribuyes una versión modificada, debes publicarla **también bajo AGPL-3.0**
-- ⚠️ Si ofreces MantPro (o un derivado) **como servicio a través de una red**, debes
-  poner el código fuente a disposición de quienes lo usen, aunque no distribuyas
-  ningún ejecutable. Esta es la diferencia clave respecto a la GPL v3
-- ⚠️ Debes mantener los avisos de copyright y licencia
-
-### Aviso de licencia
-
-```
-MantPro - Sistema de Mantenimiento Preventivo
-Copyright (C) 2026 AnabasaSoft
-
-Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo
-los términos de la Licencia Pública General Affero de GNU publicada por la
-Free Software Foundation, ya sea la versión 3 de la Licencia o (a tu
-elección) cualquier versión posterior.
-
-Este programa se distribuye con la esperanza de que sea útil, pero SIN
-NINGUNA GARANTÍA; ni siquiera la garantía implícita de COMERCIABILIDAD o
-IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública
-General Affero de GNU para más detalles.
-
-Deberías haber recibido una copia de la Licencia Pública General Affero de
-GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
-```
-
-> **Nota sobre licencias comerciales**: AnabasaSoft es el titular único del
-> copyright de MantPro y, por tanto, puede ofrecer el mismo código bajo
-> condiciones distintas a la AGPL. Si necesitas integrar MantPro en un producto
-> propietario, ponte en contacto.
+Sync travels over HTTP within the local network. The user system is
+designed for **traceability** (knowing who did each job), not as a barrier
+against someone with access to that same network. If the server is ever
+exposed outside the local network, the traffic must be encrypted (VPN or a
+tunnel with HTTPS).
 
 ---
 
-## 📧 Contacto
+## 📄 License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+See the `LICENSE` file for the full text.
+
+Copyright (C) 2026 AnabasaSoft
+
+### What it means in practice
+
+- ✅ You can **use** MantPro freely, including in your company and for commercial purposes
+- ✅ You can **study, modify and redistribute** the code
+- ⚠️ If you distribute a modified version, you must release it **under AGPL-3.0 as well**
+- ⚠️ If you offer MantPro (or a derivative) **as a service over a network**, you must
+  make the source code available to its users, even if you do not distribute
+  any executable. This is the key difference from the GPL v3
+- ⚠️ You must keep the copyright and license notices
+
+### License notice
+
+```
+MantPro - Preventive Maintenance System
+Copyright (C) 2026 AnabasaSoft
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```
+
+> **Note on commercial licenses**: AnabasaSoft is the sole copyright holder
+> of MantPro and can therefore offer the same code under terms other than
+> the AGPL. If you need to integrate MantPro into a proprietary product,
+> get in touch.
+
+---
+
+## 📧 Contact
 
 **AnabasaSoft**
 
 - 📧 Email: [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com)
 - 🌐 GitHub: [github.com/AnabasaSoft](https://github.com/AnabasaSoft)
-- 💼 Proyecto: [github.com/AnabasaSoft/MantPro](https://github.com/AnabasaSoft/MantPro)
+- 💼 Project: [github.com/AnabasaSoft/MantPro](https://github.com/AnabasaSoft/MantPro)
 
 ---
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgements
 
-- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/): framework GUI multiplataforma para la app de escritorio
-- [Flutter](https://flutter.dev/): SDK para las apps móviles
-- [ReportLab](https://www.reportlab.com/): generación de informes en PDF
-- [SQLite](https://www.sqlite.org/): base de datos embebida
-- [Flask](https://flask.palletsprojects.com/): microframework web para el servidor de sincronización
-- La comunidad open source, por su apoyo y sus contribuciones
+- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/): cross-platform GUI framework for the desktop app
+- [Flutter](https://flutter.dev/): SDK for the mobile apps
+- [ReportLab](https://www.reportlab.com/): PDF report generation
+- [SQLite](https://www.sqlite.org/): embedded database
+- [Flask](https://flask.palletsprojects.com/): web microframework for the sync server
+- The open source community, for its support and contributions
 
 ---
 
@@ -930,11 +922,11 @@ GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
 <img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
 
-**Desarrollado con ❤️ por [Anabasa Software](https://anabasasoft.github.io)**
+**Made with ❤️ by [Anabasa Software](https://anabasasoft.github.io)**
 
-📧 Email: [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) • 🌐 Portafolio: [anabasasoft.github.io](https://anabasasoft.github.io)
+📧 Email: [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) • 🌐 Portfolio: [anabasasoft.github.io](https://anabasasoft.github.io)
 
-⭐ Si te gusta este proyecto, dale una estrella en GitHub
+⭐ If you like this project, give it a star on GitHub
 
 </div>
 

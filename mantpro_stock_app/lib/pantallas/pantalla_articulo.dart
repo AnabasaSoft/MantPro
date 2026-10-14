@@ -426,7 +426,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
                       color: mv.tipo == 'entrada' ? Colors.green : Colors.red,
                     ),
                     title: Text('${formatearCantidad(mv.cantidad)} ${m.unidad}'.trim()),
-                    subtitle: Text([mv.fecha, mv.usuarioNombre, mv.motivo]
+                    subtitle: Text([mv.fecha, mv.usuarioNombre, traducirMotivoMovimiento(mv.motivo)]
                         .where((s) => s.isNotEmpty)
                         .join(' · ')),
                   )),

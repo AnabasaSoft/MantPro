@@ -460,6 +460,8 @@
   "lbl_motivo": "Arrazoia (aukerakoa)",
   "ph_motivo_entrada": "adib. Erosketa, itzulketa...",
   "ph_motivo_salida": "adib. Lan batean erabilia...",
+  "motivo_usado_en_trabajo": "Lan honetan erabilia: {trabajo}",
+  "motivo_alta_inicial": "Hasierako stocka",
   "title_entrada_stock": "Stock sarrera",
   "title_salida_stock": "Stock irteera",
   "msg_stock_insuficiente": "Ez dago nahikoa stock irteera hau egiteko.",
