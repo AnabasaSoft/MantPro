@@ -460,6 +460,8 @@
   "lbl_motivo": "Motivo (opcional)",
   "ph_motivo_entrada": "ej. Compra, devolución...",
   "ph_motivo_salida": "ej. Usado en trabajo...",
+  "motivo_usado_en_trabajo": "Usado en trabajo: {trabajo}",
+  "motivo_alta_inicial": "Alta inicial",
   "title_entrada_stock": "Entrada de stock",
   "title_salida_stock": "Salida de stock",
   "msg_stock_insuficiente": "No hay stock suficiente para esta salida.",

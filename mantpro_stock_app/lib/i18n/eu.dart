@@ -106,6 +106,8 @@ const Map<String, String> traduccionesEu = {
     "lbl_comprobar_stock_intro": "Egiaztatu material hauen kopuru erreala eta zuzendu behar bada.",
     "msg_sin_materiales": "Ez dago materialik biltegian.",
     "motivo_comprobacion_stock": "Stock egiaztapena",
+    "motivo_usado_en_trabajo": "Lan honetan erabilia: {trabajo}",
+    "motivo_alta_inicial": "Hasierako stocka",
 
     // --- Artículos, permisos y colas ---
     "lbl_articulo": "Artikulua",

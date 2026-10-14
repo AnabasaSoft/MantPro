@@ -106,6 +106,8 @@ const Map<String, String> traduccionesEs = {
     "lbl_comprobar_stock_intro": "Comprueba la cantidad real de estos materiales y corrígela si hace falta.",
     "msg_sin_materiales": "No hay materiales en el almacén.",
     "motivo_comprobacion_stock": "Comprobación de stock",
+    "motivo_usado_en_trabajo": "Usado en trabajo: {trabajo}",
+    "motivo_alta_inicial": "Alta inicial",
 
     // --- Artículos, permisos y colas ---
     "lbl_articulo": "Artículo",

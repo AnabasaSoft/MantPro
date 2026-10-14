@@ -561,7 +561,7 @@ def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id
     con.close()
     if stock_inicial and float(stock_inicial) > 0:
         registrar_movimiento(material_id, "entrada", float(stock_inicial),
-                              usuario_id, usuario_nombre, motivo="Alta inicial")
+                              usuario_id, usuario_nombre, motivo=MOTIVO_ALTA_INICIAL)
     return material_id
 
 
@@ -657,6 +657,15 @@ def materiales_bajo_minimo():
 
 
 # ---------------------------------------------------------------- movimientos
+
+# Motivos que genera la propia aplicación. Se guardan siempre en esta forma
+# canónica (en español) y se traducen al mostrarlos, en el PC y en la app de
+# stock, para que salgan en el idioma de quien los mira y no en el que tenía
+# el PC al registrarlos. Si se cambian, hay que cambiarlos también en
+# mantpro_stock_app/lib/modelos.dart.
+MOTIVO_ALTA_INICIAL = "Alta inicial"
+PREFIJO_MOTIVO_USADO_EN_TRABAJO = "Usado en trabajo: "
+
 
 def registrar_movimiento(material_id, tipo, cantidad, usuario_id, usuario_nombre, motivo="", permitir_negativo=False):
     """tipo: 'entrada' o 'salida'. Actualiza el stock y deja constancia del movimiento.

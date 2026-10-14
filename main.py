@@ -60,6 +60,18 @@ def tt(clave, defecto):
     valor = t(clave)
     return defecto if valor == clave else valor
 
+
+def traducir_motivo_movimiento(motivo):
+    """Traduce al idioma activo los motivos de movimiento de stock que genera
+    la propia aplicación (guardados en forma canónica, ver almacen.py). Los
+    que escribe el usuario a mano se devuelven tal cual."""
+    if motivo == almacen.MOTIVO_ALTA_INICIAL:
+        return tt("motivo_alta_inicial", motivo)
+    if motivo.startswith(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):
+        trabajo = motivo[len(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):]
+        return tt("motivo_usado_en_trabajo", "Usado en trabajo: {trabajo}").format(trabajo=trabajo)
+    return motivo
+
 # ==========================================
 # IMPORTS CORREGIDOS (PyQt6)
 # ==========================================
@@ -1837,7 +1849,7 @@ class ServidorSincronizacion(QThread):
                 continue
             ok, _ = almacen.registrar_movimiento(
                 material_id, "salida", cantidad, usuario['id'], usuario['nombre'],
-                motivo=f"Usado en trabajo: {referencia}", permitir_negativo=True)
+                motivo=f"{almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO}{referencia}", permitir_negativo=True)
             if ok:
                 hubo_algo = True
         if hubo_algo:
@@ -5879,7 +5891,7 @@ class MaintenanceApp(QMainWindow):
             else:
                 icono = "📥" if mov["tipo"] == "entrada" else "📤"
                 texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
-                if mov.get("motivo"): texto += f"   ({mov['motivo']})"
+                if mov.get("motivo"): texto += f"   ({traducir_motivo_movimiento(mov['motivo'])})"
             self.lista_historial_stock.addItem(texto)
 
     def _guardar_foto_material(self, ruta_origen):

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:flutter/material.dart';
+import 'i18n/strings.dart';
 
 class Seccion {
   final int id;
@@ -164,6 +165,23 @@ class Movimiento {
         usuarioNombre: j['usuario_nombre'] ?? '',
         motivo: j['motivo'] ?? '',
       );
+}
+
+// Motivos de movimiento que genera la propia aplicación de PC. Se guardan
+// en esta forma canónica (en español) y se traducen al mostrarlos; tienen
+// que coincidir con las constantes de almacen.py.
+const String _motivoAltaInicial = 'Alta inicial';
+const String _prefijoMotivoUsadoEnTrabajo = 'Usado en trabajo: ';
+
+/// Traduce al idioma activo los motivos de movimiento generados por la
+/// aplicación. Los que escribe el usuario a mano se devuelven tal cual.
+String traducirMotivoMovimiento(String motivo) {
+  if (motivo == _motivoAltaInicial) return t('motivo_alta_inicial');
+  if (motivo.startsWith(_prefijoMotivoUsadoEnTrabajo)) {
+    final trabajo = motivo.substring(_prefijoMotivoUsadoEnTrabajo.length);
+    return t('motivo_usado_en_trabajo').replaceAll('{trabajo}', trabajo);
+  }
+  return motivo;
 }
 
 /// Formatea una cantidad sin decimales sobrantes (3.0 -> "3", 3.5 -> "3.5").
