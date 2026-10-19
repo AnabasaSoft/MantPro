@@ -987,6 +987,22 @@ class ServidorSincronizacion(QThread):
                 fecha_final = fecha_movil if fecha_movil else datetime.now().strftime("%Y-%m-%d")
                 # ----------------------------
 
+                # Reintento de un envío que ya se procesó (la respuesta no le llegó
+                # al móvil, o dos sincronizaciones mandaron la misma cola a la vez):
+                # si el pendiente ya no existe pero este mismo trabajo ya está en el
+                # historial, respondemos OK sin duplicar nada. Si devolviéramos 404,
+                # el móvil lo dejaría para siempre como "listo para sincronizar".
+                desc_sin_fotos = titulo + (f"\n{detalles}" if detalles else "")
+                with get_db_connection(self.db_path) as conn:
+                    c = conn.cursor()
+                    c.execute('SELECT 1 FROM pendientes WHERE id=?', (id_pend,))
+                    if c.fetchone() is None:
+                        c.execute('SELECT descripcion FROM tareas WHERE fecha=? AND usuario_id=?',
+                                  (fecha_final, usuario['id']))
+                        if any(d == desc_sin_fotos or (d or "").startswith(desc_sin_fotos + "\n[FOTO")
+                               for (d,) in c.fetchall()):
+                            return jsonify({"status": "ok", "ya_completado": True})
+
                 filename, ruta_local = self._procesar_foto(request, 'foto')
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 raw_desc = ruta_local if ruta_local else detalles
@@ -6058,77 +6074,69 @@ class MaintenanceApp(QMainWindow):
                     self.refrescar_arbol_maquinas()
 
     def del_rec(self, tabla_widget):
-        r = tabla_widget.currentRow()
-        if r >= 0:
-            i = tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole)
-            if not self._puede_modificar(i):
-                QMessageBox.information(self, t("aviso"),
-                    tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
-                return
+        filas = sorted({ix.row() for ix in tabla_widget.selectionModel().selectedRows()})
+        if not filas and tabla_widget.currentRow() >= 0:
+            filas = [tabla_widget.currentRow()]
+        ids = [tabla_widget.item(r, 0).data(Qt.ItemDataRole.UserRole) for r in filas]
+        ids = [i for i in ids if i is not None]
+        if not ids:
+            return
+        permitidos = [i for i in ids if self._puede_modificar(i)]
+        if not permitidos:
+            QMessageBox.information(self, t("aviso"),
+                tt("msg_solo_tus_registros", "Solo puedes modificar tus propios trabajos."))
+            return
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(t("title_confirmar_eliminacion"))
+        if len(permitidos) == 1:
+            msg.setText(t("msg_confirmar_eliminacion_registro"))
+        else:
+            msg.setText(t("msg_confirmar_eliminacion_registros").format(n=len(permitidos)))
+        if len(permitidos) < len(ids):
+            msg.setInformativeText(t("msg_registros_ajenos_omitidos").format(n=len(ids) - len(permitidos)))
+        btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        if msg.clickedButton() != btn_si:
+            return
+
+        for i in permitidos:
             d = self.db.obtener_tarea_por_id(i)
-            if d:
-                # --- DIÁLOGO ESPAÑOL ---
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Question)
-                msg.setWindowTitle(t("title_confirmar_eliminacion"))
-                msg.setText(t("msg_confirmar_eliminacion_registro"))
+            if not d:
+                continue
+            # Si venía de un aviso recurrente, se vuelve a marcar como pendiente
+            try:
+                desc_tarea = d[2]
+                fecha_tarea = d[1]
+                prefijo = "Mantenimiento Preventivo: "
+                if desc_tarea.startswith(prefijo):
+                    titulo_aviso = desc_tarea.replace(prefijo, "").strip()
+                    conn = self.db.conectar()
+                    c = conn.cursor()
+                    c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
+                    aviso = c.fetchone()
+                    if aviso:
+                        c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
+                        conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error intentando restaurar aviso: {e}")
 
-                # Botones manuales
-                btn_si = msg.addButton(t("btn_si"), QMessageBox.ButtonRole.YesRole)
-                btn_no = msg.addButton(t("btn_no"), QMessageBox.ButtonRole.NoRole)
+            m = re.search(r"\[FOTO:\s*(.*?)\]", d[2])
+            if m:
+                nombre = m.group(1).split("]")[0].strip()
+                ruta = os.path.join(self.carpeta_fotos, nombre)
+                if os.path.exists(ruta):
+                    try: os.remove(ruta)
+                    except: pass
 
-                msg.exec()
+            self.db.borrar_tarea(i)
 
-                if msg.clickedButton() == btn_si:
-                    # -------------------------------------------------------
-                    # 1. LÓGICA DE RESTAURACIÓN DE AVISO (NUEVO)
-                    # -------------------------------------------------------
-                    try:
-                        desc_tarea = d[2]  # Descripción
-                        fecha_tarea = d[1] # Fecha (YYYY-MM-DD)
-
-                        prefijo = "Mantenimiento Preventivo: "
-                        if desc_tarea.startswith(prefijo):
-                            titulo_aviso = desc_tarea.replace(prefijo, "").strip()
-
-                            # Abrimos conexión manual segura usando el método de tu clase DB
-                            conn = self.db.conectar()
-                            c = conn.cursor()
-
-                            # Buscamos si hay un aviso con ese título Y esa fecha de 'ultima_completada'
-                            c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
-                            aviso = c.fetchone()
-
-                            if aviso:
-                                # Lo "descompletamos" poniendo NULL
-                                c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
-                                conn.commit()
-                                print(f"Aviso '{titulo_aviso}' restaurado a pendiente.")
-
-                            conn.close()
-                    except Exception as e:
-                        print(f"Error intentando restaurar aviso: {e}")
-
-                    # -------------------------------------------------------
-                    # 2. BORRADO DE FOTO (Lógica original que ya tenías)
-                    # -------------------------------------------------------
-                    m = re.search(r"\[FOTO:\s*(.*?)\]", d[2])
-                    if m:
-                        nombre = m.group(1).split("]")[0].strip()
-                        ruta = os.path.join(self.carpeta_fotos, nombre)
-                        if os.path.exists(ruta):
-                            try: os.remove(ruta)
-                            except: pass
-
-                    # -------------------------------------------------------
-                    # 3. BORRADO DE BASE DE DATOS
-                    # -------------------------------------------------------
-                    self.db.borrar_tarea(i)
-                    self.refresh_all()
-
-                    # Avisar al móvil (Servidor) si está activo
-                    if hasattr(self, 'servidor') and self.servidor:
-                        self.servidor.pendiente_actualizado.emit()
+        self.refresh_all()
+        if hasattr(self, 'servidor') and self.servidor:
+            self.servidor.pendiente_actualizado.emit()
 
     def revertir_a_pendiente(self, tabla_widget):
         """Deshace la finalización de un trabajo: lo saca del historial y lo
@@ -7030,6 +7038,9 @@ class MaintenanceApp(QMainWindow):
             menu.addSeparator()
             act_borrar = menu.addAction(t("btn_borrar_seleccionado"), lambda: self.del_rec(self.h_table))
             act_borrar.setEnabled(puede)
+        else:
+            menu.addSeparator()
+            menu.addAction(t("ctx_borrar_n_registros").format(n=n), lambda: self.del_rec(self.h_table))
 
         menu.exec(self.h_table.viewport().mapToGlobal(pos))
 
