@@ -508,5 +508,16 @@
   "lbl_mttr": "MTTR (temps mitjà de reparació)",
   "msg_sin_datos_fiabilidad": "Encara no hi ha prou avaries per calcular indicadors.",
   "fmt_dias": "{n:.1f} dies",
-  "fmt_horas": "{n:.1f} hores"
+  "fmt_horas": "{n:.1f} hores",
+  "btn_exportar_stock": "📄 Exportar",
+  "title_exportar_stock": "Exportar l'estoc del magatzem",
+  "lbl_formato": "Format",
+  "lbl_que_exportar": "Què exportar",
+  "txt_todas_estanterias": "Totes les prestatgeries",
+  "btn_exportar": "Exportar",
+  "titulo_informe_stock": "Estoc del magatzem",
+  "txt_resumen_stock": "{n} materials · {b} per sota del mínim",
+  "txt_fecha_informe": "Data: {fecha}",
+  "msg_stock_exportado": "Estoc exportat a:\n{ruta}",
+  "msg_stock_sin_materiales": "No hi ha materials per exportar amb aquest filtre."
 }

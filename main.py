@@ -83,7 +83,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QListWidgetItem, QStyleFactory, QComboBox, QGroupBox, QCheckBox,
                              QCompleter, QFileDialog, QScrollArea, QSizePolicy, QGridLayout,
                              QSpinBox, QDoubleSpinBox, QRadioButton, QProgressBar, QProgressDialog, QTreeView, QMenu, QSplashScreen,
-                             QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog)
+                             QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog, QFormLayout)
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QPropertyAnimation, QEasingCurve, QTimer,
@@ -3869,6 +3869,62 @@ class DialogoFiltroTecnico(QDialog):
         usuario = self.combo_usuario.currentData()
         return None if usuario == "TODOS" else usuario
 
+class DialogoExportarStock(QDialog):
+    """Elige formato (PDF/CSV/Excel) y alcance (todo, una zona o una estantería)
+    para exportar el stock de almacén."""
+    def __init__(self, parent=None, zona_inicial=None):
+        super().__init__(parent)
+        self.setWindowTitle(tt("title_exportar_stock", "Exportar stock de almacén"))
+        l = QVBoxLayout()
+
+        g_formato = QGroupBox(tt("lbl_formato", "Formato"))
+        h = QHBoxLayout(g_formato)
+        self.rb_pdf = QRadioButton("PDF"); self.rb_csv = QRadioButton("CSV"); self.rb_excel = QRadioButton("Excel")
+        self.rb_pdf.setChecked(True)
+        for rb in (self.rb_pdf, self.rb_csv, self.rb_excel): h.addWidget(rb)
+        l.addWidget(g_formato)
+
+        g_alcance = QGroupBox(tt("lbl_que_exportar", "Qué exportar"))
+        f = QFormLayout(g_alcance)
+        self.combo_zona = QComboBox()
+        self.combo_zona.addItem(tt("txt_todas_zonas", "Todas las zonas"), None)
+        for zona in almacen.listar_zonas():
+            self.combo_zona.addItem(zona["nombre"], zona["id"])
+        idx = self.combo_zona.findData(zona_inicial)
+        self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
+        self.combo_estanteria = QComboBox()
+        self.combo_zona.currentIndexChanged.connect(self._cargar_estanterias)
+        f.addRow(tt("lbl_zona", "Zona") + ":", self.combo_zona)
+        f.addRow(tt("lbl_estanteria", "Estantería") + ":", self.combo_estanteria)
+        l.addWidget(g_alcance)
+        self._cargar_estanterias()
+
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(tt("btn_exportar", "Exportar"))
+        b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+
+    def _cargar_estanterias(self):
+        self.combo_estanteria.clear()
+        self.combo_estanteria.addItem(tt("txt_todas_estanterias", "Todas las estanterías"), None)
+        for est in almacen.listar_estructura(self.combo_zona.currentData()):
+            self.combo_estanteria.addItem(est["nombre"], est["id"])
+
+    def get_data(self):
+        formato = "pdf" if self.rb_pdf.isChecked() else ("csv" if self.rb_csv.isChecked() else "xlsx")
+        zona_id = self.combo_zona.currentData()
+        est_id = self.combo_estanteria.currentData()
+        if est_id is not None:
+            ambito = self.combo_estanteria.currentText()
+            if zona_id is not None:
+                ambito = f"{self.combo_zona.currentText()} · {ambito}"
+        elif zona_id is not None:
+            ambito = self.combo_zona.currentText()
+        else:
+            ambito = None
+        return formato, zona_id, est_id, ambito
+
 def traducir_tags_bd(tags_bd):
     traducciones = {
         "Urgente": t("tag_urgente"),
@@ -5695,7 +5751,8 @@ class MaintenanceApp(QMainWindow):
         btn_del = QPushButton(tt("btn_borrar_material", "🗑️ Eliminar")); btn_del.setStyleSheet("background-color:#c0392b; color:white;"); btn_del.clicked.connect(lambda: self.stock_borrar_material())
         btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;"); btn_entrada.clicked.connect(lambda: self.stock_registrar_movimiento("entrada"))
         btn_salida = QPushButton(tt("btn_salida_stock", "📤 Salida")); btn_salida.setStyleSheet("background-color:#d35400; color:white;"); btn_salida.clicked.connect(lambda: self.stock_registrar_movimiento("salida"))
-        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida): barra.addWidget(b)
+        btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); btn_exportar.clicked.connect(self.stock_exportar)
+        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, btn_exportar): barra.addWidget(b)
         self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
         barra.addWidget(self.btn_configurar_almacen)
@@ -5779,6 +5836,10 @@ class MaintenanceApp(QMainWindow):
             return QColor("#27ae60")
         return None
 
+    def _texto_ubicacion(self, seccion_id):
+        return almacen.obtener_ubicacion_texto(
+            seccion_id, tt("txt_balda_num", "Balda {n}"), tt("txt_hueco_suelo_corto", "Hueco de suelo"))
+
     def _material_seleccionado_alerta(self):
         fila = self.tabla_stock_alertas.currentRow()
         if fila < 0: return None
@@ -5796,7 +5857,7 @@ class MaintenanceApp(QMainWindow):
         self.tabla_stock_alertas.setSortingEnabled(False)
         self.tabla_stock_alertas.setRowCount(len(materiales))
         for fila, m in enumerate(materiales):
-            ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+            ubicacion = self._texto_ubicacion(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
             claves = {3: m["stock_actual"], 4: m["stock_minimo"]}
@@ -5878,7 +5939,7 @@ class MaintenanceApp(QMainWindow):
         self.tabla_stock.setSortingEnabled(False)
         self.tabla_stock.setRowCount(len(materiales))
         for fila, m in enumerate(materiales):
-            ubicacion = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+            ubicacion = self._texto_ubicacion(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
             claves = {3: m["stock_actual"], 4: m["stock_minimo"]}
@@ -5909,6 +5970,124 @@ class MaintenanceApp(QMainWindow):
                 texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
                 if mov.get("motivo"): texto += f"   ({traducir_motivo_movimiento(mov['motivo'])})"
             self.lista_historial_stock.addItem(texto)
+
+    # ------------------------------------------------------- exportar stock
+    @staticmethod
+    def _bajo_minimo(m):
+        # Mismo criterio que almacen.materiales_bajo_minimo()
+        return m["stock_actual"] <= 0 or m["stock_actual"] < m["stock_minimo"]
+
+    def stock_exportar(self):
+        zona_actual = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
+        dlg = DialogoExportarStock(self, zona_actual)
+        if not dlg.exec(): return
+        formato, zona_id, est_id, ambito = dlg.get_data()
+
+        materiales = almacen.listar_materiales(None, zona_id, est_id)
+        if not materiales:
+            QMessageBox.information(self, tt("aviso", "Aviso"),
+                tt("msg_stock_sin_materiales", "No hay materiales que exportar con ese filtro.")); return
+        for m in materiales:
+            m["ubicacion"] = self._texto_ubicacion(m.get("seccion_id"))
+        # Ordenados por ubicación (como se recorre el almacén); sin ubicación al final
+        materiales.sort(key=lambda m: (not m["ubicacion"], almacen._clave_orden_natural(m["ubicacion"]),
+                                       almacen._clave_orden_natural(m["nombre"])))
+
+        titulo = tt("titulo_informe_stock", "Stock de almacén")
+        if ambito: titulo += f" — {ambito}"
+        sufijo = re.sub(r'[^\w-]+', '_', ambito).strip('_') if ambito else ""
+        nombre_defecto = f"Stock{'_' + sufijo if sufijo else ''}_{QDate.currentDate().toString('yyyyMMdd')}.{formato}"
+        filtros = {"pdf": "PDF (*.pdf)", "csv": "CSV (*.csv)", "xlsx": "Excel (*.xlsx)"}
+        archivo = self.guardar_archivo_dialogo(tt("title_exportar_stock", "Exportar stock de almacén"),
+                                               nombre_defecto, filtros[formato])
+        if not archivo: return
+        if not archivo.lower().endswith("." + formato): archivo += "." + formato
+
+        cabeceras = [tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_ubicacion", "UBICACIÓN"),
+                     tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")]
+        n_bajo = sum(self._bajo_minimo(m) for m in materiales)
+        resumen = tt("txt_resumen_stock", "{n} materiales · {b} bajo el mínimo").format(n=len(materiales), b=n_bajo)
+        fecha = tt("txt_fecha_informe", "Fecha: {fecha}").format(
+            fecha=idiomas.formato_fecha_localizada(datetime.now().strftime("%Y-%m-%d")))
+        try:
+            if formato == "csv":
+                self._stock_a_csv(archivo, cabeceras, materiales)
+            elif formato == "xlsx":
+                try: import xlsxwriter  # noqa: F401
+                except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
+                self._stock_a_excel(archivo, titulo, fecha, resumen, cabeceras, materiales)
+            else:
+                self._stock_a_pdf(archivo, titulo, fecha, resumen, cabeceras, materiales)
+            QMessageBox.information(self, t("title_exportado"),
+                tt("msg_stock_exportado", "Stock exportado en:\n{ruta}").format(ruta=archivo))
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
+
+    def _stock_a_csv(self, archivo, cabeceras, materiales):
+        with open(archivo, 'w', newline='', encoding='utf-8-sig') as f:
+            w = csv.writer(f, delimiter=';')
+            w.writerow(cabeceras)
+            for m in materiales:
+                w.writerow([m.get("codigo") or "", m["nombre"], m["ubicacion"] or "-",
+                            f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""])
+
+    def _stock_a_excel(self, archivo, titulo, fecha, resumen, cabeceras, materiales):
+        import xlsxwriter
+        wb = xlsxwriter.Workbook(archivo)
+        ws = wb.add_worksheet(re.sub(r'[\[\]:*?/\\]', '', tt("titulo_informe_stock", "Stock de almacén"))[:31])
+        f_tit = wb.add_format({'bold': True, 'font_size': 14})
+        f_cab = wb.add_format({'bold': True, 'bg_color': '#3daee9', 'color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        f_txt = wb.add_format({'border': 1, 'valign': 'top'})
+        f_num = wb.add_format({'border': 1, 'num_format': '0.##', 'align': 'right'})
+        f_num_rojo = wb.add_format({'border': 1, 'num_format': '0.##', 'align': 'right', 'bold': True, 'font_color': '#c0392b'})
+        ws.write(0, 0, titulo, f_tit)
+        ws.write(1, 0, fecha); ws.write(2, 0, resumen)
+        fila0 = 4
+        for col, txt in enumerate(cabeceras): ws.write(fila0, col, txt, f_cab)
+        for i, m in enumerate(materiales, start=fila0 + 1):
+            ws.write(i, 0, m.get("codigo") or "", f_txt)
+            ws.write(i, 1, m["nombre"], f_txt)
+            ws.write(i, 2, m["ubicacion"] or "-", f_txt)
+            ws.write_number(i, 3, m["stock_actual"], f_num_rojo if self._bajo_minimo(m) else f_num)
+            ws.write_number(i, 4, m["stock_minimo"], f_num)
+            ws.write(i, 5, m.get("unidad") or "", f_txt)
+        for col, ancho in enumerate((12, 40, 38, 10, 10, 10)): ws.set_column(col, col, ancho)
+        ws.freeze_panes(fila0 + 1, 0)
+        ws.autofilter(fila0, 0, fila0 + len(materiales), len(cabeceras) - 1)
+        wb.close()
+
+    def _stock_a_pdf(self, archivo, titulo, fecha, resumen, cabeceras, materiales):
+        styles = getSampleStyleSheet()
+        doc = SimpleDocTemplate(archivo, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        celda = ParagraphStyle("CeldaStock", parent=styles["BodyText"], fontSize=9, leading=11)
+        celda_cab = ParagraphStyle("CabStock", parent=celda, textColor=colors.whitesmoke, fontName="Helvetica-Bold", fontSize=8)
+        celda_num = ParagraphStyle("NumStock", parent=celda, alignment=2)
+        celda_rojo = ParagraphStyle("RojoStock", parent=celda_num, textColor=colors.HexColor("#c0392b"), fontName="Helvetica-Bold")
+        esc = lambda s: (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        elementos = []
+        ruta_logo = os.path.join(DATA_DIR, "Logo.jpg")
+        if os.path.exists(ruta_logo):
+            try:
+                logo = PDFImage(ruta_logo, width=4*cm, height=2*cm); logo.hAlign = 'LEFT'; logo.keepAspectRatio = True
+                elementos += [logo, Spacer(1, 8)]
+            except Exception: pass
+        elementos += [Paragraph(esc(titulo), styles["Title"]),
+                      Paragraph(esc(fecha) + " &nbsp;·&nbsp; " + esc(resumen), styles["Normal"]), Spacer(1, 10)]
+        datos = [[Paragraph(esc(c), celda_cab) for c in cabeceras]]
+        for m in materiales:
+            datos.append([Paragraph(esc(m.get("codigo") or ""), celda), Paragraph(esc(m["nombre"]), celda),
+                          Paragraph(esc(m["ubicacion"] or "-"), celda),
+                          Paragraph(f"{m['stock_actual']:g}", celda_rojo if self._bajo_minimo(m) else celda_num),
+                          Paragraph(f"{m['stock_minimo']:g}", celda_num), Paragraph(esc(m.get("unidad") or ""), celda)])
+        tabla = Table(datos, colWidths=[1.9*cm, 5.0*cm, 4.6*cm, 1.7*cm, 2.6*cm, 2.2*cm], repeatRows=1)
+        tabla.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#3daee9")),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f6f9")]),
+        ]))
+        elementos.append(tabla)
+        doc.build(elementos)
 
     def _guardar_foto_material(self, ruta_origen):
         if not ruta_origen: return None

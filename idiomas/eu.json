@@ -508,5 +508,16 @@
   "lbl_mttr": "MTTR (konponketa batez besteko denbora)",
   "msg_sin_datos_fiabilidad": "Oraindik ez dago adierazleak kalkulatzeko adina matxura.",
   "fmt_dias": "{n:.1f} egun",
-  "fmt_horas": "{n:.1f} ordu"
+  "fmt_horas": "{n:.1f} ordu",
+  "btn_exportar_stock": "📄 Esportatu",
+  "title_exportar_stock": "Biltegiko stocka esportatu",
+  "lbl_formato": "Formatua",
+  "lbl_que_exportar": "Zer esportatu",
+  "txt_todas_estanterias": "Apalategi guztiak",
+  "btn_exportar": "Esportatu",
+  "titulo_informe_stock": "Biltegiko stocka",
+  "txt_resumen_stock": "{n} material · {b} gutxienekoaren azpitik",
+  "txt_fecha_informe": "Data: {fecha}",
+  "msg_stock_exportado": "Stocka hemen esportatu da:\n{ruta}",
+  "msg_stock_sin_materiales": "Ez dago iragazki horrekin esportatzeko materialik."
 }
