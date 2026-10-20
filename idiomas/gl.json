@@ -508,5 +508,16 @@
   "lbl_mttr": "MTTR (tempo medio de reparación)",
   "msg_sin_datos_fiabilidad": "Aínda non hai avarías suficientes para calcular indicadores.",
   "fmt_dias": "{n:.1f} días",
-  "fmt_horas": "{n:.1f} horas"
+  "fmt_horas": "{n:.1f} horas",
+  "btn_exportar_stock": "📄 Exportar",
+  "title_exportar_stock": "Exportar o stock do almacén",
+  "lbl_formato": "Formato",
+  "lbl_que_exportar": "Que exportar",
+  "txt_todas_estanterias": "Todos os andeis",
+  "btn_exportar": "Exportar",
+  "titulo_informe_stock": "Stock do almacén",
+  "txt_resumen_stock": "{n} materiais · {b} por baixo do mínimo",
+  "txt_fecha_informe": "Data: {fecha}",
+  "msg_stock_exportado": "Stock exportado en:\n{ruta}",
+  "msg_stock_sin_materiales": "Non hai materiais que exportar con ese filtro."
 }

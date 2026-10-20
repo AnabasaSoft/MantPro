@@ -520,7 +520,7 @@ def listar_estructura(zona_id=None):
     return estanterias
 
 
-def obtener_ubicacion_texto(seccion_id):
+def obtener_ubicacion_texto(seccion_id, formato_balda="Balda {n}", texto_suelo="Suelo"):
     """Devuelve una cadena tipo 'Estantería A > Balda 2 > Sección B' para una
     sección. Si la sección es implícita (el material se ubicó directamente en
     la balda, sin elegir sección) se omite ese último tramo, ya que para el
@@ -539,7 +539,7 @@ def obtener_ubicacion_texto(seccion_id):
     con.close()
     if not fila:
         return ""
-    nombre_balda = "Suelo" if fila["balda"] == 0 else f"Balda {texto_balda(fila['balda'], fila['estilo_baldas'])}"
+    nombre_balda = texto_suelo if fila["balda"] == 0 else formato_balda.format(n=texto_balda(fila['balda'], fila['estilo_baldas']))
     ubicacion = f"{fila['estanteria']} > {nombre_balda}"
     if not fila["implicita"]:
         ubicacion += f" > {fila['seccion']}"
@@ -620,9 +620,9 @@ def obtener_material(material_id):
     return dict(fila) if fila else None
 
 
-def listar_materiales(filtro_texto=None, zona_id=None):
-    """Si se indica zona_id, solo devuelve los materiales ubicados en estanterías
-    de esa zona (los que no tienen ubicación asignada quedan fuera del filtro)."""
+def listar_materiales(filtro_texto=None, zona_id=None, estanteria_id=None):
+    """Si se indica zona_id (o estanteria_id), solo devuelve los materiales ubicados
+    en esa zona (o estantería); los que no tienen ubicación quedan fuera del filtro."""
     con = _conn()
     condiciones = []
     parametros = []
@@ -633,6 +633,9 @@ def listar_materiales(filtro_texto=None, zona_id=None):
     if zona_id is not None:
         condiciones.append("e.zona_id = ?")
         parametros.append(zona_id)
+    if estanteria_id is not None:
+        condiciones.append("e.id = ?")
+        parametros.append(estanteria_id)
     sql = """
         SELECT DISTINCT m.* FROM materiales m
         LEFT JOIN secciones s ON m.seccion_id = s.id

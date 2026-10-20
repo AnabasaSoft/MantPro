@@ -508,5 +508,16 @@
   "msg_sin_datos_fiabilidad": "Not enough breakdowns yet to calculate indicators.",
   "fmt_dias": "{n:.1f} days",
   "fmt_horas": "{n:.1f} hours",
-  "lbl_prioridad": "Priority"
+  "lbl_prioridad": "Priority",
+  "btn_exportar_stock": "📄 Export",
+  "title_exportar_stock": "Export warehouse stock",
+  "lbl_formato": "Format",
+  "lbl_que_exportar": "What to export",
+  "txt_todas_estanterias": "All shelving units",
+  "btn_exportar": "Export",
+  "titulo_informe_stock": "Warehouse stock",
+  "txt_resumen_stock": "{n} materials · {b} below minimum",
+  "txt_fecha_informe": "Date: {fecha}",
+  "msg_stock_exportado": "Stock exported to:\n{ruta}",
+  "msg_stock_sin_materiales": "There are no materials to export with that filter."
 }
