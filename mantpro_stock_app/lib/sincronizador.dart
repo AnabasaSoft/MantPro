@@ -1,6 +1,7 @@
 // -*- coding: utf-8 -*-
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -51,7 +52,8 @@ class StockSincronizador {
       }
       if (res.statusCode == 403) return _ResultadoEnvio.sinPermiso;
       return _ResultadoEnvio.error;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       return _ResultadoEnvio.error;
     }
   }
@@ -77,7 +79,8 @@ class StockSincronizador {
       if (res.statusCode == 200 || res.statusCode == 404) return _ResultadoEnvio.ok;
       if (res.statusCode == 403) return _ResultadoEnvio.sinPermiso;
       return _ResultadoEnvio.error;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       return _ResultadoEnvio.error;
     }
   }
@@ -97,7 +100,8 @@ class StockSincronizador {
       if (res.statusCode == 200) return _ResultadoEnvio.ok;
       if (res.statusCode == 403) return _ResultadoEnvio.sinPermiso;
       return _ResultadoEnvio.error;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       return _ResultadoEnvio.error;
     }
   }
@@ -115,6 +119,7 @@ class StockSincronizador {
   /// ha quedado pendiente, sin bloquear la pantalla esperando el resto de la
   /// sincronización (eso se hace aparte, en segundo plano).
   static Future<bool> intentarEnviarInmediato(String ip, String colaKey, int localId) async {
+    if (!await ConexionPC.accesible(ip)) return false;
     if (!AuthService.autenticado) await AuthService.cargar();
     if (!AuthService.autenticado) return false;
     final prefs = await SharedPreferences.getInstance();
@@ -146,6 +151,7 @@ class StockSincronizador {
   /// Igual que [intentarEnviarInmediato] pero para un borrado, cuya cola solo
   /// guarda ids sueltos (no mapas con 'localId').
   static Future<bool> intentarBorrarInmediato(String ip, int id) async {
+    if (!await ConexionPC.accesible(ip)) return false;
     if (!AuthService.autenticado) await AuthService.cargar();
     if (!AuthService.autenticado) return false;
     final resultado = await _enviarBorrado(ip, id);
@@ -161,7 +167,20 @@ class StockSincronizador {
     return resultado == _ResultadoEnvio.ok;
   }
 
-  static Future<void> sincronizarTodo(String ip, {bool silencioso = false}) async {
+  static Future<void>? _sincronizacionEnCurso;
+
+  /// Si ya hay una sincronización en marcha se reutiliza en vez de lanzar otra
+  /// a la vez (antes cada guardado y el temporizador lanzaban la suya, y todas
+  /// esperaban sus propios timeouts en paralelo).
+  static Future<void> sincronizarTodo(String ip, {bool silencioso = false}) {
+    return _sincronizacionEnCurso ??=
+        _sincronizarTodo(ip, silencioso: silencioso).whenComplete(() => _sincronizacionEnCurso = null);
+  }
+
+  static Future<void> _sincronizarTodo(String ip, {bool silencioso = false}) async {
+    // Sin conexión no se recorre ninguna cola ni se avisa a las pantallas:
+    // lo guardado sigue en el móvil y se enviará en cuanto vuelva el PC.
+    if (!await ConexionPC.accesible(ip, forzar: true)) return;
     final prefs = await SharedPreferences.getInstance();
     // La sincronización puede lanzarse fuera de la UI: recargamos el token.
     if (!AuthService.autenticado) await AuthService.cargar();
@@ -172,6 +191,7 @@ class StockSincronizador {
     final nuevosQuitar = <Map<String, dynamic>>[];
     for (final item in colaNuevos) {
       final resultado = await _enviarMaterial(ip, item, esNuevo: true);
+      if (ConexionPC.sinConexion) break;
       if (resultado != _ResultadoEnvio.error) nuevosQuitar.add(item);
       if (resultado == _ResultadoEnvio.sinPermiso) {
         _avisarSinPermiso(item['nombre']?.toString() ?? tt('lbl_articulo', 'Artículo'));
@@ -187,6 +207,7 @@ class StockSincronizador {
     final edicionesQuitar = <Map<String, dynamic>>[];
     for (final item in colaEdiciones) {
       final resultado = await _enviarMaterial(ip, item, esNuevo: false);
+      if (ConexionPC.sinConexion) break;
       if (resultado != _ResultadoEnvio.error) edicionesQuitar.add(item);
       if (resultado == _ResultadoEnvio.sinPermiso) {
         _avisarSinPermiso(item['nombre']?.toString() ?? tt('lbl_articulo', 'Artículo'));
@@ -202,6 +223,7 @@ class StockSincronizador {
     final movimientosQuitar = <Map<String, dynamic>>[];
     for (final item in colaMovimientos) {
       final resultado = await _enviarMovimiento(ip, item);
+      if (ConexionPC.sinConexion) break;
       if (resultado != _ResultadoEnvio.error) movimientosQuitar.add(item);
       if (resultado == _ResultadoEnvio.sinPermiso) {
         _avisarSinPermiso(tt('lbl_movimiento_stock', 'Movimiento de stock'));
@@ -217,6 +239,7 @@ class StockSincronizador {
     final borradosQuitar = <int>[];
     for (final id in colaBorrados) {
       final resultado = await _enviarBorrado(ip, id);
+      if (ConexionPC.sinConexion) break;
       if (resultado != _ResultadoEnvio.error) borradosQuitar.add(id);
       if (resultado == _ResultadoEnvio.sinPermiso) {
         _avisarSinPermiso(tt('msg_borrado_articulo', 'Borrado de artículo'));
@@ -246,6 +269,6 @@ class StockSincronizador {
     } catch (_) {}
     await AuthService.refrescarRoles();
 
-    datosSincronizadosNotifier.value++;
+    if (!ConexionPC.sinConexion) datosSincronizadosNotifier.value++;
   }
 }
