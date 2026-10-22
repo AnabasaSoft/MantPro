@@ -136,6 +136,39 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+def entorno_sistema():
+    """Entorno para lanzar programas del sistema desde el binario de PyInstaller.
+    PyInstaller apunta LD_LIBRARY_PATH a su carpeta temporal (/tmp/_MEI…), y un
+    programa del sistema que la herede carga bibliotecas empaquetadas
+    incompatibles (p. ej. /bin/sh con su libreadline revienta con
+    "undefined symbol: rl_full_quoting_desired"). Se restaura el valor original,
+    que PyInstaller guarda en <VAR>_ORIG."""
+    env = dict(os.environ)
+    if not getattr(sys, "frozen", False):
+        return env
+    for var in [k for k in env if k.endswith("_ORIG")]:
+        env[var[:-5]] = env.pop(var)
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        for var in [k for k, v in env.items() if meipass in v]:
+            del env[var]
+    return env
+
+def abrir_url_externa(url):
+    """Abre una URL en el navegador del sistema."""
+    import webbrowser
+    if sys.platform.startswith("linux"):
+        try:
+            import subprocess
+            # Sin shell: la URL va como argumento y no pasa por /bin/sh.
+            subprocess.Popen(["xdg-open", url], env=entorno_sistema(),
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+            return
+        except Exception as e:
+            print(f"xdg-open falló ({e}), probando webbrowser")
+    webbrowser.open(url)
+
 def instalar_traductor_qt(app, codigo_idioma):
     """Traduce los textos propios de Qt (menú contextual de cortar/copiar/pegar,
     botones de QMessageBox, etc.) al idioma de la app. Sin esto, esos textos
@@ -4356,16 +4389,7 @@ class MaintenanceApp(QMainWindow):
             msg.exec()
 
             if msg.clickedButton() == btn_si:
-                # Forzar apertura externa limpia ignorando librerías empaquetadas del entorno virtual/rpm
-                try:
-                    if sys.platform.startswith('linux'):
-                        os.system(f"xdg-open '{url}' &")
-                    else:
-                        import webbrowser
-                        webbrowser.open(url)
-                except Exception as e:
-                    import webbrowser
-                    webbrowser.open(url)
+                abrir_url_externa(url)
         elif self._check_manual:
             if version == "error":
                 QMessageBox.warning(self, t("title_error"), t("msg_error_conexion_github"))
