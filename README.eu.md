@@ -100,7 +100,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Babeskopiak](#-babeskopiak)
 - [Proiektuaren egitura](#-proiektuaren-egitura)
 - [Lagundu](#-lagundu)
-- [Bide-orria](#-bide-orria)
 - [Lizentzia](#-lizentzia)
 - [Harremana](#-harremana)
 
@@ -641,6 +640,14 @@ Sinkronizazioak funtziona dezan:
 - Biltegian materialik altan emanda ez badago, ez da jakinarazpenik erakusten: espero den portaera da
 - Aplikazioa PCarekin sinkronizatzen den bakoitzean berriro ebaluatzen da (irekitzean eta irekita dagoen bitartean 25 segundoz behin)
 
+### 🔒 Segurtasunari buruzko oharra
+
+Sinkronizazioa HTTP bidez doa sare lokalaren barruan. Erabiltzaile-sistema
+**trazabilitaterako** pentsatuta dago (lan bakoitza nork egin zuen jakitea), ez
+sare horretara sarbidea duen norbaiten aurkako hesi gisa. Etorkizunean
+zerbitzaria sare lokaletik kanpo jartzen bada, trafikoak zifratuta joan behar du
+(VPN edo HTTPSdun tunel bat).
+
 ---
 
 ## 💾 Babeskopiak
@@ -799,19 +806,6 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
 4. Egin **push** adarrera (`git push origin feature/AmazingFeature`)
 5. Ireki **Pull Request** bat
 
-### Hobekuntza-ideiak
-
-- [X] Gogorarazleetarako push jakinarazpenak
-- [X] Estatistika-grafiko zehatzagoak
-- [ ] Google Calendar-ekin integrazioa
-- [X] Modu iluna (eta modu argia, eta Windows 98 estiloko gai retroa)
-- [X] Hizkuntza anitzekoa (gaztelania, ingelesa, euskara, katalana, galiziera)
-- [X] Excelera esportatzea
-- [X] Edizioen eta ezabaketen auditoria-erregistroa
-- [X] Biltegiko materialaren stock-kontrola
-- [ ] Beste sistema batzuekin integratzeko APIa
-- [ ] Osatutako lanen sinadura digitala
-
 ---
 
 ## ✅ Eginda
@@ -891,26 +885,6 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
   edo apalategika.
 - **Lanak gordetzeko gehieneko denbora**: lan zaharrak ezabatzea, berrespenarekin
   eta aurretik segurtasun-kopia eginez.
-
-## 🧭 Bide-orria
-
-- [ ] **Teknikariaren araberako estatistikak** aginte-panelean: lanak pertsonako eta hilabeteko.
-- [ ] **Urruneko sinkronizazioa**: bulegoko saretik kanpo sinkronizatu ahal
-izatea, PCaren WiFi berean egon beharrik gabe.
-- [ ] **Osatutako lanen sinadura digitala**: mugikorrean, hatzarekin edo
-arkatzarekin, lana jasotzen duenaren sinadura jasotzea amaitutzat
-markatzean, eta erregistroari eranstea, lehendik dagoen erabiltzaile-sisteman
-oinarrituta.
-
-### 🔒 Segurtasunari buruzko oharra
-
-Sinkronizazioa HTTP bidez doa sare lokalaren barruan. Erabiltzaile-sistema
-**trazabilitaterako** pentsatuta dago (lan bakoitza nork egin zuen jakitea), ez
-sare horretara sarbidea duen norbaiten aurkako hesi gisa. Etorkizunean
-zerbitzaria sare lokaletik kanpo jartzen bada, trafikoak zifratuta joan behar du
-(VPN edo HTTPSdun tunel bat).
-
----
 
 ## 📄 Lizentzia
 
