@@ -98,7 +98,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Copias de Seguridad](#-copias-de-seguridad)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Contribuir](#-contribuir)
-- [Roadmap](#-roadmap)
 - [Licencia](#-licencia)
 - [Contacto](#-contacto)
 
@@ -639,6 +638,14 @@ Para que la sincronización funcione:
 - Si el almacén no tiene ningún material dado de alta, no se muestra ninguna notificación: es el comportamiento esperado
 - Se reevalúa cada vez que la app sincroniza con el PC (al abrir y cada 25 segundos mientras está abierta)
 
+### 🔒 Nota sobre seguridad
+
+La sincronización viaja por HTTP dentro de la red local. El sistema de usuarios
+está pensado para **trazabilidad** (saber quién hizo cada trabajo), no como
+barrera frente a alguien con acceso a esa misma red. Si en el futuro se expone
+el servidor fuera de la red local, el tráfico debe ir cifrado (VPN o túnel con
+HTTPS).
+
 ---
 
 ## 💾 Copias de Seguridad
@@ -795,19 +802,6 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 4. **Push** a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un **Pull Request**
 
-### Ideas de Mejora
-
-- [X] Implementar notificaciones push para recordatorios
-- [X] Añadir gráficas de estadísticas más detalladas
-- [ ] Integración con calendario de Google
-- [X] Modo oscuro (y modo claro, y tema retro estilo Windows 98)
-- [X] Multi-idioma (español, inglés, vasco/euskera, catalán, gallego)
-- [X] Exportación a Excel
-- [X] Registro de auditoría de ediciones y borrados
-- [X] Control de stock de material de almacén
-- [ ] API para integración con otros sistemas
-- [ ] Firma digital de trabajos completados
-
 ---
 
 ## ✅ Hecho
@@ -885,26 +879,6 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
   por estantería.
 - **Tiempo máximo de guardado de trabajos**: borrado de trabajos antiguos con
   confirmación y copia de seguridad previa.
-
-## 🧭 Roadmap
-
-- [ ] **Estadísticas por técnico** en el dashboard: trabajos por persona y mes.
-- [ ] **Sincronización remota**: poder sincronizar desde fuera de la red de la
-oficina, sin depender de estar en la misma WiFi que el PC.
-- [ ] **Firma digital de trabajos completados**: capturar en el móvil, con el
-dedo o el stylus, la firma de quien recibe el trabajo al marcarlo como
-finalizado, y adjuntarla al registro apoyándose en el sistema de
-usuarios ya existente.
-
-### 🔒 Nota sobre seguridad
-
-La sincronización viaja por HTTP dentro de la red local. El sistema de usuarios
-está pensado para **trazabilidad** (saber quién hizo cada trabajo), no como
-barrera frente a alguien con acceso a esa misma red. Si en el futuro se expone
-el servidor fuera de la red local, el tráfico debe ir cifrado (VPN o túnel con
-HTTPS).
-
----
 
 ## 📄 Licencia
 

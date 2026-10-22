@@ -96,7 +96,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Backups](#-backups)
 - [Project Structure](#-project-structure)
 - [Contributing](#-contributing)
-- [Roadmap](#-roadmap)
 - [License](#-license)
 - [Contact](#-contact)
 
@@ -629,6 +628,14 @@ For sync to work:
 - If the warehouse has no materials added, no notification is shown: this is the expected behaviour
 - It is re-evaluated every time the app syncs with the PC (when opening it and every 25 seconds while it is open)
 
+### 🔒 Security note
+
+Sync travels over HTTP within the local network. The user system is
+designed for **traceability** (knowing who did each job), not as a barrier
+against someone with access to that same network. If the server is ever
+exposed outside the local network, the traffic must be encrypted (VPN or a
+tunnel with HTTPS).
+
 ---
 
 ## 💾 Backups
@@ -784,19 +791,6 @@ Contributions are welcome! If you want to improve MantPro:
 4. **Push** to the branch (`git push origin feature/AmazingFeature`)
 5. Open a **Pull Request**
 
-### Improvement Ideas
-
-- [X] Push notifications for reminders
-- [X] More detailed statistics charts
-- [ ] Google Calendar integration
-- [X] Dark mode (and light mode, and a retro Windows 98-style theme)
-- [X] Multi-language (Spanish, English, Basque, Catalan, Galician)
-- [X] Excel export
-- [X] Audit log of edits and deletions
-- [X] Warehouse materials stock control
-- [ ] API for integration with other systems
-- [ ] Digital signature of completed jobs
-
 ---
 
 ## ✅ Done
@@ -873,26 +867,6 @@ Contributions are welcome! If you want to improve MantPro:
   shelving unit.
 - **Maximum job retention time**: deletion of old jobs with confirmation and
   a backup made beforehand.
-
-## 🧭 Roadmap
-
-- [ ] **Per-technician statistics** on the dashboard: jobs per person and month.
-- [ ] **Remote sync**: being able to sync from outside the office network,
-without needing to be on the same Wi-Fi as the PC.
-- [ ] **Digital signature of completed jobs**: capture on the phone, with a
-finger or stylus, the signature of the person receiving the work when it is
-marked as finished, and attach it to the record, building on the existing
-user system.
-
-### 🔒 Security note
-
-Sync travels over HTTP within the local network. The user system is
-designed for **traceability** (knowing who did each job), not as a barrier
-against someone with access to that same network. If the server is ever
-exposed outside the local network, the traffic must be encrypted (VPN or a
-tunnel with HTTPS).
-
----
 
 ## 📄 License
 
