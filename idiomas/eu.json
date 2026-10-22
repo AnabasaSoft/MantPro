@@ -519,5 +519,22 @@
   "txt_resumen_stock": "{n} material · {b} gutxienekoaren azpitik",
   "txt_fecha_informe": "Data: {fecha}",
   "msg_stock_exportado": "Stocka hemen esportatu da:\n{ruta}",
-  "msg_stock_sin_materiales": "Ez dago iragazki horrekin esportatzeko materialik."
+  "msg_stock_sin_materiales": "Ez dago iragazki horrekin esportatzeko materialik.",
+  "btn_anadir_fotos": "➕ Argazkiak gehitu",
+  "btn_quitar_foto_coleccion": "🗑️ Kendu",
+  "lbl_coleccion_fotos": "Argazki bilduma",
+  "tt_coleccion_fotos": "Klik bikoitza tamaina osoan ikusteko. Argazkiak hona arrastatu ditzakezu.",
+  "filtro_imagenes": "Irudiak",
+  "menu_tiempo_guardado": "🗑️ Lanak gordetzeko gehieneko denbora…",
+  "title_tiempo_guardado": "Lanak gordetzeko gehieneko denbora",
+  "lbl_tiempo_guardado": "Azken hauetako lanak gorde:",
+  "unidad_anos": "urte",
+  "unidad_meses": "hilabete",
+  "unidad_dias": "egun",
+  "lbl_se_borrara_antes_de": "{fecha} baino lehenagoko lanak ezabatuko dira.",
+  "msg_sin_trabajos_antiguos": "Ez dago {fecha} baino lehenagoko lanik. Ez da ezer ezabatuko.",
+  "title_confirmar_borrado_antiguos": "Lan zaharrak ezabatzea berretsi",
+  "msg_confirmar_borrado_antiguos": "Historialeko {n} lan ezabatuko dira ({desde} - {hasta}), haien argazkiekin batera.\n\nAurretik datu-basearen segurtasun-kopia bat gordeko da.\n\nJarraitu?",
+  "btn_borrar_trabajos": "Lanak ezabatu",
+  "msg_trabajos_antiguos_borrados": "{n} lan eta {f} argazki ezabatu dira.\n\nAurretiko segurtasun-kopia:\n{ruta}"
 }

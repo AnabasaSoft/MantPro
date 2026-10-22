@@ -519,5 +519,22 @@
   "txt_resumen_stock": "{n} materiales · {b} bajo el mínimo",
   "txt_fecha_informe": "Fecha: {fecha}",
   "msg_stock_exportado": "Stock exportado en:\n{ruta}",
-  "msg_stock_sin_materiales": "No hay materiales que exportar con ese filtro."
+  "msg_stock_sin_materiales": "No hay materiales que exportar con ese filtro.",
+  "btn_anadir_fotos": "➕ Añadir fotos",
+  "btn_quitar_foto_coleccion": "🗑️ Quitar",
+  "lbl_coleccion_fotos": "Colección de fotos",
+  "tt_coleccion_fotos": "Doble clic para ver a tamaño completo. Puedes arrastrar fotos aquí.",
+  "filtro_imagenes": "Imágenes",
+  "menu_tiempo_guardado": "🗑️ Tiempo máximo de guardado de trabajos…",
+  "title_tiempo_guardado": "Tiempo máximo de guardado de trabajos",
+  "lbl_tiempo_guardado": "Conservar los trabajos de los últimos:",
+  "unidad_anos": "años",
+  "unidad_meses": "meses",
+  "unidad_dias": "días",
+  "lbl_se_borrara_antes_de": "Se borrarán los trabajos anteriores al {fecha}.",
+  "msg_sin_trabajos_antiguos": "No hay trabajos anteriores al {fecha}. No se borrará nada.",
+  "title_confirmar_borrado_antiguos": "Confirmar borrado de trabajos antiguos",
+  "msg_confirmar_borrado_antiguos": "Se van a borrar {n} trabajos del historial, del {desde} al {hasta}, junto con sus fotos.\n\nAntes se guardará una copia de seguridad de la base de datos.\n\n¿Continuar?",
+  "btn_borrar_trabajos": "Borrar trabajos",
+  "msg_trabajos_antiguos_borrados": "Se han borrado {n} trabajos y {f} fotos.\n\nCopia de seguridad previa:\n{ruta}"
 }

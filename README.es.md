@@ -131,7 +131,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas
 - **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia"
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
-- **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después
+- **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después y una **colección de fotos** adicional por trabajo; se pueden borrar varios registros a la vez
 - **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
 - **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
@@ -140,9 +140,12 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
+- **🚦 Prioridad de Pendientes**: cada trabajo pendiente tiene prioridad (Baja, Media, Alta o Crítica) para decidir cuál atacar primero, con su color en la lista; también se le pueden adjuntar fotos a su colección
 - **↩️ Revertir a Pendiente**: si un trabajo se completó por error, se puede devolver a Pendientes con un clic desde el historial (con aviso si tenía máquina vinculada, ya que se perdería ese dato), quedando registrado en la auditoría
-- **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente
+- **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente. Si se pasa la fecha no se saltan: se quedan en **Pendiente** (naranja) mientras dura el margen y luego en **Atrasado** (rojo) hasta que se hacen, y la siguiente fecha se cuenta desde el día real en que se hizo el trabajo
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
+- **📄 Exportar el Stock**: botón "📄 Exportar" en la pestaña de stock para sacar el almacén entero, una zona o una estantería a PDF, CSV o Excel, ordenado por ubicación
+- **🗑️ Tiempo Máximo de Guardado**: `Herramientas` permite borrar del historial los trabajos más antiguos que un número de años, meses o días, con sus fotos y una copia de seguridad previa (solo administradores)
 - **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
 - **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico e indicando la máquina/submáquina de cada trabajo, si la tiene
 
@@ -151,6 +154,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **🔐 Acceso con Usuario**: Cada técnico inicia sesión una vez y la sesión queda guardada en el dispositivo
 - **📝 Registro Rápido**: Captura de intervenciones sobre el terreno, firmadas automáticamente con su usuario
 - **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
+- **🖼️ Colección de Fotos**: además de las fotos de antes y después, añade a un trabajo o pendiente todas las fotos que quieras (cámara o galería); al tocar cualquier foto se ve a pantalla completa, pasando de una a otra y ampliando con dos dedos
 - **✏️ Editor de Imágenes**: Dibuja sobre las fotos para marcar áreas de interés
 - **🔄 Sincronización Automática**: Envío automático de datos al PC mediante código QR
 - **💾 Almacenamiento Local**: Guarda registros offline hasta sincronizar
@@ -177,7 +181,7 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 - **🎨 Aviso Visual de Stock**: cantidad en rojo por debajo del mínimo, en verde por encima y en el color por defecto si coincide exactamente
 - **⚠️ Stock Bajo Mínimo**: pestaña dedicada a los materiales en alerta
 - **🔄 Auto-actualización**: la pantalla se refresca sola al detectar cambios, tanto si el cambio se hizo en el propio móvil como en el PC
-- **🔌 Modo Offline**: consulta con la última información sincronizada si no hay conexión con el PC
+- **🔌 Modo Offline**: sin conexión con el PC la app no se queda esperando: consulta los datos guardados y deja registrar altas, ediciones, entradas y salidas al momento, que se envían solas al PC en cuanto vuelve a estar accesible
 - **🔔 Recordatorio Diario de Comprobación de Stock**: notificación automática a las 8:00 AM (hora local) invitando a revisar la cantidad real de 5 materiales del almacén, elegidos al azar y distintos cada día; al pulsarla se abre una pantalla para corregir la cantidad de cada uno sin buscarlos a mano. Si no hay ningún material dado de alta, no se muestra ninguna notificación
 
 ---
@@ -557,6 +561,16 @@ la pestaña indica cuántos materiales están en alerta, y desde ahí se puede
 saltar directamente al material en "Stock de almacén" o registrar una entrada
 sin cambiar de pestaña.
 
+### Exportar el stock
+
+En la pestaña **"📦 Stock de almacén"** del PC, el botón **"📄 Exportar"** abre
+una ventana para elegir el **formato** (PDF, CSV o Excel) y **qué exportar**:
+todo el almacén, una zona o una sola estantería. La lista sale ordenada por
+ubicación, para poder recorrer el almacén con ella en la mano; el PDF y el
+Excel incluyen además la fecha, el número de materiales y cuántos están bajo
+el mínimo (en rojo). La propia tabla de stock también se muestra ordenada por
+ubicación por defecto (Estantería 1, 2… 10).
+
 ---
 
 ## 🔄 Sincronización PC-Móvil
@@ -670,6 +684,25 @@ la aplicación y antes de un backup manual también se limpia `fotos_recibidas`
 en silencio, pero **solo** esa opción del menú Herramientas revisa además los
 `fotos_backup_<año>.zip` y los reescribe sin las fotos huérfanas que pudieran
 contener, para no arrastrarlas indefinidamente.
+
+### Tiempo máximo de guardado de trabajos
+
+`Herramientas > Tiempo máximo de guardado de trabajos…` (solo administradores)
+pide un número y una unidad (años, meses o días) y borra del historial todos
+los trabajos anteriores a esa fecha, contando desde hoy. Antes de borrar
+muestra cuántos trabajos se van a eliminar y entre qué fechas, y pide
+confirmación.
+
+- Antes de borrar se guarda una copia de las dos bases de datos en
+  `backups_auto/antes_borrado_trabajos_<fecha>.zip`, que la rotación del
+  backup automático no elimina.
+- Se borran también sus fotos (antes, después y colección), salvo las que
+  siga usando otro registro. Las fotos no van en esa copia previa, pero siguen
+  en los `fotos_backup_<año>.zip` del backup automático hasta que se use
+  `Herramientas > 🧹 Limpiar Fotos Basura`.
+- Los móviles quitan esos trabajos de su historial en la siguiente
+  sincronización.
+- Es un borrado puntual: no se repite solo.
 
 ---
 
@@ -842,6 +875,16 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 - **Sustitución automática de sesión por dispositivo**: si un usuario vuelve a
   iniciar sesión desde un móvil con el que ya tenía una sesión abierta, la
   anterior se borra sola en vez de acumularse en el listado de sesiones.
+- **Colección de fotos por trabajo**: además de antes y después, cualquier
+  número de fotos extra en trabajos y pendientes, en PC y móvil, con visor a
+  tamaño completo que pasa de una a otra.
+- **Avisos recurrentes que no se saltan**: un aviso retrasado se queda
+  pendiente (naranja) o atrasado (rojo) hasta hacerse, y el siguiente ciclo se
+  cuenta desde la fecha real en que se hizo.
+- **Exportar el stock de almacén** a PDF, CSV o Excel, completo, por zona o
+  por estantería.
+- **Tiempo máximo de guardado de trabajos**: borrado de trabajos antiguos con
+  confirmación y copia de seguridad previa.
 
 ## 🧭 Roadmap
 

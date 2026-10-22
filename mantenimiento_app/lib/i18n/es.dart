@@ -176,4 +176,7 @@ const Map<String, String> traduccionesEs = {
     "msg_revertir_aviso_maquina": "\n\nLas tareas pendientes no admiten máquina vinculada, así que se perderá ese dato.",
     "msg_sincronizando_todo": "Sincronizando todo...",
     "tooltip_reenviar_fotos": "Reenviar fotos locales al PC",
+    "lbl_coleccion_fotos": "Colección de fotos",
+    "btn_foto_coleccion_camara": "Hacer foto",
+    "btn_fotos_coleccion_galeria": "Elegir de la galería",
 };

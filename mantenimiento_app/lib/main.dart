@@ -204,8 +204,8 @@ Future<http.Response> httpPostAuth(Uri url, {Object? body, Map<String, String>? 
 Future<void> cachearFotosHistorial(String ip, List<Map<String, dynamic>> items) async {
   final dir = await getApplicationDocumentsDirectory();
   for (var item in items) {
-    for (var campo in ['serverImageName', 'serverImageNameDespues']) {
-      final String? nombre = item[campo];
+    final nombres = <String?>[item['serverImageName'], item['serverImageNameDespues'], ...listaTextos(item['serverFotosExtra'])];
+    for (final nombre in nombres) {
       if (nombre == null) continue;
       final fp = path.join(dir.path, nombre);
       if (File(fp).existsSync()) continue;
@@ -717,6 +717,10 @@ class EspecialidadesCache {
   }
 }
 
+/// Convierte un valor JSON (lista o null) en lista de textos no vacíos.
+List<String> listaTextos(dynamic v) =>
+    v is List ? v.where((e) => e != null && e.toString().isNotEmpty).map((e) => e.toString()).toList() : <String>[];
+
 class Registro {
   int? id;
   String titulo, detalles, tags;
@@ -732,6 +736,12 @@ class Registro {
   List<Map<String, dynamic>> materiales; // [{material_id, nombre, cantidad}]
   /// Solo se usa al crear/editar un trabajo pendiente (no aplica al historial).
   int? especialidadId;
+  /// Colección de fotos extra del trabajo (además de la de antes y la de
+  /// después): [fotosExtra] son rutas locales de fotos hechas en el móvil
+  /// pendientes de subir, y [serverFotosExtra] los nombres de las que ya están
+  /// en el PC (marca [FOTOS: ...] de la descripción).
+  List<String> fotosExtra;
+  List<String> serverFotosExtra;
 
   Registro({
     this.id,
@@ -747,8 +757,12 @@ class Registro {
     this.maquinaNombre,
     this.prioridad = 'Media',
     List<Map<String, dynamic>>? materiales,
-    this.especialidadId
-  }) : materiales = materiales ?? [];
+    this.especialidadId,
+    List<String>? fotosExtra,
+    List<String>? serverFotosExtra,
+  }) : materiales = materiales ?? [],
+       fotosExtra = fotosExtra ?? [],
+       serverFotosExtra = serverFotosExtra ?? [];
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -764,7 +778,9 @@ class Registro {
     'maquinaNombre': maquinaNombre,
     'prioridad': prioridad,
     'materiales': materiales,
-    'especialidadId': especialidadId
+    'especialidadId': especialidadId,
+    'fotosExtra': fotosExtra,
+    'serverFotosExtra': serverFotosExtra,
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -784,7 +800,9 @@ class Registro {
         ? List<Map<String, dynamic>>.from(
             (json['materiales'] as List).map((e) => Map<String, dynamic>.from(e)))
         : [],
-    especialidadId: json['especialidadId']
+    especialidadId: json['especialidadId'],
+    fotosExtra: listaTextos(json['fotosExtra']),
+    serverFotosExtra: listaTextos(json['serverFotosExtra']),
   );
 }
 
@@ -1370,6 +1388,9 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
         if (item.imagePathDespues != null && File(item.imagePathDespues!).existsSync()) {
           req.files.add(await http.MultipartFile.fromPath('foto_despues', item.imagePathDespues!));
         }
+        for (final fp in item.fotosExtra) {
+          if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp));
+        }
         if ((await req.send()).statusCode == 200) enviados.add(item);
       } catch (e) { /* Error */ }
     }
@@ -1385,9 +1406,9 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
             }).toList();
-            await cachearFotosHistorial(urlUsar!, nuevosH);
+            await cachearFotosHistorial(urlUsar, nuevosH);
             final prefs = await SharedPreferences.getInstance();
             List<Map<String, dynamic>> cacheH = [];
             final actual = prefs.getString('historial_cache');
@@ -1486,6 +1507,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   /// pendientes), así que hay que guardarlas aparte para no perderlas cada
   /// vez que se reabre "Gestionar" sobre el mismo pendiente.
   Map<String, String> _tagsLocales = {};
+  /// Fotos de la colección hechas al guardar un borrador de un pendiente: se
+  /// quedan en el móvil (igual que _fotosLocales) y se suben al completarlo.
+  Map<String, List<String>> _galeriaLocales = {};
   bool _cargando = false; String? _urlPC;
 
   @override void initState() { super.initState(); _cargarCache(); datosSincronizadosNotifier.addListener(_alSincronizar); }
@@ -1504,6 +1528,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       _soloMios = prefs.getBool('pendientes_solo_mios') ?? false;
       if (prefs.getString('fotos_locales_map') != null) _fotosLocales = Map<String, String>.from(json.decode(prefs.getString('fotos_locales_map')!));
       if (prefs.getString('tags_locales_map') != null) _tagsLocales = Map<String, String>.from(json.decode(prefs.getString('tags_locales_map')!));
+      if (prefs.getString('galeria_locales_map') != null) {
+        _galeriaLocales = (json.decode(prefs.getString('galeria_locales_map')!) as Map).map((k, v) => MapEntry(k.toString(), listaTextos(v)));
+      }
     });
       _aplicarEdicionesVisuales();
       if (_urlPC != null) _sincronizarTodo(silencioso: true);
@@ -1518,6 +1545,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     await prefs.setString('cola_revertir', json.encode(_colaRevertir));
     await prefs.setString('fotos_locales_map', json.encode(_fotosLocales));
     await prefs.setString('tags_locales_map', json.encode(_tagsLocales));
+    await prefs.setString('galeria_locales_map', json.encode(_galeriaLocales));
   }
   void _aplicarEdicionesVisuales() {
     for (var edicion in _colaEdiciones) {
@@ -1551,10 +1579,10 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (bo.isNotEmpty) setState(() { for (var id in bo) _colaBorrados.remove(id); });
 
     List<Map<String, dynamic>> no = []; for (var t in _colaNuevos) { if (await _apiMultipart('agregar_pendiente', t)) no.add(t); }
-    if (no.isNotEmpty) setState(() { for (var t in no) _colaNuevos.remove(t); });
+    if (no.isNotEmpty) setState(() { for (var t in no) { _colaNuevos.remove(t); _olvidarGaleriaSubida(t); } });
 
     List<Map<String, dynamic>> eo = []; for (var t in _colaEdiciones) { if (await _apiMultipart('editar_pendiente', t)) eo.add(t); }
-    if (eo.isNotEmpty) setState(() { for (var t in eo) _colaEdiciones.remove(t); });
+    if (eo.isNotEmpty) setState(() { for (var t in eo) { _colaEdiciones.remove(t); _olvidarGaleriaSubida(t); } });
 
     List<Map<String, dynamic>> so = []; for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) so.add(t); }
     if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
@@ -1573,7 +1601,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -1639,6 +1667,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) {
         r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
       }
+      for (final fp in listaTextos(d['fotosExtra'])) {
+        if (File(fp).existsSync()) r.files.add(await http.MultipartFile.fromPath('fotos_extra', fp));
+      }
       final res = await r.send();
       if (res.statusCode == 403) { avisarSinPermisoTrabajos(d['titulo']?.toString() ?? ep); return true; }
       return res.statusCode == 200;
@@ -1650,6 +1681,13 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (ref != null && _fotosLocales.containsKey(ref)) return _fotosLocales[ref];
     if (_fotosLocales.containsKey(p.id.toString())) return _fotosLocales[p.id.toString()];
     return null;
+  }
+  void _olvidarGaleriaSubida(Map<String, dynamic> item) {
+    final clave = item['galeriaClave']?.toString();
+    if (clave == null) return;
+    final subidas = listaTextos(item['fotosExtra']);
+    final quedan = (_galeriaLocales[clave] ?? []).where((f) => !subidas.contains(f)).toList();
+    if (quedan.isEmpty) { _galeriaLocales.remove(clave); } else { _galeriaLocales[clave] = quedan; }
   }
   String? _obtenerTagsPrevias(PendientePC p) {
     String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
@@ -1666,7 +1704,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       imagePath: item['imagePath'],
       imagePathDespues: item['imagePathDespues'],
       fecha: item['fecha'],
-      materiales: item['materiales'] != null ? List<Map<String, dynamic>>.from(item['materiales']) : []
+      materiales: item['materiales'] != null ? List<Map<String, dynamic>>.from(item['materiales']) : [],
+      fotosExtra: listaTextos(item['fotosExtra']),
+      serverFotosExtra: fotosGaleriaDe(item['detalles']),
     );
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       registroExistente: reg,
@@ -1674,15 +1714,20 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       urlPC: _urlPC,
       onSave: (r) {
         setState(() {
+          // Este formulario se abre en modo historial (no añade la marca de la
+          // colección a los detalles): las fotos que ya están en el PC se
+          // vuelven a marcar aquí para no perderlas al enviarlo.
+          final detalles = r.serverFotosExtra.isEmpty ? r.detalles : "${r.detalles}\n[FOTOS: ${r.serverFotosExtra.join(', ')}]";
           _colaSalida[index] = {
             'id': item['id'],
             'titulo': r.titulo,
-            'detalles': r.detalles,
+            'detalles': detalles,
             'tags': r.tags,
             'imagePath': r.imagePath,
             'imagePathDespues': r.imagePathDespues,
             'fecha': r.fecha,
-            'materiales': r.materiales
+            'materiales': r.materiales,
+            'fotosExtra': r.fotosExtra,
           };
         });
         _guardarCache();
@@ -1695,8 +1740,10 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     String? fl = _obtenerRutaFoto(p); String? fs = _obtenerFotoServer(p);
     if (fl != null && !File(fl).existsSync()) fl = null;
     String? tagsPrevias = _obtenerTagsPrevias(p);
+    final refGaleria = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1) ?? p.id.toString();
     Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
       pendientePC: p, fotoInicialPath: fl, serverImageName: fs, urlPC: _urlPC, tagsIniciales: tagsPrevias,
+      fotosExtraIniciales: _galeriaLocales[refGaleria] ?? _galeriaLocales[p.id.toString()],
       onSave: (r) async {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1);
 
@@ -1712,7 +1759,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         if (idxRevertir != -1) {
           final entry = _colaRevertir[idxRevertir];
           final idOriginal = entry['id'].toString();
-          final descFinal = r.titulo + (r.detalles.isNotEmpty ? "\n${r.detalles}" : "");
+          final detallesSinGaleria = r.detalles.replaceAll(RegExp(r"\n?\[FOTOS:.*?\]"), "").trim();
+          final descFinal = r.titulo + (detallesSinGaleria.isNotEmpty ? "\n$detallesSinGaleria" : "");
           final prefs = await SharedPreferences.getInstance();
 
           setState(() => _colaRevertir.removeAt(idxRevertir));
@@ -1721,7 +1769,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final ce = prefs.getString('historial_cola_ediciones');
           if (ce != null) { try { edicionesHist = List<Map<String, dynamic>>.from(json.decode(ce)); } catch (_) {} }
           edicionesHist.removeWhere((e) => e['id'] == idOriginal);
-          edicionesHist.add({'id': idOriginal, 'detalles': descFinal, 'tags': r.tags, 'fotoPath': r.imagePath, 'fotoPathDespues': r.imagePathDespues});
+          edicionesHist.add({'id': idOriginal, 'detalles': descFinal, 'tags': r.tags, 'fotoPath': r.imagePath, 'fotoPathDespues': r.imagePathDespues,
+              'fotosExtra': r.fotosExtra, 'fotosExtraMantener': r.serverFotosExtra});
           await prefs.setString('historial_cola_ediciones', json.encode(edicionesHist));
 
           final regOriginal = entry['registro'] != null ? Map<String, dynamic>.from(entry['registro']) : null;
@@ -1730,6 +1779,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             regOriginal['tags'] = r.tags;
             if (r.imagePath != null) regOriginal['imagePath'] = r.imagePath;
             if (r.imagePathDespues != null) regOriginal['imagePathDespues'] = r.imagePathDespues;
+            regOriginal['serverFotosExtra'] = r.serverFotosExtra;
+            regOriginal['fotosExtra'] = r.fotosExtra;
             List<Map<String, dynamic>> cacheHist = [];
             final ch = prefs.getString('historial_cache');
             if (ch != null) { try { cacheHist = List<Map<String, dynamic>>.from(json.decode(ch)); } catch (_) {} }
@@ -1740,9 +1791,10 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 
           setState(() {
             _listaPC.removeWhere((i) => i.id == p.id);
-            if (ref != null) { _fotosLocales.remove(ref); _tagsLocales.remove(ref); }
+            if (ref != null) { _fotosLocales.remove(ref); _tagsLocales.remove(ref); _galeriaLocales.remove(ref); }
             _fotosLocales.remove(p.id.toString());
             _tagsLocales.remove(p.id.toString());
+            _galeriaLocales.remove(p.id.toString());
           });
           await _guardarCache();
           datosSincronizadosNotifier.value++;
@@ -1760,16 +1812,18 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'imagePathDespues': r.imagePathDespues,
           'fecha': r.fecha,
           'prioridad': r.prioridad,
-          'materiales': r.materiales
+          'materiales': r.materiales,
+          'fotosExtra': r.fotosExtra,
         };
         // ---------------------
 
         setState(() {
           _colaSalida.add(mapTemp);
           _listaPC.removeWhere((i) => i.id == p.id);
-          if (ref != null) { _fotosLocales.remove(ref); _tagsLocales.remove(ref); }
+          if (ref != null) { _fotosLocales.remove(ref); _tagsLocales.remove(ref); _galeriaLocales.remove(ref); }
           _fotosLocales.remove(p.id.toString());
           _tagsLocales.remove(p.id.toString());
+          _galeriaLocales.remove(p.id.toString());
         });
         _guardarCache();
         _sincronizarTodo(silencioso: true);
@@ -1778,8 +1832,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       onUpdate: (r) {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
         if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
-        setState(() => _tagsLocales[k] = r.tags);
-        Map<String, dynamic> mapTempEdit = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad};
+        setState(() { _tagsLocales[k] = r.tags; _galeriaLocales[k] = r.fotosExtra; });
+        Map<String, dynamic> mapTempEdit = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad,
+            'fotosExtra': r.fotosExtra, 'galeriaClave': k};
         setState(() {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
           _colaEdiciones.add(mapTempEdit);
@@ -1869,6 +1924,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                               final String idStr = cItem['id'].toString();
                               if (cItem['imagePath'] != null && File(cItem['imagePath']).existsSync()) _fotosLocales[idStr] = cItem['imagePath'];
                               if (cItem['tags'] != null && (cItem['tags'] as String).isNotEmpty) _tagsLocales[idStr] = cItem['tags'];
+                              final galeria = listaTextos(cItem['fotosExtra']);
+                              if (galeria.isNotEmpty) _galeriaLocales[idStr] = galeria;
                               _colaSalida.removeAt(i);
                             });
                             _guardarCache();
@@ -1880,7 +1937,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                   final item = lista[i - _colaSalida.length];
                   String? fl = _obtenerRutaFoto(item);
                   String? fs = _obtenerFotoServer(item);
-                  String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
+                  String limpio = item.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim();
                   if (limpio.isEmpty) limpio = t("msg_sin_detalles");
 
                   Widget ico;
@@ -1953,7 +2010,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
             if (r.tags.isNotEmpty) setState(() => _tagsLocales[ru] = r.tags);
             String d = "${r.detalles} [REF:$ru]";
-            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId};
+            if (r.fotosExtra.isNotEmpty) setState(() => _galeriaLocales[ru] = r.fotosExtra);
+            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId,
+                'fotosExtra': r.fotosExtra, 'galeriaClave': ru};
             setState(() => _colaNuevos.add(mapTempNuevo));
             setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad, especialidadId: r.especialidadId)));
             _guardarCache();
@@ -2087,7 +2146,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2203,7 +2262,8 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   Future<void> _guardarCola() async { final p = await SharedPreferences.getInstance(); await p.setString('historial_cola_ediciones', json.encode(_colaEdiciones)); }
   void _aplicarCambiosVisuales() {
-    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues, maquinaId: e.containsKey('maquinaId') ? e['maquinaId'] : _registros[i].maquinaId); }
+    for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) { _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues, maquinaId: e.containsKey('maquinaId') ? e['maquinaId'] : _registros[i].maquinaId,
+        serverFotosExtra: e.containsKey('fotosExtraMantener') ? listaTextos(e['fotosExtraMantener']) : _registros[i].serverFotosExtra, fotosExtra: listaTextos(e['fotosExtra'])); } }
   }
   Future<void> _sincronizarEdiciones() async {
     if (_urlPC == null || _colaEdiciones.isEmpty) return;
@@ -2216,6 +2276,8 @@ class _TabHistorialState extends State<TabHistorial> {
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
+        if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
+        for (final fp in listaTextos(e['fotosExtra'])) { if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await req.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); ok.add(e); } else if (res.statusCode == 200) ok.add(e);
       } catch (e) { /* */ }
@@ -2265,11 +2327,12 @@ class _TabHistorialState extends State<TabHistorial> {
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'])).toList();
+    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'])).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
       if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
       if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
+      if (r.serverFotosExtra.isNotEmpty && _urlPC != null) await cachearFotosHistorial(_urlPC!, [{'serverFotosExtra': r.serverFotosExtra}]);
     }
     return nuevos;
   }
@@ -2295,6 +2358,11 @@ class _TabHistorialState extends State<TabHistorial> {
           _actualizarAnios();
         } else {
           await _fusionarEnCacheOffline(q, nuevos, alPrincipio: true);
+          if (q.isEmpty && _urlPC != null) {
+            await podarHistorialCache(_urlPC!);
+            final quedan = (await _cargarCacheOfflineCompleta()).map((r) => r.id).toSet();
+            if (mounted) setState(() => _registros.removeWhere((r) => r.id != null && !quedan.contains(r.id)));
+          }
         }
         ok = true;
       } catch (e) { ok = false; }
@@ -2345,12 +2413,14 @@ class _TabHistorialState extends State<TabHistorial> {
       return r.statusCode != 200;
     } catch (e) { return true; } // si no se puede comprobar, se intenta subir igualmente
   }
-  Future<bool> _subirFotoRestaurar(String id, String tipo, String rutaLocal) async {
+  Future<bool> _subirFotoRestaurar(String id, String tipo, String rutaLocal, {String? nombre}) async {
     try {
       var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/restaurar_foto"));
       req.headers.addAll(AuthService.cabeceras());
       req.fields['id'] = id; req.fields['tipo'] = tipo;
-      req.files.add(await http.MultipartFile.fromPath(tipo == 'antes' ? 'foto' : 'foto_despues', rutaLocal));
+      if (nombre != null) req.fields['nombre'] = nombre;
+      final campo = tipo == 'antes' ? 'foto' : (tipo == 'galeria' ? 'foto_galeria' : 'foto_despues');
+      req.files.add(await http.MultipartFile.fromPath(campo, rutaLocal));
       final r = await req.send();
       if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_foto', 'Restaurar foto')); return true; }
       return r.statusCode == 200;
@@ -2378,6 +2448,10 @@ class _TabHistorialState extends State<TabHistorial> {
             final fpD = path.join(dir.path, fotoDespues);
             if (File(fpD).existsSync() && await _faltaEnPC(fotoDespues)) { if (await _subirFotoRestaurar(id, 'despues', fpD)) enviadas++; }
           }
+          for (final n in listaTextos(item['fotos'])) {
+            final fpG = path.join(dir.path, n);
+            if (File(fpG).existsSync() && await _faltaEnPC(n)) { if (await _subirFotoRestaurar(id, 'galeria', fpG, nombre: n)) enviadas++; }
+          }
         }
       }
     } catch (e) { /* */ }
@@ -2389,8 +2463,12 @@ class _TabHistorialState extends State<TabHistorial> {
     if (ep.isNotEmpty && ep['fotoPath'] != null) lp = ep['fotoPath']; else if (r.serverImageName != null) { final fp = await _localPath(r.serverImageName!); if (File(fp).existsSync()) lp = fp; }
     if (ep.isNotEmpty && ep['fotoPathDespues'] != null) lpD = ep['fotoPathDespues']; else if (r.serverImageNameDespues != null) { final fpD = await _localPath(r.serverImageNameDespues!); if (File(fpD).existsSync()) lpD = fpD; }
     int? maquinaIdInicial = (ep.isNotEmpty && ep.containsKey('maquinaId')) ? ep['maquinaId'] : r.maquinaId;
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, serverImageName: r.serverImageName, serverImageNameDespues: r.serverImageNameDespues, registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp, imagePathDespues: lpD, maquinaId: maquinaIdInicial), esHistorial: true, onSave: (re) async {
-      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId};
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, serverImageName: r.serverImageName, serverImageNameDespues: r.serverImageNameDespues, registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp, imagePathDespues: lpD, maquinaId: maquinaIdInicial,
+        // Si ya había una edición sin enviar, su colección es la vigente.
+        serverFotosExtra: ep.containsKey('fotosExtraMantener') ? listaTextos(ep['fotosExtraMantener']) : r.serverFotosExtra,
+        fotosExtra: listaTextos(ep['fotosExtra'])), esHistorial: true, onSave: (re) async {
+      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
+          'fotosExtra': re.fotosExtra, 'fotosExtraMantener': re.serverFotosExtra};
       int i = _colaEdiciones.indexWhere((e) => e['id'] == r.id.toString()); if (i != -1) _colaEdiciones[i] = ne; else _colaEdiciones.add(ne);
       await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_guardado"))));
     })));
@@ -2494,7 +2572,10 @@ class _TabHistorialState extends State<TabHistorial> {
               return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))));
             }
             final r = _registros[i]; Widget w;
-            w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues) ?? const Icon(Icons.article, color: Colors.blueGrey);
+            w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues)
+                ?? (r.fotosExtra.isNotEmpty ? _widgetFoto(r.fotosExtra.first, null) : null)
+                ?? (r.serverFotosExtra.isNotEmpty ? _widgetFoto(null, r.serverFotosExtra.first) : null)
+                ?? const Icon(Icons.article, color: Colors.blueGrey);
               bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
             return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
               Text("${r.titulo} | ${traducirTagsBD(r.tags)}"),
@@ -2520,7 +2601,171 @@ class _TabHistorialState extends State<TabHistorial> {
 // ==========================================
 // FORMULARIO Y QR (COMPACTOS)
 // ==========================================
-class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC, serverImageNameDespues, tagsIniciales; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC, this.serverImageNameDespues, this.tagsIniciales}); @override State<FormScreen> createState() => _FormScreenState(); }
+// ==========================================
+// FOTOS DE UN TRABAJO (colección y visor a pantalla completa)
+// ==========================================
+
+/// Nombres de la colección de fotos guardada en un texto con la marca
+/// [FOTOS: a.jpg, b.jpg] (misma marca que usa el PC).
+List<String> fotosGaleriaDe(String? texto) {
+  final m = RegExp(r"\[FOTOS:\s*(.*?)\]").firstMatch(texto ?? '');
+  if (m == null) return [];
+  return m.group(1)!.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+}
+
+/// Quita de la caché del historial del móvil los trabajos que ya no existen
+/// en el PC (borrados allí, p. ej. con "Tiempo máximo de guardado"), y sus
+/// fotos descargadas. Sin esto la caché solo crece: las páginas nuevas se
+/// fusionan, pero nada se quita. Si no hay conexión no hace nada.
+Future<void> podarHistorialCache(String ip) async {
+  final Set<int> existentes;
+  try {
+    final res = await httpGetAuth(Uri.parse("http://$ip/api/historial_todo")).timeout(const Duration(seconds: 10));
+    if (res.statusCode != 200) return;
+    final d = json.decode(res.body);
+    if (d is! List) return;
+    existentes = d.map((e) => e['id']).whereType<int>().toSet();
+  } catch (_) { return; }
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString('historial_cache');
+  if (raw == null) return;
+  List<Map<String, dynamic>> cache;
+  try { cache = List<Map<String, dynamic>>.from(json.decode(raw)); } catch (_) { return; }
+  final quitar = cache.where((c) => c['id'] is int && !existentes.contains(c['id'])).toList();
+  if (quitar.isEmpty) return;
+  final dir = await getApplicationDocumentsDirectory();
+  for (final c in quitar) {
+    for (final n in <String?>[c['serverImageName'], c['serverImageNameDespues'], ...listaTextos(c['serverFotosExtra'])]) {
+      if (n == null) continue;
+      try { final f = File(path.join(dir.path, n)); if (f.existsSync()) f.deleteSync(); } catch (_) {}
+    }
+  }
+  cache.removeWhere((c) => quitar.contains(c));
+  await prefs.setString('historial_cache', json.encode(cache));
+}
+
+/// Quita del mapa persistido de fotos locales de pendientes las que ya ha
+/// recibido el PC con un alta o una edición (ver _olvidarGaleriaSubida).
+Future<void> olvidarGaleriaSubida(SharedPreferences prefs, List<Map<String, dynamic>> enviados) async {
+  final raw = prefs.getString('galeria_locales_map');
+  if (raw == null || enviados.isEmpty) return;
+  final mapa = (json.decode(raw) as Map).map((k, v) => MapEntry(k.toString(), listaTextos(v)));
+  for (final item in enviados) {
+    final clave = item['galeriaClave']?.toString();
+    if (clave == null || !mapa.containsKey(clave)) continue;
+    final subidas = listaTextos(item['fotosExtra']);
+    final quedan = mapa[clave]!.where((f) => !subidas.contains(f)).toList();
+    if (quedan.isEmpty) { mapa.remove(clave); } else { mapa[clave] = quedan; }
+  }
+  await prefs.setString('galeria_locales_map', json.encode(mapa));
+}
+
+/// Una foto de un trabajo: un fichero del móvil (recién hecha o ya
+/// descargada) o el nombre de una foto que está en el PC.
+class FotoTrabajo {
+  final String? rutaLocal;
+  final String? nombreServidor;
+  const FotoTrabajo({this.rutaLocal, this.nombreServidor});
+}
+
+/// Imagen para mostrar una [FotoTrabajo]: primero la copia local (sirve sin
+/// conexión) y, si no hay, la del PC por red.
+ImageProvider? proveedorFotoTrabajo(FotoTrabajo f, String? dirDocs, String? urlPC) {
+  if (f.rutaLocal != null && File(f.rutaLocal!).existsSync()) return FileImage(File(f.rutaLocal!));
+  final n = f.nombreServidor;
+  if (n != null) {
+    if (dirDocs != null) {
+      final fp = path.join(dirDocs, n);
+      if (File(fp).existsSync()) return FileImage(File(fp));
+    }
+    if (urlPC != null) return NetworkImage("http://$urlPC/api/foto/$n");
+  }
+  return null;
+}
+
+Future<void> abrirVisorFotos(BuildContext context, List<FotoTrabajo> fotos, int inicial, {String? urlPC}) async {
+  if (fotos.isEmpty) return;
+  final dir = (await getApplicationDocumentsDirectory()).path;
+  if (!context.mounted) return;
+  await Navigator.push(context, MaterialPageRoute(builder: (_) =>
+      PantallaVisorFotos(fotos: fotos, inicial: inicial.clamp(0, fotos.length - 1), dirDocs: dir, urlPC: urlPC)));
+}
+
+/// Fotos a pantalla completa: se pasa de una a otra deslizando y se puede
+/// ampliar con dos dedos.
+class PantallaVisorFotos extends StatefulWidget {
+  final List<FotoTrabajo> fotos;
+  final int inicial;
+  final String? dirDocs, urlPC;
+  const PantallaVisorFotos({super.key, required this.fotos, this.inicial = 0, this.dirDocs, this.urlPC});
+  @override State<PantallaVisorFotos> createState() => _PantallaVisorFotosState();
+}
+
+class _PantallaVisorFotosState extends State<PantallaVisorFotos> {
+  late final PageController _ctrl = PageController(initialPage: widget.inicial);
+  late int _actual = widget.inicial;
+  @override void dispose() { _ctrl.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white,
+          title: Text(widget.fotos.length > 1 ? "${_actual + 1} / ${widget.fotos.length}" : "")),
+      body: PageView.builder(
+        controller: _ctrl,
+        itemCount: widget.fotos.length,
+        onPageChanged: (i) => setState(() => _actual = i),
+        itemBuilder: (_, i) {
+          final prov = proveedorFotoTrabajo(widget.fotos[i], widget.dirDocs, widget.urlPC);
+          if (prov == null) return const Center(child: Icon(Icons.no_photography, color: Colors.white54, size: 64));
+          return InteractiveViewer(minScale: 1, maxScale: 5, child: Center(child: Image(image: prov, fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 64))));
+        },
+      ),
+    );
+  }
+}
+
+/// Fila de miniaturas de la colección de fotos de un trabajo, con botones
+/// para añadir (cámara o varias de la galería) y quitar.
+class GaleriaFotosTrabajo extends StatelessWidget {
+  final List<FotoTrabajo> fotos;
+  final String? dirDocs, urlPC;
+  final VoidCallback onCamara, onGaleria;
+  final void Function(int) onQuitar, onVer;
+  const GaleriaFotosTrabajo({super.key, required this.fotos, required this.dirDocs, required this.urlPC,
+      required this.onCamara, required this.onGaleria, required this.onQuitar, required this.onVer});
+  @override Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text("${tt("lbl_coleccion_fotos", "Colección de fotos")}${fotos.isEmpty ? "" : " (${fotos.length})"}",
+          style: const TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 6),
+      if (fotos.isNotEmpty) SizedBox(height: 96, child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: fotos.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (_, i) {
+          final prov = proveedorFotoTrabajo(fotos[i], dirDocs, urlPC);
+          return Stack(children: [
+            GestureDetector(onTap: () => onVer(i), child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Container(
+              width: 96, height: 96, color: Colors.grey.withValues(alpha: 0.2),
+              child: prov == null ? const Icon(Icons.cloud_download, color: Colors.grey)
+                  : Image(image: prov, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey))))),
+            Positioned(top: 0, right: 0, child: GestureDetector(onTap: () => onQuitar(i), child: Container(
+              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+              padding: const EdgeInsets.all(3), child: const Icon(Icons.close, size: 16, color: Colors.white)))),
+          ]);
+        },
+      )),
+      const SizedBox(height: 6),
+      Wrap(spacing: 8, children: [
+        ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: Text(tt("btn_foto_coleccion_camara", "Hacer foto")), onPressed: onCamara),
+        ElevatedButton.icon(icon: const Icon(Icons.photo_library), label: Text(tt("btn_fotos_coleccion_galeria", "Elegir de la galería")), onPressed: onGaleria),
+      ]),
+    ]);
+  }
+}
+
+class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC, serverImageNameDespues, tagsIniciales; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC, this.serverImageNameDespues, this.tagsIniciales, this.fotosExtraIniciales}); final List<String>? fotosExtraIniciales; @override State<FormScreen> createState() => _FormScreenState(); }
 class _FormScreenState extends State<FormScreen> {
   final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
@@ -2530,6 +2775,12 @@ class _FormScreenState extends State<FormScreen> {
   int? _especialidadId;
   List<MapEntry<String, int?>> _arbolMaquinas = MaquinasCache.arbol([]);
   List<Map<String, dynamic>> _especialidades = [];
+  /// Colección de fotos extra del trabajo (ver GaleriaFotosTrabajo).
+  List<FotoTrabajo> _galeria = [];
+  String? _dirDocs;
+  /// La colección está en todos los formularios: alta de trabajo, crear o
+  /// gestionar un pendiente y editar el historial.
+  bool get _muestraGaleria => true;
   @override void initState() { super.initState();
     if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; _prioridad = widget.pendientePC!.prioridad; _especialidadId = widget.pendientePC!.especialidadId;
       // PendientePC no tiene campo de tags propio: las tags elegidas al crear
@@ -2539,9 +2790,55 @@ class _FormScreenState extends State<FormScreen> {
       if (widget.tagsIniciales != null) { final tgs = widget.tagsIniciales!; _u=tgs.contains("Urgente"); _e=tgs.contains("Eléctrico"); _m=tgs.contains("Mecánico"); _p=tgs.contains("Preventivo"); _tag.text = tgs.split(', ').where((x) => x.isNotEmpty && !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(x)).join(', '); }
     }
     if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _maquinaId = r.maquinaId; _prioridad = r.prioridad; }
+    if (widget.pendientePC != null) {
+      // Un pendiente puede traer colección si viene de revertir un trabajo.
+      _d.text = _d.text.replaceAll(RegExp(r"\[FOTOS:.*?\]"), "").trim();
+      _galeria = [
+        ...fotosGaleriaDe(widget.pendientePC!.detalles).map((n) => FotoTrabajo(nombreServidor: n)),
+        ...?widget.fotosExtraIniciales?.map((p) => FotoTrabajo(rutaLocal: p)),
+      ];
+    }
+    if (widget.registroExistente != null) {
+      final r = widget.registroExistente!;
+      _galeria = [
+        ...r.serverFotosExtra.map((n) => FotoTrabajo(nombreServidor: n)),
+        ...r.fotosExtra.map((p) => FotoTrabajo(rutaLocal: p)),
+      ];
+    }
+    getApplicationDocumentsDirectory().then((d) { if (mounted) setState(() => _dirDocs = d.path); });
     _cargarMaquinas();
     _cargarEspecialidades();
   }
+  Future<void> _galeriaCamara() async {
+    final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60);
+    if (f == null) return;
+    await _anadirAGaleria([f]);
+  }
+  Future<void> _galeriaElegir() async {
+    final fs = await ImagePicker().pickMultiImage(imageQuality: 60);
+    if (fs.isNotEmpty) await _anadirAGaleria(fs);
+  }
+  /// Copia las fotos a la carpeta de la app (los ficheros del selector son
+  /// temporales) y las añade a la colección.
+  Future<void> _anadirAGaleria(List<XFile> fs) async {
+    final d = await getApplicationDocumentsDirectory();
+    final ms = DateTime.now().millisecondsSinceEpoch;
+    final nuevas = <FotoTrabajo>[];
+    for (var i = 0; i < fs.length; i++) {
+      final n = path.join(d.path, 'foto_g_${ms}_$i.jpg');
+      await File(fs[i].path).copy(n);
+      nuevas.add(FotoTrabajo(rutaLocal: n));
+    }
+    if (mounted) setState(() => _galeria.addAll(nuevas));
+  }
+  /// Todas las fotos del trabajo en orden (antes, después y colección), para
+  /// el visor a pantalla completa.
+  List<FotoTrabajo> get _todasLasFotos => [
+    if (_img != null) FotoTrabajo(rutaLocal: _img),
+    if (_imgDespues != null) FotoTrabajo(rutaLocal: _imgDespues),
+    if (_muestraGaleria) ..._galeria,
+  ];
+  void _verFoto(int indice) => abrirVisorFotos(context, _todasLasFotos, indice, urlPC: widget.urlPC);
   Future<void> _cargarMaquinas() async {
     if (widget.urlPC != null) await MaquinasCache.sincronizar(widget.urlPC!);
     final planas = await MaquinasCache.obtener();
@@ -2575,6 +2872,15 @@ class _FormScreenState extends State<FormScreen> {
     List<String> l=[]; if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo"); if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
     String df = _d.text; if (widget.pendientePC != null) { final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles); if (m != null) df += " ${m.group(0)}"; }
 
+    final galeriaServidor = _muestraGaleria
+        ? _galeria.where((f) => f.rutaLocal == null && f.nombreServidor != null).map((f) => f.nombreServidor!).toList()
+        : <String>[];
+    final galeriaLocal = _muestraGaleria ? _galeria.where((f) => f.rutaLocal != null).map((f) => f.rutaLocal!).toList() : <String>[];
+    // Las fotos de la colección que ya están en el PC viajan como marca en los
+    // detalles (igual que en el PC), para no perderlas al completar o guardar
+    // un pendiente. En el historial se mandan aparte (fotos_extra_mantener).
+    if (!widget.esHistorial && galeriaServidor.isNotEmpty) df += "\n[FOTOS: ${galeriaServidor.join(', ')}]";
+
     // --- CAPTURAR FECHA REAL ---
     String? fechaFinal;
     if (widget.registroExistente?.fecha != null) {
@@ -2585,7 +2891,7 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId, fotosExtra: galeriaLocal, serverFotosExtra: galeriaServidor);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -2652,7 +2958,7 @@ class _FormScreenState extends State<FormScreen> {
           children: [
             Expanded(child: Column(children: [
               Text(t("lbl_antes"), style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (_img != null) ...[SizedBox(height: 150, child: Image.file(File(_img!))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _img = null))]
+              if (_img != null) ...[GestureDetector(onTap: () => _verFoto(0), child: SizedBox(height: 150, child: Image.file(File(_img!)))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _img = null))]
                 else ...[
                   if (widget.serverImageName != null || widget.registroExistente?.serverImageName != null) ElevatedButton.icon(icon: const Icon(Icons.cloud_download), label: Text(t("btn_bajar")), onPressed: _down),
                     ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: Text(t("btn_foto_camara")), onPressed: _cam)
@@ -2660,7 +2966,7 @@ class _FormScreenState extends State<FormScreen> {
             ])),
             Expanded(child: Column(children: [
               Text(t("lbl_despues"), style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (_imgDespues != null) ...[SizedBox(height: 150, child: Image.file(File(_imgDespues!))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _imgDespues = null))]
+              if (_imgDespues != null) ...[GestureDetector(onTap: () => _verFoto(_img != null ? 1 : 0), child: SizedBox(height: 150, child: Image.file(File(_imgDespues!)))), TextButton.icon(icon: const Icon(Icons.delete, color: Colors.red), label: const Text("X", style: TextStyle(color: Colors.red)), onPressed: () => setState(() => _imgDespues = null))]
                 else ...[
                   if (widget.serverImageNameDespues != null || widget.registroExistente?.serverImageNameDespues != null) ElevatedButton.icon(icon: const Icon(Icons.cloud_download), label: Text(t("btn_bajar")), onPressed: _downDespues),
                     ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: Text(t("btn_foto_camara")), onPressed: _camDespues)
@@ -2668,6 +2974,15 @@ class _FormScreenState extends State<FormScreen> {
             ])),
           ],
         ),
+        if (_muestraGaleria) ...[
+          const SizedBox(height: 15),
+          GaleriaFotosTrabajo(
+            fotos: _galeria, dirDocs: _dirDocs, urlPC: widget.urlPC,
+            onCamara: _galeriaCamara, onGaleria: _galeriaElegir,
+            onQuitar: (i) => setState(() => _galeria.removeAt(i)),
+            onVer: (i) => _verFoto((_img != null ? 1 : 0) + (_imgDespues != null ? 1 : 0) + i),
+          ),
+        ],
         const SizedBox(height: 20),
         if (widget.pendientePC != null) Row(children: [Expanded(child: ElevatedButton(onPressed: ()=>_save(false), child: Text(t("btn_actualizar")))), const SizedBox(width: 10), Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: ()=>_save(true), child: Text(t("btn_terminar"))))])
           else ElevatedButton(style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)), onPressed: ()=>_save(true), child: Text(t("btn_guardar_form")))
@@ -2845,6 +3160,9 @@ class SincronizadorGlobal {
           if (item.imagePathDespues != null && File(item.imagePathDespues!).existsSync()) {
             req.files.add(await http.MultipartFile.fromPath('foto_despues', item.imagePathDespues!));
           }
+          for (final fp in item.fotosExtra) {
+            if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp));
+          }
           if ((await req.send()).statusCode == 200) enviados.add(item);
         } catch (e) {}
       }
@@ -2879,6 +3197,7 @@ class SincronizadorGlobal {
         if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
         if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
         if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
+        for (final fp in listaTextos(d['fotosExtra'])) { if (File(fp).existsSync()) r.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await r.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(d['titulo']?.toString() ?? ep); return true; }
         return res.statusCode == 200;
@@ -2887,9 +3206,11 @@ class SincronizadorGlobal {
 
     List<Map<String, dynamic>> no = []; for (var t in colaNuevos) { if (await apiMultipart('agregar_pendiente', t)) no.add(t); }
     for (var t in no) { colaNuevos.remove(t); }
+    await olvidarGaleriaSubida(prefs, no);
 
     List<Map<String, dynamic>> eo = []; for (var t in colaEdiciones) { if (await apiMultipart('editar_pendiente', t)) eo.add(t); }
     for (var t in eo) { colaEdiciones.remove(t); }
+    await olvidarGaleriaSubida(prefs, eo);
 
     List<Map<String, dynamic>> so = []; for (var t in colaSalida) { if (await apiMultipart('completar_pendiente', t)) so.add(t); }
     for (var t in so) { colaSalida.remove(t); }
@@ -2935,6 +3256,8 @@ class SincronizadorGlobal {
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
+        if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
+        for (final fp in listaTextos(e['fotosExtra'])) { if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await req.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); hok.add(e); } else if (res.statusCode == 200) hok.add(e);
       } catch (e) {}
@@ -2949,7 +3272,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         List<Map<String, dynamic>> nuevosH = dH.map((i) => {
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
         }).toList();
         await cachearFotosHistorial(ip, nuevosH);
         List<Map<String, dynamic>> cacheH = [];
@@ -2958,6 +3281,7 @@ class SincronizadorGlobal {
         for (var n in nuevosH) { cacheH.removeWhere((c) => c['id'] == n['id']); }
         cacheH = [...nuevosH, ...cacheH];
         await prefs.setString('historial_cache', json.encode(cacheH));
+        await podarHistorialCache(ip);
       }
     } catch (_) {}
 

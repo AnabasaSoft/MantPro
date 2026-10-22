@@ -174,4 +174,7 @@ const Map<String, String> traduccionesEu = {
     "msg_revertir_aviso_maquina": "\n\nEgiteke dauden zereginek ez dute makina lotua onartzen, beraz datu hori galduko da.",
     "msg_sincronizando_todo": "Dena sinkronizatzen...",
     "tooltip_reenviar_fotos": "Argazki lokalak PCra berbidali",
+    "lbl_coleccion_fotos": "Argazki bilduma",
+    "btn_foto_coleccion_camara": "Argazkia atera",
+    "btn_fotos_coleccion_galeria": "Galeriatik aukeratu",
 };

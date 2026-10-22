@@ -176,4 +176,7 @@ const Map<String, String> traduccionesEn = {
   "lbl_prioridad": "Priority",
   "lbl_especialidad": "Specialty",
   "lbl_sin_especialidad": "No specialty",
+    "lbl_coleccion_fotos": "Photo collection",
+    "btn_foto_coleccion_camara": "Take photo",
+    "btn_fotos_coleccion_galeria": "Choose from gallery",
 };

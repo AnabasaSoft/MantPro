@@ -133,7 +133,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **📊 Aginte-panela KPI eta grafikoekin**: egiteke dauden abisuen, egiteko zereginen, hilabeteko erregistroen eta lantegi osoko batez besteko MTBF/MTTRren txartelak, gehi matxura gehien dituzten makinen eta hilabeteko matxuren grafikoak, kanpoko liburutegirik gabe marraztuak
 - **🎨 Gai bisualak**: aukeratu modu ilun (lehenetsia), argi edo Windows 98an inspiratutako estilo retro baten artean, "Itxura" menutik
 - **📅 Egutegi interaktiboa**: Ikusi eta kudeatu mantentze-zereginak kolore-kodeekin (jaiegunak, oporrak, zereginak dituzten egunak)
-- **📝 Historia osoa**: Egindako lan guztien erregistro historikoa, aurreko/ondorengo argazkiekin
+- **📝 Historia osoa**: Egindako lan guztien erregistro historikoa, aurreko/ondorengo argazkiekin eta lan bakoitzeko **argazki bilduma** gehigarri batekin; hainbat erregistro batera ezaba daitezke
 - **📄 PDF txostenak**: Txosten profesionalak automatikoki sortzea, logo pertsonalizagarriarekin
 - **📸 Irudien kudeaketa**: Lanen argazkiak gordetzea eta bistaratzea
 - **📱 Mugikorreko sinkronizazioa**: Zerbitzari integratua (automatikoki abiarazten da) mugikorreko aplikazioarekin QR bidez sinkronizatzeko
@@ -142,9 +142,12 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **📦 Babeskopia/Berrezartzea**: eskuzko babeskopia osoa (DB + argazkiak) non gorde aukeratuz, babeskopia automatiko inkrementala aplikazioa ixtean (ikusi [Babeskopiak](#-babeskopiak)), eta berrezartzea aurrerapen-barrarekin, `Fitxategia > Berrezarri` azpimenuarekin edozein eskuzko babeskopia aukeratzeko edo zuzenean kopia automatikoetara joateko
 - **🏷️ Etiketa-sistema**: Etiketen bidezko sailkapena (Urgentea, Elektrikoa, Mekanikoa, Prebentiboa)
 - **🔨 Egiteke dauden zereginak**: Egiteke dauden lanen kudeaketa (sortu, osatu, editatu, ezabatu) eta **teknikari jakin bati esleitzea**
+- **🚦 Egiteke dauden lanen lehentasuna**: egiteke dagoen lan bakoitzak lehentasun bat du (Baxua, Ertaina, Altua edo Kritikoa) zein lehenago egin erabakitzeko, zerrendan bere kolorearekin; bere bildumari argazkiak ere gehi dakizkioke
 - **↩️ Egitekora itzuli**: lan bat oker osatu bada, klik batekin Egiteke atalera itzul daiteke historiatik (abisuarekin, makina lotuta bazuen, datu hori galduko bailitzateke), eta auditorian erregistratuta geratzen da
-- **🔁 Gogorarazleak**: Automatikoki errepikatzen diren mantentze-abisuak
+- **🔁 Gogorarazleak**: Automatikoki errepikatzen diren mantentze-abisuak. Data pasatzen bada ez dira saltatzen: **Zain** (laranja) geratzen dira tartean, eta gero **Atzeratuta** (gorria) egin arte; hurrengo data lana benetan egin zen egunetik kontatzen da
 - **📦 Biltegiko stockaren kontrola**: Apalategi, apal eta ataleko egitura konfiguragarria, materialen fitxa argazkiarekin, sarrerak/irteerak historiarekin eta gutxienekoaren azpiko stockaren alertak
+- **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta
+- **🗑️ Gordetzeko gehieneko denbora**: `Tresnak` menutik historiatik ezaba daitezke urte, hilabete edo egun kopuru bat baino zaharragoak diren lanak, haien argazkiekin eta aurretik segurtasun-kopia bat eginez (administratzaileak soilik)
 - **🏭 Makineriaren kontrola**: Makinen eta azpimakinen zuhaitza argazki erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta erregistratutako edo editatutako lan bakoitzetik zuzeneko lotura (ikusi [Makineria](#-makineria))
 - **📊 Esportazioa**: PDF, CSV eta Excelera, aukerako teknikari-iragazkiarekin eta lan bakoitzaren makina/azpimakina adieraziz, baldin badu
 
@@ -153,6 +156,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **🔐 Erabiltzailearekin sarbidea**: Teknikari bakoitzak behin hasten du saioa eta saioa gailuan gordeta geratzen da
 - **📝 Erregistro azkarra**: Lanak tokian bertan erregistratzea, erabiltzailearekin automatikoki sinatuta
 - **📷 Kamera integratua**: Argazkiak atera eta oharrekin editatu
+- **🖼️ Argazki bilduma**: aurreko eta ondorengo argazkiez gain, gehitu lan edo egiteke dagoen lan bati nahi adina argazki (kamera edo galeria); edozein argazki sakatuz pantaila osoan ikusten da, batetik bestera pasatuz eta bi hatzekin handituz
 - **✏️ Irudi-editorea**: Marraztu argazkien gainean interesgune diren eremuak markatzeko
 - **🔄 Sinkronizazio automatikoa**: Datuak PCra automatikoki bidaltzea QR kodearen bidez
 - **💾 Biltegiratze lokala**: Erregistroak konexiorik gabe gordetzen ditu sinkronizatu arte
@@ -179,7 +183,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 - **🎨 Stockaren abisu bisuala**: kantitatea gorriz gutxienekotik behera, berdez gainetik, eta kolore lehenetsian zehazki bat datorrenean
 - **⚠️ Gutxienekotik behera**: alertan dauden materialentzako fitxa berezia
 - **🔄 Eguneratze automatikoa**: pantaila bere kabuz freskatzen da aldaketak detektatzean, aldaketa mugikorrean bertan nahiz PCan egin bada
-- **🔌 Konexiorik gabeko modua**: azken sinkronizatutako informazioarekin kontsultatu PCrekin konexiorik ez badago
+- **🔌 Konexiorik gabeko modua**: PCrekin konexiorik gabe aplikazioak ez du itxaroten: gordetako datuak erakusten ditu eta altak, edizioak, sarrerak eta irteerak berehala erregistratzen uzten du; PCra bere kabuz bidaltzen dira berriro eskuragarri dagoenean
 - **🔔 Stocka egiaztatzeko eguneroko gogorarazlea**: jakinarazpen automatikoa 8:00etan (ordu lokala), biltegiko 5 materialen benetako kantitatea berrikusteko gonbidatuz, ausaz aukeratuak eta egunero desberdinak; sakatzean, bakoitzaren kantitatea zuzentzeko pantaila bat irekitzen da, eskuz bilatu beharrik gabe. Altan emandako materialik ez badago, ez da jakinarazpenik erakusten
 
 ---
@@ -557,6 +561,16 @@ izenburuak berak zenbat material dauden alertan adierazten du, eta bertatik
 zuzenean jauzi daiteke materialera "Biltegiko stocka" fitxan, edo sarrera bat
 erregistratu fitxaz aldatu gabe.
 
+### Stocka esportatu
+
+PCko **"📦 Biltegiko stocka"** fitxan, **"📄 Esportatu"** botoiak leiho bat
+irekitzen du **formatua** (PDF, CSV edo Excel) eta **zer esportatu**
+aukeratzeko: biltegi osoa, zona bat edo apalategi bakar bat. Zerrenda
+kokapenaren arabera ordenatuta ateratzen da, biltegia eskuan hartuta
+ibiltzeko; PDFak eta Excelak data, material kopurua eta gutxienekoaren
+azpitik daudenak (gorriz) ere badituzte. Stock taula bera ere kokapenaren
+arabera ordenatuta erakusten da lehenespenez (1., 2.… 10. apalategia).
+
 ---
 
 ## 🔄 PC-mugikor sinkronizazioa
@@ -673,6 +687,25 @@ aurretik ere `fotos_recibidas` isilean garbitzen da, baina Tresnak menuko aukera
 horrek **soilik** berrikusten ditu, gainera, `fotos_backup_<urtea>.zip`
 fitxategiak, eta berriro idazten ditu izan ditzaketen argazki umezurtzik gabe,
 mugagabeki ez arrastatzeko.
+
+### Lanak gordetzeko gehieneko denbora
+
+`Tresnak > Lanak gordetzeko gehieneko denbora…` aukerak (administratzaileak
+soilik) zenbaki bat eta unitate bat (urte, hilabete edo egun) eskatzen ditu,
+eta gaurtik atzera kontatuta data hori baino zaharragoak diren lan guztiak
+ezabatzen ditu historiatik. Ezabatu aurretik zenbat lan ezabatuko diren eta
+zein dataren artean erakusten du, eta berrespena eskatzen du.
+
+- Ezabatu aurretik bi datu-baseen kopia bat gordetzen da
+  `backups_auto/antes_borrado_trabajos_<data>.zip` fitxategian; babeskopia
+  automatikoaren txandakatzeak ez du ezabatzen.
+- Haien argazkiak ere ezabatzen dira (aurrekoa, ondorengoa eta bilduma),
+  beste erregistro batek erabiltzen dituenak izan ezik. Argazkiak ez daude
+  kopia horretan, baina babeskopia automatikoaren `fotos_backup_<urtea>.zip`
+  fitxategietan geratzen dira `Tresnak > 🧹 Garbitu Zabor-argazkiak` erabili arte.
+- Mugikorrek lan horiek historiatik kentzen dituzte hurrengo
+  sinkronizazioan.
+- Behin bakarrik egiten da: ez da bere kabuz errepikatzen.
 
 ---
 
@@ -848,6 +881,16 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
 - **Gailu bakoitzeko saioaren ordezkapen automatikoa**: erabiltzaile batek
   lehendik saio irekia zuen mugikor batetik berriro saioa hasten badu,
   aurrekoa bere kabuz ezabatzen da, saioen zerrendan pilatu beharrean.
+- **Lan bakoitzeko argazki bilduma**: aurrekoaz eta ondorengoaz gain, nahi
+  adina argazki gehigarri lanetan eta egiteke dauden lanetan, PCan eta
+  mugikorrean, batetik bestera pasatzen den tamaina osoko ikustailearekin.
+- **Saltatzen ez diren abisu errepikakorrak**: atzeratutako abisu bat zain
+  (laranja) edo atzeratuta (gorria) geratzen da egin arte, eta hurrengo
+  zikloa benetan egin zen datatik kontatzen da.
+- **Biltegiko stocka esportatu** PDF, CSV edo Excel formatura, osorik, zonaka
+  edo apalategika.
+- **Lanak gordetzeko gehieneko denbora**: lan zaharrak ezabatzea, berrespenarekin
+  eta aurretik segurtasun-kopia eginez.
 
 ## 🧭 Bide-orria
 
