@@ -1,4 +1,8 @@
-🌐 **English** · [Español](README.es.md) · [Euskara](README.eu.md)
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/English-0969da?style=for-the-badge" alt="English"></a>
+  <a href="README.es.md"><img src="https://img.shields.io/badge/Espa%C3%B1ol-6e7781?style=for-the-badge" alt="Español"></a>
+  <a href="README.eu.md"><img src="https://img.shields.io/badge/Euskara-6e7781?style=for-the-badge" alt="Euskara"></a>
+</p>
 
 # MantPro
 
