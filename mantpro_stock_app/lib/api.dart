@@ -1,6 +1,7 @@
 // -*- coding: utf-8 -*-
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -22,9 +23,67 @@ final ValueNotifier<bool> sesionNotifier = ValueNotifier(false);
 /// de cerrar y volver a abrir sesión cuando cambian los permisos en el PC.
 final ValueNotifier<int> rolesActualizadosNotifier = ValueNotifier(0);
 
-/// Se incrementa cada vez que termina una sincronización con el PC (con o sin
-/// conexión). Las pantallas lo escuchan para refrescarse desde la caché local.
+/// Se incrementa cada vez que una sincronización con el PC termina de verdad
+/// (no cuando se salta por falta de conexión). Las pantallas lo escuchan para
+/// refrescarse desde la caché local.
 final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
+
+/// Sabe si el PC está accesible ahora mismo, para no hacer esperar al usuario
+/// en cada lectura o escritura cuando trabaja sin conexión: un sondeo rápido
+/// de 1,5 s (abrir el socket del servidor) decide, y el resultado se recuerda
+/// unos segundos. Sin esto, cada llamada esperaba su propio timeout (4–20 s)
+/// antes de caer a la caché, y la sincronización periódica volvía a refrescar
+/// las pantallas aunque no hubiera conexión, repitiendo todas esas esperas.
+class ConexionPC {
+  static bool? _accesible;
+  static DateTime _comprobadoEn = DateTime.fromMillisecondsSinceEpoch(0);
+  static Future<bool>? _sondeoEnCurso;
+  static const _validez = Duration(seconds: 20);
+
+  static bool get sinConexion => _accesible == false;
+
+  static void marcarFallo() {
+    _accesible = false;
+    _comprobadoEn = DateTime.now();
+  }
+
+  static void marcarExito() {
+    _accesible = true;
+    _comprobadoEn = DateTime.now();
+  }
+
+  /// true si el error es de red (PC apagado, otra wifi, sin cobertura...), y
+  /// no un error del servidor ya conectado.
+  static bool esErrorDeRed(Object e) =>
+      e is SocketException || e is TimeoutException || e is http.ClientException || e is HandshakeException;
+
+  /// [forzar] ignora el resultado recordado (la sincronización periódica lo
+  /// usa para detectar en cuanto vuelve la conexión).
+  static Future<bool> accesible(String ip, {bool forzar = false}) {
+    if (!forzar && _accesible != null && DateTime.now().difference(_comprobadoEn) < _validez) {
+      return Future.value(_accesible!);
+    }
+    return _sondeoEnCurso ??= _sondear(ip).whenComplete(() => _sondeoEnCurso = null);
+  }
+
+  static Future<bool> _sondear(String ip) async {
+    try {
+      final uri = Uri.parse(ip.contains('://') ? ip : 'http://$ip');
+      final socket = await Socket.connect(uri.host, uri.hasPort ? uri.port : 80,
+          timeout: const Duration(milliseconds: 1500));
+      socket.destroy();
+      marcarExito();
+      return true;
+    } catch (_) {
+      marcarFallo();
+      return false;
+    }
+  }
+}
+
+/// Se lanza en las lecturas cuando el PC no está accesible, para ir directos
+/// a la caché sin intentar la petición.
+class _SinConexionPC implements Exception {}
 
 /// Lista de descripciones de cambios pendientes que el PC ha rechazado por
 /// falta de permisos (p. ej. el admin le ha quitado el rol de almacén al
@@ -180,6 +239,7 @@ Future<void> comprobar401(int codigo) async {
 
 Future<http.Response> httpGetAuth(Uri url) async {
   final res = await http.get(url, headers: AuthService.cabeceras());
+  ConexionPC.marcarExito();
   await comprobar401(res.statusCode);
   return res;
 }
@@ -227,6 +287,7 @@ class StockApi {
   static Future<List<Estanteria>> obtenerEstructura() async {
     try {
       final ip = await _ip();
+      if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
       final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/estructura'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
@@ -238,7 +299,8 @@ class StockApi {
       return (datos['estanterias'] as List).map((e) => Estanteria.fromJson(e)).toList();
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       final cache = await _cacheEstructura();
       if (cache != null) return cache;
       throw ApiException(tt('msg_sin_conexion_pc', 'Sin conexión con el PC'));
@@ -256,6 +318,7 @@ class StockApi {
   static Future<List<Zona>> obtenerZonas() async {
     try {
       final ip = await _ip();
+      if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
       final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/zonas'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
@@ -267,7 +330,8 @@ class StockApi {
       return (datos['zonas'] as List).map((z) => Zona.fromJson(z)).toList();
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       final cache = await _cacheZonas();
       if (cache != null) return cache;
       throw ApiException(tt('msg_sin_conexion_pc', 'Sin conexión con el PC'));
@@ -366,6 +430,7 @@ class StockApi {
   static Future<List<Articulo>> obtenerMateriales({String? q}) async {
     try {
       final ip = await _ip();
+      if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
       final uri = Uri.parse('http://$ip/api/stock/materiales')
           .replace(queryParameters: (q != null && q.isNotEmpty) ? {'q': q} : null);
       final res = await httpGetAuth(uri).timeout(const Duration(seconds: 4));
@@ -377,12 +442,13 @@ class StockApi {
       if (q == null || q.isEmpty) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(kStockCacheMateriales, res.body);
-        return _conPendientes(lista);
+        return await _conPendientes(lista);
       }
       return lista;
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       final cache = await _cacheMateriales();
       if (cache == null) throw ApiException(tt('msg_sin_conexion_pc', 'Sin conexión con el PC'));
       final conPendientes = await _conPendientes(cache);
@@ -397,6 +463,7 @@ class StockApi {
   static Future<List<Articulo>> materialesBajoMinimo() async {
     try {
       final ip = await _ip();
+      if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
       final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/bajo_minimo'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
@@ -408,7 +475,8 @@ class StockApi {
       return (datos['materiales'] as List).map((m) => Articulo.fromJson(m)).toList();
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       // Sin conexión: recalculamos el bajo mínimo a partir de la caché de
       // materiales (ya con las escrituras pendientes aplicadas).
       final cache = await _cacheMateriales();
@@ -421,6 +489,7 @@ class StockApi {
   static Future<(Articulo, List<Movimiento>)> obtenerMaterial(int id) async {
     try {
       final ip = await _ip();
+      if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
       final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/material/$id'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
@@ -439,7 +508,8 @@ class StockApi {
       return (conPendientes.isNotEmpty ? conPendientes.first : m, movs);
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       final cache = await _cacheMateriales();
       if (cache != null) {
         final conPendientes = await _conPendientes(cache);
@@ -483,13 +553,15 @@ class StockApi {
 
   /// Descarga del PC la foto [nombreFoto] y la deja cacheada en local.
   static Future<File?> _descargarYCachearFoto(String ip, String nombreFoto) async {
+    if (!await ConexionPC.accesible(ip)) return null;
     try {
       final res = await httpGetAuth(Uri.parse(urlFoto(ip, nombreFoto))).timeout(const Duration(seconds: 8));
       if (res.statusCode != 200) return null;
       final f = File(await _rutaFotoCache(nombreFoto));
       await f.writeAsBytes(res.bodyBytes);
       return f;
-    } catch (_) {
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
       return null;
     }
   }
