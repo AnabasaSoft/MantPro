@@ -88,7 +88,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QItemSelection, QItemSelectionModel,
                           QPropertyAnimation, QEasingCurve, QTimer,
-                          QTranslator, QLibraryInfo, QRectF)
+                          QTranslator, QLibraryInfo, QRectF, QSize)
 
 from PyQt6.QtGui import (QAction, QActionGroup, QIcon, QColor, QBrush, QTextCharFormat,
                          QPixmap, QImage, QTextCursor, QFileSystemModel, QPainter, QPen, QFont)
@@ -136,6 +136,35 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+# --- Colección de fotos de un trabajo -------------------------------------
+# Además de la foto de antes ([FOTO: x]) y la de después ([FOTO_DESPUES: y]),
+# un trabajo puede llevar una colección de fotos extra, guardada igual que
+# las otras: como una marca en la propia descripción, [FOTOS: a.jpg, b.jpg].
+# Así viaja sola con el trabajo (pendiente -> historial, revertir, editar,
+# sincronizar con el móvil) sin cambiar el esquema de la base de datos.
+_RE_GALERIA = re.compile(r"\[FOTOS:\s*(.*?)\]")
+
+def fotos_galeria(texto):
+    """Lista de nombres de fichero de la colección de fotos de [texto]."""
+    m = _RE_GALERIA.search(texto or "")
+    if not m: return []
+    return [f.strip() for f in m.group(1).split(",") if f.strip()]
+
+def con_fotos_galeria(texto, nombres):
+    """Devuelve [texto] con la marca de colección sustituida por [nombres]
+    (o quitada si la lista está vacía)."""
+    texto = re.sub(r"\n?\[FOTOS:.*?\]", "", texto or "").rstrip()
+    nombres = [n for n in nombres if n]
+    if nombres:
+        texto += ("\n" if texto else "") + f"[FOTOS: {', '.join(nombres)}]"
+    return texto
+
+def quitar_marcas_foto(texto):
+    """Quita del texto todas las marcas de foto ([FOTO:], [FOTO_DESPUES:],
+    [FOTOS:]) y la de referencia [REF:], para mostrarlo."""
+    texto = re.sub(r"\[FOTO.*?:.*?\]", "", texto or "")
+    return re.sub(r"\[REF:.*?\]", "", texto).strip()
 
 def entorno_sistema():
     """Entorno para lanzar programas del sistema desde el binario de PyInstaller.
@@ -396,6 +425,7 @@ class GeneradorPDFThread(QThread):
 
                     desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
                     desc_visual = re.sub(r"\[FOTO_DESPUES:.*?\]", "", desc_visual)
+                    desc_visual = _RE_GALERIA.sub("", desc_visual)
                     desc_visual = re.sub(r"\[REF:.*?\]", "", desc_visual).strip()
 
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
@@ -671,22 +701,49 @@ class RestoreManualThread(QThread):
 
 
 class VisorFoto(QDialog):
-    def __init__(self, ruta_imagen, parent=None):
+    """Muestra una foto a tamaño completo. Si se le pasa [rutas] (la colección
+    entera), permite pasar de una a otra con los botones o las flechas."""
+    def __init__(self, ruta_imagen, parent=None, rutas=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_visor_imagen"))
-        self.resize(800, 600)
+        self.resize(900, 680)
+        self.rutas = [r for r in (rutas or [ruta_imagen]) if r]
+        self.indice = self.rutas.index(ruta_imagen) if ruta_imagen in self.rutas else 0
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.label = QLabel()
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-        layout.addWidget(self.label)
+        layout.addWidget(self.label, 1)
+        barra = QHBoxLayout()
+        self.btn_ant = QPushButton("◀"); self.btn_ant.clicked.connect(lambda: self.mover(-1))
+        self.btn_sig = QPushButton("▶"); self.btn_sig.clicked.connect(lambda: self.mover(1))
+        self.lbl_pos = QLabel(); self.lbl_pos.setAlignment(Qt.AlignmentFlag.AlignCenter)
         btn_cerrar = QPushButton(t("btn_cerrar"))
         btn_cerrar.clicked.connect(self.accept)
-        layout.addWidget(btn_cerrar)
-        self.pixmap_original = QPixmap(ruta_imagen)
-        if self.pixmap_original.isNull(): self.label.setText(t("msg_error_cargar_imagen"))
-        else: self.actualizar_imagen()
+        barra.addWidget(self.btn_ant); barra.addWidget(self.lbl_pos, 1); barra.addWidget(self.btn_sig); barra.addWidget(btn_cerrar)
+        layout.addLayout(barra)
+        varias = len(self.rutas) > 1
+        for w in (self.btn_ant, self.btn_sig, self.lbl_pos): w.setVisible(varias)
+        self.cargar()
+
+    def cargar(self):
+        self.pixmap_original = QPixmap(self.rutas[self.indice]) if self.rutas else QPixmap()
+        self.lbl_pos.setText(f"{self.indice + 1} / {len(self.rutas)}")
+        if self.pixmap_original.isNull():
+            self.label.setPixmap(QPixmap()); self.label.setText(t("msg_error_cargar_imagen"))
+        else:
+            self.label.setText(""); self.actualizar_imagen()
+
+    def mover(self, paso):
+        if len(self.rutas) < 2: return
+        self.indice = (self.indice + paso) % len(self.rutas)
+        self.cargar()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Left: self.mover(-1)
+        elif event.key() == Qt.Key.Key_Right: self.mover(1)
+        else: super().keyPressEvent(event)
 
     def resizeEvent(self, event):
         self.actualizar_imagen()
@@ -698,6 +755,98 @@ class VisorFoto(QDialog):
                 self.label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             )
             self.label.setPixmap(pixmap_scaled)
+
+class GaleriaFotosWidget(QWidget):
+    """Colección de fotos extra de un trabajo (además de la de antes y la de
+    después): miniaturas en fila, añadir varias de golpe (botón o arrastrar),
+    quitar la seleccionada y doble clic para verlas a tamaño completo pasando
+    de una a otra. Guarda las fotos en la carpeta de fotos de la app."""
+    def __init__(self, carpeta_fotos, parent=None, nombres=None):
+        super().__init__(parent)
+        self.carpeta_fotos = carpeta_fotos
+        self.setAcceptDrops(True)
+        v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(4)
+        cab = QHBoxLayout()
+        self.lbl_titulo = QLabel(); cab.addWidget(self.lbl_titulo, 1)
+        btn_add = QPushButton(tt("btn_anadir_fotos", "➕ Añadir fotos")); btn_add.clicked.connect(self.elegir_fotos)
+        self.btn_quitar = QPushButton(tt("btn_quitar_foto_coleccion", "🗑️ Quitar"))
+        self.btn_quitar.setStyleSheet("background-color: #c0392b; color: white;")
+        self.btn_quitar.clicked.connect(self.quitar_seleccionadas)
+        cab.addWidget(btn_add); cab.addWidget(self.btn_quitar)
+        v.addLayout(cab)
+        self.lista = QListWidget()
+        self.lista.setViewMode(QListWidget.ViewMode.IconMode)
+        self.lista.setFlow(QListWidget.Flow.LeftToRight)
+        self.lista.setWrapping(False)
+        self.lista.setIconSize(QSize(90, 90))
+        self.lista.setFixedHeight(118)
+        self.lista.setMovement(QListWidget.Movement.Static)
+        self.lista.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.lista.setToolTip(tt("tt_coleccion_fotos", "Doble clic para ver a tamaño completo. Puedes arrastrar fotos aquí."))
+        self.lista.itemDoubleClicked.connect(self.ver)
+        self.lista.setAcceptDrops(False)
+        v.addWidget(self.lista)
+        self.set_nombres(nombres or [])
+
+    def _ruta(self, nombre): return os.path.join(self.carpeta_fotos, nombre)
+
+    def _actualizar_titulo(self):
+        n = self.lista.count()
+        self.lbl_titulo.setText(tt("lbl_coleccion_fotos", "Colección de fotos") + (f" ({n})" if n else ""))
+        self.btn_quitar.setEnabled(n > 0)
+
+    def set_nombres(self, nombres):
+        self.lista.clear()
+        for n in nombres: self._anadir_item(n)
+        self._actualizar_titulo()
+
+    def nombres(self):
+        return [self.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.lista.count())]
+
+    def _anadir_item(self, nombre):
+        it = QListWidgetItem()
+        pix = QPixmap(self._ruta(nombre))
+        if pix.isNull(): it.setText(nombre)
+        else: it.setIcon(QIcon(pix.scaled(90, 90, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
+        it.setData(Qt.ItemDataRole.UserRole, nombre)
+        it.setToolTip(nombre)
+        self.lista.addItem(it)
+
+    def anadir_rutas(self, rutas):
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        for i, origen in enumerate(rutas):
+            if QPixmap(origen).isNull(): continue
+            nuevo = f"pc_galeria_{ts}_{i}{os.path.splitext(origen)[1].lower()}"
+            try:
+                shutil.copy2(origen, self._ruta(nuevo))
+                self._anadir_item(nuevo)
+            except Exception as e:
+                QMessageBox.critical(self, t("title_error"), str(e))
+        self._actualizar_titulo()
+
+    def elegir_fotos(self):
+        dlg = QFileDialog(self, tt("btn_anadir_fotos", "➕ Añadir fotos"))
+        dlg.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        dlg.setNameFilter(tt("filtro_imagenes", "Imágenes") + " (*.png *.jpg *.jpeg *.bmp *.gif *.webp)")
+        dlg.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dlg.setDirectory(QDir.homePath())
+        dlg.setLabelText(QFileDialog.DialogLabel.Accept, t("btn_elegir_foto"))
+        dlg.setLabelText(QFileDialog.DialogLabel.Reject, t("btn_cancelar"))
+        if dlg.exec(): self.anadir_rutas(dlg.selectedFiles())
+
+    def quitar_seleccionadas(self):
+        for it in self.lista.selectedItems() or ([self.lista.currentItem()] if self.lista.currentItem() else []):
+            self.lista.takeItem(self.lista.row(it))
+        self._actualizar_titulo()
+
+    def ver(self, item):
+        rutas = [self._ruta(n) for n in self.nombres()]
+        VisorFoto(self._ruta(item.data(Qt.ItemDataRole.UserRole)), self, rutas=rutas).exec()
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls(): e.acceptProposedAction()
+    def dropEvent(self, e):
+        self.anadir_rutas([u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile()])
 
 class DialogoSelectorFoto(QDialog):
     def __init__(self, parent=None):
@@ -934,6 +1083,10 @@ class ServidorSincronizacion(QThread):
                     desc_final += f"\n[FOTO: {filename}]"
                 if filename_d:
                     desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
+                # Colección de fotos extra: las que ya traían los detalles (marca
+                # [FOTOS:], p. ej. de un pendiente que venía de revertir un
+                # trabajo) más las nuevas recibidas como ficheros.
+                desc_final = con_fotos_galeria(desc_final, fotos_galeria(desc_final) + self._procesar_galeria(request))
 
                 # Usamos el bloque with para asegurar el guardado
                 with get_db_connection(self.db_path) as conn:
@@ -1026,7 +1179,7 @@ class ServidorSincronizacion(QThread):
                 # si el pendiente ya no existe pero este mismo trabajo ya está en el
                 # historial, respondemos OK sin duplicar nada. Si devolviéramos 404,
                 # el móvil lo dejaría para siempre como "listo para sincronizar".
-                desc_sin_fotos = titulo + (f"\n{detalles}" if detalles else "")
+                desc_sin_fotos = con_fotos_galeria(titulo + (f"\n{detalles}" if detalles else ""), [])
                 with get_db_connection(self.db_path) as conn:
                     c = conn.cursor()
                     c.execute('SELECT 1 FROM pendientes WHERE id=?', (id_pend,))
@@ -1049,6 +1202,10 @@ class ServidorSincronizacion(QThread):
                     desc_final += f"\n[FOTO: {filename}]"
                 if filename_d:
                     desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
+                # Colección de fotos extra: las que ya traían los detalles (marca
+                # [FOTOS:], p. ej. de un pendiente que venía de revertir un
+                # trabajo) más las nuevas recibidas como ficheros.
+                desc_final = con_fotos_galeria(desc_final, fotos_galeria(desc_final) + self._procesar_galeria(request))
 
                 with get_db_connection(self.db_path) as conn:
                     c = conn.cursor()
@@ -1088,6 +1245,7 @@ class ServidorSincronizacion(QThread):
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename: detalles += f"\n[FOTO: {filename}]"
                 if filename_d: detalles += f"\n[FOTO_DESPUES: {filename_d}]"
+                detalles = con_fotos_galeria(detalles, fotos_galeria(detalles) + self._procesar_galeria(request))
 
                 conn = self._conn()
                 c = conn.cursor()
@@ -1122,6 +1280,8 @@ class ServidorSincronizacion(QThread):
                     detalles += f"\n[FOTO: {filename}]"
                 if filename_d:
                     detalles += f"\n[FOTO_DESPUES: {filename_d}]"
+                # Colección: las que ya tenía (vienen en los detalles) + las nuevas
+                detalles = con_fotos_galeria(detalles, fotos_galeria(detalles) + self._procesar_galeria(request))
 
                 conn = self._conn()
                 c = conn.cursor()
@@ -1255,6 +1415,7 @@ class ServidorSincronizacion(QThread):
                         "tags": r[3],
                         "foto": foto,
                         "foto_d": foto_d,
+                        "fotos": fotos_galeria(desc),
                         "raw_desc": desc, # Necesario para editar
                         "usuario": r[4] if len(r) > 4 else "",
                         "maquina_id": maquina_id,
@@ -1503,7 +1664,7 @@ class ServidorSincronizacion(QThread):
                     foto_d = None
                     m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
                     if m_d: foto_d = m_d.group(1).split("]")[0].strip()
-                    resultados.append({"id": id_t, "foto": foto, "foto_d": foto_d})
+                    resultados.append({"id": id_t, "foto": foto, "foto_d": foto_d, "fotos": fotos_galeria(desc)})
                 conn.close()
                 return jsonify(resultados)
             except Exception as e: return jsonify({"error": str(e)}), 500
@@ -1542,6 +1703,17 @@ class ServidorSincronizacion(QThread):
                 if foto_final_d:
                     desc_final += f"\n[FOTO_DESPUES: {foto_final_d}]"
 
+                # Colección: el móvil manda qué fotos ya existentes conserva (en
+                # su orden) y las nuevas como ficheros. Una app antigua que no
+                # mande la lista conserva todas las que ya había.
+                galeria_actual = fotos_galeria(desc_actual)
+                if 'fotos_extra_mantener' in request.form:
+                    pedidas = [n.strip() for n in request.form.get('fotos_extra_mantener', '').split(',') if n.strip()]
+                    mantener = [n for n in pedidas if n in galeria_actual]
+                else:
+                    mantener = galeria_actual
+                desc_final = con_fotos_galeria(desc_final, mantener + self._procesar_galeria(request))
+
                 if 'maquina_id' in request.form:
                     maquina_id_raw = request.form.get('maquina_id')
                     try:
@@ -1566,8 +1738,8 @@ class ServidorSincronizacion(QThread):
             # existente SIN tocar el resto de la descripción ni la otra foto.
             try:
                 id_t = request.form.get('id')
-                tipo = request.form.get('tipo')  # 'antes' o 'despues'
-                key = 'foto' if tipo == 'antes' else 'foto_despues'
+                tipo = request.form.get('tipo')  # 'antes', 'despues' o 'galeria'
+                key = {'antes': 'foto', 'galeria': 'foto_galeria'}.get(tipo, 'foto_despues')
 
                 filename, ruta = self._procesar_foto(request, key)
                 if not filename:
@@ -1582,7 +1754,14 @@ class ServidorSincronizacion(QThread):
                     return jsonify({"status": "error", "message": "Registro no encontrado"}), 404
                 desc = row[0]
 
-                if tipo == 'antes':
+                if tipo == 'galeria':
+                    # 'nombre' es el fichero que falta en el PC: se sustituye
+                    # en la colección por el que se acaba de recibir.
+                    original = (request.form.get('nombre') or '').strip()
+                    galeria = fotos_galeria(desc)
+                    galeria = [filename if n == original else n for n in galeria] if original in galeria else galeria + [filename]
+                    desc = con_fotos_galeria(desc, galeria)
+                elif tipo == 'antes':
                     if re.search(r"\[FOTO:\s*.*?\]", desc):
                         desc = re.sub(r"\[FOTO:\s*.*?\]", f"[FOTO: {filename}]", desc, count=1)
                     else:
@@ -1874,6 +2053,20 @@ class ServidorSincronizacion(QThread):
                 file.save(ruta)
                 return filename, ruta
         return "", ""
+
+    def _procesar_galeria(self, req, key='fotos_extra'):
+        """Guarda todas las fotos enviadas en el campo [key] (puede repetirse)
+        y devuelve sus nombres de fichero en el orden recibido."""
+        nombres = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        for i, file in enumerate(req.files.getlist(key)):
+            if not file or file.filename == '':
+                continue
+            safe_name = re.sub(r'[^a-zA-Z0-9.]', '_', file.filename)
+            filename = f"app_{timestamp}_g{i}_{safe_name}"
+            file.save(os.path.join(self.carpeta_destino, filename))
+            nombres.append(filename)
+        return nombres
 
     def _descontar_materiales_trabajo(self, req, usuario, referencia):
         """Lee el campo 'materiales' (JSON: [{"material_id":.., "cantidad":..}, ...])
@@ -2960,6 +3153,13 @@ class _ItemArbolOrdenable(QTreeWidgetItem):
         return super().__lt__(otro)
 
 
+def _clave_orden_ubicacion(ubicacion, nombre=""):
+    """Clave de texto para ordenar ubicaciones de forma natural ("Estantería 2"
+    antes que "Estantería 10"), con el nombre del material como desempate y
+    los materiales sin ubicación al final."""
+    natural = lambda t: re.sub(r"\d+", lambda m: m.group().zfill(8), (t or "").lower())
+    return ("\uffff" if not ubicacion else natural(ubicacion)) + "\x00" + natural(nombre)
+
 class _ItemTablaOrdenable(QTableWidgetItem):
     """QTableWidgetItem que, si tiene guardada una clave de orden en
     UserRole+1 (un número), la usa para comparar en vez del texto mostrado.
@@ -3558,6 +3758,8 @@ class EditDialog(QDialog):
 
         l.addLayout(h_fotos)
         self.actualizar_vista_foto()
+        self.galeria = GaleriaFotosWidget(self.carpeta_fotos, self, self.fotos_galeria_iniciales)
+        l.addWidget(self.galeria)
         l.addWidget(QLabel(t("lbl_etiquetas")))
         h_tags = QHBoxLayout()
         _crear_checks_etiquetas(self, h_tags)
@@ -3594,6 +3796,8 @@ class EditDialog(QDialog):
         l.addWidget(b); self.setLayout(l)
 
     def separar_datos(self, texto):
+        self.fotos_galeria_iniciales = fotos_galeria(texto)
+        texto = con_fotos_galeria(texto, [])
         ref = ""; m_ref = re.search(r"\[REF:\s*(\d+)\]", texto)
         if m_ref: ref = m_ref.group(0); texto = re.sub(r"\[REF:.*?\]", "", texto)
         foto = None; m_foto = re.search(r"\[FOTO:\s*(.*?)\]", texto)
@@ -3650,6 +3854,7 @@ class EditDialog(QDialog):
         if self.ref_oculta: d += f" {self.ref_oculta}"
         if self.foto_filename: d += f"\n[FOTO: {self.foto_filename}]"
         if hasattr(self, 'foto_despues_filename') and self.foto_despues_filename: d += f"\n[FOTO_DESPUES: {self.foto_despues_filename}]"
+        d = con_fotos_galeria(d, self.galeria.nombres())
         final_tags = _tags_desde_checks(self)
         manual = self.tag.text().strip()
         if manual: final_tags.append(manual)
@@ -3660,9 +3865,10 @@ class EditDialog(QDialog):
         return (self.de.date().toString("yyyy-MM-dd"), d, ", ".join(final_tags), usuario_id, usuario_nombre, maquina_id, horas_paro)
 
 class DialogoEditarPendiente(QDialog):
-    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None):
+    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None, fotos_coleccion=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_tarea_pendiente"))
+        self.fotos_coleccion_iniciales = fotos_coleccion or []
         self.resize(550, 700)
         self.ruta_foto_seleccionada = ruta_foto
         l = QVBoxLayout()
@@ -3709,6 +3915,8 @@ class DialogoEditarPendiente(QDialog):
         btn_borrar = QPushButton(t("btn_borrar_foto")); btn_borrar.setStyleSheet("background-color: #c0392b; color: white;"); btn_borrar.clicked.connect(self.borrar_foto); h_btns.addWidget(btn_borrar)
         l.addLayout(h_btns)
         self.actualizar_vista_foto()
+        self.galeria = GaleriaFotosWidget(parent.carpeta_fotos if parent is not None else "", self, self.fotos_coleccion_iniciales)
+        l.addWidget(self.galeria)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def actualizar_vista_foto(self):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
@@ -3733,7 +3941,7 @@ class DialogoEditarPendiente(QDialog):
         nombre = self.combo_asignar.currentText() if uid is not None else None
         especialidad_id = self.combo_especialidad.currentData()
         return (self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada,
-                self.combo_prioridad.currentData(), uid, nombre, especialidad_id)
+                self.combo_prioridad.currentData(), uid, nombre, especialidad_id, self.galeria.nombres())
 
 class CompleteDialog(QDialog):
     def __init__(self, parent=None, titulo="", detalles=""):
@@ -3742,7 +3950,7 @@ class CompleteDialog(QDialog):
         self.foto_filename = None
         self.setWindowTitle(f"Completar: {titulo}"); self.resize(500, 550); l = QVBoxLayout()
         oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
-        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{detalles}</i>"); lbl_info.setWordWrap(True)
+        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{quitar_marcas_foto(detalles)}</i>"); lbl_info.setWordWrap(True)
         lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;" if oscuro
                                 else "background-color: #eee; padding: 10px; border-radius: 5px; color: #333;")
         l.addWidget(lbl_info)
@@ -3754,6 +3962,8 @@ class CompleteDialog(QDialog):
         _crear_checks_etiquetas(self, h_tags, incluir_averia=False)
         l.addLayout(h_tags)
         l.addWidget(QLabel(t("lbl_otros_tags"))); self.tag = QLineEdit(); self.tag.setPlaceholderText(t("ph_ejemplo_tags")); l.addWidget(self.tag)
+        self.galeria = GaleriaFotosWidget(self.carpeta_fotos, self, fotos_galeria(detalles))
+        l.addWidget(self.galeria)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def click_foto(self, e):
         if self.foto_filename:
@@ -3774,7 +3984,7 @@ class CompleteDialog(QDialog):
     def get_data(self):
         lista_tags = _tags_desde_checks(self, incluir_averia=False)
         manual = self.tag.text().strip(); (lista_tags.append(manual) if manual else None)
-        return (self.de.date().toString("yyyy-MM-dd"), ", ".join(lista_tags), self.foto_filename)
+        return (self.de.date().toString("yyyy-MM-dd"), ", ".join(lista_tags), self.foto_filename, self.galeria.nombres())
 
 class AvisoEditDialog(QDialog):
     def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None):
@@ -3902,6 +4112,45 @@ class DialogoFiltroTecnico(QDialog):
     def get_filtro(self):
         usuario = self.combo_usuario.currentData()
         return None if usuario == "TODOS" else usuario
+
+class DialogoTiempoGuardado(QDialog):
+    """Pide cuánto tiempo hacia atrás (desde hoy) se conservan los trabajos
+    del historial: un número y una unidad (años, meses o días)."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tt("title_tiempo_guardado", "Tiempo máximo de guardado de trabajos"))
+        l = QVBoxLayout()
+        lbl = QLabel(tt("lbl_tiempo_guardado", "Conservar los trabajos de los últimos:"))
+        lbl.setWordWrap(True); l.addWidget(lbl)
+        fila = QHBoxLayout()
+        self.spin = QSpinBox(); self.spin.setRange(1, 999); self.spin.setValue(5)
+        self.combo = QComboBox()
+        self.combo.addItem(tt("unidad_anos", "años"), "anos")
+        self.combo.addItem(tt("unidad_meses", "meses"), "meses")
+        self.combo.addItem(tt("unidad_dias", "días"), "dias")
+        fila.addWidget(self.spin); fila.addWidget(self.combo, 1)
+        l.addLayout(fila)
+        self.lbl_corte = QLabel(); self.lbl_corte.setWordWrap(True); self.lbl_corte.setStyleSheet("color: #c0392b;")
+        l.addWidget(self.lbl_corte)
+        self.spin.valueChanged.connect(self._actualizar); self.combo.currentIndexChanged.connect(self._actualizar)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
+        b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+        self._actualizar()
+
+    def fecha_corte(self):
+        """Primer día que se conserva: se borra todo lo anterior a esta fecha."""
+        n, hoy = self.spin.value(), QDate.currentDate()
+        unidad = self.combo.currentData()
+        if unidad == "anos": return hoy.addYears(-n)
+        if unidad == "meses": return hoy.addMonths(-n)
+        return hoy.addDays(-n)
+
+    def _actualizar(self):
+        corte = idiomas.formato_fecha_localizada(self.fecha_corte().toString("yyyy-MM-dd"))
+        self.lbl_corte.setText(tt("lbl_se_borrara_antes_de", "Se borrarán los trabajos anteriores al {fecha}.").format(fecha=corte))
 
 class DialogoExportarStock(QDialog):
     """Elige formato (PDF/CSV/Excel) y alcance (todo, una zona o una estantería)
@@ -4213,6 +4462,7 @@ class MaintenanceApp(QMainWindow):
             # --- LIMPIEZA VISUAL COMPLETA ---
             texto_limpio = re.sub(r"\[FOTO:.*?\]", "", tarea[1])
             texto_limpio = re.sub(r"\[FOTO_DESPUES:.*?\]", "", texto_limpio)
+            texto_limpio = _RE_GALERIA.sub("", texto_limpio)
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
             # --------------------------------
 
@@ -4447,6 +4697,8 @@ class MaintenanceApp(QMainWindow):
             act_prov = QAction(t("menu_pais_region"), self)
             act_prov.triggered.connect(self.cambiar_pais_region)
             tm.addAction(act_prov)
+            tm.addAction(QAction(tt("menu_tiempo_guardado", "🗑️ Tiempo máximo de guardado de trabajos…"), self,
+                                 triggered=self.borrar_trabajos_antiguos))
             # ---------------------------------
 
         # --- SUBMENÚ DE IDIOMA ---
@@ -4754,6 +5006,8 @@ class MaintenanceApp(QMainWindow):
         v_foto.addWidget(self.btn_del_foto_d)
 
         h_top.addLayout(v_foto, 60); l.addLayout(h_top)
+        self.galeria_entry = GaleriaFotosWidget(self.carpeta_fotos, self)
+        l.addWidget(self.galeria_entry)
         self.ire = QLineEdit(); self.ire.setPlaceholderText(t("ph_resumen")); l.addWidget(QLabel(t("lbl_resumen_tarea"))); l.addWidget(self.ire)
         h_qr = QHBoxLayout(); h_qr.addWidget(QLabel(t("lbl_detalles"))); h_qr.addStretch()
         b_qr = QPushButton(t("btn_sincronizar_app")); b_qr.setStyleSheet("background-color: #d35400; color: white; padding: 4px 8px;"); b_qr.clicked.connect(self.mostrar_dialogo_qr); h_qr.addWidget(b_qr); l.addLayout(h_qr)
@@ -4823,6 +5077,7 @@ class MaintenanceApp(QMainWindow):
         if de: full_desc += f"\n{de}"
         if self.entry_foto_filename: full_desc += f"\n[FOTO: {self.entry_foto_filename}]"
         if self.entry_foto_despues_filename: full_desc += f"\n[FOTO_DESPUES: {self.entry_foto_despues_filename}]"
+        full_desc = con_fotos_galeria(full_desc, self.galeria_entry.nombres())
         lista_tags = _tags_desde_checks(self)
         manuales = self.itag.text().strip()
         if manuales: lista_tags.append(manuales)
@@ -4834,7 +5089,7 @@ class MaintenanceApp(QMainWindow):
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)
             self.chk_mecanico.setChecked(False); self.chk_prev.setChecked(False); self.chk_averia.setChecked(False)
             self.combo_maquina_entry.setCurrentIndex(0)
-            self.borrar_foto_entry(); self.borrar_foto_entry_d(); self.refresh_all(); self.setup_autocompletado()
+            self.borrar_foto_entry(); self.borrar_foto_entry_d(); self.galeria_entry.set_nombres([]); self.refresh_all(); self.setup_autocompletado()
     def setup_autocompletado(self):
         d = self.db.obtener_todas_las_descripciones()
         c = QCompleter(d, self); c.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive); c.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -5416,6 +5671,8 @@ class MaintenanceApp(QMainWindow):
         self._llenar_combo_prioridad(self.combo_prioridad_todo)
         fila_prioridad_todo.addWidget(self.combo_prioridad_todo, 1)
         f.addLayout(fila_prioridad_todo)
+        self.galeria_todo = GaleriaFotosWidget(self.carpeta_fotos, self)
+        f.addWidget(self.galeria_todo)
         f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
         ga = QGroupBox(t("lbl_acciones")); fa = QVBoxLayout()
         b_ok = QPushButton(t("btn_completar"), clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
@@ -5790,6 +6047,9 @@ class MaintenanceApp(QMainWindow):
             tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")])
         self.tabla_stock.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_stock.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        # Por defecto, ordenada por ubicación (como se recorre el almacén); si
+        # el usuario pulsa otra cabecera, se respeta su elección al recargar.
+        self.tabla_stock.horizontalHeader().setSortIndicator(2, Qt.SortOrder.AscendingOrder)
         self.tabla_stock.setSortingEnabled(True)
         self.tabla_stock.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla_stock.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -5885,7 +6145,7 @@ class MaintenanceApp(QMainWindow):
             ubicacion = self._texto_ubicacion(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
-            claves = {3: m["stock_actual"], 4: m["stock_minimo"]}
+            claves = {2: _clave_orden_ubicacion(ubicacion, m["nombre"]), 3: m["stock_actual"], 4: m["stock_minimo"]}
             color = self._color_stock(m["stock_actual"], m["stock_minimo"])
             for col, val in enumerate(valores):
                 item = _ItemTablaOrdenable(val)
@@ -5973,7 +6233,7 @@ class MaintenanceApp(QMainWindow):
             ubicacion = self._texto_ubicacion(m.get("seccion_id"))
             valores = [m.get("codigo") or "", m["nombre"], ubicacion,
                        f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
-            claves = {3: m["stock_actual"], 4: m["stock_minimo"]}
+            claves = {2: _clave_orden_ubicacion(ubicacion, m["nombre"]), 3: m["stock_actual"], 4: m["stock_minimo"]}
             color = self._color_stock(m["stock_actual"], m["stock_minimo"])
             for col, val in enumerate(valores):
                 item = _ItemTablaOrdenable(val)
@@ -6442,12 +6702,13 @@ class MaintenanceApp(QMainWindow):
 
     def add_todo(self):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
+        d = con_fotos_galeria(d, self.galeria_todo.nombres())
         uid = self.combo_asignar.currentData()
         nombre = self.combo_asignar.currentText() if uid is not None else None
         prioridad = self.combo_prioridad_todo.currentData()
         especialidad_id = self.combo_especialidad_todo.currentData()
         if tit and self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id):
-            self.in_todo_t.clear(); self.in_todo_d.clear(); self.combo_prioridad_todo.setCurrentIndex(1); self.refresh_todos()
+            self.in_todo_t.clear(); self.in_todo_d.clear(); self.galeria_todo.set_nombres([]); self.combo_prioridad_todo.setCurrentIndex(1); self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
                 self.servidor.pendiente_actualizado.emit()
 
@@ -6688,7 +6949,7 @@ class MaintenanceApp(QMainWindow):
         dialogo = CompleteDialog(self, titulo, detalles_originales)
 
         if dialogo.exec():
-            fecha, tags, foto_nueva = dialogo.get_data()
+            fecha, tags, foto_nueva, fotos_coleccion = dialogo.get_data()
 
             # --- MEJORA: LIMPIEZA INTELIGENTE ---
             detalles_limpios = detalles_originales
@@ -6700,6 +6961,9 @@ class MaintenanceApp(QMainWindow):
             desc_final = titulo
             if detalles_limpios: desc_final += f"\n{detalles_limpios}"
             if foto_nueva: desc_final += f"\n[FOTO: {os.path.basename(foto_nueva)}]"
+            # La colección del diálogo ya incluye la que traía el pendiente (si
+            # venía de revertir un trabajo): sustituye a la marca anterior.
+            desc_final = con_fotos_galeria(desc_final, fotos_coleccion)
 
             # Guardar en Historial y borrar de Pendientes
             if self.db.agregar_tarea(fecha, desc_final, tags):
@@ -7514,12 +7778,14 @@ class MaintenanceApp(QMainWindow):
             if m: fotos_en_uso.add(m.group(1).strip())
             m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
             if m_d: fotos_en_uso.add(m_d.group(1).strip())
+            fotos_en_uso.update(fotos_galeria(row[0]))
         c.execute("SELECT detalles FROM pendientes")
         for row in c.fetchall():
             m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
             if m: fotos_en_uso.add(m.group(1).strip())
             m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
             if m_d: fotos_en_uso.add(m_d.group(1).strip())
+            fotos_en_uso.update(fotos_galeria(row[0]))
         c.execute("SELECT foto FROM maquinas WHERE foto IS NOT NULL")
         for row in c.fetchall():
             if row[0]: fotos_en_uso.add(row[0].strip())
@@ -7528,6 +7794,80 @@ class MaintenanceApp(QMainWindow):
             foto = material.get('foto')
             if foto: fotos_en_uso.add(foto.strip())
         return fotos_en_uso
+
+    def borrar_trabajos_antiguos(self):
+        """Herramientas > Tiempo máximo de guardado: borra del historial los
+        trabajos anteriores a la fecha elegida, con sus fotos, tras confirmar."""
+        if not usuarios.es_admin(): return
+        dlg = DialogoTiempoGuardado(self)
+        if not dlg.exec(): return
+        corte = dlg.fecha_corte().toString("yyyy-MM-dd")
+
+        conn = self.db.conectar(); c = conn.cursor()
+        c.execute("SELECT id, fecha, descripcion FROM tareas WHERE fecha < ? ORDER BY fecha", (corte,))
+        filas = c.fetchall(); conn.close()
+        if not filas:
+            QMessageBox.information(self, tt("title_tiempo_guardado", "Tiempo máximo de guardado de trabajos"),
+                tt("msg_sin_trabajos_antiguos", "No hay trabajos anteriores al {fecha}. No se borrará nada.").format(
+                    fecha=idiomas.formato_fecha_localizada(corte)))
+            return
+
+        desde = idiomas.formato_fecha_localizada(filas[0][1])
+        hasta = idiomas.formato_fecha_localizada(filas[-1][1])
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle(tt("title_confirmar_borrado_antiguos", "Confirmar borrado de trabajos antiguos"))
+        msg.setText(tt("msg_confirmar_borrado_antiguos",
+            "Se van a borrar {n} trabajos del historial, del {desde} al {hasta}, junto con sus fotos.\n\n"
+            "Antes se guardará una copia de seguridad de la base de datos.\n\n¿Continuar?").format(
+                n=len(filas), desde=desde, hasta=hasta))
+        btn_si = msg.addButton(tt("btn_borrar_trabajos", "Borrar trabajos"), QMessageBox.ButtonRole.DestructiveRole)
+        msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
+        msg.exec()
+        if msg.clickedButton() != btn_si: return
+
+        try:
+            # Copia previa de las bases de datos. No empieza por "auto_backup_db_"
+            # para que la rotación del backup automático (se quedan 3) no la borre.
+            os.makedirs(self.carpeta_backups_auto, exist_ok=True)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            ruta_copia = os.path.join(self.carpeta_backups_auto, f"antes_borrado_trabajos_{ts}.zip")
+            with zipfile.ZipFile(ruta_copia, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for ruta in (self.db.db_name, getattr(self.db, "db_almacen_name", None)):
+                    if ruta and os.path.exists(ruta):
+                        zipf.write(ruta, arcname=os.path.basename(ruta))
+
+            fotos_candidatas = set()
+            for _, _, desc in filas:
+                for m in re.findall(r"\[FOTO(?:_DESPUES)?:\s*(.*?)\]", desc or ""):
+                    fotos_candidatas.add(m.split("]")[0].strip())
+                fotos_candidatas.update(fotos_galeria(desc))
+
+            conn = self.db.conectar(); c = conn.cursor()
+            c.execute("DELETE FROM tareas WHERE fecha < ?", (corte,))
+            borrados = c.rowcount
+            conn.commit(); conn.close()
+            usuarios.registrar_auditoria(usuarios.id_actual(), None, "borrar",
+                f"Borrado por tiempo máximo de guardado: {borrados} registros del {filas[0][1]} al {filas[-1][1]}")
+
+            # Solo se borran del disco las fotos que ya no usa ningún otro registro
+            en_uso = self._fotos_en_uso()
+            fotos_borradas = 0
+            for nombre in fotos_candidatas - en_uso:
+                ruta = os.path.join(self.carpeta_fotos, nombre)
+                if nombre and os.path.isfile(ruta):
+                    try: os.remove(ruta); fotos_borradas += 1
+                    except OSError: pass
+
+            self.refresh_all()
+            if hasattr(self, 'servidor') and self.servidor:
+                self.servidor.pendiente_actualizado.emit()
+            QMessageBox.information(self, tt("title_tiempo_guardado", "Tiempo máximo de guardado de trabajos"),
+                tt("msg_trabajos_antiguos_borrados",
+                   "Se han borrado {n} trabajos y {f} fotos.\n\nCopia de seguridad previa:\n{ruta}").format(
+                    n=borrados, f=fotos_borradas, ruta=ruta_copia))
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
 
     def limpiar_fotos_huerfanas(self, silencioso=False, limpiar_backups=False):
         try:
@@ -7623,10 +7963,11 @@ class MaintenanceApp(QMainWindow):
             texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
 
         # Abrimos el diálogo con el texto LIMPIO
-        dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual, asignado_actual_id, especialidad_actual_id)
+        dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual, asignado_actual_id, especialidad_actual_id,
+                                     fotos_coleccion=fotos_galeria(detalles_raw))
 
         if dlg.exec():
-            nuevo_t, nuevo_d, nueva_foto, nueva_prioridad, nuevo_asignado_id, nuevo_asignado_nombre, nueva_especialidad_id = dlg.get_data()
+            nuevo_t, nuevo_d, nueva_foto, nueva_prioridad, nuevo_asignado_id, nuevo_asignado_nombre, nueva_especialidad_id, fotos_coleccion = dlg.get_data()
 
             if nuevo_t:
                 desc_final = nuevo_d
@@ -7647,6 +7988,11 @@ class MaintenanceApp(QMainWindow):
                         except: pass
 
                     desc_final += f"\n[FOTO: {nombre_final}]"
+                # La foto de después (p. ej. de un trabajo revertido) no se edita
+                # aquí, pero no se debe perder.
+                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", detalles_raw or "")
+                if m_d: desc_final += f"\n[FOTO_DESPUES: {m_d.group(1).strip()}]"
+                desc_final = con_fotos_galeria(desc_final, fotos_coleccion)
 
                 # La asignación/especialidad de un trabajo ya existente solo la
                 # puede tocar un admin; un técnico solo las fija al crearlo.

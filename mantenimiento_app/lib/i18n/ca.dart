@@ -175,4 +175,7 @@ const Map<String, String> traduccionesCa = {
     "msg_revertir_aviso_maquina": "\n\nLes tasques pendents no admeten màquina vinculada, per això es perdrà aquesta dada.",
     "msg_sincronizando_todo": "Sincronitzant tot...",
     "tooltip_reenviar_fotos": "Reenviar fotos locals al PC",
+    "lbl_coleccion_fotos": "Col·lecció de fotos",
+    "btn_foto_coleccion_camara": "Fer foto",
+    "btn_fotos_coleccion_galeria": "Triar de la galeria",
 };

@@ -519,5 +519,22 @@
   "txt_resumen_stock": "{n} materials · {b} below minimum",
   "txt_fecha_informe": "Date: {fecha}",
   "msg_stock_exportado": "Stock exported to:\n{ruta}",
-  "msg_stock_sin_materiales": "There are no materials to export with that filter."
+  "msg_stock_sin_materiales": "There are no materials to export with that filter.",
+  "btn_anadir_fotos": "➕ Add photos",
+  "btn_quitar_foto_coleccion": "🗑️ Remove",
+  "lbl_coleccion_fotos": "Photo collection",
+  "tt_coleccion_fotos": "Double-click to view full size. You can drag photos here.",
+  "filtro_imagenes": "Images",
+  "menu_tiempo_guardado": "🗑️ Maximum job retention time…",
+  "title_tiempo_guardado": "Maximum job retention time",
+  "lbl_tiempo_guardado": "Keep jobs from the last:",
+  "unidad_anos": "years",
+  "unidad_meses": "months",
+  "unidad_dias": "days",
+  "lbl_se_borrara_antes_de": "Jobs before {fecha} will be deleted.",
+  "msg_sin_trabajos_antiguos": "There are no jobs before {fecha}. Nothing will be deleted.",
+  "title_confirmar_borrado_antiguos": "Confirm deletion of old jobs",
+  "msg_confirmar_borrado_antiguos": "{n} jobs will be deleted from the history, from {desde} to {hasta}, together with their photos.\n\nA backup of the database will be saved first.\n\nContinue?",
+  "btn_borrar_trabajos": "Delete jobs",
+  "msg_trabajos_antiguos_borrados": "{n} jobs and {f} photos have been deleted.\n\nBackup made beforehand:\n{ruta}"
 }

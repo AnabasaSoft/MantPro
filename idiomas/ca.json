@@ -519,5 +519,22 @@
   "txt_resumen_stock": "{n} materials · {b} per sota del mínim",
   "txt_fecha_informe": "Data: {fecha}",
   "msg_stock_exportado": "Estoc exportat a:\n{ruta}",
-  "msg_stock_sin_materiales": "No hi ha materials per exportar amb aquest filtre."
+  "msg_stock_sin_materiales": "No hi ha materials per exportar amb aquest filtre.",
+  "btn_anadir_fotos": "➕ Afegir fotos",
+  "btn_quitar_foto_coleccion": "🗑️ Treure",
+  "lbl_coleccion_fotos": "Col·lecció de fotos",
+  "tt_coleccion_fotos": "Doble clic per veure-la a mida completa. Pots arrossegar fotos aquí.",
+  "filtro_imagenes": "Imatges",
+  "menu_tiempo_guardado": "🗑️ Temps màxim de conservació de treballs…",
+  "title_tiempo_guardado": "Temps màxim de conservació de treballs",
+  "lbl_tiempo_guardado": "Conservar els treballs dels últims:",
+  "unidad_anos": "anys",
+  "unidad_meses": "mesos",
+  "unidad_dias": "dies",
+  "lbl_se_borrara_antes_de": "S'esborraran els treballs anteriors al {fecha}.",
+  "msg_sin_trabajos_antiguos": "No hi ha treballs anteriors al {fecha}. No s'esborrarà res.",
+  "title_confirmar_borrado_antiguos": "Confirmar l'esborrat de treballs antics",
+  "msg_confirmar_borrado_antiguos": "S'esborraran {n} treballs de l'historial, del {desde} al {hasta}, juntament amb les seves fotos.\n\nAbans es desarà una còpia de seguretat de la base de dades.\n\nContinuar?",
+  "btn_borrar_trabajos": "Esborrar treballs",
+  "msg_trabajos_antiguos_borrados": "S'han esborrat {n} treballs i {f} fotos.\n\nCòpia de seguretat prèvia:\n{ruta}"
 }

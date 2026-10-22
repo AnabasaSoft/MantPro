@@ -129,7 +129,7 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries
 - **🎨 Visual Themes**: choose between dark mode (default), light mode or a retro style inspired by Windows 98, from the "Appearance" menu
 - **📅 Interactive Calendar**: View and manage maintenance tasks with colour codes (public holidays, vacations, days with tasks)
-- **📝 Full History**: A record of every job carried out, with before/after photos
+- **📝 Full History**: record of every job carried out, with before/after photos and an extra **photo collection** per job; several records can be deleted at once
 - **📄 PDF Reports**: Automatic generation of professional reports with a customisable logo
 - **📸 Image Management**: Storage and display of job photos
 - **📱 Mobile Sync**: Built-in server (starts automatically) to sync with the mobile app via QR code
@@ -138,9 +138,12 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **📦 Backup/Restore**: full manual backup (database + photos) choosing where to save it, incremental automatic backup when closing the app (see [Backups](#-backups)), and restore with a progress bar, with a `File > Restore` submenu to pick any manual backup or go straight to the automatic ones
 - **🏷️ Tags**: Categorisation with labels (Urgent, Electrical, Mechanical, Preventive)
 - **🔨 Pending Tasks**: Management of pending jobs (create, complete, edit, delete) and **assignment to a specific technician**
+- **🚦 Pending Job Priority**: each pending job has a priority (Low, Medium, High or Critical) to decide which one to tackle first, shown with its colour in the list; photos can also be added to its collection
 - **↩️ Revert to Pending**: if a job was completed by mistake, it can be sent back to Pending with one click from the history (with a warning if it had a linked machine, since that data would be lost), and it is recorded in the audit log
-- **🔁 Reminders**: Maintenance alerts that repeat automatically
+- **🔁 Reminders**: Maintenance alerts that repeat automatically. If the date passes they are not skipped: they stay **Pending** (orange) during the margin and then **Overdue** (red) until done, and the next date is counted from the day the job was actually done
 - **📦 Warehouse Stock Control**: Configurable structure of shelving units, shelves and sections, material records with photo, stock in/out with history and low-stock alerts
+- **📄 Stock Export**: "📄 Export" button in the stock tab to export the whole warehouse, a zone or a single shelving unit to PDF, CSV or Excel, sorted by location
+- **🗑️ Maximum Retention Time**: `Tools` lets you delete from the history the jobs older than a number of years, months or days, together with their photos and a backup made beforehand (administrators only)
 - **🏭 Machinery Control**: Tree of machines and sub-machines with an attached photo, job counter per year and month, and a direct link from every job logged or edited (see [Machinery](#-machinery))
 - **📊 Export**: To PDF, CSV and Excel, with an optional technician filter and showing each job's machine/sub-machine, if it has one
 
@@ -149,6 +152,7 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **🔐 User Sign-in**: Each technician signs in once and the session is kept on the device
 - **📝 Quick Logging**: Capture jobs in the field, automatically signed with the user's name
 - **📷 Built-in Camera**: Take photos and annotate them
+- **🖼️ Photo Collection**: besides the before and after photos, add as many photos as you want to a job or pending job (camera or gallery); tapping any photo opens it full screen, swiping from one to the next and pinching to zoom
 - **✏️ Image Editor**: Draw on photos to mark areas of interest
 - **🔄 Automatic Sync**: Data is sent to the PC automatically after pairing via QR code
 - **💾 Local Storage**: Keeps records offline until they are synced
@@ -175,7 +179,7 @@ from your phone without needing the jobs app.
 - **🎨 Visual Stock Indicator**: quantity in red below the minimum, in green above it and in the default colour if it matches exactly
 - **⚠️ Low Stock**: a dedicated tab for materials on alert
 - **🔄 Auto-refresh**: the screen refreshes itself when it detects changes, whether they were made on the phone itself or on the PC
-- **🔌 Offline Mode**: browse the latest synced information when there is no connection to the PC
+- **🔌 Offline Mode**: with no connection to the PC the app does not keep waiting: it shows the saved data and lets you create, edit and register stock in/out instantly, sent to the PC automatically as soon as it is reachable again
 - **🔔 Daily Stock Check Reminder**: automatic notification at 8:00 AM (local time) inviting you to check the real quantity of 5 warehouse materials, picked at random and different each day; tapping it opens a screen to correct each quantity without searching for them by hand. If no materials have been added, no notification is shown
 
 ---
@@ -547,6 +551,16 @@ are out of stock or below the set minimum. The tab title itself shows how
 many materials are on alert, and from there you can jump straight to the
 material in "Warehouse stock" or log a stock-in without switching tabs.
 
+### Exporting stock
+
+In the PC's **"📦 Warehouse stock"** tab, the **"📄 Export"** button opens a
+window to choose the **format** (PDF, CSV or Excel) and **what to export**:
+the whole warehouse, a zone or a single shelving unit. The list is sorted by
+location, so you can walk through the warehouse with it in hand; the PDF and
+Excel files also include the date, the number of materials and how many are
+below minimum (in red). The stock table itself is also sorted by location by
+default (Shelving unit 1, 2… 10).
+
 ---
 
 ## 🔄 PC-Mobile Sync
@@ -660,6 +674,23 @@ application closes and before a manual backup, `fotos_recibidas` is also
 cleaned silently, but **only** that option in the Tools menu also goes
 through the `fotos_backup_<year>.zip` files and rewrites them without any
 orphan photos they may contain, so they are not carried along forever.
+
+### Maximum job retention time
+
+`Tools > Maximum job retention time…` (administrators only) asks for a number
+and a unit (years, months or days) and deletes from the history every job
+older than that date, counting back from today. Before deleting it shows how
+many jobs will be removed and between which dates, and asks for confirmation.
+
+- A copy of both databases is saved first in
+  `backups_auto/antes_borrado_trabajos_<date>.zip`, which the automatic backup
+  rotation does not delete.
+- Their photos (before, after and collection) are deleted too, except those
+  still used by another record. Photos are not in that copy, but they remain
+  in the automatic backup's `fotos_backup_<year>.zip` files until
+  `Tools > 🧹 Clean Orphan Photos` is used.
+- Phones remove those jobs from their history on the next sync.
+- It is a one-off deletion: it does not repeat on its own.
 
 ---
 
@@ -832,6 +863,16 @@ Contributions are welcome! If you want to improve MantPro:
 - **Automatic per-device session replacement**: if a user signs in again
   from a phone on which they already had an open session, the previous one is
   deleted on its own instead of piling up in the session list.
+- **Photo collection per job**: besides before and after, any number of extra
+  photos on jobs and pending jobs, on PC and phone, with a full-size viewer
+  that moves from one to the next.
+- **Recurring alerts that are not skipped**: a late alert stays pending
+  (orange) or overdue (red) until done, and the next cycle is counted from
+  the date it was actually done.
+- **Warehouse stock export** to PDF, CSV or Excel, complete, by zone or by
+  shelving unit.
+- **Maximum job retention time**: deletion of old jobs with confirmation and
+  a backup made beforehand.
 
 ## 🧭 Roadmap
 
