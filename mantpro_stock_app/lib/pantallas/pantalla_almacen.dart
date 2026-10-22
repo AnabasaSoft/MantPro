@@ -29,6 +29,27 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
   Map<int, List<Articulo>> _materialesPorSeccion = {};
   Map<int, List<Articulo>> _materialesPorBaldaPendiente = {};
 
+  /// Estantería (pestaña) que se está viendo. Se recuerda por id para volver a
+  /// ella tras guardar un artículo o tras una recarga, en vez de saltar
+  /// siempre a la primera pestaña.
+  int? _estanteriaActualId;
+  TabController? _tabEscuchado;
+
+  void _escucharPestanas(BuildContext ctx, List<Estanteria> estanterias) {
+    final controller = DefaultTabController.of(ctx);
+    if (identical(controller, _tabEscuchado)) return;
+    _tabEscuchado = controller;
+    controller.addListener(() {
+      final i = controller.index;
+      if (i >= 0 && i < estanterias.length) _estanteriaActualId = estanterias[i].id;
+    });
+  }
+
+  int _indiceInicial(List<Estanteria> estanterias) {
+    final i = estanterias.indexWhere((e) => e.id == _estanteriaActualId);
+    return i >= 0 ? i : 0;
+  }
+
   /// Estanterías de la zona seleccionada. Si no hay ninguna zona (instalación
   /// antigua sin sincronizar todavía) o la estantería no tiene zona asignada,
   /// se muestra igualmente para no dejarla "desaparecida" de la vista.
@@ -152,7 +173,7 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
             materialId: materialId, seccionIdInicial: seccionId, baldaIdInicial: baldaId),
       ),
     );
-    if (cambiado == true) _cargar();
+    if (cambiado == true) await _recargarSilencioso();
   }
 
   @override
@@ -199,8 +220,15 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
                           ),
                         ])
                       : DefaultTabController(
+                          // La clave cambia si cambia la lista de estanterías (otra zona,
+                          // una estantería nueva...): el controlador se recrea y arranca
+                          // en la estantería que se estaba viendo.
+                          key: ValueKey(estanterias.map((e) => e.id).join(',')),
                           length: estanterias.length,
-                          child: Column(
+                          initialIndex: _indiceInicial(estanterias),
+                          child: Builder(builder: (ctxTabs) {
+                            _escucharPestanas(ctxTabs, estanterias);
+                            return Column(
                             children: [
                               Material(
                                 color: Theme.of(context).appBarTheme.backgroundColor,
@@ -235,7 +263,8 @@ class _PantallaAlmacenState extends State<PantallaAlmacen> {
                                 ),
                               ),
                             ],
-                          ),
+                          );
+                          }),
                         ),
                 ),
               ],

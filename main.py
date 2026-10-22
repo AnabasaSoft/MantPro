@@ -86,6 +86,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog, QFormLayout)
 
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
+                          QItemSelection, QItemSelectionModel,
                           QPropertyAnimation, QEasingCurve, QTimer,
                           QTranslator, QLibraryInfo, QRectF)
 
@@ -5958,6 +5959,12 @@ class MaintenanceApp(QMainWindow):
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
         zona_id = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
         materiales = almacen.listar_materiales(texto or None, zona_id)
+        # La selección se guarda por id de material, no por número de fila:
+        # al reescribir y reordenar la tabla, la misma fila pasa a ser otro
+        # material y la barra de selección saltaba a uno cualquiera.
+        id_actual = self._material_seleccionado()
+        ids_sel = set(self._materiales_seleccionados())
+        self.tabla_stock.blockSignals(True)
         header = self.tabla_stock.horizontalHeader()
         col_orden, orden = header.sortIndicatorSection(), header.sortIndicatorOrder()
         self.tabla_stock.setSortingEnabled(False)
@@ -5976,10 +5983,31 @@ class MaintenanceApp(QMainWindow):
                 self.tabla_stock.setItem(fila, col, item)
         self.tabla_stock.setSortingEnabled(True)
         if col_orden >= 0: self.tabla_stock.sortItems(col_orden, orden)
+        self._restaurar_seleccion_stock(id_actual, ids_sel)
+        self.tabla_stock.blockSignals(False)
         if hasattr(self, "btn_configurar_almacen"):
             self.btn_configurar_almacen.setVisible(usuarios.es_admin())
         self.refresh_historial_stock()
         self.refresh_stock_alertas()
+
+    def _restaurar_seleccion_stock(self, id_actual, ids_sel):
+        tabla = self.tabla_stock
+        tabla.clearSelection()
+        tabla.setCurrentItem(None)
+        if not ids_sel and id_actual is None:
+            return
+        modelo, sel = tabla.selectionModel(), QItemSelection()
+        fila_actual = -1
+        for fila in range(tabla.rowCount()):
+            mid = tabla.item(fila, 0).data(Qt.ItemDataRole.UserRole)
+            if mid in ids_sel:
+                sel.select(tabla.model().index(fila, 0), tabla.model().index(fila, tabla.columnCount() - 1))
+            if mid == id_actual:
+                fila_actual = fila
+        if fila_actual >= 0:
+            modelo.setCurrentIndex(tabla.model().index(fila_actual, 0), QItemSelectionModel.SelectionFlag.NoUpdate)
+            tabla.scrollToItem(tabla.item(fila_actual, 0))
+        modelo.select(sel, QItemSelectionModel.SelectionFlag.Select)
 
     def refresh_historial_stock(self):
         if not hasattr(self, "lista_historial_stock"): return
