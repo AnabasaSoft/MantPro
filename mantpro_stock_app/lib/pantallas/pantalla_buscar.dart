@@ -50,9 +50,11 @@ class _PantallaBuscarState extends State<PantallaBuscar> {
   }
 
   Future<void> _abrirArticulo(int id) async {
-    final cambiado = await Navigator.push<bool>(
+    await Navigator.push<bool>(
         context, MaterialPageRoute(builder: (_) => PantallaArticulo(materialId: id)));
-    if (cambiado == true) _buscar(_controlador.text);
+    // Siempre, no solo si se guardó o borró: una entrada o salida registrada
+    // en el artículo también cambia la cantidad que muestra esta lista.
+    if (mounted) _buscar(_controlador.text);
   }
 
   @override

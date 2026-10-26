@@ -23,10 +23,17 @@ final ValueNotifier<bool> sesionNotifier = ValueNotifier(false);
 /// de cerrar y volver a abrir sesión cuando cambian los permisos en el PC.
 final ValueNotifier<int> rolesActualizadosNotifier = ValueNotifier(0);
 
-/// Se incrementa cada vez que una sincronización con el PC termina de verdad
-/// (no cuando se salta por falta de conexión). Las pantallas lo escuchan para
-/// refrescarse desde la caché local.
+/// Se incrementa cada vez que cambian los datos de stock que ven las
+/// pantallas: al terminar de verdad una sincronización con el PC (no cuando se
+/// salta por falta de conexión) y al guardar en el móvil un alta, edición,
+/// borrado o movimiento (ver [avisarCambioLocal]). Las pantallas lo escuchan
+/// para refrescarse desde la caché local.
 final ValueNotifier<int> datosSincronizadosNotifier = ValueNotifier(0);
+
+/// Avisa a las pantallas de que se acaba de guardar un cambio en el móvil,
+/// para que las listas (almacén, bajo mínimo...) lo reflejen al momento sin
+/// esperar a sincronizar con el PC.
+void avisarCambioLocal() => datosSincronizadosNotifier.value++;
 
 /// Sabe si el PC está accesible ahora mismo, para no hacer esperar al usuario
 /// en cada lectura o escritura cuando trabaja sin conexión: un sondeo rápido
@@ -635,6 +642,7 @@ class StockApi {
         'fotoPath': borrarFoto ? null : (foto?.path ?? cola[idx]['fotoPath']),
       };
       await prefs.setString(kStockColaNuevos, json.encode(cola));
+      avisarCambioLocal();
       final ip = await _ip();
       bool sincronizado = false;
       try {
@@ -652,6 +660,7 @@ class StockApi {
       final cola = leerColaMapas(prefs, kStockColaNuevos);
       cola.add({'localId': localId, ...campos, 'fotoPath': foto?.path});
       await prefs.setString(kStockColaNuevos, json.encode(cola));
+      avisarCambioLocal();
     } else {
       final cola = leerColaMapas(prefs, kStockColaEdiciones);
       // Si ya había una edición pendiente de este artículo con una foto sin
@@ -668,6 +677,7 @@ class StockApi {
         'borrarFoto': borrarFoto,
       });
       await prefs.setString(kStockColaEdiciones, json.encode(cola));
+      avisarCambioLocal();
     }
 
     // Intento inmediato y acotado en el tiempo, para poder avisar al usuario
@@ -705,6 +715,7 @@ class StockApi {
       final delta = tipo == 'salida' ? -cantidad : cantidad;
       cola[idx] = {...cola[idx], 'stock_inicial': (actual + delta).toString()};
       await prefs.setString(kStockColaNuevos, json.encode(cola));
+      avisarCambioLocal();
       return true;
     }
     final ip = await _ip();
@@ -712,6 +723,7 @@ class StockApi {
     final cola = leerColaMapas(prefs, kStockColaMovimientos);
     cola.add({'localId': localId, 'materialId': materialId, 'tipo': tipo, 'cantidad': cantidad, 'motivo': motivo});
     await prefs.setString(kStockColaMovimientos, json.encode(cola));
+    avisarCambioLocal();
 
     bool sincronizado = false;
     try {
@@ -735,12 +747,14 @@ class StockApi {
       final cola = leerColaMapas(prefs, kStockColaNuevos);
       cola.removeWhere((e) => e['localId'] == localId);
       await prefs.setString(kStockColaNuevos, json.encode(cola));
+      avisarCambioLocal();
       return true;
     }
     final ip = await _ip();
     final cola = leerColaIds(prefs, kStockColaBorrados);
     if (!cola.contains(id)) cola.add(id);
     await prefs.setString(kStockColaBorrados, json.encode(cola));
+    avisarCambioLocal();
 
     bool sincronizado = false;
     try {
