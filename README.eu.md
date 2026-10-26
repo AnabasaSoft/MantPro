@@ -2,6 +2,8 @@
   <a href="README.md"><img src="https://img.shields.io/badge/English-6e7781?style=for-the-badge" alt="English"></a>
   <a href="README.es.md"><img src="https://img.shields.io/badge/Espa%C3%B1ol-6e7781?style=for-the-badge" alt="Español"></a>
   <a href="README.eu.md"><img src="https://img.shields.io/badge/Euskara-0969da?style=for-the-badge" alt="Euskara"></a>
+  <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
+  <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
 </p>
 
 # MantPro
@@ -149,7 +151,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **↩️ Egitekora itzuli**: lan bat oker osatu bada, klik batekin Egiteke atalera itzul daiteke historiatik (abisuarekin, makina lotuta bazuen, datu hori galduko bailitzateke), eta auditorian erregistratuta geratzen da
 - **🔁 Gogorarazleak**: Automatikoki errepikatzen diren mantentze-abisuak. Data pasatzen bada ez dira saltatzen: **Zain** (laranja) geratzen dira tartean, eta gero **Atzeratuta** (gorria) egin arte; hurrengo data lana benetan egin zen egunetik kontatzen da
 - **📦 Biltegiko stockaren kontrola**: Apalategi, apal eta ataleko egitura konfiguragarria, materialen fitxa argazkiarekin, sarrerak/irteerak historiarekin eta gutxienekoaren azpiko stockaren alertak
-- **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta
+- **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta; gutxienekotik beherako stockaren fitxak ere badu bere botoia, alertan dauden materialak soilik esportatzeko
 - **🗑️ Gordetzeko gehieneko denbora**: `Tresnak` menutik historiatik ezaba daitezke urte, hilabete edo egun kopuru bat baino zaharragoak diren lanak, haien argazkiekin eta aurretik segurtasun-kopia bat eginez (administratzaileak soilik)
 - **🏭 Makineriaren kontrola**: Makinen eta azpimakinen zuhaitza argazki erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta erregistratutako edo editatutako lan bakoitzetik zuzeneko lotura (ikusi [Makineria](#-makineria))
 - **📊 Esportazioa**: PDF, CSV eta Excelera, aukerako teknikari-iragazkiarekin eta lan bakoitzaren makina/azpimakina adieraziz, baldin badu
@@ -562,7 +564,8 @@ lehenbailehen egiaztatu eta hornitu behar dela ohartarazteko balio du.
 edo ezarritako gutxienekotik beherako materialak erakusten ditu. Fitxaren
 izenburuak berak zenbat material dauden alertan adierazten du, eta bertatik
 zuzenean jauzi daiteke materialera "Biltegiko stocka" fitxan, edo sarrera bat
-erregistratu fitxaz aldatu gabe.
+erregistratu fitxaz aldatu gabe, edo zerrenda "📄 Esportatu" botoiarekin
+esportatu.
 
 ### Stocka esportatu
 
@@ -729,7 +732,7 @@ MantPro/
 ├── dialogos_usuarios.py         # PyQt6 elkarrizketa-koadroak: saio-hasiera eta erabiltzaileen kudeaketa
 ├── almacen.py                   # Biltegiko stocka: egitura, materialak eta mugimenduak
 ├── maquinas.py                  # Makineriaren zuhaitza eta haren lanen historia
-├── idiomas.py                   # Mahaigaineko itzulpenak (ES / EN / EU)
+├── idiomas/                     # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL)
 ├── requirements.txt             # Python mendekotasunak
 ├── logo.png                     # Aplikazioaren logoa
 ├── README.eu.md                 # Fitxategi hau
@@ -738,13 +741,13 @@ MantPro/
 ├── almacen.db                   # SQLite datu-basea (biltegiko stocka, independentea)
 ├── mantenimiento_app/           # Flutter mugikorreko aplikazioa (lanak)
 │   ├── lib/main.dart            # Mugikorreko kode nagusia
-│   ├── lib/i18n/strings.dart    # Mugikorreko itzulpenak (ES / EN / EU)
+│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL)
 │   ├── pubspec.yaml             # Flutter mendekotasunak
 │   └── android/                 # Android konfigurazioa
 ├── mantpro_stock_app/           # Flutter mugikorreko aplikazioa (biltegiko stocka)
 │   ├── lib/modelos.dart         # Datu-ereduak eta stockaren kolore-araua
 │   ├── lib/pantallas/           # Pantailak: biltegia, artikulua, bilaketa, gutxienekotik behera...
-│   ├── lib/i18n/strings.dart    # Mugikorreko itzulpenak (ES / EN / EU)
+│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL)
 │   ├── pubspec.yaml             # Flutter mendekotasunak
 │   └── android/                 # Android konfigurazioa
 ├── backups/                     # Eskuzko babeskopia osoak (DB + argazkiak)
@@ -764,7 +767,7 @@ Aplikazioak SQLite erabiltzen du, taula hauekin:
   argazkiak, **nork egin zuen** (`usuario_id` eta `usuario_nombre`) eta
   **lotutako makina** (`maquina_id`), baldin badu)
 - **`maquinas`**: Makineriaren zuhaitza (izena, goiko makina, oharrak eta argazkia)
-- **`pendientes`**: Egiteke dauden zereginak (izenburua, xehetasunak eta
+- **`pendientes`**: Egiteke dauden zereginak (izenburua, xehetasunak, lehentasuna eta
   **esleitutako teknikaria**: `asignado_a` eta `asignado_nombre`)
 - **`usuarios`**: Aplikazioa erabiltzen duten pertsonak (login-a, izena,
   pasahitzaren hasha, rola eta aktibo dagoen)
@@ -885,8 +888,8 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
 - **Saltatzen ez diren abisu errepikakorrak**: atzeratutako abisu bat zain
   (laranja) edo atzeratuta (gorria) geratzen da egin arte, eta hurrengo
   zikloa benetan egin zen datatik kontatzen da.
-- **Biltegiko stocka esportatu** PDF, CSV edo Excel formatura, osorik, zonaka
-  edo apalategika.
+- **Biltegiko stocka esportatu** PDF, CSV edo Excel formatura, osorik, zonaka,
+  apalategika edo gutxienekotik beherako materialak soilik.
 - **Lanak gordetzeko gehieneko denbora**: lan zaharrak ezabatzea, berrespenarekin
   eta aurretik segurtasun-kopia eginez.
 

@@ -6033,7 +6033,7 @@ class MaintenanceApp(QMainWindow):
         btn_del = QPushButton(tt("btn_borrar_material", "🗑️ Eliminar")); btn_del.setStyleSheet("background-color:#c0392b; color:white;"); btn_del.clicked.connect(lambda: self.stock_borrar_material())
         btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;"); btn_entrada.clicked.connect(lambda: self.stock_registrar_movimiento("entrada"))
         btn_salida = QPushButton(tt("btn_salida_stock", "📤 Salida")); btn_salida.setStyleSheet("background-color:#d35400; color:white;"); btn_salida.clicked.connect(lambda: self.stock_registrar_movimiento("salida"))
-        btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); btn_exportar.clicked.connect(self.stock_exportar)
+        btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); btn_exportar.clicked.connect(lambda: self.stock_exportar())
         for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, btn_exportar): barra.addWidget(b)
         self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
@@ -6107,7 +6107,9 @@ class MaintenanceApp(QMainWindow):
         btn_ir = QPushButton(tt("btn_ir_a_material", "🔎 Ver en Stock de almacén")); btn_ir.clicked.connect(self.stock_alerta_ir_a_material)
         btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;")
         btn_entrada.clicked.connect(self.stock_alerta_entrada)
-        barra.addWidget(btn_ir); barra.addWidget(btn_entrada)
+        btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar"))
+        btn_exportar.clicked.connect(lambda: self.stock_exportar(solo_bajo_minimo=True))
+        barra.addWidget(btn_ir); barra.addWidget(btn_entrada); barra.addWidget(btn_exportar)
         l.addLayout(barra)
 
         self.tab_stock_alertas.setLayout(l)
@@ -6289,13 +6291,17 @@ class MaintenanceApp(QMainWindow):
         # Mismo criterio que almacen.materiales_bajo_minimo()
         return m["stock_actual"] <= 0 or m["stock_actual"] < m["stock_minimo"]
 
-    def stock_exportar(self):
+    def stock_exportar(self, solo_bajo_minimo=False):
         zona_actual = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
         dlg = DialogoExportarStock(self, zona_actual)
+        if solo_bajo_minimo:
+            dlg.setWindowTitle(tt("title_exportar_bajo_minimo", "Exportar stock bajo mínimo"))
         if not dlg.exec(): return
         formato, zona_id, est_id, ambito = dlg.get_data()
 
         materiales = almacen.listar_materiales(None, zona_id, est_id)
+        if solo_bajo_minimo:
+            materiales = [m for m in materiales if self._bajo_minimo(m)]
         if not materiales:
             QMessageBox.information(self, tt("aviso", "Aviso"),
                 tt("msg_stock_sin_materiales", "No hay materiales que exportar con ese filtro.")); return
@@ -6305,10 +6311,12 @@ class MaintenanceApp(QMainWindow):
         materiales.sort(key=lambda m: (not m["ubicacion"], almacen._clave_orden_natural(m["ubicacion"]),
                                        almacen._clave_orden_natural(m["nombre"])))
 
-        titulo = tt("titulo_informe_stock", "Stock de almacén")
+        titulo = (tt("titulo_informe_bajo_minimo", "Stock bajo mínimo") if solo_bajo_minimo
+                  else tt("titulo_informe_stock", "Stock de almacén"))
         if ambito: titulo += f" — {ambito}"
         sufijo = re.sub(r'[^\w-]+', '_', ambito).strip('_') if ambito else ""
-        nombre_defecto = f"Stock{'_' + sufijo if sufijo else ''}_{QDate.currentDate().toString('yyyyMMdd')}.{formato}"
+        base = "Stock_bajo_minimo" if solo_bajo_minimo else "Stock"
+        nombre_defecto = f"{base}{'_' + sufijo if sufijo else ''}_{QDate.currentDate().toString('yyyyMMdd')}.{formato}"
         filtros = {"pdf": "PDF (*.pdf)", "csv": "CSV (*.csv)", "xlsx": "Excel (*.xlsx)"}
         archivo = self.guardar_archivo_dialogo(tt("title_exportar_stock", "Exportar stock de almacén"),
                                                nombre_defecto, filtros[formato])

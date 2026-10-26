@@ -2,6 +2,8 @@
   <a href="README.md"><img src="https://img.shields.io/badge/English-6e7781?style=for-the-badge" alt="English"></a>
   <a href="README.es.md"><img src="https://img.shields.io/badge/Espa%C3%B1ol-0969da?style=for-the-badge" alt="Español"></a>
   <a href="README.eu.md"><img src="https://img.shields.io/badge/Euskara-6e7781?style=for-the-badge" alt="Euskara"></a>
+  <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
+  <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
 </p>
 
 # MantPro
@@ -147,7 +149,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **↩️ Revertir a Pendiente**: si un trabajo se completó por error, se puede devolver a Pendientes con un clic desde el historial (con aviso si tenía máquina vinculada, ya que se perdería ese dato), quedando registrado en la auditoría
 - **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente. Si se pasa la fecha no se saltan: se quedan en **Pendiente** (naranja) mientras dura el margen y luego en **Atrasado** (rojo) hasta que se hacen, y la siguiente fecha se cuenta desde el día real en que se hizo el trabajo
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
-- **📄 Exportar el Stock**: botón "📄 Exportar" en la pestaña de stock para sacar el almacén entero, una zona o una estantería a PDF, CSV o Excel, ordenado por ubicación
+- **📄 Exportar el Stock**: botón "📄 Exportar" en la pestaña de stock para sacar el almacén entero, una zona o una estantería a PDF, CSV o Excel, ordenado por ubicación; la pestaña de stock bajo mínimo también tiene su botón para exportar solo los materiales en alerta
 - **🗑️ Tiempo Máximo de Guardado**: `Herramientas` permite borrar del historial los trabajos más antiguos que un número de años, meses o días, con sus fotos y una copia de seguridad previa (solo administradores)
 - **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
 - **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico e indicando la máquina/submáquina de cada trabajo, si la tiene
@@ -562,7 +564,7 @@ La pestaña **"⚠️ Stock bajo mínimo"** muestra, en una vista aparte, los
 materiales sin stock o por debajo del mínimo establecido. El propio título de
 la pestaña indica cuántos materiales están en alerta, y desde ahí se puede
 saltar directamente al material en "Stock de almacén" o registrar una entrada
-sin cambiar de pestaña.
+sin cambiar de pestaña, o exportar la lista con el botón "📄 Exportar".
 
 ### Exportar el stock
 
@@ -726,7 +728,7 @@ MantPro/
 ├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
 ├── almacen.py                   # Stock de almacén: estructura, materiales y movimientos
 ├── maquinas.py                  # Árbol de maquinaria y su histórico de trabajos
-├── idiomas.py                   # Traducciones del escritorio (ES / EN / EU)
+├── idiomas/                     # Traducciones del escritorio (ES / EN / EU / CA / GL)
 ├── requirements.txt             # Dependencias Python
 ├── logo.png                     # Logo de la aplicación
 ├── README.es.md                 # Este archivo
@@ -735,13 +737,13 @@ MantPro/
 ├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
 ├── mantenimiento_app/           # Aplicación móvil Flutter (trabajos)
 │   ├── lib/main.dart            # Código principal móvil
-│   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
+│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
 ├── mantpro_stock_app/           # Aplicación móvil Flutter (stock de almacén)
 │   ├── lib/modelos.dart         # Modelos de datos y regla de color de stock
 │   ├── lib/pantallas/           # Pantallas: almacén, artículo, búsqueda, bajo mínimo...
-│   ├── lib/i18n/strings.dart    # Traducciones del móvil (ES / EN / EU)
+│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
 ├── backups/                     # Backups manuales completos (BD + fotos)
@@ -761,7 +763,7 @@ La aplicación utiliza SQLite con las siguientes tablas:
   fotos, **quién lo realizó** (`usuario_id` y `usuario_nombre`) y la
   **máquina vinculada** (`maquina_id`), si tiene una)
 - **`maquinas`**: Árbol de maquinaria (nombre, máquina superior, notas y foto)
-- **`pendientes`**: Tareas pendientes de realizar (título, detalles y
+- **`pendientes`**: Tareas pendientes de realizar (título, detalles, prioridad y
   **técnico asignado**: `asignado_a` y `asignado_nombre`)
 - **`usuarios`**: Personas que usan la aplicación (login, nombre, hash de la
   contraseña, rol y si está activo)
@@ -879,8 +881,8 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 - **Avisos recurrentes que no se saltan**: un aviso retrasado se queda
   pendiente (naranja) o atrasado (rojo) hasta hacerse, y el siguiente ciclo se
   cuenta desde la fecha real en que se hizo.
-- **Exportar el stock de almacén** a PDF, CSV o Excel, completo, por zona o
-  por estantería.
+- **Exportar el stock de almacén** a PDF, CSV o Excel, completo, por zona, por
+  estantería o solo los materiales bajo mínimo.
 - **Tiempo máximo de guardado de trabajos**: borrado de trabajos antiguos con
   confirmación y copia de seguridad previa.
 

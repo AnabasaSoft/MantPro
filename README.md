@@ -2,6 +2,8 @@
   <a href="README.md"><img src="https://img.shields.io/badge/English-0969da?style=for-the-badge" alt="English"></a>
   <a href="README.es.md"><img src="https://img.shields.io/badge/Espa%C3%B1ol-6e7781?style=for-the-badge" alt="Español"></a>
   <a href="README.eu.md"><img src="https://img.shields.io/badge/Euskara-6e7781?style=for-the-badge" alt="Euskara"></a>
+  <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
+  <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
 </p>
 
 # MantPro
@@ -145,7 +147,7 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **↩️ Revert to Pending**: if a job was completed by mistake, it can be sent back to Pending with one click from the history (with a warning if it had a linked machine, since that data would be lost), and it is recorded in the audit log
 - **🔁 Reminders**: Maintenance alerts that repeat automatically. If the date passes they are not skipped: they stay **Pending** (orange) during the margin and then **Overdue** (red) until done, and the next date is counted from the day the job was actually done
 - **📦 Warehouse Stock Control**: Configurable structure of shelving units, shelves and sections, material records with photo, stock in/out with history and low-stock alerts
-- **📄 Stock Export**: "📄 Export" button in the stock tab to export the whole warehouse, a zone or a single shelving unit to PDF, CSV or Excel, sorted by location
+- **📄 Stock Export**: "📄 Export" button in the stock tab to export the whole warehouse, a zone or a single shelving unit to PDF, CSV or Excel, sorted by location; the low stock tab also has its own button to export only the materials on alert
 - **🗑️ Maximum Retention Time**: `Tools` lets you delete from the history the jobs older than a number of years, months or days, together with their photos and a backup made beforehand (administrators only)
 - **🏭 Machinery Control**: Tree of machines and sub-machines with an attached photo, job counter per year and month, and a direct link from every job logged or edited (see [Machinery](#-machinery))
 - **📊 Export**: To PDF, CSV and Excel, with an optional technician filter and showing each job's machine/sub-machine, if it has one
@@ -552,7 +554,8 @@ as possible.
 The **"⚠️ Low stock"** tab shows, in a separate view, the materials that
 are out of stock or below the set minimum. The tab title itself shows how
 many materials are on alert, and from there you can jump straight to the
-material in "Warehouse stock" or log a stock-in without switching tabs.
+material in "Warehouse stock", log a stock-in without switching tabs, or
+export the list with the "📄 Export" button.
 
 ### Exporting stock
 
@@ -714,7 +717,7 @@ MantPro/
 ├── dialogos_usuarios.py         # PyQt6 dialogs: sign-in and user management
 ├── almacen.py                   # Warehouse stock: structure, materials and movements
 ├── maquinas.py                  # Machinery tree and its job history
-├── idiomas.py                   # Desktop translations (ES / EN / EU)
+├── idiomas/                     # Desktop translations (ES / EN / EU / CA / GL)
 ├── requirements.txt             # Python dependencies
 ├── logo.png                     # Application logo
 ├── README.md                    # This file
@@ -723,13 +726,13 @@ MantPro/
 ├── almacen.db                   # SQLite database (warehouse stock, separate)
 ├── mantenimiento_app/           # Flutter mobile app (jobs)
 │   ├── lib/main.dart            # Main mobile code
-│   ├── lib/i18n/strings.dart    # Mobile translations (ES / EN / EU)
+│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL)
 │   ├── pubspec.yaml             # Flutter dependencies
 │   └── android/                 # Android configuration
 ├── mantpro_stock_app/           # Flutter mobile app (warehouse stock)
 │   ├── lib/modelos.dart         # Data models and stock colour rule
 │   ├── lib/pantallas/           # Screens: warehouse, item, search, low stock...
-│   ├── lib/i18n/strings.dart    # Mobile translations (ES / EN / EU)
+│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL)
 │   ├── pubspec.yaml             # Flutter dependencies
 │   └── android/                 # Android configuration
 ├── backups/                     # Full manual backups (database + photos)
@@ -750,7 +753,7 @@ The application uses SQLite with the following tables:
   **who did it** (`usuario_id` and `usuario_nombre`) and the **linked
   machine** (`maquina_id`), if any)
 - **`maquinas`**: Machinery tree (name, parent machine, notes and photo)
-- **`pendientes`**: Pending tasks (title, details and **assigned
+- **`pendientes`**: Pending tasks (title, details, priority and **assigned
   technician**: `asignado_a` and `asignado_nombre`)
 - **`usuarios`**: People who use the application (login, name, password
   hash, role and whether they are active)
@@ -867,8 +870,8 @@ Contributions are welcome! If you want to improve MantPro:
 - **Recurring alerts that are not skipped**: a late alert stays pending
   (orange) or overdue (red) until done, and the next cycle is counted from
   the date it was actually done.
-- **Warehouse stock export** to PDF, CSV or Excel, complete, by zone or by
-  shelving unit.
+- **Warehouse stock export** to PDF, CSV or Excel, complete, by zone, by
+  shelving unit or only the materials below minimum.
 - **Maximum job retention time**: deletion of old jobs with confirmation and
   a backup made beforehand.
 

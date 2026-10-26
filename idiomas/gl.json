@@ -536,5 +536,7 @@
   "title_confirmar_borrado_antiguos": "Confirmar o borrado de traballos antigos",
   "msg_confirmar_borrado_antiguos": "Vanse borrar {n} traballos do historial, do {desde} ao {hasta}, xunto coas súas fotos.\n\nAntes gardarase unha copia de seguranza da base de datos.\n\nContinuar?",
   "btn_borrar_trabajos": "Borrar traballos",
-  "msg_trabajos_antiguos_borrados": "Borráronse {n} traballos e {f} fotos.\n\nCopia de seguranza previa:\n{ruta}"
+  "msg_trabajos_antiguos_borrados": "Borráronse {n} traballos e {f} fotos.\n\nCopia de seguranza previa:\n{ruta}",
+  "title_exportar_bajo_minimo": "Exportar o stock por baixo do mínimo",
+  "titulo_informe_bajo_minimo": "Stock por baixo do mínimo"
 }

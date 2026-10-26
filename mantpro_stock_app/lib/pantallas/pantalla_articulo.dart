@@ -126,7 +126,13 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
     _descripcion.text = m.descripcion;
     _unidad.text = m.unidad;
     _stockMinimo.text = formatearCantidad(m.stockMinimo);
-    if (m.seccionId != null) _preseleccionarSeccion(m.seccionId!);
+    // Un artículo dado de alta o movido sin conexión todavía no tiene sección
+    // en el PC: lo que se guardó es la balda (ver StockApi._conPendientes).
+    if (m.seccionId != null) {
+      _preseleccionarSeccion(m.seccionId!);
+    } else if (m.baldaIdPendiente != null) {
+      _preseleccionarBalda(m.baldaIdPendiente!);
+    }
   }
 
   void _preseleccionarSeccion(int seccionId) {

@@ -536,5 +536,7 @@
   "title_confirmar_borrado_antiguos": "Lan zaharrak ezabatzea berretsi",
   "msg_confirmar_borrado_antiguos": "Historialeko {n} lan ezabatuko dira ({desde} - {hasta}), haien argazkiekin batera.\n\nAurretik datu-basearen segurtasun-kopia bat gordeko da.\n\nJarraitu?",
   "btn_borrar_trabajos": "Lanak ezabatu",
-  "msg_trabajos_antiguos_borrados": "{n} lan eta {f} argazki ezabatu dira.\n\nAurretiko segurtasun-kopia:\n{ruta}"
+  "msg_trabajos_antiguos_borrados": "{n} lan eta {f} argazki ezabatu dira.\n\nAurretiko segurtasun-kopia:\n{ruta}",
+  "title_exportar_bajo_minimo": "Gutxienekotik beherako stocka esportatu",
+  "titulo_informe_bajo_minimo": "Gutxienekotik beherako stocka"
 }

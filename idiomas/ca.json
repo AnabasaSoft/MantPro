@@ -536,5 +536,7 @@
   "title_confirmar_borrado_antiguos": "Confirmar l'esborrat de treballs antics",
   "msg_confirmar_borrado_antiguos": "S'esborraran {n} treballs de l'historial, del {desde} al {hasta}, juntament amb les seves fotos.\n\nAbans es desarà una còpia de seguretat de la base de dades.\n\nContinuar?",
   "btn_borrar_trabajos": "Esborrar treballs",
-  "msg_trabajos_antiguos_borrados": "S'han esborrat {n} treballs i {f} fotos.\n\nCòpia de seguretat prèvia:\n{ruta}"
+  "msg_trabajos_antiguos_borrados": "S'han esborrat {n} treballs i {f} fotos.\n\nCòpia de seguretat prèvia:\n{ruta}",
+  "title_exportar_bajo_minimo": "Exportar l'estoc per sota del mínim",
+  "titulo_informe_bajo_minimo": "Estoc per sota del mínim"
 }

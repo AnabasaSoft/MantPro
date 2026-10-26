@@ -373,6 +373,11 @@ class StockApi {
       if (idx == -1) continue;
       final a = lista[idx];
       final borraFoto = e['borrarFoto'] == true;
+      // Si la edición movió el artículo a una balda sin elegir sección, el PC
+      // todavía no le ha dado sección: hasta entonces se ubica por la balda
+      // (como un alta sin conexión), en vez de seguir mostrando la antigua.
+      final seccionNueva = int.tryParse('${e['seccion_id']}');
+      final baldaNueva = seccionNueva == null ? int.tryParse('${e['balda_id']}') : null;
       lista[idx] = Articulo(
         id: a.id,
         codigo: e['codigo'] ?? a.codigo,
@@ -381,7 +386,8 @@ class StockApi {
         unidad: e['unidad'] ?? a.unidad,
         stockActual: a.stockActual,
         stockMinimo: double.tryParse('${e['stock_minimo']}') ?? a.stockMinimo,
-        seccionId: int.tryParse('${e['seccion_id']}') ?? a.seccionId,
+        seccionId: seccionNueva ?? (baldaNueva != null ? null : a.seccionId),
+        baldaIdPendiente: baldaNueva ?? a.baldaIdPendiente,
         // Mientras la edición esté pendiente de enviar, el nombre de foto del
         // servidor puede no reflejar todavía un cambio de foto hecho sin
         // conexión (o un borrado pedido sin conexión): se refleja aparte en
