@@ -3085,6 +3085,13 @@ class DialogoConfigurarAlmacen(QDialog):
         self.refrescar()
 
 
+def _seccion_destino(seccion_id, balda_id):
+    """Sección donde se ubica un material: la elegida o, si se deja "Sin
+    sección", la implícita de la balda (se crea si hace falta, igual que desde
+    el móvil). Así la sección siempre es opcional."""
+    if seccion_id is not None: return seccion_id
+    return almacen.seccion_para_balda(balda_id) if balda_id is not None else None
+
 class DialogoSeleccionarUbicacion(QDialog):
     """Elige estantería/balda/sección de destino, sin más datos, para mover uno o varios materiales a la vez."""
     def __init__(self, parent=None):
@@ -3126,16 +3133,21 @@ class DialogoSeleccionarUbicacion(QDialog):
         if est:
             balda = next((b for b in est["baldas"] if b["id"] == balda_id), None)
             if balda:
+                # La sección es opcional: "Sin sección" ubica el material en la
+                # balda (ver _seccion_destino). Las implícitas, creadas solas
+                # para eso, no se ofrecen como una sección más.
+                self.combo_seccion.addItem(tt("lbl_sin_seccion", "Sin sección"), None)
                 for sec in balda["secciones"]:
+                    if sec.get("implicita"): continue
                     self.combo_seccion.addItem(sec["nombre"], sec["id"])
 
     def _validar_aceptar(self):
-        if self.combo_seccion.currentData() is None:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_selecciona_seccion", "Selecciona una sección del almacén.")); return
+        if self.combo_balda.currentData() is None:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_selecciona_balda", "Selecciona una estantería y una balda.")); return
         self.accept()
 
     def get_seccion_id(self):
-        return self.combo_seccion.currentData()
+        return _seccion_destino(self.combo_seccion.currentData(), self.combo_balda.currentData())
 
 
 class _ItemArbolOrdenable(QTreeWidgetItem):
@@ -3584,7 +3596,12 @@ class DialogoEditarMaterial(QDialog):
         if est:
             balda = next((b for b in est["baldas"] if b["id"] == balda_id), None)
             if balda:
+                # La sección es opcional: "Sin sección" ubica el material en la
+                # balda (ver _seccion_destino). Las implícitas, creadas solas
+                # para eso, no se ofrecen como una sección más.
+                self.combo_seccion.addItem(tt("lbl_sin_seccion", "Sin sección"), None)
                 for sec in balda["secciones"]:
+                    if sec.get("implicita"): continue
                     self.combo_seccion.addItem(sec["nombre"], sec["id"])
 
     def _preseleccionar_ubicacion(self, seccion_id):
@@ -3651,7 +3668,7 @@ class DialogoEditarMaterial(QDialog):
             "unidad": self.campo_unidad.text().strip(),
             "stock_minimo": self.spin_minimo.value(),
             "stock_inicial": self.spin_inicial.value() if self.es_nuevo else 0,
-            "seccion_id": self.combo_seccion.currentData(),
+            "seccion_id": _seccion_destino(self.combo_seccion.currentData(), self.combo_balda.currentData()),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
             "foto_nombre_existente": self.foto_nombre_existente,
         }

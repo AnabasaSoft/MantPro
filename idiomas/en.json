@@ -538,5 +538,7 @@
   "btn_borrar_trabajos": "Delete jobs",
   "msg_trabajos_antiguos_borrados": "{n} jobs and {f} photos have been deleted.\n\nBackup made beforehand:\n{ruta}",
   "title_exportar_bajo_minimo": "Export low stock",
-  "titulo_informe_bajo_minimo": "Low stock"
+  "titulo_informe_bajo_minimo": "Low stock",
+  "lbl_sin_seccion": "No section",
+  "msg_selecciona_balda": "Select a shelving unit and a shelf."
 }

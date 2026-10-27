@@ -538,5 +538,7 @@
   "btn_borrar_trabajos": "Borrar trabajos",
   "msg_trabajos_antiguos_borrados": "Se han borrado {n} trabajos y {f} fotos.\n\nCopia de seguridad previa:\n{ruta}",
   "title_exportar_bajo_minimo": "Exportar stock bajo mínimo",
-  "titulo_informe_bajo_minimo": "Stock bajo mínimo"
+  "titulo_informe_bajo_minimo": "Stock bajo mínimo",
+  "lbl_sin_seccion": "Sin sección",
+  "msg_selecciona_balda": "Selecciona una estantería y una balda."
 }

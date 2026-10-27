@@ -538,5 +538,7 @@
   "btn_borrar_trabajos": "Lanak ezabatu",
   "msg_trabajos_antiguos_borrados": "{n} lan eta {f} argazki ezabatu dira.\n\nAurretiko segurtasun-kopia:\n{ruta}",
   "title_exportar_bajo_minimo": "Gutxienekotik beherako stocka esportatu",
-  "titulo_informe_bajo_minimo": "Gutxienekotik beherako stocka"
+  "titulo_informe_bajo_minimo": "Gutxienekotik beherako stocka",
+  "lbl_sin_seccion": "Atalik gabe",
+  "msg_selecciona_balda": "Aukeratu apalategi bat eta apal bat."
 }
