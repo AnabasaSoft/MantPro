@@ -4,6 +4,7 @@
   <a href="README.eu.md"><img src="https://img.shields.io/badge/Euskara-0969da?style=for-the-badge" alt="Euskara"></a>
   <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
+  <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
 </p>
 
 # MantPro

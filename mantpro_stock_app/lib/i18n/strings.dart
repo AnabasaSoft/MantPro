@@ -24,6 +24,7 @@ import 'en.dart';
 import 'eu.dart';
 import 'ca.dart';
 import 'gl.dart';
+import 'pt.dart';
 
 // ==========================================
 // SISTEMA DE IDIOMAS - MantPro Stock
@@ -44,6 +45,7 @@ const List<Map<String, String>> idiomasDisponibles = [
   {"codigo": "eu", "nombre": "Euskara"},
   {"codigo": "ca", "nombre": "Català"},
   {"codigo": "gl", "nombre": "Galego"},
+  {"codigo": "pt", "nombre": "Português (Brasil)"},
 ];
 
 const Map<String, Map<String, String>> _traducciones = {
@@ -52,6 +54,7 @@ const Map<String, Map<String, String>> _traducciones = {
   "eu": traduccionesEu,
   "ca": traduccionesCa,
   "gl": traduccionesGl,
+  "pt": traduccionesPt,
 };
 
 /// Idioma activo en memoria. Escúchalo con ValueListenableBuilder para que

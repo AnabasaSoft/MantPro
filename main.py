@@ -266,7 +266,9 @@ def instalar_traductor_qt(app, codigo_idioma):
     El euskara no tiene traducción oficial en Qt, así que se queda en inglés."""
     traductor = QTranslator(app)
     ruta_traducciones = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
-    if traductor.load(f"qtbase_{codigo_idioma}", ruta_traducciones):
+    # Qt trae el portugués de Brasil como "pt_BR", no como "pt".
+    codigo_qt = {"pt": "pt_BR"}.get(codigo_idioma, codigo_idioma)
+    if traductor.load(f"qtbase_{codigo_qt}", ruta_traducciones):
         app.installTranslator(traductor)
         app._traductor_qt = traductor  # evitar que el GC lo destruya
 
@@ -6196,6 +6198,7 @@ class MaintenanceApp(QMainWindow):
 
         barra = QHBoxLayout()
         self.stock_buscar = QLineEdit(); self.stock_buscar.setPlaceholderText(tt("ph_buscar_material", "Buscar material..."))
+        self.stock_buscar.setMinimumWidth(170)
         self.stock_buscar.textChanged.connect(self.refresh_stock)
         barra.addWidget(self.stock_buscar, 1)
         barra.addWidget(QLabel(tt("lbl_zona", "Zona")))

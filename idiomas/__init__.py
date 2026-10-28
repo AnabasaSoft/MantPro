@@ -45,6 +45,7 @@ IDIOMAS_DISPONIBLES = [
     ("eu", "Euskara"),
     ("ca", "Català"),
     ("gl", "Galego"),
+    ("pt", "Português (Brasil)"),
 ]
 
 _DIR_IDIOMAS = os.path.dirname(os.path.abspath(__file__))
