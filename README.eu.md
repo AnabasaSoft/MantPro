@@ -5,6 +5,7 @@
   <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
 </p>
 
 # MantPro
@@ -733,7 +734,7 @@ MantPro/
 ├── dialogos_usuarios.py         # PyQt6 elkarrizketa-koadroak: saio-hasiera eta erabiltzaileen kudeaketa
 ├── almacen.py                   # Biltegiko stocka: egitura, materialak eta mugimenduak
 ├── maquinas.py                  # Makineriaren zuhaitza eta haren lanen historia
-├── idiomas/                     # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL)
+├── idiomas/                     # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
 ├── requirements.txt             # Python mendekotasunak
 ├── logo.png                     # Aplikazioaren logoa
 ├── README.eu.md                 # Fitxategi hau
@@ -742,13 +743,13 @@ MantPro/
 ├── almacen.db                   # SQLite datu-basea (biltegiko stocka, independentea)
 ├── mantenimiento_app/           # Flutter mugikorreko aplikazioa (lanak)
 │   ├── lib/main.dart            # Mugikorreko kode nagusia
-│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Flutter mendekotasunak
 │   └── android/                 # Android konfigurazioa
 ├── mantpro_stock_app/           # Flutter mugikorreko aplikazioa (biltegiko stocka)
 │   ├── lib/modelos.dart         # Datu-ereduak eta stockaren kolore-araua
 │   ├── lib/pantallas/           # Pantailak: biltegia, artikulua, bilaketa, gutxienekotik behera...
-│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Flutter mendekotasunak
 │   └── android/                 # Android konfigurazioa
 ├── backups/                     # Eskuzko babeskopia osoak (DB + argazkiak)

@@ -5,6 +5,7 @@
   <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
 </p>
 
 # MantPro
@@ -729,7 +730,7 @@ MantPro/
 ├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
 ├── almacen.py                   # Stock de almacén: estructura, materiales y movimientos
 ├── maquinas.py                  # Árbol de maquinaria y su histórico de trabajos
-├── idiomas/                     # Traducciones del escritorio (ES / EN / EU / CA / GL)
+├── idiomas/                     # Traducciones del escritorio (ES / EN / EU / CA / GL / PT / FR)
 ├── requirements.txt             # Dependencias Python
 ├── logo.png                     # Logo de la aplicación
 ├── README.es.md                 # Este archivo
@@ -738,13 +739,13 @@ MantPro/
 ├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
 ├── mantenimiento_app/           # Aplicación móvil Flutter (trabajos)
 │   ├── lib/main.dart            # Código principal móvil
-│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
 ├── mantpro_stock_app/           # Aplicación móvil Flutter (stock de almacén)
 │   ├── lib/modelos.dart         # Modelos de datos y regla de color de stock
 │   ├── lib/pantallas/           # Pantallas: almacén, artículo, búsqueda, bajo mínimo...
-│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android
 ├── backups/                     # Backups manuales completos (BD + fotos)

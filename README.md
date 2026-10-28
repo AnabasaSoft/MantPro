@@ -5,6 +5,7 @@
   <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
 </p>
 
 # MantPro
@@ -718,7 +719,7 @@ MantPro/
 ├── dialogos_usuarios.py         # PyQt6 dialogs: sign-in and user management
 ├── almacen.py                   # Warehouse stock: structure, materials and movements
 ├── maquinas.py                  # Machinery tree and its job history
-├── idiomas/                     # Desktop translations (ES / EN / EU / CA / GL)
+├── idiomas/                     # Desktop translations (ES / EN / EU / CA / GL / PT / FR)
 ├── requirements.txt             # Python dependencies
 ├── logo.png                     # Application logo
 ├── README.md                    # This file
@@ -727,13 +728,13 @@ MantPro/
 ├── almacen.db                   # SQLite database (warehouse stock, separate)
 ├── mantenimiento_app/           # Flutter mobile app (jobs)
 │   ├── lib/main.dart            # Main mobile code
-│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Flutter dependencies
 │   └── android/                 # Android configuration
 ├── mantpro_stock_app/           # Flutter mobile app (warehouse stock)
 │   ├── lib/modelos.dart         # Data models and stock colour rule
 │   ├── lib/pantallas/           # Screens: warehouse, item, search, low stock...
-│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Flutter dependencies
 │   └── android/                 # Android configuration
 ├── backups/                     # Full manual backups (database + photos)

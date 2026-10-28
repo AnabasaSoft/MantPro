@@ -5,6 +5,7 @@
   <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-0969da?style=for-the-badge" alt="Català"></a>
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
 </p>
 
 # MantPro
@@ -730,7 +731,7 @@ MantPro/
 ├── dialogos_usuarios.py         # Diàlegs PyQt6: inici de sessió i gestió d'usuaris
 ├── almacen.py                   # Estoc del magatzem: estructura, materials i moviments
 ├── maquinas.py                  # Arbre de maquinària i el seu historial de treballs
-├── idiomas/                     # Traduccions de l'escriptori (ES / EN / EU / CA / GL)
+├── idiomas/                     # Traduccions de l'escriptori (ES / EN / EU / CA / GL / PT / FR)
 ├── requirements.txt             # Dependències de Python
 ├── logo.png                     # Logotip de l'aplicació
 ├── README.ca.md                 # Aquest fitxer
@@ -739,13 +740,13 @@ MantPro/
 ├── almacen.db                   # Base de dades SQLite (estoc del magatzem, independent)
 ├── mantenimiento_app/           # Aplicació mòbil Flutter (treballs)
 │   ├── lib/main.dart            # Codi principal del mòbil
-│   ├── lib/i18n/                # Traduccions del mòbil (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Traduccions del mòbil (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependències de Flutter
 │   └── android/                 # Configuració d'Android
 ├── mantpro_stock_app/           # Aplicació mòbil Flutter (estoc del magatzem)
 │   ├── lib/modelos.dart         # Models de dades i regla de color de l'estoc
 │   ├── lib/pantallas/           # Pantalles: magatzem, article, cerca, per sota del mínim...
-│   ├── lib/i18n/                # Traduccions del mòbil (ES / EN / EU / CA / GL)
+│   ├── lib/i18n/                # Traduccions del mòbil (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependències de Flutter
 │   └── android/                 # Configuració d'Android
 ├── backups/                     # Còpies manuals completes (BD + fotos)

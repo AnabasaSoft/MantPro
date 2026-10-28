@@ -5,6 +5,7 @@
   <a href="README.ca.md"><img src="https://img.shields.io/badge/Catal%C3%A0-6e7781?style=for-the-badge" alt="Català"></a>
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-0969da?style=for-the-badge" alt="Português"></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
 </p>
 
 # MantPro
@@ -731,7 +732,7 @@ MantPro/
 ├── dialogos_usuarios.py         # Janelas PyQt6: login e gerenciamento de usuários
 ├── almacen.py                   # Estoque do almoxarifado: estrutura, materiais e movimentações
 ├── maquinas.py                  # Árvore de máquinas e seu histórico de serviços
-├── idiomas/                     # Traduções do desktop (ES / EN / EU / CA / GL / PT)
+├── idiomas/                     # Traduções do desktop (ES / EN / EU / CA / GL / PT / FR)
 ├── requirements.txt             # Dependências do Python
 ├── logo.png                     # Logo do aplicativo
 ├── README.pt.md                 # Este arquivo
@@ -740,13 +741,13 @@ MantPro/
 ├── almacen.db                   # Banco de dados SQLite (estoque do almoxarifado, independente)
 ├── mantenimiento_app/           # Aplicativo Flutter para celular (serviços)
 │   ├── lib/main.dart            # Código principal do celular
-│   ├── lib/i18n/                # Traduções do celular (ES / EN / EU / CA / GL / PT)
+│   ├── lib/i18n/                # Traduções do celular (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependências do Flutter
 │   └── android/                 # Configuração do Android
 ├── mantpro_stock_app/           # Aplicativo Flutter para celular (estoque do almoxarifado)
 │   ├── lib/modelos.dart         # Modelos de dados e regra de cor do estoque
 │   ├── lib/pantallas/           # Telas: almoxarifado, item, busca, abaixo do mínimo...
-│   ├── lib/i18n/                # Traduções do celular (ES / EN / EU / CA / GL / PT)
+│   ├── lib/i18n/                # Traduções do celular (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependências do Flutter
 │   └── android/                 # Configuração do Android
 ├── backups/                     # Backups manuais completos (BD + fotos)
