@@ -540,5 +540,21 @@
   "title_exportar_bajo_minimo": "Exportar o stock por baixo do mínimo",
   "titulo_informe_bajo_minimo": "Stock por baixo do mínimo",
   "lbl_sin_seccion": "Sen sección",
-  "msg_selecciona_balda": "Selecciona un andel e unha balda."
+  "msg_selecciona_balda": "Selecciona un andel e unha balda.",
+  "title_puerto_servidor": "Porto de sincronización",
+  "menu_puerto_servidor": "🔌 Porto de sincronización…",
+  "lbl_puerto": "Porto",
+  "msg_puerto_ocupado": "O porto {p}, que usa MantPro para sincronizar cos móbiles, está ocupado por outro programa (a miúdo outro MantPro aberto).\n\nPodes escoller outro porto ou seguir sen sincronización cos móbiles ata a próxima vez que abras MantPro.",
+  "msg_elegir_puerto": "Porto no que MantPro agarda polos móbiles (por defecto, {p}).",
+  "msg_aviso_cambio_puerto": "Ao cambiar de porto, os móbiles xa vinculados terán que volver escanear o QR (Ferramentas > 📲 Sincronizar App (QR)).",
+  "btn_usar_puerto": "Usar este porto",
+  "btn_seguir_sin_sincronizacion": "Seguir sen sincronización",
+  "msg_puerto_tambien_ocupado": "O porto {p} tamén está ocupado. Escolle outro.",
+  "msg_servidor_no_arranca": "Non se puido arrancar a sincronización cos móbiles no porto {p}.\n\nPodes cambiar o porto en Ferramentas > 🔌 Porto de sincronización.",
+  "msg_puerto_reiniciar": "O novo porto usarase a próxima vez que abras MantPro.",
+  "msg_sincronizacion_desactivada": "A sincronización cos móbiles está desactivada nesta sesión porque o seu porto estaba ocupado. Pecha o programa que o usa ou cambia o porto en Ferramentas > 🔌 Porto de sincronización, e volve abrir MantPro.",
+  "msg_ya_abierto": "MantPro xa está aberto neste ordenador.\n\nAbrir outro á vez non é habitual: os dous compartirían os mesmos datos e só un podería sincronizar cos móbiles.",
+  "btn_mostrar_abierto": "Amosar o que está aberto",
+  "btn_abrir_otro": "Abrir outro igualmente",
+  "msg_actualizaciones_codigo_fuente": "MantPro estase a executar dende o código fonte: non se buscan actualizacións."
 }

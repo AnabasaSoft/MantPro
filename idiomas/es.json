@@ -540,5 +540,21 @@
   "title_exportar_bajo_minimo": "Exportar stock bajo mínimo",
   "titulo_informe_bajo_minimo": "Stock bajo mínimo",
   "lbl_sin_seccion": "Sin sección",
-  "msg_selecciona_balda": "Selecciona una estantería y una balda."
+  "msg_selecciona_balda": "Selecciona una estantería y una balda.",
+  "title_puerto_servidor": "Puerto de sincronización",
+  "menu_puerto_servidor": "🔌 Puerto de sincronización…",
+  "lbl_puerto": "Puerto",
+  "msg_puerto_ocupado": "El puerto {p}, que usa MantPro para sincronizar con los móviles, está ocupado por otro programa (a menudo otro MantPro abierto).\n\nPuedes elegir otro puerto o seguir sin sincronización con los móviles hasta la próxima vez que abras MantPro.",
+  "msg_elegir_puerto": "Puerto en el que MantPro espera a los móviles (por defecto, {p}).",
+  "msg_aviso_cambio_puerto": "Al cambiar de puerto, los móviles ya vinculados tendrán que volver a escanear el QR (Herramientas > 📲 Sincronizar App (QR)).",
+  "btn_usar_puerto": "Usar este puerto",
+  "btn_seguir_sin_sincronizacion": "Seguir sin sincronización",
+  "msg_puerto_tambien_ocupado": "El puerto {p} también está ocupado. Elige otro.",
+  "msg_servidor_no_arranca": "No se ha podido arrancar la sincronización con los móviles en el puerto {p}.\n\nPuedes cambiar el puerto en Herramientas > 🔌 Puerto de sincronización.",
+  "msg_puerto_reiniciar": "El nuevo puerto se usará la próxima vez que abras MantPro.",
+  "msg_sincronizacion_desactivada": "La sincronización con los móviles está desactivada en esta sesión porque su puerto estaba ocupado. Cierra el programa que lo usa o cambia el puerto en Herramientas > 🔌 Puerto de sincronización, y vuelve a abrir MantPro.",
+  "msg_ya_abierto": "MantPro ya está abierto en este equipo.\n\nAbrir otro a la vez no es habitual: los dos compartirían los mismos datos y solo uno podría sincronizar con los móviles.",
+  "btn_mostrar_abierto": "Mostrar el que está abierto",
+  "btn_abrir_otro": "Abrir otro igualmente",
+  "msg_actualizaciones_codigo_fuente": "MantPro se está ejecutando desde el código fuente: no se buscan actualizaciones."
 }

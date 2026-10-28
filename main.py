@@ -29,6 +29,7 @@ import threading
 import re
 import csv
 import logging
+import getpass
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, g
 from reportlab.lib.pagesizes import A4
@@ -85,6 +86,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QSpinBox, QDoubleSpinBox, QRadioButton, QProgressBar, QProgressDialog, QTreeView, QMenu, QSplashScreen,
                              QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog, QFormLayout)
 
+from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
                           QItemSelection, QItemSelectionModel,
                           QPropertyAnimation, QEasingCurve, QTimer,
@@ -166,6 +168,64 @@ def quitar_marcas_foto(texto):
     texto = re.sub(r"\[FOTO.*?:.*?\]", "", texto or "")
     return re.sub(r"\[REF:.*?\]", "", texto).strip()
 
+PUERTO_POR_DEFECTO = 5000
+NOMBRE_INSTANCIA = "MantPro-" + getpass.getuser()
+_ventana_principal = None
+
+def puerto_libre(puerto):
+    """True si el servidor de sincronización podría escuchar en [puerto]
+    (mismas opciones de socket que usa Werkzeug)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        if os.name != "nt":
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(("0.0.0.0", puerto))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+
+def primer_puerto_libre(desde):
+    for p in range(desde, min(desde + 200, 65536)):
+        if puerto_libre(p): return p
+    return desde
+
+def traer_al_frente():
+    """Muestra y pone delante la ventana de esta instancia (la principal o,
+    si aún no existe, la que esté abierta, p. ej. el login)."""
+    ventanas = [_ventana_principal] if _ventana_principal is not None else \
+        [w for w in QApplication.topLevelWidgets() if w.isVisible()]
+    for w in ventanas:
+        if w.isMinimized(): w.showNormal()
+        w.show(); w.raise_(); w.activateWindow()
+
+def hay_otra_instancia():
+    s = QLocalSocket(); s.connectToServer(NOMBRE_INSTANCIA)
+    ok = s.waitForConnected(500)
+    s.abort()
+    return ok
+
+def pedir_mostrar_otra_instancia():
+    s = QLocalSocket(); s.connectToServer(NOMBRE_INSTANCIA)
+    if s.waitForConnected(500):
+        s.write(b"mostrar"); s.flush(); s.waitForBytesWritten(500)
+        s.disconnectFromServer()
+
+def escuchar_otras_instancias(app):
+    """Queda atenta a que otra instancia que se abra le pida ponerse delante."""
+    QLocalServer.removeServer(NOMBRE_INSTANCIA)  # restos de un cierre brusco
+    srv = QLocalServer(app)
+    if not srv.listen(NOMBRE_INSTANCIA): return None
+    def nueva_conexion():
+        c = srv.nextPendingConnection()
+        if c is None: return
+        def leer():
+            if bytes(c.readAll()).startswith(b"mostrar"): traer_al_frente()
+        c.readyRead.connect(leer)
+    srv.newConnection.connect(nueva_conexion)
+    return srv
+
 def entorno_sistema():
     """Entorno para lanzar programas del sistema desde el binario de PyInstaller.
     PyInstaller apunta LD_LIBRARY_PATH a su carpeta temporal (/tmp/_MEI…), y un
@@ -246,7 +306,9 @@ def obtener_ruta_datos():
 
 # Variable global que decide dónde se guarda TODO
 DATA_DIR = obtener_ruta_datos()
-APP_VERSION = "3.9.9"
+# Al compilar en GitHub se sustituye por la versión del tag (ver build_desktop.yml);
+# ejecutando "python main.py" se queda así.
+APP_VERSION = "Dev Version"
 REPO_OWNER = "AnabasaSoft"
 REPO_NAME = "MantPro"
 
@@ -952,12 +1014,14 @@ class ServidorSincronizacion(QThread):
     pendiente_actualizado = pyqtSignal()
     stock_actualizado = pyqtSignal()
 
-    def __init__(self, carpeta_destino, db_path):
+    error_arranque = pyqtSignal(str)
+
+    def __init__(self, carpeta_destino, db_path, puerto=None):
         super().__init__()
         self.carpeta_destino = carpeta_destino
         self.db_path = db_path
         self.app = Flask(__name__)
-        self.server_port = 5000
+        self.server_port = puerto or PUERTO_POR_DEFECTO
         usuarios.configurar_db(db_path)
 
         # Reutilizamos get_db_connection (timeout=20 + modo WAL) para que
@@ -2111,7 +2175,13 @@ class ServidorSincronizacion(QThread):
         # sincronización del móvil): con la app ya probada no aporta nada y
         # solo llena la consola.
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
-        self.app.run(host='0.0.0.0', port=self.server_port, debug=False, use_reloader=False)
+        # Werkzeug llama a sys.exit() si no puede abrir el puerto: dentro de
+        # este hilo eso acababa tumbando la ventana principal. Se captura y se
+        # avisa a la interfaz por señal.
+        try:
+            self.app.run(host='0.0.0.0', port=self.server_port, debug=False, use_reloader=False)
+        except BaseException as e:
+            self.error_arranque.emit(str(e) or type(e).__name__)
 
 # ==========================================
 # 2. GESTORES DE DATOS
@@ -3091,6 +3161,50 @@ def _seccion_destino(seccion_id, balda_id):
     el móvil). Así la sección siempre es opcional."""
     if seccion_id is not None: return seccion_id
     return almacen.seccion_para_balda(balda_id) if balda_id is not None else None
+
+class DialogoPuertoServidor(QDialog):
+    """Elegir el puerto del servidor de sincronización con los móviles.
+    Si [ocupado], explica que el actual está en uso y permite seguir sin
+    sincronización."""
+    def __init__(self, parent, puerto_actual, ocupado):
+        super().__init__(parent)
+        self.setWindowTitle(tt("title_puerto_servidor", "Puerto de sincronización"))
+        self.setMinimumWidth(480)
+        l = QVBoxLayout()
+        if ocupado:
+            texto = tt("msg_puerto_ocupado",
+                "El puerto {p}, que usa MantPro para sincronizar con los móviles, está ocupado por otro programa "
+                "(a menudo otro MantPro abierto).\n\nPuedes elegir otro puerto o seguir sin sincronización con los "
+                "móviles hasta la próxima vez que abras MantPro.").format(p=puerto_actual)
+        else:
+            texto = tt("msg_elegir_puerto", "Puerto en el que MantPro espera a los móviles (por defecto, {p}).").format(p=PUERTO_POR_DEFECTO)
+        lbl = QLabel(texto); lbl.setWordWrap(True); l.addWidget(lbl)
+        fila = QHBoxLayout(); fila.addWidget(QLabel(tt("lbl_puerto", "Puerto") + ":"))
+        self.spin = QSpinBox(); self.spin.setRange(1024, 65535)
+        self.spin.setValue(primer_puerto_libre(puerto_actual + 1) if ocupado else puerto_actual)
+        fila.addWidget(self.spin); fila.addStretch(); l.addLayout(fila)
+        aviso = QLabel(tt("msg_aviso_cambio_puerto",
+            "Al cambiar de puerto, los móviles ya vinculados tendrán que volver a escanear el QR "
+            "(Herramientas > Sincronizar App)."))
+        aviso.setWordWrap(True); aviso.setStyleSheet("color: #e67e22;"); l.addWidget(aviso)
+        b = QDialogButtonBox()
+        b.addButton(tt("btn_usar_puerto", "Usar este puerto"), QDialogButtonBox.ButtonRole.AcceptRole)
+        b.addButton(tt("btn_seguir_sin_sincronizacion", "Seguir sin sincronización") if ocupado else t("btn_cancelar"),
+                    QDialogButtonBox.ButtonRole.RejectRole)
+        b.accepted.connect(self._validar); b.rejected.connect(self.reject)
+        l.addWidget(b); self.setLayout(l)
+        self.puerto_actual = puerto_actual
+        self.ocupado = ocupado
+
+    def _validar(self):
+        p = self.spin.value()
+        if (self.ocupado or p != self.puerto_actual) and not puerto_libre(p):
+            QMessageBox.warning(self, tt("aviso", "Aviso"),
+                tt("msg_puerto_tambien_ocupado", "El puerto {p} también está ocupado. Elige otro.").format(p=p))
+            return
+        self.accept()
+
+    def puerto(self): return self.spin.value()
 
 class DialogoSeleccionarUbicacion(QDialog):
     """Elige estantería/balda/sección de destino, sin más datos, para mover uno o varios materiales a la vez."""
@@ -4286,12 +4400,23 @@ class MaintenanceApp(QMainWindow):
 
         self.qr_dialog = None
         self.settings = QSettings("MyCompany", "MantenimientoApp")
-        self.server_thread = ServidorSincronizacion(self.carpeta_fotos, self.db.db_name)
+        try: puerto = int(self.db.get_config("puerto_servidor") or PUERTO_POR_DEFECTO)
+        except ValueError: puerto = PUERTO_POR_DEFECTO
+        self.sincronizacion_activa = True
+        if not puerto_libre(puerto):
+            dlg = DialogoPuertoServidor(None, puerto, ocupado=True)
+            if dlg.exec():
+                puerto = dlg.puerto(); self.db.set_config("puerto_servidor", str(puerto))
+            else:
+                self.sincronizacion_activa = False
+        self.server_thread = ServidorSincronizacion(self.carpeta_fotos, self.db.db_name, puerto)
         self.server_thread.registro_recibido.connect(self.on_registro_recibido)
         self.server_thread.pendiente_actualizado.connect(self.refresh_all)
         self.server_thread.stock_actualizado.connect(self.refresh_stock)
         self.server_thread.stock_actualizado.connect(self.refresh_stock_alertas)
-        self.server_thread.start()
+        self.server_thread.error_arranque.connect(self._servidor_no_arranca)
+        if self.sincronizacion_activa:
+            self.server_thread.start()
         self.setWindowTitle(t("title_control_mantenimiento"))
         self.resize(1100, 750)
         g = self.settings.value("geometry")
@@ -4410,7 +4535,28 @@ class MaintenanceApp(QMainWindow):
         self.refresh_all()
         self.statusBar().showMessage(f"📲 Recibido: {titulo}", 4000)
 
+    def _servidor_no_arranca(self, detalle):
+        self.sincronizacion_activa = False
+        QMessageBox.warning(self, tt("title_puerto_servidor", "Puerto de sincronización"),
+            tt("msg_servidor_no_arranca", "No se ha podido arrancar la sincronización con los móviles en el puerto {p}.\n\n"
+               "Puedes cambiar el puerto en Herramientas > Puerto de sincronización.").format(p=self.server_thread.server_port)
+            + f"\n\n({detalle})")
+
+    def cambiar_puerto_servidor(self):
+        actual = self.server_thread.server_port
+        dlg = DialogoPuertoServidor(self, actual, ocupado=False)
+        if dlg.exec() and dlg.puerto() != actual:
+            self.db.set_config("puerto_servidor", str(dlg.puerto()))
+            QMessageBox.information(self, tt("title_puerto_servidor", "Puerto de sincronización"),
+                tt("msg_puerto_reiniciar", "El nuevo puerto se usará la próxima vez que abras MantPro."))
+
     def mostrar_dialogo_qr(self):
+        if not getattr(self, "sincronizacion_activa", True):
+            QMessageBox.warning(self, tt("title_puerto_servidor", "Puerto de sincronización"),
+                tt("msg_sincronizacion_desactivada", "La sincronización con los móviles está desactivada en esta sesión "
+                   "porque su puerto estaba ocupado. Cierra el programa que lo usa o cambia el puerto en "
+                   "Herramientas > Puerto de sincronización, y vuelve a abrir MantPro."))
+            return
         url = f"http://{self.server_thread.obtener_ip_local()}:{self.server_thread.server_port}"
         self.qr_dialog = DialogoQR(url, self)
         self.qr_dialog.exec(); self.qr_dialog = None
@@ -4617,7 +4763,7 @@ class MaintenanceApp(QMainWindow):
     def mostrar_about(self):
         import webbrowser
         texto = f"""
-        <h2>MantPro v{APP_VERSION}</h2>
+        <h2>MantPro {'v' + APP_VERSION if APP_VERSION[:1].isdigit() else APP_VERSION}</h2>
         <p><b>AnabasaSoft</b></p>
         <p>📧 Email: <a href="mailto:anabasasoft@gmail.com">anabasasoft@gmail.com</a></p>
         <p>🌐 GitHub: <a href="https://github.com/AnabasaSoft">github.com/AnabasaSoft</a></p>
@@ -4632,6 +4778,15 @@ class MaintenanceApp(QMainWindow):
         msg.exec()
 
     def comprobar_actualizaciones(self, manual=False):
+        # Ejecutado con "python main.py" (no el binario instalado): su
+        # APP_VERSION no es la real, que solo se fija al compilar desde el tag,
+        # así que siempre parecería desactualizado.
+        if not getattr(sys, "frozen", False):
+            if manual:
+                QMessageBox.information(self, t("title_actualizado"),
+                    tt("msg_actualizaciones_codigo_fuente",
+                       "MantPro se está ejecutando desde el código fuente: no se buscan actualizaciones."))
+            return
         self._check_manual = manual
         if manual: self.statusBar().showMessage("🔄 Buscando actualizaciones en GitHub...", 3000)
         self.hilo_updates = ChequeadorActualizaciones()
@@ -4714,6 +4869,8 @@ class MaintenanceApp(QMainWindow):
             act_prov = QAction(t("menu_pais_region"), self)
             act_prov.triggered.connect(self.cambiar_pais_region)
             tm.addAction(act_prov)
+            tm.addAction(QAction(tt("menu_puerto_servidor", "🔌 Puerto de sincronización…"), self,
+                                 triggered=self.cambiar_puerto_servidor))
             tm.addAction(QAction(tt("menu_tiempo_guardado", "🗑️ Tiempo máximo de guardado de trabajos…"), self,
                                  triggered=self.borrar_trabajos_antiguos))
             # ---------------------------------
@@ -8105,6 +8262,23 @@ if __name__ == "__main__":
     idiomas.set_idioma(idioma_guardado)
     instalar_traductor_qt(app, idiomas.get_idioma())
 
+    # --- 2d. ¿YA HAY OTRO MANTPRO ABIERTO? ---
+    servidor_instancia = None
+    if hay_otra_instancia():
+        msg = QMessageBox(QMessageBox.Icon.Information, "MantPro",
+            tt("msg_ya_abierto", "MantPro ya está abierto en este equipo.\n\n"
+               "Abrir otro a la vez no es habitual: los dos compartirían los mismos datos y solo uno podría "
+               "sincronizar con los móviles."))
+        btn_mostrar = msg.addButton(tt("btn_mostrar_abierto", "Mostrar el que está abierto"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(tt("btn_abrir_otro", "Abrir otro igualmente"), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(btn_mostrar)
+        msg.exec()
+        if msg.clickedButton() == btn_mostrar:
+            pedir_mostrar_otra_instancia()
+            sys.exit(0)
+    else:
+        servidor_instancia = escuchar_otras_instancias(app)
+
     dlg_login = DialogoLogin(ruta_logo=ruta_logo if os.path.exists(ruta_logo) else None)
     if dlg_login.exec() != QDialog.DialogCode.Accepted:
         sys.exit(0)
@@ -8112,6 +8286,7 @@ if __name__ == "__main__":
     # --- 3. INSTANCIAR VENTANA PRINCIPAL ---
     try:
         ventana = MaintenanceApp()
+        _ventana_principal = ventana
     except Exception as e:
         print(f"Error crítico al arrancar la aplicación: {e}")
         import traceback

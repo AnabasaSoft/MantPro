@@ -540,5 +540,21 @@
   "title_exportar_bajo_minimo": "Gutxienekotik beherako stocka esportatu",
   "titulo_informe_bajo_minimo": "Gutxienekotik beherako stocka",
   "lbl_sin_seccion": "Atalik gabe",
-  "msg_selecciona_balda": "Aukeratu apalategi bat eta apal bat."
+  "msg_selecciona_balda": "Aukeratu apalategi bat eta apal bat.",
+  "title_puerto_servidor": "Sinkronizazio-ataka",
+  "menu_puerto_servidor": "🔌 Sinkronizazio-ataka…",
+  "lbl_puerto": "Ataka",
+  "msg_puerto_ocupado": "MantPro-k mugikorrekin sinkronizatzeko erabiltzen duen {p} ataka beste programa batek erabiltzen du (askotan irekita dagoen beste MantPro batek).\n\nBeste ataka bat aukera dezakezu, edo mugikorrekin sinkronizatu gabe jarraitu MantPro berriro ireki arte.",
+  "msg_elegir_puerto": "MantPro-k mugikorrak itxaroten dituen ataka (lehenetsia: {p}).",
+  "msg_aviso_cambio_puerto": "Ataka aldatzean, dagoeneko lotuta dauden mugikorrek QRa berriro eskaneatu beharko dute (Tresnak > 📲 Sinkronizatu Appa (QR)).",
+  "btn_usar_puerto": "Erabili ataka hau",
+  "btn_seguir_sin_sincronizacion": "Jarraitu sinkronizatu gabe",
+  "msg_puerto_tambien_ocupado": "{p} ataka ere okupatuta dago. Aukeratu beste bat.",
+  "msg_servidor_no_arranca": "Ezin izan da mugikorrekiko sinkronizazioa abiarazi {p} atakan.\n\nAtaka Tresnak > 🔌 Sinkronizazio-ataka atalean alda dezakezu.",
+  "msg_puerto_reiniciar": "Ataka berria MantPro berriro irekitzen duzun hurrengoan erabiliko da.",
+  "msg_sincronizacion_desactivada": "Mugikorrekiko sinkronizazioa desgaituta dago saio honetan, bere ataka okupatuta zegoelako. Itxi hura erabiltzen duen programa edo aldatu ataka Tresnak > 🔌 Sinkronizazio-ataka atalean, eta ireki berriro MantPro.",
+  "msg_ya_abierto": "MantPro dagoeneko irekita dago ordenagailu honetan.\n\nAldi berean beste bat irekitzea ez da ohikoa: biek datu berak partekatuko lituzkete, eta bakarrak sinkroniza lezake mugikorrekin.",
+  "btn_mostrar_abierto": "Erakutsi irekita dagoena",
+  "btn_abrir_otro": "Ireki beste bat hala ere",
+  "msg_actualizaciones_codigo_fuente": "MantPro iturburu-kodetik exekutatzen ari da: ez da eguneratzerik bilatzen."
 }

@@ -540,5 +540,21 @@
   "title_exportar_bajo_minimo": "Exportar l'estoc per sota del mínim",
   "titulo_informe_bajo_minimo": "Estoc per sota del mínim",
   "lbl_sin_seccion": "Sense secció",
-  "msg_selecciona_balda": "Selecciona una prestatgeria i un prestatge."
+  "msg_selecciona_balda": "Selecciona una prestatgeria i un prestatge.",
+  "title_puerto_servidor": "Port de sincronització",
+  "menu_puerto_servidor": "🔌 Port de sincronització…",
+  "lbl_puerto": "Port",
+  "msg_puerto_ocupado": "El port {p}, que fa servir MantPro per sincronitzar amb els mòbils, està ocupat per un altre programa (sovint un altre MantPro obert).\n\nPots triar un altre port o continuar sense sincronització amb els mòbils fins que tornis a obrir MantPro.",
+  "msg_elegir_puerto": "Port on MantPro espera els mòbils (per defecte, {p}).",
+  "msg_aviso_cambio_puerto": "En canviar de port, els mòbils ja vinculats hauran de tornar a escanejar el QR (Eines > 📲 Sincronitzar App (QR)).",
+  "btn_usar_puerto": "Fer servir aquest port",
+  "btn_seguir_sin_sincronizacion": "Continuar sense sincronització",
+  "msg_puerto_tambien_ocupado": "El port {p} també està ocupat. Tria'n un altre.",
+  "msg_servidor_no_arranca": "No s'ha pogut engegar la sincronització amb els mòbils al port {p}.\n\nPots canviar el port a Eines > 🔌 Port de sincronització.",
+  "msg_puerto_reiniciar": "El port nou es farà servir la propera vegada que obris MantPro.",
+  "msg_sincronizacion_desactivada": "La sincronització amb els mòbils està desactivada en aquesta sessió perquè el seu port estava ocupat. Tanca el programa que el fa servir o canvia el port a Eines > 🔌 Port de sincronització, i torna a obrir MantPro.",
+  "msg_ya_abierto": "MantPro ja està obert en aquest ordinador.\n\nObrir-ne un altre alhora no és habitual: tots dos compartirien les mateixes dades i només un podria sincronitzar amb els mòbils.",
+  "btn_mostrar_abierto": "Mostrar el que està obert",
+  "btn_abrir_otro": "Obrir-ne un altre igualment",
+  "msg_actualizaciones_codigo_fuente": "MantPro s'està executant des del codi font: no es cerquen actualitzacions."
 }

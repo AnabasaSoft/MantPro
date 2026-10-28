@@ -540,5 +540,21 @@
   "title_exportar_bajo_minimo": "Export low stock",
   "titulo_informe_bajo_minimo": "Low stock",
   "lbl_sin_seccion": "No section",
-  "msg_selecciona_balda": "Select a shelving unit and a shelf."
+  "msg_selecciona_balda": "Select a shelving unit and a shelf.",
+  "title_puerto_servidor": "Sync port",
+  "menu_puerto_servidor": "🔌 Sync port…",
+  "lbl_puerto": "Port",
+  "msg_puerto_ocupado": "Port {p}, which MantPro uses to sync with the phones, is being used by another program (often another open MantPro).\n\nYou can choose another port or continue without syncing with the phones until the next time you open MantPro.",
+  "msg_elegir_puerto": "Port on which MantPro waits for the phones (default: {p}).",
+  "msg_aviso_cambio_puerto": "After changing the port, phones that are already linked will have to scan the QR code again (Tools > 📲 Sync App (QR)).",
+  "btn_usar_puerto": "Use this port",
+  "btn_seguir_sin_sincronizacion": "Continue without syncing",
+  "msg_puerto_tambien_ocupado": "Port {p} is also in use. Choose another one.",
+  "msg_servidor_no_arranca": "Syncing with the phones could not be started on port {p}.\n\nYou can change the port in Tools > 🔌 Sync port.",
+  "msg_puerto_reiniciar": "The new port will be used the next time you open MantPro.",
+  "msg_sincronizacion_desactivada": "Syncing with the phones is disabled in this session because its port was in use. Close the program using it or change the port in Tools > 🔌 Sync port, and open MantPro again.",
+  "msg_ya_abierto": "MantPro is already open on this computer.\n\nOpening another one at the same time is unusual: both would share the same data and only one of them could sync with the phones.",
+  "btn_mostrar_abierto": "Show the open one",
+  "btn_abrir_otro": "Open another anyway",
+  "msg_actualizaciones_codigo_fuente": "MantPro is running from source code: updates are not checked."
 }
