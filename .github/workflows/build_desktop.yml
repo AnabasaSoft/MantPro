@@ -42,7 +42,7 @@ jobs:
           CLEAN_VERSION="0.0"
         fi
         echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
-        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" mantpro/interfaz/app.py
+        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" mantpro/version.py
 
     - name: Generar EXE
       run: |
@@ -116,7 +116,7 @@ jobs:
           CLEAN_VERSION="0.0"
         fi
         echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
-        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" mantpro/interfaz/app.py
+        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" mantpro/version.py
 
     # --- PASO 1: GENERAR BINARIO STANDALONE ---
     - name: Generar Binario Linux

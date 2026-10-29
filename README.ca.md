@@ -730,14 +730,21 @@ confirmació.
 MantPro/
 ├── main.py                      # Punt d'arrencada (python main.py)
 ├── mantpro/                     # Codi de l'aplicació d'escriptori
+│   ├── version.py               # Versió (la posa CI des del tag)
 │   ├── nucleo/                  # Dades i lògica, sense interfície
 │   │   ├── usuarios.py          # Usuaris, contrasenyes, rols i sessions
 │   │   ├── almacen.py           # Estoc del magatzem: estructura, materials i moviments
 │   │   ├── maquinas.py          # Arbre de maquinària i el seu historial de treballs
+│   │   ├── basedatos.py         # Base de dades de treballs
 │   │   └── importar.py          # Importació des d'Excel/CSV
 │   ├── interfaz/                # Finestres PyQt6
+│   │   ├── arranque.py          # Arrencada: instància única i inici de sessió
 │   │   ├── app.py               # Aplicació principal d'escriptori
-│   │   └── dialogos_usuarios.py # Diàlegs PyQt6: inici de sessió i gestió d'usuaris
+│   │   ├── servidor.py          # Servidor de sincronització amb els mòbils
+│   │   ├── pestanas/            # Una per pestanya: tauler, calendari, estoc...
+│   │   ├── acciones/            # Accions dels menús: còpies, exportar, importar, usuaris
+│   │   ├── dialogos/            # Diàlegs (inclosos inici de sessió i gestió d'usuaris)
+│   │   └── widgets/             # Fotos i gràfics
 │   └── idiomas/                 # Traduccions de l'escriptori (ES / EN / EU / CA / GL / PT / FR)
 ├── recursos/                    # Icones i logotips
 ├── herramientas/                # Scripts del projecte (verificar_idiomas.py...)

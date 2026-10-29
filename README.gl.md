@@ -726,14 +726,21 @@ cantos traballos se van eliminar e entre que datas, e pide confirmación.
 MantPro/
 ├── main.py                      # Punto de arranque (python main.py)
 ├── mantpro/                     # Código da aplicación de escritorio
+│   ├── version.py               # Versión (pona CI dende o tag)
 │   ├── nucleo/                  # Datos e lóxica, sen interface
 │   │   ├── usuarios.py          # Usuarios, contrasinais, roles e sesións
 │   │   ├── almacen.py           # Stock do almacén: estrutura, materiais e movementos
 │   │   ├── maquinas.py          # Árbore de maquinaria e o seu historial de traballos
+│   │   ├── basedatos.py         # Base de datos de traballos
 │   │   └── importar.py          # Importación dende Excel/CSV
 │   ├── interfaz/                # Xanelas PyQt6
+│   │   ├── arranque.py          # Arranque: instancia única e inicio de sesión
 │   │   ├── app.py               # Aplicación principal de escritorio
-│   │   └── dialogos_usuarios.py # Diálogos PyQt6: inicio de sesión e xestión de usuarios
+│   │   ├── servidor.py          # Servidor de sincronización cos móbiles
+│   │   ├── pestanas/            # Unha por lapela: panel, calendario, stock...
+│   │   ├── acciones/            # Accións dos menús: copias, exportar, importar, usuarios
+│   │   ├── dialogos/            # Diálogos (incluídos inicio de sesión e xestión de usuarios)
+│   │   └── widgets/             # Fotos e gráficos
 │   └── idiomas/                 # Traducións do escritorio (ES / EN / EU / CA / GL / PT / FR)
 ├── recursos/                    # Iconas e logotipos
 ├── herramientas/                # Scripts do proxecto (verificar_idiomas.py...)

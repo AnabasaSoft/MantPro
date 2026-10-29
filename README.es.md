@@ -729,14 +729,21 @@ confirmación.
 MantPro/
 ├── main.py                      # Punto de arranque (python main.py)
 ├── mantpro/                     # Código de la app de escritorio
+│   ├── version.py               # Versión (la pone CI desde el tag)
 │   ├── nucleo/                  # Datos y lógica, sin interfaz
 │   │   ├── usuarios.py          # Usuarios, contraseñas, roles y sesiones
 │   │   ├── almacen.py           # Stock de almacén: estructura, materiales y movimientos
 │   │   ├── maquinas.py          # Árbol de maquinaria y su histórico de trabajos
+│   │   ├── basedatos.py         # Base de datos de trabajos
 │   │   └── importar.py          # Importación desde Excel/CSV
 │   ├── interfaz/                # Ventanas PyQt6
+│   │   ├── arranque.py          # Arranque: instancia única y login
 │   │   ├── app.py               # Aplicación principal de escritorio
-│   │   └── dialogos_usuarios.py # Diálogos PyQt6: login y gestión de usuarios
+│   │   ├── servidor.py          # Servidor de sincronización con los móviles
+│   │   ├── pestanas/            # Una por pestaña: dashboard, calendario, stock...
+│   │   ├── acciones/            # Acciones de los menús: copias, exportar, importar, usuarios
+│   │   ├── dialogos/            # Diálogos (incluidos login y gestión de usuarios)
+│   │   └── widgets/             # Fotos y gráficos
 │   └── idiomas/                 # Traducciones del escritorio (ES / EN / EU / CA / GL / PT / FR)
 ├── recursos/                    # Iconos y logotipos
 ├── herramientas/                # Scripts del proyecto (verificar_idiomas.py...)

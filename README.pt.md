@@ -731,14 +731,21 @@ e pede confirmação.
 MantPro/
 ├── main.py                      # Ponto de entrada (python main.py)
 ├── mantpro/                     # Código do aplicativo para desktop
+│   ├── version.py               # Versão (definida pelo CI a partir da tag)
 │   ├── nucleo/                  # Dados e lógica, sem interface
 │   │   ├── usuarios.py          # Usuários, senhas, funções e sessões
 │   │   ├── almacen.py           # Estoque do almoxarifado: estrutura, materiais e movimentações
 │   │   ├── maquinas.py          # Árvore de máquinas e seu histórico de serviços
+│   │   ├── basedatos.py         # Banco de dados de serviços
 │   │   └── importar.py          # Importação do Excel/CSV
 │   ├── interfaz/                # Janelas PyQt6
+│   │   ├── arranque.py          # Inicialização: instância única e login
 │   │   ├── app.py               # Aplicativo principal para desktop
-│   │   └── dialogos_usuarios.py # Janelas PyQt6: login e gerenciamento de usuários
+│   │   ├── servidor.py          # Servidor de sincronização com os celulares
+│   │   ├── pestanas/            # Uma por aba: painel, calendário, estoque...
+│   │   ├── acciones/            # Ações dos menus: cópias, exportar, importar, usuários
+│   │   ├── dialogos/            # Diálogos (incluindo login e gerenciamento de usuários)
+│   │   └── widgets/             # Fotos e gráficos
 │   └── idiomas/                 # Traduções do desktop (ES / EN / EU / CA / GL / PT / FR)
 ├── recursos/                    # Ícones e logotipos
 ├── herramientas/                # Scripts do projeto (verificar_idiomas.py...)

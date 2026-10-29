@@ -733,14 +733,21 @@ zein dataren artean erakusten du, eta berrespena eskatzen du.
 MantPro/
 ├── main.py                      # Abiarazte-puntua (python main.py)
 ├── mantpro/                     # Mahaigaineko aplikazioaren kodea
+│   ├── version.py               # Bertsioa (CIk tag-etik jartzen du)
 │   ├── nucleo/                  # Datuak eta logika, interfazerik gabe
 │   │   ├── usuarios.py          # Erabiltzaileak, pasahitzak, rolak eta saioak
 │   │   ├── almacen.py           # Biltegiko stocka: egitura, materialak eta mugimenduak
 │   │   ├── maquinas.py          # Makineriaren zuhaitza eta haren lanen historia
+│   │   ├── basedatos.py         # Lanen datu-basea
 │   │   └── importar.py          # Excel/CSV inportazioa
 │   ├── interfaz/                # PyQt6 leihoak
+│   │   ├── arranque.py          # Abiaraztea: instantzia bakarra eta saio-hasiera
 │   │   ├── app.py               # Mahaigaineko aplikazio nagusia
-│   │   └── dialogos_usuarios.py # PyQt6 elkarrizketa-koadroak: saio-hasiera eta erabiltzaileen kudeaketa
+│   │   ├── servidor.py          # Mugikorrekin sinkronizatzeko zerbitzaria
+│   │   ├── pestanas/            # Bat fitxa bakoitzeko: aginte-mahaia, egutegia, stocka...
+│   │   ├── acciones/            # Menuetako ekintzak: kopiak, esportatu, inportatu, erabiltzaileak
+│   │   ├── dialogos/            # Elkarrizketa-koadroak (saio-hasiera eta erabiltzaileen kudeaketa barne)
+│   │   └── widgets/             # Argazkiak eta grafikoak
 │   └── idiomas/                 # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
 ├── recursos/                    # Ikonoak eta logotipoak
 ├── herramientas/                # Proiektuaren scriptak (verificar_idiomas.py...)

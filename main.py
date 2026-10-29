@@ -24,7 +24,7 @@ para que "python main.py" y la compilación con PyInstaller (build_desktop.yml)
 sigan funcionando igual.
 """
 
-from mantpro.interfaz.app import main
+from mantpro.interfaz.arranque import main
 
 if __name__ == "__main__":
     main()

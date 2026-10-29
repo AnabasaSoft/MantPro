@@ -718,14 +718,21 @@ many jobs will be removed and between which dates, and asks for confirmation.
 MantPro/
 ├── main.py                      # Entry point (python main.py)
 ├── mantpro/                     # Desktop app code
+│   ├── version.py               # Version (CI sets it from the tag)
 │   ├── nucleo/                  # Data and logic, no UI
 │   │   ├── usuarios.py          # Users, passwords, roles and sessions
 │   │   ├── almacen.py           # Warehouse stock: structure, materials and movements
 │   │   ├── maquinas.py          # Machinery tree and its job history
+│   │   ├── basedatos.py         # Jobs database
 │   │   └── importar.py          # Excel/CSV import
 │   ├── interfaz/                # PyQt6 windows
+│   │   ├── arranque.py          # Startup: single instance and sign-in
 │   │   ├── app.py               # Main desktop application
-│   │   └── dialogos_usuarios.py # PyQt6 dialogs: sign-in and user management
+│   │   ├── servidor.py          # Sync server for the phones
+│   │   ├── pestanas/            # One per tab: dashboard, calendar, stock...
+│   │   ├── acciones/            # Menu actions: backups, export, import, users
+│   │   ├── dialogos/            # Dialogs (sign-in and user management included)
+│   │   └── widgets/             # Photos and charts
 │   └── idiomas/                 # Desktop translations (ES / EN / EU / CA / GL / PT / FR)
 ├── recursos/                    # Icons and logos
 ├── herramientas/                # Project scripts (verificar_idiomas.py...)

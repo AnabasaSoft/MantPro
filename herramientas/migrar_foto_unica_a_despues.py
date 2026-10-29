@@ -38,7 +38,7 @@ PATRON_FOTO_DESPUES = re.compile(r"\[FOTO_DESPUES:\s*(.*?)\]")
 
 
 def obtener_ruta_datos():
-    """Misma lógica que usa la app (mantpro/interfaz/app.py) para localizar la carpeta de datos."""
+    """Misma lógica que usa la app (mantpro/nucleo/rutas.py) para localizar la carpeta de datos."""
     cwd = os.path.abspath(".")
     db_local = os.path.join(cwd, "mantenimiento.db")
     if os.path.exists(db_local):
