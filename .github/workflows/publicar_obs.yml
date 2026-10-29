@@ -1,0 +1,86 @@
+name: Publicar en OBS (openSUSE)
+
+# En cada tag vX.Y.Z actualiza el paquete home:danitxu79/MantPro de OBS
+# (openSUSE Build Service): pone esa versión en el .spec, añade la entrada al
+# .changes y hace el commit. OBS descarga solo el código del tag (servicio
+# download_files) y compila para Tumbleweed y Slowroll.
+#
+# Necesita dos secrets del repositorio (Settings > Secrets and variables >
+# Actions): OBS_USER (danitxu79) y OBS_PASSWORD (la contraseña de OBS).
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión a publicar en OBS (sin la v, p. ej. 3.10.1). Su tag tiene que existir."
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  obs:
+    runs-on: ubuntu-latest
+    env:
+      OBS_PROYECTO: home:danitxu79
+      OBS_PAQUETE: MantPro
+      VC_REALNAME: AnabasaSoft
+      VC_MAILADDR: anabasasoft@gmail.com
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Versión desde el tag
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+        if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+          echo "::error::Versión no válida: '$VERSION'"; exit 1
+        fi
+        echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+    - name: Instalar y configurar osc
+      env:
+        OBS_USER: ${{ secrets.OBS_USER }}
+        OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}
+      run: |
+        if [ -z "$OBS_USER" ] || [ -z "$OBS_PASSWORD" ]; then
+          echo "::error::Faltan los secrets OBS_USER y OBS_PASSWORD"; exit 1
+        fi
+        sudo apt-get update -qq && sudo apt-get install -y -qq osc
+        mkdir -p ~/.config/osc
+        cat > ~/.config/osc/oscrc << EOF
+        [general]
+        apiurl = https://api.opensuse.org
+
+        [https://api.opensuse.org]
+        user = $OBS_USER
+        pass = $OBS_PASSWORD
+        credentials_mgr_class = osc.credentials.PlaintextConfigFileCredentialsManager
+        EOF
+        chmod 600 ~/.config/osc/oscrc
+
+    - name: Actualizar el paquete en OBS
+      run: |
+        cd "$RUNNER_TEMP"
+        osc co "$OBS_PROYECTO" "$OBS_PAQUETE"
+        cd "$OBS_PROYECTO/$OBS_PAQUETE"
+        # El .spec y el _service del repo son la referencia; solo cambia la versión.
+        cp "$GITHUB_WORKSPACE/empaquetado/obs/mantpro.spec" "$GITHUB_WORKSPACE/empaquetado/obs/_service" .
+        sed -i "s/^Version:.*/Version:        $VERSION/" mantpro.spec
+        grep "^Version:" mantpro.spec
+        osc vc -m "Update to version $VERSION
+          * https://github.com/AnabasaSoft/MantPro/releases/tag/v$VERSION"
+        osc status
+        osc ci -m "Actualizar a la versión $VERSION"
+
+    - name: Esperar a que OBS compile
+      run: |
+        # Como mucho 40 minutos; si no ha terminado, el job no falla (se mira en OBS).
+        timeout 40m osc results -w "$OBS_PROYECTO" "$OBS_PAQUETE" || true
+        osc results "$OBS_PROYECTO" "$OBS_PAQUETE" | tee resultados.txt
+        if grep -E "x86_64.*(failed|unresolvable|broken)" resultados.txt; then
+          echo "::error::OBS no ha podido compilar MantPro $VERSION (ver https://build.opensuse.org/package/show/$OBS_PROYECTO/$OBS_PAQUETE)"
+          exit 1
+        fi

@@ -10,9 +10,10 @@
 # license for the pristine package is not an Open Source License, in which
 # case the license is the MIT License).
 #
-# Para publicar una versión nueva: cambiar Version y añadir una entrada a
-# mantpro.changes (osc vc). El código se descarga solo del tag v<Version>
-# de GitHub (servicio download_files, ver _service).
+# Las versiones nuevas se publican solas: al subir un tag vX.Y.Z a GitHub,
+# .github/workflows/publicar_obs.yml pone esa versión en Version, añade la
+# entrada a mantpro.changes y hace el commit en OBS. El código se descarga
+# del tag v<Version> de GitHub (servicio download_files, ver _service).
 #
 
 Name:           mantpro
