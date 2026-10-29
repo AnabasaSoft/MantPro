@@ -11,7 +11,7 @@
 # MantPro
 
 <p align="center">
-  <img src="logo.png" alt="Logotip de MantPro" width="200"/>
+  <img src="recursos/logo.png" alt="Logotip de MantPro" width="200"/>
 </p>
 
 <p align="center">
@@ -728,14 +728,21 @@ confirmació.
 
 ```
 MantPro/
-├── main.py                      # Aplicació principal d'escriptori
-├── usuarios.py                  # Usuaris, contrasenyes, rols i sessions
-├── dialogos_usuarios.py         # Diàlegs PyQt6: inici de sessió i gestió d'usuaris
-├── almacen.py                   # Estoc del magatzem: estructura, materials i moviments
-├── maquinas.py                  # Arbre de maquinària i el seu historial de treballs
-├── idiomas/                     # Traduccions de l'escriptori (ES / EN / EU / CA / GL / PT / FR)
+├── main.py                      # Punt d'arrencada (python main.py)
+├── mantpro/                     # Codi de l'aplicació d'escriptori
+│   ├── nucleo/                  # Dades i lògica, sense interfície
+│   │   ├── usuarios.py          # Usuaris, contrasenyes, rols i sessions
+│   │   ├── almacen.py           # Estoc del magatzem: estructura, materials i moviments
+│   │   ├── maquinas.py          # Arbre de maquinària i el seu historial de treballs
+│   │   └── importar.py          # Importació des d'Excel/CSV
+│   ├── interfaz/                # Finestres PyQt6
+│   │   ├── app.py               # Aplicació principal d'escriptori
+│   │   └── dialogos_usuarios.py # Diàlegs PyQt6: inici de sessió i gestió d'usuaris
+│   └── idiomas/                 # Traduccions de l'escriptori (ES / EN / EU / CA / GL / PT / FR)
+├── recursos/                    # Icones i logotips
+├── herramientas/                # Scripts del projecte (verificar_idiomas.py...)
+├── empaquetado/                 # Instal·lador de Windows (Inno Setup)
 ├── requirements.txt             # Dependències de Python
-├── logo.png                     # Logotip de l'aplicació
 ├── README.ca.md                 # Aquest fitxer
 ├── fotos_recibidas/             # Carpeta d'imatges
 ├── mantenimiento.db             # Base de dades SQLite (treballs de manteniment)
@@ -964,7 +971,7 @@ GNU juntament amb aquest programa. Si no és així, consulta
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
+<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/recursos/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
 
 **Desenvolupat amb ❤️ per [Anabasa Software](https://anabasasoft.github.io)**
 

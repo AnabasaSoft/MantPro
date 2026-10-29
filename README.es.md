@@ -11,7 +11,7 @@
 # MantPro
 
 <p align="center">
-  <img src="logo.png" alt="MantPro Logo" width="200"/>
+  <img src="recursos/logo.png" alt="MantPro Logo" width="200"/>
 </p>
 
 <p align="center">
@@ -727,14 +727,21 @@ confirmación.
 
 ```
 MantPro/
-├── main.py                      # Aplicación principal de escritorio
-├── usuarios.py                  # Usuarios, contraseñas, roles y sesiones
-├── dialogos_usuarios.py         # Diálogos PyQt6: login y gestión de usuarios
-├── almacen.py                   # Stock de almacén: estructura, materiales y movimientos
-├── maquinas.py                  # Árbol de maquinaria y su histórico de trabajos
-├── idiomas/                     # Traducciones del escritorio (ES / EN / EU / CA / GL / PT / FR)
+├── main.py                      # Punto de arranque (python main.py)
+├── mantpro/                     # Código de la app de escritorio
+│   ├── nucleo/                  # Datos y lógica, sin interfaz
+│   │   ├── usuarios.py          # Usuarios, contraseñas, roles y sesiones
+│   │   ├── almacen.py           # Stock de almacén: estructura, materiales y movimientos
+│   │   ├── maquinas.py          # Árbol de maquinaria y su histórico de trabajos
+│   │   └── importar.py          # Importación desde Excel/CSV
+│   ├── interfaz/                # Ventanas PyQt6
+│   │   ├── app.py               # Aplicación principal de escritorio
+│   │   └── dialogos_usuarios.py # Diálogos PyQt6: login y gestión de usuarios
+│   └── idiomas/                 # Traducciones del escritorio (ES / EN / EU / CA / GL / PT / FR)
+├── recursos/                    # Iconos y logotipos
+├── herramientas/                # Scripts del proyecto (verificar_idiomas.py...)
+├── empaquetado/                 # Instalador de Windows (Inno Setup)
 ├── requirements.txt             # Dependencias Python
-├── logo.png                     # Logo de la aplicación
 ├── README.es.md                 # Este archivo
 ├── fotos_recibidas/             # Carpeta de imágenes
 ├── mantenimiento.db             # Base de datos SQLite (trabajos de mantenimiento)
@@ -960,7 +967,7 @@ GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
+<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/recursos/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
 
 **Desarrollado con ❤️ por [Anabasa Software](https://anabasasoft.github.io)**
 

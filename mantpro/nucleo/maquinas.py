@@ -24,9 +24,9 @@ Las máquinas forman un árbol (una máquina puede tener submáquinas, para pode
 agrupar por planta/línea/equipo). Cada trabajo de la tabla "tareas" puede
 vincularse opcionalmente a una máquina mediante la columna tareas.maquina_id.
 
-Uso desde main.py:
+Uso desde la interfaz (mantpro/interfaz/app.py):
 
-    import maquinas
+    from mantpro.nucleo import maquinas
     maquinas.configurar_db(RUTA_DB)   # la misma BD que usa el resto de la app
     maquinas.inicializar()            # crea la tabla + migra la columna (idempotente)
 """

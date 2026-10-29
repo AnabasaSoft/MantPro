@@ -22,8 +22,9 @@ import json
 import os
 import re
 
-RUTA_BASE = os.path.dirname(os.path.abspath(__file__))
-DIR_IDIOMAS_PC = os.path.join(RUTA_BASE, "idiomas")
+# Raíz del proyecto (este script está en herramientas/)
+RUTA_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DIR_IDIOMAS_PC = os.path.join(RUTA_BASE, "mantpro", "idiomas")
 IDIOMA_REFERENCIA = "es"
 
 CARPETAS_I18N_MOVIL = [

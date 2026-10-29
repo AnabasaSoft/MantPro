@@ -34,11 +34,11 @@ from PyQt6.QtGui import QPixmap
 
 import os
 from datetime import datetime
-import usuarios
+from ..nucleo import usuarios
 
 try:
-    from idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
-    import idiomas as _idiomas
+    from ..idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
+    from .. import idiomas as _idiomas
 except Exception:  # pragma: no cover
     _t = None
     _idiomas = None

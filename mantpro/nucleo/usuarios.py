@@ -22,9 +22,9 @@ usuarios.py — Gestión de usuarios, autenticación y sesiones para MantPro.
 
 Sin dependencias externas: solo stdlib (sqlite3, hashlib, hmac, secrets).
 
-Uso desde main.py:
+Uso desde la interfaz (mantpro/interfaz/app.py):
 
-    import usuarios
+    from mantpro.nucleo import usuarios
     usuarios.configurar_db(RUTA_DB)      # la misma ruta que usa el resto de la app
     usuarios.inicializar()               # crea tablas + migra columnas (idempotente)
 

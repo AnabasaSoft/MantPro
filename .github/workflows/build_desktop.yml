@@ -42,16 +42,16 @@ jobs:
           CLEAN_VERSION="0.0"
         fi
         echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
-        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" main.py
+        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" mantpro/interfaz/app.py
 
     - name: Generar EXE
       run: |
-        pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=icono.png --add-data "idiomas;idiomas" main.py
+        pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=recursos/icono.png --add-data "recursos;recursos" --add-data "mantpro/idiomas;mantpro/idiomas" main.py
 
     - name: Build Windows Installer (Inno Setup)
       shell: bash
       run: |
-        iscc //DMyAppVersion="$CLEAN_VERSION" mantpro.iss
+        iscc //DMyAppVersion="$CLEAN_VERSION" empaquetado/mantpro.iss
 
     - name: Subir EXE (Artefacto)
       uses: actions/upload-artifact@v4
@@ -116,12 +116,12 @@ jobs:
           CLEAN_VERSION="0.0"
         fi
         echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
-        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" main.py
+        sed -i "s/^APP_VERSION = \".*\"/APP_VERSION = \"$CLEAN_VERSION\"/" mantpro/interfaz/app.py
 
     # --- PASO 1: GENERAR BINARIO STANDALONE ---
     - name: Generar Binario Linux
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=icono.png --add-data "icono.png:." --add-data "AnabasaSoft.png:." --add-data "idiomas:idiomas" --name "MantPro_Linux" main.py
+        pyinstaller --noconfirm --onefile --windowed --icon=recursos/icono.png --add-data "recursos/icono.png:recursos" --add-data "recursos/AnabasaSoft.png:recursos" --add-data "mantpro/idiomas:mantpro/idiomas" --name "MantPro_Linux" main.py
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
     - name: Subir Binario Linux (Artefacto)
@@ -137,8 +137,8 @@ jobs:
         mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
         cp dist/MantPro_Linux AppDir/usr/bin/mantpro
-        cp icono.png AppDir/mantpro.png
-        cp icono.png AppDir/.DirIcon
+        cp recursos/icono.png AppDir/mantpro.png
+        cp recursos/icono.png AppDir/.DirIcon
 
         cat > AppDir/mantpro.desktop <<EOF
         [Desktop Entry]
@@ -185,7 +185,7 @@ jobs:
 
         # 2. Copiar los archivos en sus rutas correctas
         cp dist/MantPro_Linux LinuxPkg/usr/bin/mantpro
-        cp icono.png LinuxPkg/usr/share/pixmaps/mantpro.png
+        cp recursos/icono.png LinuxPkg/usr/share/pixmaps/mantpro.png
         cp AppDir/mantpro.desktop LinuxPkg/usr/share/applications/mantpro.desktop
 
         # 3. Generar el paquete DEB

@@ -11,7 +11,7 @@
 # MantPro
 
 <p align="center">
-  <img src="logo.png" alt="MantPro logoa" width="200"/>
+  <img src="recursos/logo.png" alt="MantPro logoa" width="200"/>
 </p>
 
 <p align="center">
@@ -731,14 +731,21 @@ zein dataren artean erakusten du, eta berrespena eskatzen du.
 
 ```
 MantPro/
-├── main.py                      # Mahaigaineko aplikazio nagusia
-├── usuarios.py                  # Erabiltzaileak, pasahitzak, rolak eta saioak
-├── dialogos_usuarios.py         # PyQt6 elkarrizketa-koadroak: saio-hasiera eta erabiltzaileen kudeaketa
-├── almacen.py                   # Biltegiko stocka: egitura, materialak eta mugimenduak
-├── maquinas.py                  # Makineriaren zuhaitza eta haren lanen historia
-├── idiomas/                     # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
+├── main.py                      # Abiarazte-puntua (python main.py)
+├── mantpro/                     # Mahaigaineko aplikazioaren kodea
+│   ├── nucleo/                  # Datuak eta logika, interfazerik gabe
+│   │   ├── usuarios.py          # Erabiltzaileak, pasahitzak, rolak eta saioak
+│   │   ├── almacen.py           # Biltegiko stocka: egitura, materialak eta mugimenduak
+│   │   ├── maquinas.py          # Makineriaren zuhaitza eta haren lanen historia
+│   │   └── importar.py          # Excel/CSV inportazioa
+│   ├── interfaz/                # PyQt6 leihoak
+│   │   ├── app.py               # Mahaigaineko aplikazio nagusia
+│   │   └── dialogos_usuarios.py # PyQt6 elkarrizketa-koadroak: saio-hasiera eta erabiltzaileen kudeaketa
+│   └── idiomas/                 # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
+├── recursos/                    # Ikonoak eta logotipoak
+├── herramientas/                # Proiektuaren scriptak (verificar_idiomas.py...)
+├── empaquetado/                 # Windows-erako instalatzailea (Inno Setup)
 ├── requirements.txt             # Python mendekotasunak
-├── logo.png                     # Aplikazioaren logoa
 ├── README.eu.md                 # Fitxategi hau
 ├── fotos_recibidas/             # Irudien karpeta
 ├── mantenimiento.db             # SQLite datu-basea (mantentze-lanak)
@@ -969,7 +976,7 @@ bat jaso beharko zenuke. Hala ez bada, ikusi <https://www.gnu.org/licenses/>.
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
+<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/recursos/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
 
 **[Anabasa Software](https://anabasasoft.github.io)-k ❤️-z garatua**
 

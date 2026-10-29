@@ -11,7 +11,7 @@
 # MantPro
 
 <p align="center">
-  <img src="logo.png" alt="Logotipo de MantPro" width="200"/>
+  <img src="recursos/logo.png" alt="Logotipo de MantPro" width="200"/>
 </p>
 
 <p align="center">
@@ -724,14 +724,21 @@ cantos traballos se van eliminar e entre que datas, e pide confirmación.
 
 ```
 MantPro/
-├── main.py                      # Aplicación principal de escritorio
-├── usuarios.py                  # Usuarios, contrasinais, roles e sesións
-├── dialogos_usuarios.py         # Diálogos PyQt6: inicio de sesión e xestión de usuarios
-├── almacen.py                   # Stock do almacén: estrutura, materiais e movementos
-├── maquinas.py                  # Árbore de maquinaria e o seu historial de traballos
-├── idiomas/                     # Traducións do escritorio (ES / EN / EU / CA / GL / PT / FR)
+├── main.py                      # Punto de arranque (python main.py)
+├── mantpro/                     # Código da aplicación de escritorio
+│   ├── nucleo/                  # Datos e lóxica, sen interface
+│   │   ├── usuarios.py          # Usuarios, contrasinais, roles e sesións
+│   │   ├── almacen.py           # Stock do almacén: estrutura, materiais e movementos
+│   │   ├── maquinas.py          # Árbore de maquinaria e o seu historial de traballos
+│   │   └── importar.py          # Importación dende Excel/CSV
+│   ├── interfaz/                # Xanelas PyQt6
+│   │   ├── app.py               # Aplicación principal de escritorio
+│   │   └── dialogos_usuarios.py # Diálogos PyQt6: inicio de sesión e xestión de usuarios
+│   └── idiomas/                 # Traducións do escritorio (ES / EN / EU / CA / GL / PT / FR)
+├── recursos/                    # Iconas e logotipos
+├── herramientas/                # Scripts do proxecto (verificar_idiomas.py...)
+├── empaquetado/                 # Instalador de Windows (Inno Setup)
 ├── requirements.txt             # Dependencias de Python
-├── logo.png                     # Logotipo da aplicación
 ├── README.gl.md                 # Este ficheiro
 ├── fotos_recibidas/             # Cartafol de imaxes
 ├── mantenimiento.db             # Base de datos SQLite (traballos de mantemento)
@@ -958,7 +965,7 @@ xunto con este programa. Se non é así, consulta
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
+<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/recursos/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
 
 **Desenvolvido con ❤️ por [Anabasa Software](https://anabasasoft.github.io)**
 

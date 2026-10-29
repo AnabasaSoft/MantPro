@@ -36,10 +36,9 @@ import sqlite3
 import unicodedata
 from datetime import date, datetime, timedelta
 
-import almacen
-import idiomas
-import usuarios
-from idiomas import t
+from . import almacen, usuarios
+from .. import idiomas
+from ..idiomas import t
 
 TIPOS = ("maquinas", "articulos", "avisos", "usuarios")
 

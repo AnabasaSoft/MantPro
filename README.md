@@ -11,7 +11,7 @@
 # MantPro
 
 <p align="center">
-  <img src="logo.png" alt="MantPro Logo" width="200"/>
+  <img src="recursos/logo.png" alt="MantPro Logo" width="200"/>
 </p>
 
 <p align="center">
@@ -716,14 +716,21 @@ many jobs will be removed and between which dates, and asks for confirmation.
 
 ```
 MantPro/
-├── main.py                      # Main desktop application
-├── usuarios.py                  # Users, passwords, roles and sessions
-├── dialogos_usuarios.py         # PyQt6 dialogs: sign-in and user management
-├── almacen.py                   # Warehouse stock: structure, materials and movements
-├── maquinas.py                  # Machinery tree and its job history
-├── idiomas/                     # Desktop translations (ES / EN / EU / CA / GL / PT / FR)
+├── main.py                      # Entry point (python main.py)
+├── mantpro/                     # Desktop app code
+│   ├── nucleo/                  # Data and logic, no UI
+│   │   ├── usuarios.py          # Users, passwords, roles and sessions
+│   │   ├── almacen.py           # Warehouse stock: structure, materials and movements
+│   │   ├── maquinas.py          # Machinery tree and its job history
+│   │   └── importar.py          # Excel/CSV import
+│   ├── interfaz/                # PyQt6 windows
+│   │   ├── app.py               # Main desktop application
+│   │   └── dialogos_usuarios.py # PyQt6 dialogs: sign-in and user management
+│   └── idiomas/                 # Desktop translations (ES / EN / EU / CA / GL / PT / FR)
+├── recursos/                    # Icons and logos
+├── herramientas/                # Project scripts (verificar_idiomas.py...)
+├── empaquetado/                 # Windows installer (Inno Setup)
 ├── requirements.txt             # Python dependencies
-├── logo.png                     # Application logo
 ├── README.md                    # This file
 ├── fotos_recibidas/             # Image folder
 ├── mantenimiento.db             # SQLite database (maintenance jobs)
@@ -949,7 +956,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
+<img src="https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/recursos/AnabasaSoft.png" alt="Anabasa Software" width="120"/>
 
 **Made with ❤️ by [Anabasa Software](https://anabasasoft.github.io)**
 

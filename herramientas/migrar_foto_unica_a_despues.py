@@ -20,9 +20,9 @@ SEGURIDAD:
   modifica nada). Hay que confirmar explícitamente para aplicar los cambios.
 
 Uso:
-    python3 migrar_foto_unica_a_despues.py            -> solo previsualiza
-    python3 migrar_foto_unica_a_despues.py --aplicar   -> aplica los cambios
-    python3 migrar_foto_unica_a_despues.py --db /ruta/a/mantenimiento.db --aplicar
+    python3 herramientas/migrar_foto_unica_a_despues.py            -> solo previsualiza
+    python3 herramientas/migrar_foto_unica_a_despues.py --aplicar   -> aplica los cambios
+    python3 herramientas/migrar_foto_unica_a_despues.py --db /ruta/a/mantenimiento.db --aplicar
 """
 
 import os
@@ -38,7 +38,7 @@ PATRON_FOTO_DESPUES = re.compile(r"\[FOTO_DESPUES:\s*(.*?)\]")
 
 
 def obtener_ruta_datos():
-    """Misma lógica que usa main.py para localizar la carpeta de datos."""
+    """Misma lógica que usa la app (mantpro/interfaz/app.py) para localizar la carpeta de datos."""
     cwd = os.path.abspath(".")
     db_local = os.path.join(cwd, "mantenimiento.db")
     if os.path.exists(db_local):

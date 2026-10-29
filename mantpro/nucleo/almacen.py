@@ -34,9 +34,9 @@ Cada material se ubica en una sección concreta. El stock se modifica
 únicamente a través de movimientos (entrada/salida), que quedan
 registrados para trazabilidad.
 
-Uso desde main.py:
+Uso desde la interfaz (mantpro/interfaz/app.py):
 
-    import almacen
+    from mantpro.nucleo import almacen
     almacen.configurar_db(RUTA_DB_ALMACEN)
     almacen.inicializar()
 """

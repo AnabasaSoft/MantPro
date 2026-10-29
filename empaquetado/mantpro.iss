@@ -9,10 +9,11 @@ AppPublisherURL=https://github.com/AnabasaSoft/MantPro
 DefaultDirName={autopf}\MantPro
 DefaultGroupName=MantPro
 
-; Configuración del archivo de salida (El instalador)
-OutputDir=.\Output
+; Configuración del archivo de salida (El instalador). Las rutas relativas
+; se resuelven desde esta carpeta (empaquetado/), de ahí los "..\".
+OutputDir=..\Output
 OutputBaseFilename=MantPro_Setup_v{#MyAppVersion}
-SetupIconFile=icono.ico
+SetupIconFile=..\recursos\icono.ico
 
 ; Compresión para que pese menos
 Compression=lzma2
@@ -27,7 +28,7 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el escritorio"; Gr
 [Files]
 ; Aquí le decimos dónde está el .exe que generó PyInstaller
 ; OJO: Asegúrate de que la ruta coincida con donde PyInstaller deja tu ejecutable (suele ser 'dist')
-Source: "dist\MantPro_WIN.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\MantPro_WIN.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; Crea el acceso directo en el menú de inicio
