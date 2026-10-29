@@ -337,7 +337,7 @@ Deskargatu dagokion `.apk`-a [GitHub Releases](https://github.com/AnabasaSoft/Ma
 1. **Aplikazioa abiarazi**: Exekutatu `python main.py` (sinkronizazio-zerbitzaria bere kabuz abiarazten da, ez dago eskuz abiarazi beharrik)
 2. **Lehen sarbidea**: Lehen abiaraztean `admin` erabiltzailea sortzen da `admin` pasahitzarekin. Aplikazioak **aldatzera behartzen du** sartzean
 3. **Erabiltzaileak sortu**: `Tresnak` menua > `👥 Erabiltzaileen kudeaketa` > eman alta teknikari bakoitzari
-4. **Logoa konfiguratu** (aukerakoa): `Fitxategia` menua > `📄 PDF Aukerak` > `🖼️ Gehitu / Aldatu Logoa`
+4. **Logoa konfiguratu** (aukerakoa): `Fitxategia` menua > `📤 Esportatu` > `📄 PDF Aukerak` > `🖼️ Gehitu / Aldatu Logoa`
 5. **Lan bat erregistratu**: "📝 Erregistratu" fitxa > bete laburpena/xehetasunak > "💾 GORDE ERREGISTROA"
 6. **Egiteko lan bat sortu**: "🔨 Egiteke" fitxa > "Lan Berria" taldea (Izenburua + Xehetasunak + "Esleitu honi") > "Gehitu"
 
@@ -366,9 +366,9 @@ Deskargatu dagokion `.apk`-a [GitHub Releases](https://github.com/AnabasaSoft/Ma
    - "Nork egina" zutabeak lan bakoitza nork egin zuen adierazten du, eta goiko goitibeherakoak pertsona bakar batenak soilik ikusteko aukera ematen du
 
 3. **Txostenak sortu**:
-   - `Fitxategia` menua > `📄 PDF Aukerak` > `📄 Sortu PDFa orain`
+   - `Fitxategia` menua > `📤 Esportatu` > `📄 PDF Aukerak` > `📄 Sortu PDFa orain`
    - Elkarrizketa-koadroan teknikaria aukera dezakezu, eta haren izena txostenaren izenburuan agertzen da
-   - Edo esportatu `📄 CSV` / `📊 Excel` formatura `Fitxategia` menu beretik
+   - Edo esportatu `📄 CSV` / `📊 Excel` formatura `Fitxategia` > `📤 Esportatu` menutik
 
 #### Mugikorretik
 

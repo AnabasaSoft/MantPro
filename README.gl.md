@@ -335,7 +335,7 @@ Descarga o `.apk` correspondente dende [GitHub Releases](https://github.com/Anab
 1. **Iniciar a aplicación**: executa `python main.py` (o servidor de sincronización arranca só, non fai falta inicialo a man)
 2. **Primeiro acceso**: no primeiro arranque créase o usuario `admin` co contrasinal `admin`. A aplicación **obriga a cambialo** ao entrar
 3. **Crear os usuarios**: menú `Ferramentas` > `👥 Xestión de usuarios` > dá de alta cada técnico
-4. **Configurar o logotipo** (opcional): menú `Ficheiro` > `📄 Opcións PDF` > `🖼️ Engadir / cambiar o logotipo`
+4. **Configurar o logotipo** (opcional): menú `Ficheiro` > `📤 Exportar` > `📄 Opcións PDF` > `🖼️ Engadir / cambiar o logotipo`
 5. **Rexistrar un traballo**: lapela "📝 Rexistrar" > enche o resumo e os detalles > "💾 GARDAR REXISTRO"
 6. **Crear un pendente**: lapela "🔨 Pendentes" > grupo "Traballo novo" (Título + Detalles + "Asignar a") > "Engadir"
 
@@ -364,9 +364,9 @@ Descarga o `.apk` correspondente dende [GitHub Releases](https://github.com/Anab
    - A columna "Feito por" indica quen fixo cada traballo, e o despregable de arriba permite ver só os dunha persoa
 
 3. **Xerar informes**:
-   - Menú `Ficheiro` > `📄 Opcións PDF` > `📄 Xerar PDF agora`
+   - Menú `Ficheiro` > `📤 Exportar` > `📄 Opcións PDF` > `📄 Xerar PDF agora`
    - No diálogo podes escoller o técnico, e o seu nome aparece no título do informe
-   - Ou exporta a `📄 CSV` / `📊 Excel` dende o mesmo menú `Ficheiro`
+   - Ou exporta a `📄 CSV` / `📊 Excel` dende `Ficheiro` > `📤 Exportar`
 
 #### Dende o móbil
 

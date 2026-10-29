@@ -335,7 +335,7 @@ Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/An
 1. **Iniciar la aplicación**: Ejecuta `python main.py` (el servidor de sincronización arranca solo, no hace falta iniciarlo a mano)
 2. **Primer acceso**: En el primer arranque se crea el usuario `admin` con contraseña `admin`. La aplicación **obliga a cambiarla** al entrar
 3. **Crear los usuarios**: Menú `Herramientas` > `👥 Gestión de usuarios` > da de alta a cada técnico
-4. **Configurar logo** (opcional): Menú `Archivo` > `📄 Opciones PDF` > `🖼️ Añadir / Cambiar Logo`
+4. **Configurar logo** (opcional): Menú `Archivo` > `📤 Exportar` > `📄 Opciones PDF` > `🖼️ Añadir / Cambiar Logo`
 5. **Registrar un trabajo**: Pestaña "📝 Registrar" > rellena resumen/detalles > "💾 GUARDAR REGISTRO"
 6. **Crear un pendiente**: Pestaña "🔨 Pendientes" > grupo "Nuevo Trabajo" (Título + Detalles + "Asignar a") > "Añadir"
 
@@ -364,9 +364,9 @@ Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/An
    - La columna "Realizado por" indica quién hizo cada trabajo, y el desplegable de arriba permite ver solo los de una persona
 
 3. **Generar reportes**:
-   - Menú `Archivo` > `📄 Opciones PDF` > `📄 Generar PDF Ahora`
+   - Menú `Archivo` > `📤 Exportar` > `📄 Opciones PDF` > `📄 Generar PDF Ahora`
    - En el diálogo puedes elegir el técnico, y su nombre aparece en el título del informe
-   - O exporta a `📄 CSV` / `📊 Excel` desde el mismo menú `Archivo`
+   - O exporta a `📄 CSV` / `📊 Excel` desde `Archivo` > `📤 Exportar`
 
 #### Desde el Móvil
 

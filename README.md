@@ -333,7 +333,7 @@ Download the matching `.apk` from [GitHub Releases](https://github.com/AnabasaSo
 1. **Start the application**: Run `python main.py` (the sync server starts on its own, there is no need to start it by hand)
 2. **First sign-in**: On first launch the user `admin` is created with password `admin`. The application **forces you to change it** when you sign in
 3. **Create the users**: `Tools` menu > `👥 User management` > add each technician
-4. **Set up the logo** (optional): `File` menu > `📄 PDF Options` > `🖼️ Add / Change Logo`
+4. **Set up the logo** (optional): `File` menu > `📤 Export` > `📄 PDF Options` > `🖼️ Add / Change Logo`
 5. **Log a job**: "📝 New Entry" tab > fill in summary/details > "💾 SAVE RECORD"
 6. **Create a pending task**: "🔨 Pending" tab > "New Job" group (Title + Details + "Assign to") > "Add"
 
@@ -362,9 +362,9 @@ Download the matching `.apk` from [GitHub Releases](https://github.com/AnabasaSo
    - The "Performed by" column shows who did each job, and the drop-down above lets you see only one person's jobs
 
 3. **Generate reports**:
-   - `File` menu > `📄 PDF Options` > `📄 Generate PDF Now`
+   - `File` menu > `📤 Export` > `📄 PDF Options` > `📄 Generate PDF Now`
    - In the dialog you can choose the technician, and their name appears in the report title
-   - Or export to `📄 CSV` / `📊 Excel` from the same `File` menu
+   - Or export to `📄 CSV` / `📊 Excel` from `File` > `📤 Export`
 
 #### From the Phone
 

@@ -336,7 +336,7 @@ Baixe o `.apk` correspondente em [GitHub Releases](https://github.com/AnabasaSof
 1. **Iniciar o aplicativo**: execute `python main.py` (o servidor de sincronização inicia sozinho, não é preciso iniciá-lo manualmente)
 2. **Primeiro acesso**: na primeira execução é criado o usuário `admin` com a senha `admin`. O aplicativo **obriga a alterá-la** ao entrar
 3. **Criar os usuários**: menu `Ferramentas` > `👥 Gerenciamento de usuários` > cadastre cada técnico
-4. **Configurar o logo** (opcional): menu `Arquivo` > `📄 Opções de PDF` > `🖼️ Adicionar / Alterar Logo`
+4. **Configurar o logo** (opcional): menu `Arquivo` > `📤 Exportar` > `📄 Opções de PDF` > `🖼️ Adicionar / Alterar Logo`
 5. **Registrar um serviço**: aba "📝 Registrar" > preencha o resumo e os detalhes > "💾 SALVAR REGISTRO"
 6. **Criar um pendente**: aba "🔨 Pendentes" > grupo "Novo Serviço" (Título + Detalhes + "Atribuir a") > "Adicionar"
 
@@ -365,9 +365,9 @@ Baixe o `.apk` correspondente em [GitHub Releases](https://github.com/AnabasaSof
    - A coluna "Realizado por" indica quem fez cada serviço, e a lista acima permite ver apenas os de uma pessoa
 
 3. **Gerar relatórios**:
-   - Menu `Arquivo` > `📄 Opções de PDF` > `📄 Gerar PDF Agora`
+   - Menu `Arquivo` > `📤 Exportar` > `📄 Opções de PDF` > `📄 Gerar PDF Agora`
    - Na janela você pode escolher o técnico, e o nome dele aparece no título do relatório
-   - Ou exporte para `📄 CSV` / `📊 Excel` no mesmo menu `Arquivo`
+   - Ou exporte para `📄 CSV` / `📊 Excel` em `Arquivo` > `📤 Exportar`
 
 #### Pelo celular
 

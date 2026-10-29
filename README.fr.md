@@ -336,7 +336,7 @@ Téléchargez le `.apk` correspondant depuis [GitHub Releases](https://github.co
 1. **Lancer l'application** : exécutez `python main.py` (le serveur de synchronisation démarre tout seul, inutile de le lancer à la main)
 2. **Première connexion** : au premier lancement, l'utilisateur `admin` est créé avec le mot de passe `admin`. L'application **oblige à le changer** à la connexion
 3. **Créer les utilisateurs** : menu `Outils` > `👥 Gestion des utilisateurs` > ajoutez chaque technicien
-4. **Configurer le logo** (facultatif) : menu `Fichier` > `📄 Options PDF` > `🖼️ Ajouter / Changer le logo`
+4. **Configurer le logo** (facultatif) : menu `Fichier` > `📤 Exporter` > `📄 Options PDF` > `🖼️ Ajouter / Changer le logo`
 5. **Enregistrer une intervention** : onglet « 📝 Enregistrer » > remplissez le résumé et les détails > « 💾 ENREGISTRER »
 6. **Créer une tâche en attente** : onglet « 🔨 En attente » > groupe « Nouvelle intervention » (Titre + Détails + « Assigner à ») > « Ajouter »
 
@@ -365,9 +365,9 @@ Téléchargez le `.apk` correspondant depuis [GitHub Releases](https://github.co
    - La colonne « Réalisé par » indique qui a fait chaque intervention, et la liste au-dessus permet de n'afficher que celles d'une personne
 
 3. **Générer des rapports** :
-   - Menu `Fichier` > `📄 Options PDF` > `📄 Générer le PDF maintenant`
+   - Menu `Fichier` > `📤 Exporter` > `📄 Options PDF` > `📄 Générer le PDF maintenant`
    - Dans la fenêtre, vous pouvez choisir le technicien, et son nom apparaît dans le titre du rapport
-   - Ou exportez en `📄 CSV` / `📊 Excel` depuis le même menu `Fichier`
+   - Ou exportez en `📄 CSV` / `📊 Excel` depuis `Fichier` > `📤 Exporter`
 
 #### Depuis le mobile
 

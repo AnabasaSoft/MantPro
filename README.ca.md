@@ -337,7 +337,7 @@ Descarrega l'`.apk` corresponent des de [GitHub Releases](https://github.com/Ana
 1. **Iniciar l'aplicació**: executa `python main.py` (el servidor de sincronització s'engega sol, no cal iniciar-lo a mà)
 2. **Primer accés**: en el primer arrencament es crea l'usuari `admin` amb contrasenya `admin`. L'aplicació **obliga a canviar-la** en entrar
 3. **Crear els usuaris**: menú `Eines` > `👥 Gestió d'usuaris` > dona d'alta cada tècnic
-4. **Configurar el logotip** (opcional): menú `Arxiu` > `📄 Opcions PDF` > `🖼️ Afegir / canviar el logotip`
+4. **Configurar el logotip** (opcional): menú `Arxiu` > `📤 Exportar` > `📄 Opcions PDF` > `🖼️ Afegir / canviar el logotip`
 5. **Registrar un treball**: pestanya "📝 Registrar" > omple el resum i els detalls > "💾 DESAR REGISTRE"
 6. **Crear un pendent**: pestanya "🔨 Pendents" > grup "Treball nou" (Títol + Detalls + "Assignar a") > "Afegir"
 
@@ -366,9 +366,9 @@ Descarrega l'`.apk` corresponent des de [GitHub Releases](https://github.com/Ana
    - La columna "Fet per" indica qui va fer cada treball, i el desplegable de dalt permet veure només els d'una persona
 
 3. **Generar informes**:
-   - Menú `Arxiu` > `📄 Opcions PDF` > `📄 Generar PDF ara`
+   - Menú `Arxiu` > `📤 Exportar` > `📄 Opcions PDF` > `📄 Generar PDF ara`
    - Al diàleg pots triar el tècnic, i el seu nom apareix al títol de l'informe
-   - O exporta a `📄 CSV` / `📊 Excel` des del mateix menú `Arxiu`
+   - O exporta a `📄 CSV` / `📊 Excel` des de `Arxiu` > `📤 Exportar`
 
 #### Des del mòbil
 
