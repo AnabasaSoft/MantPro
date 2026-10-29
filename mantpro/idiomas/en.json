@@ -720,5 +720,6 @@
   "imp_msg_falta_obligatorio_hoja": "Sheet «{hoja}»: choose the column for: {campos}",
   "imp_resumen_total": "Total: {resumen}",
   "imp_resumen_hoja": "{hoja}: {resumen}",
-  "imp_aviso_crear_balda": "Shelf {baldas} will be created in «{estanteria}»"
+  "imp_aviso_crear_balda": "Shelf {baldas} will be created in «{estanteria}»",
+  "menu_exportar": "📤 Export"
 }

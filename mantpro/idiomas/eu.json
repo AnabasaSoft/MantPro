@@ -720,5 +720,6 @@
   "imp_msg_falta_obligatorio_hoja": "«{hoja}» orria: adierazi honen zutabea: {campos}",
   "imp_resumen_total": "Guztira: {resumen}",
   "imp_resumen_hoja": "{hoja}: {resumen}",
-  "imp_aviso_crear_balda": "{baldas} apala sortuko da «{estanteria}» apalategian"
+  "imp_aviso_crear_balda": "{baldas} apala sortuko da «{estanteria}» apalategian",
+  "menu_exportar": "📤 Esportatu"
 }

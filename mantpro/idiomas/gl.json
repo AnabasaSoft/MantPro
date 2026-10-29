@@ -720,5 +720,6 @@
   "imp_msg_falta_obligatorio_hoja": "Folla «{hoja}»: falta indicar a columna de: {campos}",
   "imp_resumen_total": "Total: {resumen}",
   "imp_resumen_hoja": "{hoja}: {resumen}",
-  "imp_aviso_crear_balda": "Crearase a balda {baldas} en «{estanteria}»"
+  "imp_aviso_crear_balda": "Crearase a balda {baldas} en «{estanteria}»",
+  "menu_exportar": "📤 Exportar"
 }

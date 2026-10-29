@@ -345,8 +345,9 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             fm.addAction(QAction(t("menu_importar"), self, triggered=self.importar_datos))
             fm.addSeparator()
 
-        # --- SUBMENÚ PDF ---
-        menu_pdf = fm.addMenu(t("menu_opciones_pdf"))
+        # --- SUBMENÚ EXPORTAR (PDF, CSV y Excel) ---
+        menu_exportar = fm.addMenu(t("menu_exportar"))
+        menu_pdf = menu_exportar.addMenu(t("menu_opciones_pdf"))
 
         act_exportar = QAction(t("menu_generar_pdf"), self)
         act_exportar.triggered.connect(self.exportar_pdf)
@@ -363,8 +364,8 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         menu_pdf.addAction(act_quitar_logo)
         # --------------------
 
-        fm.addAction(QAction(t("menu_csv"), self, triggered=self.exportar_csv))
-        fm.addAction(QAction(t("menu_excel"), self, triggered=self.exportar_excel))
+        menu_exportar.addAction(QAction(t("menu_csv"), self, triggered=self.exportar_csv))
+        menu_exportar.addAction(QAction(t("menu_excel"), self, triggered=self.exportar_excel))
         tm = mb.addMenu(t("menu_herramientas"))
         act_sync = QAction(t("menu_sync_qr"), self); act_sync.triggered.connect(self.mostrar_dialogo_qr); tm.addAction(act_sync)
         if usuarios.es_admin():

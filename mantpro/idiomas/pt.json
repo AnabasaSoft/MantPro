@@ -720,5 +720,6 @@
   "imp_msg_falta_obligatorio_hoja": "Planilha «{hoja}»: falta indicar a coluna de: {campos}",
   "imp_resumen_total": "Total: {resumen}",
   "imp_resumen_hoja": "{hoja}: {resumen}",
-  "imp_aviso_crear_balda": "Será criada a prateleira {baldas} em «{estanteria}»"
+  "imp_aviso_crear_balda": "Será criada a prateleira {baldas} em «{estanteria}»",
+  "menu_exportar": "📤 Exportar"
 }

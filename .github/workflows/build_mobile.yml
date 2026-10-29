@@ -44,7 +44,16 @@ jobs:
           CLEAN_VERSION="0.0.0"
         fi
         IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
-        BUILD_NUMBER=$(( ${MAJOR:-0} * 100 + ${MINOR:-0} * 10 + ${PATCH:-0} ))
+        # versionCode de Android: tiene que crecer SIEMPRE de una versión a la
+        # siguiente o el móvil rechaza la actualización ("paquete no válido").
+        # MAYOR*10000 + MENOR*100 + PARCHE: 3.9.21 -> 30921, 3.10.0 -> 31000.
+        # (La fórmula anterior, MAYOR*100 + MENOR*10 + PARCHE, daba 411 para
+        # 3.9.21 y 400 para 3.10.0.) "10#" fuerza base 10 ("08" no es octal).
+        MAJOR=$((10#${MAJOR:-0})); MINOR=$((10#${MINOR:-0})); PATCH=$((10#${PATCH:-0}))
+        if [ "$MINOR" -ge 100 ] || [ "$PATCH" -ge 100 ]; then
+          echo "::error::La versión menor y el parche deben ser menores de 100 ($CLEAN_VERSION)"; exit 1
+        fi
+        BUILD_NUMBER=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
         sed -i "s/^version: .*/version: $CLEAN_VERSION+$BUILD_NUMBER/" pubspec.yaml
         sed -i "s/const String kAppVersion = '.*';/const String kAppVersion = '$CLEAN_VERSION';/" lib/main.dart
 
@@ -118,7 +127,16 @@ jobs:
           CLEAN_VERSION="0.0.0"
         fi
         IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
-        BUILD_NUMBER=$(( ${MAJOR:-0} * 100 + ${MINOR:-0} * 10 + ${PATCH:-0} ))
+        # versionCode de Android: tiene que crecer SIEMPRE de una versión a la
+        # siguiente o el móvil rechaza la actualización ("paquete no válido").
+        # MAYOR*10000 + MENOR*100 + PARCHE: 3.9.21 -> 30921, 3.10.0 -> 31000.
+        # (La fórmula anterior, MAYOR*100 + MENOR*10 + PARCHE, daba 411 para
+        # 3.9.21 y 400 para 3.10.0.) "10#" fuerza base 10 ("08" no es octal).
+        MAJOR=$((10#${MAJOR:-0})); MINOR=$((10#${MINOR:-0})); PATCH=$((10#${PATCH:-0}))
+        if [ "$MINOR" -ge 100 ] || [ "$PATCH" -ge 100 ]; then
+          echo "::error::La versión menor y el parche deben ser menores de 100 ($CLEAN_VERSION)"; exit 1
+        fi
+        BUILD_NUMBER=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
         sed -i "s/^version: .*/version: $CLEAN_VERSION+$BUILD_NUMBER/" pubspec.yaml
         sed -i "s/const String kAppVersion = '.*';/const String kAppVersion = '$CLEAN_VERSION';/" lib/main.dart
 
