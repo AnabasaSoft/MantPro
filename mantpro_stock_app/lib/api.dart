@@ -47,16 +47,22 @@ class ConexionPC {
   static Future<bool>? _sondeoEnCurso;
   static const _validez = Duration(seconds: 20);
 
+  /// Estado de la conexión para la interfaz (icono de usuario en verde o en
+  /// rojo): null mientras no se ha comprobado aún.
+  static final ValueNotifier<bool?> estado = ValueNotifier(null);
+
   static bool get sinConexion => _accesible == false;
 
   static void marcarFallo() {
     _accesible = false;
     _comprobadoEn = DateTime.now();
+    estado.value = false;
   }
 
   static void marcarExito() {
     _accesible = true;
     _comprobadoEn = DateTime.now();
+    estado.value = true;
   }
 
   /// true si el error es de red (PC apagado, otra wifi, sin cobertura...), y
@@ -249,6 +255,33 @@ Future<http.Response> httpGetAuth(Uri url) async {
   ConexionPC.marcarExito();
   await comprobar401(res.statusCode);
   return res;
+}
+
+/// Latido ligero cada pocos segundos mientras la app está abierta: le dice al
+/// PC que sigue conectada (columna "Conexión" de "Sesiones de dispositivos")
+/// y actualiza al momento el icono de usuario verde/rojo. No sincroniza datos.
+Future<void> latidoPC() async {
+  if (!AuthService.autenticado) return;
+  final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
+  if (ip == null) return;
+  try {
+    await httpGetAuth(Uri.parse('http://$ip/api/yo')).timeout(const Duration(seconds: 3));
+  } catch (e) {
+    if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
+  }
+}
+
+/// Avisa al PC de que la app pasa a segundo plano o se cierra, para que en
+/// "Sesiones de dispositivos" salga "Sin conexión" al momento. Si no llega (sin
+/// red), el PC lo deduce igualmente al dejar de recibir latidos.
+Future<void> avisarDesconexionPC() async {
+  if (!AuthService.autenticado) return;
+  final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
+  if (ip == null) return;
+  try {
+    await http.post(Uri.parse('http://$ip/api/desconectar'), headers: AuthService.cabeceras())
+        .timeout(const Duration(seconds: 2));
+  } catch (_) {}
 }
 
 class ApiException implements Exception {

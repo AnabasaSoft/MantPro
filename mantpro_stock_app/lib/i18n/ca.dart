@@ -128,6 +128,8 @@ const Map<String, String> traduccionesCa = {
     "msg_articulo_eliminado": "✅ Article eliminat",
     "msg_articulo_eliminado_pendiente": "💾 Eliminat al mòbil. Es confirmarà al PC quan hi hagi connexió.",
     "lbl_pendiente_sincronizar": "Pendent d'enviar al PC",
+    "lbl_conectado_pc": "🟢 Connectat al PC",
+    "lbl_desconectado_pc": "🔴 Sense connexió amb el PC",
 
     // --- Comprobador de actualizaciones ---
     "msg_nueva_version_titulo": "🚀 Nova versió disponible",

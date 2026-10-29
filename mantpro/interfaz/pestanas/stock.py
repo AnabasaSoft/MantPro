@@ -39,7 +39,7 @@ from PyQt6.QtGui import QColor, QBrush
 from ... import idiomas
 from ...idiomas import t
 from ..comun import traducir_motivo_movimiento, tt
-from ..dialogos.almacen import (DialogoConfigurarAlmacen, DialogoEditarMaterial,
+from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmacen, DialogoEditarMaterial,
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
@@ -73,7 +73,8 @@ class PestanaStock:
         btn_entrada = QPushButton(tt("btn_entrada_stock", "📥 Entrada")); btn_entrada.setStyleSheet("background-color:#27ae60; color:white;"); btn_entrada.clicked.connect(lambda: self.stock_registrar_movimiento("entrada"))
         btn_salida = QPushButton(tt("btn_salida_stock", "📤 Salida")); btn_salida.setStyleSheet("background-color:#d35400; color:white;"); btn_salida.clicked.connect(lambda: self.stock_registrar_movimiento("salida"))
         btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); btn_exportar.clicked.connect(lambda: self.stock_exportar())
-        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, btn_exportar): barra.addWidget(b)
+        btn_historial = QPushButton(tt("btn_historial_almacen", "📜 Historial")); btn_historial.clicked.connect(self.stock_ver_historial)
+        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, btn_exportar, btn_historial): barra.addWidget(b)
         self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
         barra.addWidget(self.btn_configurar_almacen)
@@ -101,7 +102,8 @@ class PestanaStock:
         split.addWidget(self.tabla_stock)
 
         panel_hist = QWidget(); vh = QVBoxLayout(panel_hist)
-        vh.addWidget(QLabel(tt("lbl_historial_movimientos", "Historial de movimientos")))
+        self.lbl_historial_stock = QLabel(tt("lbl_historial_movimientos", "Historial de movimientos"))
+        vh.addWidget(self.lbl_historial_stock)
         self.lista_historial_stock = QListWidget()
         vh.addWidget(self.lista_historial_stock)
         split.addWidget(panel_hist)
@@ -313,16 +315,36 @@ class PestanaStock:
     def refresh_historial_stock(self):
         if not hasattr(self, "lista_historial_stock"): return
         self.lista_historial_stock.clear()
+        self.lbl_historial_stock.setText(tt("lbl_historial_movimientos", "Historial de movimientos"))
         material_id = self._material_seleccionado()
         if not material_id: return
+        # El nombre del artículo, a la vista: sin él, un traslado ("De Estantería
+        # 11 > Balda B a Estantería 12 > Balda C") no dice qué se ha movido.
+        material = almacen.obtener_material(material_id) or {}
+        nombre = material.get("nombre") or ""
+        self.lbl_historial_stock.setText(tt("lbl_historial_de", "Historial de movimientos: {nombre}").format(nombre=nombre))
         for mov in almacen.obtener_movimientos(material_id, limite=20):
             if mov["tipo"] == "traslado":
-                texto = f"🔀 {mov['fecha']}   {mov.get('motivo') or ''}   —   {mov.get('usuario_nombre') or ''}"
+                texto = f"🔀 {mov['fecha']}   {nombre}: {mov.get('motivo') or ''}   —   {mov.get('usuario_nombre') or ''}"
             else:
                 icono = "📥" if mov["tipo"] == "entrada" else "📤"
                 texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
                 if mov.get("motivo"): texto += f"   ({traducir_motivo_movimiento(mov['motivo'])})"
             self.lista_historial_stock.addItem(texto)
+
+    def stock_ver_historial(self):
+        DialogoHistorialAlmacen(self, al_elegir_material=self._ir_a_material_stock).exec()
+
+    def _ir_a_material_stock(self, material_id):
+        """Selecciona el artículo en la tabla (quitando filtros si no está a la vista)."""
+        for _ in range(2):
+            for fila in range(self.tabla_stock.rowCount()):
+                item = self.tabla_stock.item(fila, 0)
+                if item is not None and item.data(Qt.ItemDataRole.UserRole) == material_id:
+                    self.tabla_stock.selectRow(fila)
+                    self.tabla_stock.scrollToItem(item)
+                    return
+            self.stock_buscar.clear(); self.combo_zona_stock.setCurrentIndex(0); self.refresh_stock()
 
     # ------------------------------------------------------- exportar stock
     @staticmethod

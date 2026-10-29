@@ -117,6 +117,8 @@ const Map<String, String> traduccionesFr = {
   "msg_articulo_eliminado": "✅ Article supprimé",
   "msg_articulo_eliminado_pendiente": "💾 Supprimé sur le mobile. Ce sera confirmé sur le PC dès qu'il y aura une connexion.",
   "lbl_pendiente_sincronizar": "En attente d'envoi au PC",
+  "lbl_conectado_pc": "🟢 Connecté au PC",
+  "lbl_desconectado_pc": "🔴 Pas de connexion au PC",
   "msg_nueva_version_titulo": "🚀 Nouvelle version disponible",
   "msg_nueva_version_cuerpo": "Vous avez la version {actual} installée et la {nueva} est déjà disponible sur GitHub.",
   "btn_luego": "Plus tard",

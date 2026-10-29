@@ -126,6 +126,8 @@ const Map<String, String> traduccionesEu = {
     "msg_articulo_eliminado": "✅ Artikulua ezabatuta",
     "msg_articulo_eliminado_pendiente": "💾 Mugikorrean ezabatuta. PCan berretsiko da konexioa dagoenean.",
     "lbl_pendiente_sincronizar": "PCra bidaltzeko zain",
+    "lbl_conectado_pc": "🟢 PCra konektatuta",
+    "lbl_desconectado_pc": "🔴 PCrekin konexiorik gabe",
 
     // --- Comprobador de actualizaciones ---
     "msg_nueva_version_titulo": "🚀 Bertsio berria eskuragarri",

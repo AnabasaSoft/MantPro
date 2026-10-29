@@ -702,6 +702,19 @@ def registrar_movimiento(material_id, tipo, cantidad, usuario_id, usuario_nombre
     return True, None
 
 
+def listar_movimientos(limite=2000):
+    """Últimos movimientos de todo el almacén (entradas, salidas y traslados),
+    del más reciente al más antiguo, con el código y el nombre del artículo.
+    Los de artículos ya borrados no aparecen: se borran con el artículo."""
+    con = _conn()
+    filas = con.execute("""
+        SELECT mv.*, m.codigo AS material_codigo, m.nombre AS material_nombre
+        FROM movimientos mv JOIN materiales m ON m.id = mv.material_id
+        ORDER BY mv.fecha DESC, mv.id DESC LIMIT ?""", (limite,)).fetchall()
+    con.close()
+    return [dict(f) for f in filas]
+
+
 def obtener_movimientos(material_id, limite=20):
     con = _conn()
     filas = con.execute(

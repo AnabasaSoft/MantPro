@@ -473,10 +473,11 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _indiceActual = 0;
   late final List<Widget> _pantallas;
   Timer? _timerSincronizacion;
+  Timer? _timerLatido;
 
   @override
   void initState() {
@@ -494,16 +495,43 @@ class _MainScreenState extends State<MainScreen> {
     evaluarNotificacionStock();
     datosSincronizadosNotifier.addListener(_alSincronizarDatos);
     _sincronizarAlArrancar();
-    // Mientras la app está abierta, reintenta enviar lo pendiente y refresca
-    // los roles del usuario, para detectar sin reconectar cambios hechos
-    // desde el PC (p.ej. que le den permiso de almacén a un técnico).
+    WidgetsBinding.instance.addObserver(this);
+    _iniciarTemporizadores();
+  }
+
+  /// Mientras la app está abierta: cada 25 s reintenta enviar lo pendiente y
+  /// refresca los roles del usuario (para detectar sin reconectar cambios
+  /// hechos desde el PC, p.ej. que le den permiso de almacén a un técnico), y
+  /// cada 5 s un latido ligero para que el PC sepa que sigue conectada.
+  void _iniciarTemporizadores() {
+    _pararTemporizadores();
     _timerSincronizacion = Timer.periodic(const Duration(seconds: 25), (_) => _sincronizarPeriodico());
+    _timerLatido = Timer.periodic(const Duration(seconds: 5), (_) => latidoPC());
+  }
+
+  void _pararTemporizadores() {
+    _timerSincronizacion?.cancel();
+    _timerLatido?.cancel();
+  }
+
+  /// En segundo plano o al cerrarse, deja de llamar al PC y se lo avisa; al
+  /// volver, retoma los temporizadores y contacta con el PC al momento.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.paused || estado == AppLifecycleState.detached) {
+      _pararTemporizadores();
+      avisarDesconexionPC();
+    } else if (estado == AppLifecycleState.resumed) {
+      _iniciarTemporizadores();
+      latidoPC();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     datosSincronizadosNotifier.removeListener(_alSincronizarDatos);
-    _timerSincronizacion?.cancel();
+    _pararTemporizadores();
     super.dispose();
   }
 
@@ -590,7 +618,13 @@ class _MainScreenState extends State<MainScreen> {
             IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
             IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.account_circle),
+              // Verde con conexión al PC, rojo sin ella (también mientras no
+              // se ha comprobado todavía, al arrancar).
+              icon: ValueListenableBuilder<bool?>(
+                valueListenable: ConexionPC.estado,
+                builder: (_, conectado, __) => Icon(Icons.account_circle,
+                    color: conectado == true ? Colors.green : Colors.red),
+              ),
               tooltip: AuthService.nombre ?? '',
               onSelected: (v) { if (v == 'salir') _cerrarSesion(); },
               itemBuilder: (_) => [
@@ -598,6 +632,12 @@ class _MainScreenState extends State<MainScreen> {
                   enabled: false,
                   child: Text('👤 ${AuthService.nombre ?? ''}',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                PopupMenuItem<String>(
+                  enabled: false,
+                  child: Text(ConexionPC.estado.value == true
+                      ? tt('lbl_conectado_pc', '🟢 Conectado al PC')
+                      : tt('lbl_desconectado_pc', '🔴 Sin conexión con el PC')),
                 ),
                 PopupMenuItem<String>(
                   value: 'salir',

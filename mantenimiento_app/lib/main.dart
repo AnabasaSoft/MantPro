@@ -191,6 +191,19 @@ Future<http.Response> httpPostAuth(Uri url, {Object? body, Map<String, String>? 
   return res;
 }
 
+/// Avisa al PC de que la app pasa a segundo plano o se cierra, para que en
+/// "Sesiones de dispositivos" salga "Sin conexión" al momento. Si no llega (sin
+/// red), el PC lo deduce igualmente al dejar de recibir las comprobaciones.
+Future<void> avisarDesconexionPC() async {
+  if (!AuthService.autenticado) return;
+  final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
+  if (ip == null) return;
+  try {
+    await http.post(Uri.parse("http://$ip/api/desconectar"), headers: AuthService.cabeceras())
+        .timeout(const Duration(seconds: 2));
+  } catch (_) {}
+}
+
 /// Descarga a disco (si falta) las fotos "antes"/"después" de una lista de
 /// entradas de historial (mapas con 'serverImageName'/'serverImageNameDespues').
 /// Reutilizada por todos los sitios que traen una página de /api/historial en
@@ -962,7 +975,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _indiceActual = 0;
   /// Muestra una barrita de progreso mientras se traen los datos al arrancar.
   bool _sincronizandoInicial = false;
@@ -994,10 +1007,26 @@ class _MainScreenState extends State<MainScreen> {
     // todo y avisamos a todas las pestañas a la vez con datosSincronizadosNotifier,
     // sin esperar a que el usuario entre manualmente en cada una.
     _timerConexion = Timer.periodic(const Duration(seconds: 5), (_) => _comprobarConexionYSincronizar());
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// En segundo plano o al cerrarse, deja de comprobar la conexión y se lo
+  /// avisa al PC ("Sesiones de dispositivos"); al volver, la retoma al momento.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.paused || estado == AppLifecycleState.detached) {
+      _timerConexion?.cancel();
+      avisarDesconexionPC();
+    } else if (estado == AppLifecycleState.resumed) {
+      _timerConexion?.cancel();
+      _timerConexion = Timer.periodic(const Duration(seconds: 5), (_) => _comprobarConexionYSincronizar());
+      _comprobarConexionYSincronizar();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timerConexion?.cancel();
     super.dispose();
   }

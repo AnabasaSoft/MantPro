@@ -86,8 +86,14 @@ class ServidorSincronizacion(QThread):
             return request.headers.get('X-MantPro-Token', '')
 
         def _usuario_peticion():
-            """Devuelve el usuario del token, o None si no es válido."""
-            return usuarios.usuario_por_token(_token_peticion())
+            """Devuelve el usuario del token, o None si no es válido. De paso
+            anota el contacto, para ver en "Sesiones de dispositivos" qué
+            móviles están en línea."""
+            token = _token_peticion()
+            u = usuarios.usuario_por_token(token)
+            if u is not None:
+                usuarios.registrar_contacto(token)
+            return u
 
         def requiere_token(func):
             from functools import wraps
@@ -151,6 +157,14 @@ class ServidorSincronizacion(QThread):
         @requiere_token
         def api_yo():
             return jsonify({"status": "ok", "usuario": g.usuario_mantpro})
+
+        @self.app.route('/api/desconectar', methods=['POST'])
+        @requiere_token
+        def api_desconectar():
+            # La app se cierra o pasa a segundo plano: en "Sesiones de
+            # dispositivos" sale "Sin conexión" al momento.
+            usuarios.registrar_desconexion(_token_peticion())
+            return jsonify({"status": "ok"})
 
         @self.app.route('/api/ping', methods=['GET'])
         def api_ping():

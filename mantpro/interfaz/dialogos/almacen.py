@@ -23,12 +23,14 @@ import os
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton,
                              QMessageBox, QDialog, QDialogButtonBox, QAbstractItemView, QComboBox,
                              QGroupBox, QCheckBox, QSpinBox, QDoubleSpinBox, QRadioButton, QMenu,
-                             QTreeWidget, QTreeWidgetItem, QInputDialog, QFormLayout)
+                             QTreeWidget, QTreeWidgetItem, QInputDialog, QFormLayout,
+                             QTableWidget, QTableWidgetItem, QHeaderView)
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QColor, QPixmap
 
 from ...idiomas import t
-from ..comun import _estilo_zona_arrastre, tt
+from ... import idiomas
+from ..comun import _estilo_zona_arrastre, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
 from ...nucleo import almacen
 
@@ -704,6 +706,98 @@ class DialogoMovimientoStock(QDialog):
 
     def get_data(self):
         return self.spin_cantidad.value(), self.campo_motivo.text().strip()
+
+
+class DialogoHistorialAlmacen(QDialog):
+    """Todos los movimientos del almacén seguidos, del más reciente al más
+    antiguo (entradas, salidas y traslados), sin tener que ir artículo por
+    artículo. Con filtro por tipo y búsqueda por artículo, usuario o motivo.
+    Doble clic en una fila: `al_elegir_material(material_id)`."""
+    COLUMNAS = ("hdr_fecha", "hdr_codigo", "hdr_material", "hdr_movimiento", "hdr_cantidad", "hdr_detalle", "hdr_usuario")
+
+    def __init__(self, parent=None, al_elegir_material=None):
+        super().__init__(parent)
+        self.al_elegir_material = al_elegir_material
+        self.setWindowTitle(tt("title_historial_almacen", "Historial de movimientos del almacén"))
+        self.resize(1100, 620)
+        l = QVBoxLayout(self)
+        filtros = QHBoxLayout()
+        self.buscar = QLineEdit(); self.buscar.setPlaceholderText(tt("ph_buscar_movimientos", "Buscar artículo, usuario o motivo..."))
+        self.buscar.textChanged.connect(self._filtrar)
+        self.combo_tipo = QComboBox()
+        for clave, defecto, tipo in (("filtro_todos", "Todos", None), ("txt_entradas", "Entradas", "entrada"),
+                                     ("txt_salidas", "Salidas", "salida"), ("txt_traslados", "Traslados", "traslado")):
+            self.combo_tipo.addItem(tt(clave, defecto), tipo)
+        self.combo_tipo.currentIndexChanged.connect(self._filtrar)
+        filtros.addWidget(self.buscar, 1); filtros.addWidget(QLabel(tt("lbl_tipo_movimiento", "Tipo") + ":")); filtros.addWidget(self.combo_tipo)
+        l.addLayout(filtros)
+
+        self.tabla = QTableWidget(0, len(self.COLUMNAS))
+        self.tabla.setHorizontalHeaderLabels([tt(c, c) for c in self.COLUMNAS])
+        self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla.verticalHeader().setVisible(False)
+        self.tabla.itemDoubleClicked.connect(self._doble_clic)
+        l.addWidget(self.tabla)
+
+        pie = QHBoxLayout()
+        self.lbl_total = QLabel(); pie.addWidget(self.lbl_total); pie.addStretch()
+        btn_cerrar = QPushButton(t("btn_cerrar")); btn_cerrar.clicked.connect(self.accept); pie.addWidget(btn_cerrar)
+        l.addLayout(pie)
+
+        self.movimientos = almacen.listar_movimientos()
+        self._filtrar()
+
+    @staticmethod
+    def _fecha(iso):
+        """'2026-10-29 08:15:02' -> fecha corta del idioma activo + hora."""
+        fecha, _, hora = (iso or "").partition(" ")
+        return f"{idiomas.formato_fecha_localizada(fecha)} {hora[:5]}".strip()
+
+    def _textos(self, mv):
+        tipo = mv["tipo"]
+        if tipo == "traslado":
+            movimiento, cantidad, detalle = tt("mov_traslado", "🔀 Traslado"), "", mv.get("motivo") or ""
+        else:
+            movimiento = tt("btn_entrada_stock", "📥 Entrada") if tipo == "entrada" else tt("btn_salida_stock", "📤 Salida")
+            cantidad = f"{'+' if tipo == 'entrada' else '−'}{mv['cantidad']:g}"
+            detalle = traducir_motivo_movimiento(mv.get("motivo") or "")
+        return [self._fecha(mv["fecha"]), mv.get("material_codigo") or "", mv.get("material_nombre") or "",
+                movimiento, cantidad, detalle, mv.get("usuario_nombre") or ""]
+
+    def _filtrar(self):
+        tipo = self.combo_tipo.currentData()
+        texto = self.buscar.text().strip().lower()
+        filas = []
+        for mv in self.movimientos:
+            if tipo and mv["tipo"] != tipo:
+                continue
+            celdas = self._textos(mv)
+            if texto and texto not in " ".join(celdas).lower():
+                continue
+            filas.append((mv, celdas))
+        self.tabla.setRowCount(len(filas))
+        colores = {"entrada": QColor("#27ae60"), "salida": QColor("#d35400")}
+        for i, (mv, celdas) in enumerate(filas):
+            for j, texto in enumerate(celdas):
+                item = QTableWidgetItem(texto)
+                item.setData(Qt.ItemDataRole.UserRole, mv["material_id"])
+                if texto and j in (2, 5):
+                    item.setToolTip(texto)  # nombre o traslado largos, completos al pasar el ratón
+                if j == 4 and mv["tipo"] in colores:
+                    item.setForeground(colores[mv["tipo"]])
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.tabla.setItem(i, j, item)
+        self.tabla.resizeColumnsToContents()
+        cab = self.tabla.horizontalHeader()
+        cab.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        cab.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self.lbl_total.setText(tt("msg_n_movimientos", "{n} movimientos").format(n=len(filas)))
+
+    def _doble_clic(self, item):
+        if self.al_elegir_material:
+            self.al_elegir_material(item.data(Qt.ItemDataRole.UserRole))
+            self.accept()
 
 
 class DialogoExportarStock(QDialog):

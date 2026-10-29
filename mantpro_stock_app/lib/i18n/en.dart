@@ -126,6 +126,8 @@ const Map<String, String> traduccionesEn = {
     "msg_articulo_eliminado": "✅ Item deleted",
     "msg_articulo_eliminado_pendiente": "💾 Deleted on the phone. It will be confirmed on the PC when there is a connection.",
     "lbl_pendiente_sincronizar": "Pending upload to the PC",
+    "lbl_conectado_pc": "🟢 Connected to the PC",
+    "lbl_desconectado_pc": "🔴 No connection to the PC",
 
     // --- Comprobador de actualizaciones ---
     "msg_nueva_version_titulo": "🚀 New version available",

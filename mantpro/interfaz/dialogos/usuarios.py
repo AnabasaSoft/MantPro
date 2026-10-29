@@ -29,7 +29,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QMessageBox, QTableWidget, QTableWidgetItem, QComboBox,
     QCheckBox, QHeaderView, QAbstractItemView, QDialogButtonBox, QWidget
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap
 
 import os
@@ -656,20 +656,22 @@ class DialogoSesiones(QDialog):
         super().__init__(parent)
         self.setWindowTitle(t("sesiones_titulo", "Sesiones de dispositivos"))
         self.setModal(True)
-        self.resize(760, 420)
+        self.resize(980, 420)
 
         layout = QVBoxLayout(self)
 
-        self.tabla = QTableWidget(0, 6)
+        self.tabla = QTableWidget(0, 8)
         self.tabla.setHorizontalHeaderLabels([
             t("sesiones_col_usuario", "Usuario"),
             t("sesiones_col_dispositivo", "Dispositivo"),
             t("sesiones_col_iniciada", "Iniciada"),
             t("sesiones_col_expira", "Expira"),
             t("sesiones_col_estado", "Estado"),
+            t("sesiones_col_conexion", "Conexión"),
+            t("sesiones_col_ultimo_contacto", "Último contacto"),
             "token",
         ])
-        self.tabla.setColumnHidden(5, True)
+        self.tabla.setColumnHidden(self.COL_TOKEN, True)
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -696,6 +698,41 @@ class DialogoSesiones(QDialog):
 
         self.refrescar()
 
+        # Mientras la ventana está abierta, la conexión de cada móvil se
+        # actualiza sola (solo esas columnas, para no perder la selección).
+        self._temporizador = QTimer(self)
+        self._temporizador.timeout.connect(self._actualizar_conexion)
+        self._temporizador.start(5000)
+
+    COL_CONEXION, COL_ULTIMO_CONTACTO, COL_TOKEN = 5, 6, 7
+
+    @staticmethod
+    def _texto_conexion(s):
+        if s.get("en_linea"):
+            return t("sesiones_en_linea", "🟢 En línea")
+        return t("sesiones_sin_conexion", "⚫ Sin conexión")
+
+    def _pintar_conexion(self, fila, s):
+        item = self.tabla.item(fila, self.COL_CONEXION)
+        item.setText(self._texto_conexion(s))
+        if s.get("en_linea"):
+            item.setForeground(Qt.GlobalColor.darkGreen)
+        elif s["activa"]:
+            item.setForeground(self.tabla.palette().text())
+        contacto = self.tabla.item(fila, self.COL_ULTIMO_CONTACTO)
+        contacto.setText(_formatear_fecha(s.get("ultimo_contacto")))
+        contacto._iso = s.get("ultimo_contacto") or ""
+
+    def _actualizar_conexion(self):
+        por_token = {s["token"]: s for s in usuarios.listar_sesiones()}
+        # Sin reordenar a mitad del recorrido si se ordenó por esta columna
+        self.tabla.setSortingEnabled(False)
+        for fila in range(self.tabla.rowCount()):
+            s = por_token.get(self.tabla.item(fila, self.COL_TOKEN).text())
+            if s is not None:
+                self._pintar_conexion(fila, s)
+        self.tabla.setSortingEnabled(True)
+
     def refrescar(self):
         datos = usuarios.listar_sesiones()
         self.tabla.setSortingEnabled(False)
@@ -708,12 +745,15 @@ class DialogoSesiones(QDialog):
                 _ItemFecha(s.get("creado")),
                 _ItemFecha(s.get("expira")),
                 QTableWidgetItem(t("sesiones_activa", "Activa") if s["activa"] else t("sesiones_expirada", "Expirada")),
+                QTableWidgetItem(self._texto_conexion(s)),
+                _ItemFecha(s.get("ultimo_contacto")),
                 QTableWidgetItem(s["token"]),
             ]
             for col, item in enumerate(columnas):
                 if not s["activa"]:
                     item.setForeground(Qt.GlobalColor.gray)
                 self.tabla.setItem(fila, col, item)
+            self._pintar_conexion(fila, s)
         self.tabla.setSortingEnabled(True)
 
     def _tokens_seleccionados(self):
@@ -723,7 +763,7 @@ class DialogoSesiones(QDialog):
                 self, t("aviso", "Aviso"),
                 t("sesiones_selecciona", "Selecciona una sesión de la lista."))
             return []
-        return [self.tabla.item(fila, 5).text() for fila in filas]
+        return [self.tabla.item(fila, self.COL_TOKEN).text() for fila in filas]
 
     def _revocar(self):
         tokens = self._tokens_seleccionados()

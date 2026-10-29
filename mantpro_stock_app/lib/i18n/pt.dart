@@ -117,6 +117,8 @@ const Map<String, String> traduccionesPt = {
   "msg_articulo_eliminado": "✅ Item excluído",
   "msg_articulo_eliminado_pendiente": "💾 Excluído no celular. Será confirmado no PC quando houver conexão.",
   "lbl_pendiente_sincronizar": "Pendente de envio ao PC",
+  "lbl_conectado_pc": "🟢 Conectado ao PC",
+  "lbl_desconectado_pc": "🔴 Sem conexão com o PC",
   "msg_nueva_version_titulo": "🚀 Nova versão disponível",
   "msg_nueva_version_cuerpo": "Você tem a versão {actual} instalada e no GitHub já está disponível a {nueva}.",
   "btn_luego": "Depois",

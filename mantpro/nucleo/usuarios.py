@@ -36,6 +36,7 @@ import hashlib
 import hmac
 import secrets
 import base64
+from collections import deque
 from datetime import datetime, timedelta
 
 RUTA_DB = "mantenimiento.db"
@@ -145,6 +146,10 @@ def inicializar():
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id)")
+    # Último contacto del móvil con el servidor, para saber en "Sesiones de
+    # dispositivos" si está en línea (ver registrar_contacto).
+    if "ultimo_contacto" not in _columnas(con, "sesiones"):
+        cur.execute("ALTER TABLE sesiones ADD COLUMN ultimo_contacto TEXT")
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS auditoria (
@@ -683,7 +688,7 @@ def listar_sesiones():
     """Todas las sesiones de dispositivos de todos los usuarios, con el estado calculado."""
     con = _conn()
     filas = con.execute(
-        "SELECT s.token, s.dispositivo, s.creado, s.expira, "
+        "SELECT s.token, s.dispositivo, s.creado, s.expira, s.ultimo_contacto, "
         "u.id AS usuario_id, u.login, u.nombre "
         "FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id "
         "ORDER BY s.creado DESC"
@@ -694,8 +699,84 @@ def listar_sesiones():
     for f in filas:
         d = dict(f)
         d["activa"] = d["expira"] >= ahora
+        # La hora en memoria es la más reciente (la de la BD se guarda como
+        # mucho una vez por minuto); la de la BD sirve tras reiniciar el PC.
+        en_memoria = _ULTIMO_CONTACTO.get(d["token"])
+        if en_memoria and (not d["ultimo_contacto"] or en_memoria.isoformat(timespec="seconds") > d["ultimo_contacto"]):
+            d["ultimo_contacto"] = en_memoria.isoformat(timespec="seconds")
+        d["en_linea"] = en_linea(d["token"], d["activa"])
         sesiones.append(d)
     return sesiones
+
+
+# El PC no puede preguntar a un móvil si está conectado (es el móvil quien
+# llama al PC), así que se deduce del tiempo sin contacto. MantPro llama cada
+# 5 s mientras está abierta y MantPro Stock cada 25 s, de modo que el margen se
+# adapta al ritmo de cada sesión: el doble de su intervalo más largo reciente
+# más 5 s de cortesía (MantPro ~15 s, MantPro Stock ~55 s), entre 15 y 90 s.
+# Mientras no hay intervalos conocidos se usa SEGUNDOS_EN_LINEA. Además, las
+# apps avisan al cerrarse o pasar a segundo plano (registrar_desconexion).
+SEGUNDOS_EN_LINEA = 60
+_MARGEN_MINIMO, _MARGEN_MAXIMO = 15, 90
+
+# token -> datetime del último contacto. En memoria porque lo actualiza cada
+# petición de los móviles; en la BD se guarda como mucho una vez por minuto.
+_ULTIMO_CONTACTO = {}
+_ULTIMA_ESCRITURA_CONTACTO = {}
+_INTERVALOS = {}       # token -> últimos intervalos entre contactos (s)
+_DESCONECTADO = {}     # token -> hora del aviso "me desconecto" de la app
+
+
+def margen_en_linea(token):
+    """Segundos sin contacto a partir de los cuales una sesión pasa a "Sin conexión"."""
+    intervalos = _INTERVALOS.get(token)
+    if not intervalos:
+        return SEGUNDOS_EN_LINEA
+    return min(_MARGEN_MAXIMO, max(_MARGEN_MINIMO, 2 * max(intervalos) + 5))
+
+
+def en_linea(token, activa=True):
+    """True si el móvil de esta sesión está conectado ahora mismo."""
+    ultimo = _ULTIMO_CONTACTO.get(token)
+    if not (activa and ultimo) or token in _DESCONECTADO:
+        return False
+    return (datetime.now() - ultimo).total_seconds() <= margen_en_linea(token)
+
+
+def registrar_desconexion(token):
+    """La app avisa de que se cierra o pasa a segundo plano: deja de estar en
+    línea al momento, sin esperar al margen. Su siguiente contacto la vuelve
+    a poner en línea."""
+    if token:
+        _DESCONECTADO[token] = datetime.now()
+
+
+def registrar_contacto(token):
+    """Anota que el móvil de esta sesión acaba de hablar con el servidor. Lo
+    llama el servidor de sincronización en cada petición con un token válido."""
+    if not token:
+        return
+    ahora = datetime.now()
+    anterior = _ULTIMO_CONTACTO.get(token)
+    if anterior is not None:
+        hueco = (ahora - anterior).total_seconds()
+        # Huecos largos = la app estuvo cerrada; no cuentan para su ritmo.
+        if hueco <= 120:
+            _INTERVALOS.setdefault(token, deque(maxlen=8)).append(hueco)
+    _ULTIMO_CONTACTO[token] = ahora
+    _DESCONECTADO.pop(token, None)
+    ultima = _ULTIMA_ESCRITURA_CONTACTO.get(token)
+    if ultima and (ahora - ultima).total_seconds() < 60:
+        return
+    _ULTIMA_ESCRITURA_CONTACTO[token] = ahora
+    try:
+        con = _conn()
+        con.execute("UPDATE sesiones SET ultimo_contacto = ? WHERE token = ?",
+                    (ahora.isoformat(timespec="seconds"), token))
+        con.commit()
+        con.close()
+    except sqlite3.Error:
+        pass  # no es crítico: la hora en memoria sigue valiendo para "en línea"
 
 
 # ---------------------------------------------------------------- auditoría
