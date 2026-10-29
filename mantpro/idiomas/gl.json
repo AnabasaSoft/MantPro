@@ -739,5 +739,14 @@
   "hdr_usuario": "USUARIO",
   "mov_traslado": "🔀 Traslado",
   "msg_n_movimientos": "{n} movementos",
-  "lbl_historial_de": "Historial de movementos: {nombre}"
+  "lbl_historial_de": "Historial de movementos: {nombre}",
+  "btn_etiquetas_qr": "🏷️ Etiquetas QR",
+  "tt_etiquetas_qr": "PDF con etiquetas QR para pegar nas máquinas: ao escanealas con MantPro ábrese a súa ficha.",
+  "title_etiquetas_qr": "Etiquetas QR",
+  "msg_etiquetas_qr": "De que máquinas queres as etiquetas?\n\nXéranse nun PDF de follas A4 con 24 etiquetas de 70 × 37 mm (follas adhesivas tipo Apli 1274 / Avery 3474, ou folla normal para recortar).",
+  "btn_qr_seleccionada": "Só a seleccionada",
+  "btn_qr_con_submaquinas": "A seleccionada e as súas submáquinas",
+  "btn_qr_todas": "Todas as máquinas",
+  "nombre_pdf_etiquetas": "etiquetas_qr_maquinas",
+  "msg_etiquetas_generadas": "{n} etiquetas gardadas en:\n{ruta}"
 }

@@ -29,12 +29,12 @@ from PyQt6.QtGui import QColor, QPixmap
 
 from ... import idiomas
 from ...idiomas import t
-from ..comun import _estilo_zona_arrastre, tt
+from ..comun import _estilo_zona_arrastre, abrir_url_externa, tt
 from ..dialogos.maquinas import DialogoEditarMaquina
 from ..widgets.fotos import VisorFoto
 from ..widgets.graficos import GraficoCircularTrabajos
 from ..widgets.ordenables import _ItemArbolOrdenable
-from ...nucleo import maquinas
+from ...nucleo import etiquetas, maquinas
 
 class PestanaMaquinas:
     """Pestaña «Máquinas»: árbol, fotos e indicadores.
@@ -54,7 +54,9 @@ class PestanaMaquinas:
         b_eliminar = QPushButton(tt("btn_eliminar_maquina", "🗑️ Eliminar")); b_eliminar.setStyleSheet("background-color:#c0392b; color: white;"); b_eliminar.clicked.connect(self._maquina_eliminar)
         b_expandir = QPushButton(tt("btn_expandir_todo", "⬇️ Expandir todo")); b_expandir.clicked.connect(self._maquinas_expandir_todo)
         b_contraer = QPushButton(tt("btn_contraer_todo", "⬆️ Contraer todo"))
-        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer]: h_tools.addWidget(b)
+        b_qr = QPushButton(tt("btn_etiquetas_qr", "🏷️ Etiquetas QR")); b_qr.clicked.connect(self._maquinas_etiquetas_qr)
+        b_qr.setToolTip(tt("tt_etiquetas_qr", "PDF con etiquetas QR para pegar en las máquinas: al escanearlas con MantPro se abre su ficha."))
+        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_qr]: h_tools.addWidget(b)
         h_tools.addStretch()
         l.addLayout(h_tools)
 
@@ -361,6 +363,49 @@ class PestanaMaquinas:
             maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
             self.refrescar_arbol_maquinas()
             self._maquina_mostrar_foto_seleccionada()
+
+    def _maquinas_etiquetas_qr(self):
+        """PDF con etiquetas QR (70 × 37 mm, 24 por folio A4) de la máquina
+        seleccionada, de ella y sus submáquinas, o de todas."""
+        item = self.arbol_maquinas.currentItem()
+        datos_item = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        seleccionada = datos_item["id"] if datos_item and datos_item.get("tipo") == "maquina" else None
+        msg = QMessageBox(self)
+        msg.setWindowTitle(tt("title_etiquetas_qr", "Etiquetas QR"))
+        msg.setText(tt("msg_etiquetas_qr", "¿De qué máquinas quieres las etiquetas?\n\nSe generan en un PDF de folios A4 con 24 etiquetas de 70 × 37 mm (hojas adhesivas tipo Apli 1274 / Avery 3474, o folio normal para recortar)."))
+        b_una = b_rama = None
+        if seleccionada is not None:
+            b_una = msg.addButton(tt("btn_qr_seleccionada", "Solo la seleccionada"), QMessageBox.ButtonRole.AcceptRole)
+            b_rama = msg.addButton(tt("btn_qr_con_submaquinas", "La seleccionada y sus submáquinas"), QMessageBox.ButtonRole.AcceptRole)
+        b_todas = msg.addButton(tt("btn_qr_todas", "Todas las máquinas"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
+        msg.exec()
+        pulsado = msg.clickedButton()
+        rutas = maquinas.mapa_rutas_completas()
+        if pulsado is b_una and b_una is not None:
+            ids = [seleccionada]
+        elif pulsado is b_rama and b_rama is not None:
+            ids = [seleccionada] + sorted(maquinas.descendientes_ids(seleccionada), key=lambda i: rutas.get(i, "").lower())
+        elif pulsado is b_todas:
+            ids = sorted(rutas, key=lambda i: rutas[i].lower())
+        else:
+            return
+        if not ids:
+            return
+        nombre = tt("nombre_pdf_etiquetas", "etiquetas_qr_maquinas") + ".pdf"
+        ruta = self.guardar_archivo_dialogo(tt("title_etiquetas_qr", "Etiquetas QR"), nombre, "PDF (*.pdf)")
+        if not ruta:
+            return
+        if not ruta.lower().endswith(".pdf"):
+            ruta += ".pdf"
+        try:
+            n = etiquetas.generar_pdf(ruta, ids)
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
+            return
+        abrir_url_externa("file://" + os.path.abspath(ruta))
+        QMessageBox.information(self, tt("title_etiquetas_qr", "Etiquetas QR"),
+                                tt("msg_etiquetas_generadas", "{n} etiquetas guardadas en:\n{ruta}").format(n=n, ruta=ruta))
 
     def _maquina_eliminar(self):
         item = self.arbol_maquinas.currentItem()

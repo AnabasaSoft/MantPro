@@ -739,5 +739,14 @@
   "hdr_usuario": "USUARI",
   "mov_traslado": "🔀 Trasllat",
   "msg_n_movimientos": "{n} moviments",
-  "lbl_historial_de": "Historial de moviments: {nombre}"
+  "lbl_historial_de": "Historial de moviments: {nombre}",
+  "btn_etiquetas_qr": "🏷️ Etiquetes QR",
+  "tt_etiquetas_qr": "PDF amb etiquetes QR per enganxar a les màquines: en escanejar-les amb MantPro s'obre la seva fitxa.",
+  "title_etiquetas_qr": "Etiquetes QR",
+  "msg_etiquetas_qr": "De quines màquines vols les etiquetes?\n\nEs generen en un PDF de fulls A4 amb 24 etiquetes de 70 × 37 mm (fulls adhesius tipus Apli 1274 / Avery 3474, o full normal per retallar).",
+  "btn_qr_seleccionada": "Només la seleccionada",
+  "btn_qr_con_submaquinas": "La seleccionada i les seves submàquines",
+  "btn_qr_todas": "Totes les màquines",
+  "nombre_pdf_etiquetas": "etiquetes_qr_maquines",
+  "msg_etiquetas_generadas": "{n} etiquetes desades a:\n{ruta}"
 }

@@ -739,5 +739,14 @@
   "hdr_usuario": "ERABILTZAILEA",
   "mov_traslado": "🔀 Lekualdaketa",
   "msg_n_movimientos": "{n} mugimendu",
-  "lbl_historial_de": "Mugimenduen historia: {nombre}"
+  "lbl_historial_de": "Mugimenduen historia: {nombre}",
+  "btn_etiquetas_qr": "🏷️ QR etiketak",
+  "tt_etiquetas_qr": "Makinetan itsasteko QR etiketak dituen PDFa: MantPro-rekin eskaneatzean makinaren fitxa irekitzen da.",
+  "title_etiquetas_qr": "QR etiketak",
+  "msg_etiquetas_qr": "Zein makinaren etiketak nahi dituzu?\n\nA4 orriko PDF batean sortzen dira, 70 × 37 mm-ko 24 etiketarekin (Apli 1274 / Avery 3474 motako orri itsaskorrak, edo orri arrunta mozteko).",
+  "btn_qr_seleccionada": "Hautatutakoa soilik",
+  "btn_qr_con_submaquinas": "Hautatutakoa eta haren azpimakinak",
+  "btn_qr_todas": "Makina guztiak",
+  "nombre_pdf_etiquetas": "makinen_qr_etiketak",
+  "msg_etiquetas_generadas": "{n} etiketa hemen gorde dira:\n{ruta}"
 }

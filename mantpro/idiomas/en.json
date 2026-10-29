@@ -739,5 +739,14 @@
   "hdr_usuario": "USER",
   "mov_traslado": "🔀 Transfer",
   "msg_n_movimientos": "{n} movements",
-  "lbl_historial_de": "Movement history: {nombre}"
+  "lbl_historial_de": "Movement history: {nombre}",
+  "btn_etiquetas_qr": "🏷️ QR labels",
+  "tt_etiquetas_qr": "PDF with QR labels to stick on the machines: scanning them with MantPro opens the machine's page.",
+  "title_etiquetas_qr": "QR labels",
+  "msg_etiquetas_qr": "Which machines do you want labels for?\n\nThey are generated in a PDF of A4 sheets with 24 labels of 70 × 37 mm (adhesive sheets such as Apli 1274 / Avery 3474, or plain paper to cut out).",
+  "btn_qr_seleccionada": "Only the selected one",
+  "btn_qr_con_submaquinas": "The selected one and its sub-machines",
+  "btn_qr_todas": "All machines",
+  "nombre_pdf_etiquetas": "machine_qr_labels",
+  "msg_etiquetas_generadas": "{n} labels saved to:\n{ruta}"
 }

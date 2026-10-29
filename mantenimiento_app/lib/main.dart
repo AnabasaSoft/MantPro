@@ -1007,6 +1007,27 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   bool _conectadoPC = false;
   Timer? _timerConexion;
   void _irAPestana(int index) => setState(() => _indiceActual = index);
+
+  /// Escanea la etiqueta QR de una máquina (generada en el PC, pestaña
+  /// Máquinas > Etiquetas QR) y abre su ficha. Funciona sin conexión: la
+  /// lista de máquinas está guardada en el móvil.
+  Future<void> _escanearMaquina() async {
+    final leido = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    if (leido == null || !mounted) return;
+    final m = RegExp(r'^mantpro:maquina:(\d+)$').firstMatch(leido.trim());
+    if (m == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('msg_qr_no_maquina', 'Este QR no es de una máquina de MantPro'))));
+      return;
+    }
+    final id = int.parse(m.group(1)!);
+    final lista = await MaquinasCache.obtener();
+    if (!mounted) return;
+    if (!lista.any((x) => x['id'] == id)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('msg_maquina_no_encontrada', 'No se encuentra esa máquina en el móvil. Sincroniza con el PC y vuelve a probar.'))));
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaMaquina(maquinaId: id)));
+  }
   late final List<Widget> _pantallas;
 
   @override
@@ -1150,6 +1171,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           onPopInvoked: (didPop) { if (!didPop) _irAPestana(0); },
           child: Scaffold(
             appBar: AppBar(title: Text(titulo), actions: [
+              IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: tt('tooltip_escanear_maquina', 'Escanear el QR de una máquina'), onPressed: _escanearMaquina),
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
               PopupMenuButton<String>(
@@ -2830,7 +2852,8 @@ class GaleriaFotosTrabajo extends StatelessWidget {
   }
 }
 
-class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC, serverImageNameDespues, tagsIniciales; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC, this.serverImageNameDespues, this.tagsIniciales, this.fotosExtraIniciales}); final List<String>? fotosExtraIniciales; @override State<FormScreen> createState() => _FormScreenState(); }
+class FormScreen extends StatefulWidget { final Function(Registro) onSave; final Function(Registro)? onUpdate; final PendientePC? pendientePC; final Registro? registroExistente; final bool esCrearPendiente, esHistorial; final String? fotoInicialPath, serverImageName, urlPC, serverImageNameDespues, tagsIniciales; const FormScreen({super.key, required this.onSave, this.onUpdate, this.pendientePC, this.registroExistente, this.esCrearPendiente=false, this.esHistorial=false, this.fotoInicialPath, this.serverImageName, this.urlPC, this.serverImageNameDespues, this.tagsIniciales, this.fotosExtraIniciales, this.maquinaInicialId}); final List<String>? fotosExtraIniciales; /// Máquina ya elegida al abrir el formulario (al registrar un trabajo desde la ficha de una máquina escaneada por QR).
+  final int? maquinaInicialId; @override State<FormScreen> createState() => _FormScreenState(); }
 class _FormScreenState extends State<FormScreen> {
   final _t = TextEditingController(); final _d = TextEditingController(); final _tag = TextEditingController(); String? _img; String? _imgDespues;
   bool _u=false, _e=false, _m=false, _p=false;
@@ -2847,6 +2870,7 @@ class _FormScreenState extends State<FormScreen> {
   /// gestionar un pendiente y editar el historial.
   bool get _muestraGaleria => true;
   @override void initState() { super.initState();
+    if (widget.registroExistente == null && widget.pendientePC == null) _maquinaId = widget.maquinaInicialId;
     if (widget.pendientePC != null) { _t.text = widget.pendientePC!.titulo; _d.text = widget.pendientePC!.detalles.replaceAll(RegExp(r"\[FOTO:.*?\]"), "").replaceAll(RegExp(r"\[FOTO_DESPUES:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (widget.fotoInicialPath != null) _img = widget.fotoInicialPath; _prioridad = widget.pendientePC!.prioridad; _especialidadId = widget.pendientePC!.especialidadId;
       // PendientePC no tiene campo de tags propio: las tags elegidas al crear
       // o al guardar un borrador se guardan aparte (ver _tagsLocales) y se
@@ -3375,5 +3399,125 @@ class SincronizadorGlobal {
         tt('msg_sync_fotos', 'Descargando fotos {n}/{total}')
             .replaceAll('{n}', '$hechas').replaceAll('{total}', '$total'),
         total == 0 ? null : hechas / total));
+  }
+}
+
+
+/// Ficha de una máquina, abierta al escanear su etiqueta QR: nombre, dónde
+/// está, sus últimos trabajos guardados en el móvil y un botón para registrar
+/// un trabajo ya vinculado a ella. Todo con los datos del móvil (sin conexión).
+class PantallaMaquina extends StatefulWidget {
+  final int maquinaId;
+  const PantallaMaquina({super.key, required this.maquinaId});
+  @override
+  State<PantallaMaquina> createState() => _PantallaMaquinaState();
+}
+
+class _PantallaMaquinaState extends State<PantallaMaquina> {
+  Map<String, dynamic>? _maquina;
+  String _superior = '';
+  List<Map<String, dynamic>> _trabajos = [];
+  List<Registro> _locales = [];
+
+  @override
+  void initState() {
+    super.initState();
+    datosSincronizadosNotifier.addListener(_cargar);
+    _cargar();
+  }
+
+  @override
+  void dispose() {
+    datosSincronizadosNotifier.removeListener(_cargar);
+    super.dispose();
+  }
+
+  Future<void> _cargar() async {
+    final planas = await MaquinasCache.obtener();
+    final porId = {for (final m in planas) m['id']: m};
+    final maquina = porId[widget.maquinaId];
+    final ruta = <String>[];
+    var padre = maquina?['padre_id'];
+    while (padre != null && porId[padre] != null && ruta.length < 20) {
+      ruta.insert(0, porId[padre]!['nombre'].toString());
+      padre = porId[padre]!['padre_id'];
+    }
+    final prefs = await SharedPreferences.getInstance();
+    List<Map<String, dynamic>> historial = [];
+    try { historial = List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cache') ?? '[]')); } catch (_) {}
+    List<Registro> locales = [];
+    try { locales = (json.decode(prefs.getString('registros_pendientes') ?? '[]') as List).map((e) => Registro.fromJson(e)).toList(); } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _maquina = maquina;
+      _superior = ruta.join(' > ');
+      _trabajos = historial.where((h) => h['maquinaId'] == widget.maquinaId).toList()
+        ..sort((a, b) => '${b['titulo']}'.compareTo('${a['titulo']}'));
+      _locales = locales.where((r) => r.maquinaId == widget.maquinaId).toList();
+    });
+  }
+
+  /// Guarda el trabajo nuevo en la cola local, igual que la pestaña "Local"
+  /// (se envía al PC en la siguiente sincronización).
+  Future<void> _guardarNuevo(Registro r) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<dynamic> lista = [];
+    try { lista = json.decode(prefs.getString('registros_pendientes') ?? '[]'); } catch (_) {}
+    lista.add(r.toJson());
+    await prefs.setString('registros_pendientes', json.encode(lista));
+    datosSincronizadosNotifier.value++;
+  }
+
+  Future<void> _registrarTrabajo() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
+        urlPC: prefs.getString('pc_ip_url'), maquinaInicialId: widget.maquinaId, onSave: _guardarNuevo)));
+  }
+
+  String _primeraLinea(String? texto) =>
+      (texto ?? '').replaceAll(RegExp(r"\[(FOTO|FOTO_DESPUES|FOTOS|REF):.*?\]"), '').trim().split('\n').first;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = _maquina;
+    return Scaffold(
+      appBar: AppBar(title: Text(m?['nombre']?.toString() ?? t('lbl_maquina'))),
+      body: m == null
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(padding: const EdgeInsets.all(16), children: [
+              Text(m['nombre'].toString(), style: Theme.of(context).textTheme.headlineSmall),
+              if (_superior.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4),
+                  child: Text(_superior, style: Theme.of(context).textTheme.bodyMedium)),
+              if ((m['zona_nombre'] ?? '').toString().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 2),
+                  child: Row(children: [const Icon(Icons.place, size: 16), const SizedBox(width: 4), Text(m['zona_nombre'].toString())])),
+              if ((m['notas'] ?? '').toString().trim().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8),
+                  child: Text(m['notas'].toString())),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: Text(tt('btn_registrar_en_maquina', 'Registrar trabajo en esta máquina')),
+                onPressed: _registrarTrabajo,
+              ),
+              const SizedBox(height: 20),
+              Text(tt('lbl_ultimos_trabajos_maquina', 'Últimos trabajos'), style: Theme.of(context).textTheme.titleMedium),
+              const Divider(),
+              for (final r in _locales)
+                ListTile(
+                  leading: const Icon(Icons.cloud_upload_outlined),
+                  title: Text(r.titulo),
+                  subtitle: Text(t('estado_pendiente_subir')),
+                ),
+              for (final h in _trabajos)
+                ListTile(
+                  leading: const Icon(Icons.build_circle_outlined),
+                  title: Text(_primeraLinea(h['detalles']?.toString())),
+                  subtitle: Text('${h['titulo'] ?? ''}'),
+                ),
+              if (_locales.isEmpty && _trabajos.isEmpty)
+                Padding(padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(tt('msg_sin_trabajos_maquina', 'No hay trabajos de esta máquina guardados en el móvil.'))),
+            ]),
+    );
   }
 }
