@@ -122,6 +122,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
   - Linuxeko bitar exekutagarria
   - AppImage eramangarria
   - **AUR**en ere eskuragarri (Arch User Repository)
+  - [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro)-n ere eskuragarri (openSUSE Build Service), openSUSE Tumbleweed eta Slowroll-erako
 - **Android**: `.apk` fitxategiak zuzenean instalatzeko
   - `MantPro.apk`: mantentze-lanen aplikazioa
   - `MantProStock.apk`: biltegiko stockaren aplikazioa
@@ -236,6 +237,12 @@ Deskargatu zure sistemari dagokion bertsioa [GitHub Releases](https://github.com
   - Edo erabili **AppImage**-a (instalatu gabe): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
   - **`.deb`** eta **`.rpm`** paketeak GPG bidez digitalki sinatuta daude (ikusi [Paketeen sinadura egiaztatu](#-paketeen-sinadura-egiaztatu-linux))
   - **Arch Linux**: AURen eskuragarri: `yay -S mantpro` edo `paru -S mantpro`
+  - **openSUSE Tumbleweed / Slowroll**: [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro)-n eskuragarri, banaketaren beraren Python eta PyQt6-rekin konpilatuta eta `zypper`-rekin eguneratzen da:
+    ```bash
+    sudo zypper ar -f https://download.opensuse.org/repositories/home:/danitxu79/openSUSE_Tumbleweed/home:danitxu79.repo
+    sudo zypper in mantpro
+    ```
+    (Slowroll-en, aldatu `openSUSE_Tumbleweed` `openSUSE_Slowroll`-gatik URLan)
 
 #### 🔏 Paketeen sinadura egiaztatu (Linux)
 

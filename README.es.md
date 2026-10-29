@@ -120,6 +120,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
   - Binario ejecutable de Linux
   - AppImage portable
   - También disponible en **AUR** (Arch User Repository)
+  - También disponible en [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) para openSUSE Tumbleweed y Slowroll
 - **Android**: Archivos `.apk` para instalación directa
   - `MantPro.apk`: app de trabajos de mantenimiento
   - `MantProStock.apk`: app de stock de almacén
@@ -234,6 +235,12 @@ Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https:
   - O usa el **AppImage** (sin instalación): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
   - Los paquetes **`.deb`** y **`.rpm`** están firmados digitalmente con GPG (ver [Verificar la firma de los paquetes](#-verificar-la-firma-de-los-paquetes-linux))
   - **Arch Linux**: Disponible en AUR: `yay -S mantpro` o `paru -S mantpro`
+  - **openSUSE Tumbleweed / Slowroll**: disponible en [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), compilado con el Python y el PyQt6 de la propia distribución y actualizado con `zypper`:
+    ```bash
+    sudo zypper ar -f https://download.opensuse.org/repositories/home:/danitxu79/openSUSE_Tumbleweed/home:danitxu79.repo
+    sudo zypper in mantpro
+    ```
+    (en Slowroll, cambia `openSUSE_Tumbleweed` por `openSUSE_Slowroll` en la URL)
 
 #### 🔏 Verificar la firma de los paquetes (Linux)
 

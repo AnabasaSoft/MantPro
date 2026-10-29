@@ -1,0 +1,5 @@
+<services>
+  <!-- Descarga en el propio OBS el código del tag v<Version> de GitHub
+       (la URL del Source0 del .spec). -->
+  <service name="download_files"/>
+</services>

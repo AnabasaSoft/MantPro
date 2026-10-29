@@ -1,0 +1,5 @@
+-------------------------------------------------------------------
+Thu Oct 29 09:00:00 UTC 2026 - AnabasaSoft <anabasasoft@gmail.com>
+
+- Initial package of MantPro 3.10.0 for openSUSE
+  * Built from source with the distribution's Python and PyQt6

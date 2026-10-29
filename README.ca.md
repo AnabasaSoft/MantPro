@@ -121,6 +121,7 @@ Pots descarregar les versions precompilades des de [GitHub Releases](https://git
   - Binari executable de Linux
   - AppImage portable
   - També disponible a **AUR** (Arch User Repository)
+  - També disponible a [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) per a openSUSE Tumbleweed i Slowroll
 - **Android**: fitxers `.apk` per a instal·lació directa
   - `MantPro.apk`: aplicació de treballs de manteniment
   - `MantProStock.apk`: aplicació d'estoc del magatzem
@@ -236,6 +237,12 @@ Descarrega la versió corresponent al teu sistema des de [GitHub Releases](https
   - O fes servir l'**AppImage** (sense instal·lació): `chmod +x MantPro.AppImage && ./MantPro.AppImage`
   - Els paquets **`.deb`** i **`.rpm`** estan signats digitalment amb GPG (vegeu [Verificar la signatura dels paquets](#-verificar-la-signatura-dels-paquets-linux))
   - **Arch Linux**: disponible a AUR: `yay -S mantpro` o `paru -S mantpro`
+  - **openSUSE Tumbleweed / Slowroll**: disponible a [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), compilat amb el Python i el PyQt6 de la mateixa distribució i actualitzat amb `zypper`:
+    ```bash
+    sudo zypper ar -f https://download.opensuse.org/repositories/home:/danitxu79/openSUSE_Tumbleweed/home:danitxu79.repo
+    sudo zypper in mantpro
+    ```
+    (a Slowroll, canvia `openSUSE_Tumbleweed` per `openSUSE_Slowroll` a la URL)
 
 #### 🔏 Verificar la signatura dels paquets (Linux)
 
