@@ -10,13 +10,18 @@ __pycache__/
 *.db
 mantenimiento.db
 *.json
-!idiomas/*.json
+!mantpro/idiomas/*.json
 *.bak
 
-# Copias sueltas de la BD (mantenimiento_old.db, *.db-journal, etc.)
+# Copias sueltas de la BD (mantenimiento.db.antes_reparto_avisos_..., mantenimiento_old.db,
+# *.db-journal, etc.). "*.db" no cubre los nombres que siguen después de ".db".
+*.db.*
 *.db-journal
 *.db-wal
+*.db-shm
 *.sqlite*
+# Copias completas del repositorio (git bundle)
+*.bundle
 
 # Carpetas de contenido generado por el uso
 fotos_recibidas/
