@@ -52,7 +52,7 @@ from .temas import Temas
 from ..nucleo import usuarios
 from ..nucleo.basedatos import GestorBaseDatos
 from ..nucleo.rutas import DATA_DIR
-from ..version import APP_VERSION
+from ..version import APP_VERSION, GESTOR_PAQUETES
 
 # ==========================================
 # 4. APLICACIÓN PRINCIPAL
@@ -281,6 +281,16 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         msg.exec()
 
     def comprobar_actualizaciones(self, manual=False):
+        # Instalado con el gestor de paquetes de la distribución (OBS/zypper):
+        # se actualiza con él, así que no se busca nada en GitHub.
+        if GESTOR_PAQUETES:
+            if manual:
+                comandos = {"zypper": "sudo zypper refresh && sudo zypper update mantpro"}
+                QMessageBox.information(self, t("title_actualizado"),
+                    tt("msg_actualizaciones_gestor_paquetes",
+                       "MantPro se ha instalado con el gestor de paquetes del sistema ({gestor}) y se actualiza con él:\n\n{comando}").format(
+                        gestor=GESTOR_PAQUETES, comando=comandos.get(GESTOR_PAQUETES, GESTOR_PAQUETES)))
+            return
         # Ejecutado con "python main.py" (no el binario instalado): su
         # APP_VERSION no es la real, que solo se fija al compilar desde el tag,
         # así que siempre parecería desactualizado.

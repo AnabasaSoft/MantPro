@@ -25,6 +25,11 @@ se queda como "Dev Version"."""
 # ejecutando "python main.py" se queda así.
 APP_VERSION = "Dev Version"
 
+# Si la app la ha instalado el gestor de paquetes de la distribución (p. ej.
+# el paquete de OBS para openSUSE, ver empaquetado/obs/mantpro.spec), su
+# nombre: entonces las actualizaciones llegan por él y no se buscan en GitHub.
+GESTOR_PAQUETES = None
+
 
 REPO_OWNER = "AnabasaSoft"
 

@@ -748,5 +748,6 @@
   "btn_qr_con_submaquinas": "The selected one and its sub-machines",
   "btn_qr_todas": "All machines",
   "nombre_pdf_etiquetas": "machine_qr_labels",
-  "msg_etiquetas_generadas": "{n} labels saved to:\n{ruta}"
+  "msg_etiquetas_generadas": "{n} labels saved to:\n{ruta}",
+  "msg_actualizaciones_gestor_paquetes": "MantPro was installed with the system package manager ({gestor}) and is updated with it:\n\n{comando}"
 }

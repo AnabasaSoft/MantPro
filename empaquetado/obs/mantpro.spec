@@ -70,6 +70,8 @@ French.
 # La versión que se muestra en "Acerca de" sale del paquete, igual que en
 # los binarios de GitHub (build_desktop.yml).
 sed -i 's/^APP_VERSION = ".*"/APP_VERSION = "%{version}"/' mantpro/version.py
+# Se actualiza con zypper: "Buscar actualizaciones" lo indica en vez de mirar GitHub.
+sed -i 's/^GESTOR_PAQUETES = .*/GESTOR_PAQUETES = "zypper"/' mantpro/version.py
 
 %build
 # Nada que compilar: aplicación Python pura.
@@ -132,6 +134,8 @@ for m in modulos:
     importlib.import_module(m)
 from mantpro.version import APP_VERSION
 assert APP_VERSION == "%{version}", APP_VERSION
+from mantpro.version import GESTOR_PAQUETES
+assert GESTOR_PAQUETES == "zypper", GESTOR_PAQUETES
 print("OK:", len(modulos), "módulos")
 EOF
 

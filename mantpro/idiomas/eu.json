@@ -748,5 +748,6 @@
   "btn_qr_con_submaquinas": "Hautatutakoa eta haren azpimakinak",
   "btn_qr_todas": "Makina guztiak",
   "nombre_pdf_etiquetas": "makinen_qr_etiketak",
-  "msg_etiquetas_generadas": "{n} etiketa hemen gorde dira:\n{ruta}"
+  "msg_etiquetas_generadas": "{n} etiketa hemen gorde dira:\n{ruta}",
+  "msg_actualizaciones_gestor_paquetes": "MantPro sistemaren pakete-kudeatzailearekin ({gestor}) instalatu da eta harekin eguneratzen da:\n\n{comando}"
 }

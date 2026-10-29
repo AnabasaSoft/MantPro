@@ -748,5 +748,6 @@
   "btn_qr_con_submaquinas": "La seleccionada i les seves submàquines",
   "btn_qr_todas": "Totes les màquines",
   "nombre_pdf_etiquetas": "etiquetes_qr_maquines",
-  "msg_etiquetas_generadas": "{n} etiquetes desades a:\n{ruta}"
+  "msg_etiquetas_generadas": "{n} etiquetes desades a:\n{ruta}",
+  "msg_actualizaciones_gestor_paquetes": "MantPro s'ha instal·lat amb el gestor de paquets del sistema ({gestor}) i s'actualitza amb ell:\n\n{comando}"
 }
