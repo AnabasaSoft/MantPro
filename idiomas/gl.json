@@ -719,5 +719,6 @@
   "imp_msg_ninguna_hoja": "Ningunha folla ten tipo asignado: escolle polo menos unha para importar.",
   "imp_msg_falta_obligatorio_hoja": "Folla «{hoja}»: falta indicar a columna de: {campos}",
   "imp_resumen_total": "Total: {resumen}",
-  "imp_resumen_hoja": "{hoja}: {resumen}"
+  "imp_resumen_hoja": "{hoja}: {resumen}",
+  "imp_aviso_crear_balda": "Crearase a balda {baldas} en «{estanteria}»"
 }

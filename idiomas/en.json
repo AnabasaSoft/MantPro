@@ -719,5 +719,6 @@
   "imp_msg_ninguna_hoja": "No sheet has a type assigned: choose at least one to import.",
   "imp_msg_falta_obligatorio_hoja": "Sheet «{hoja}»: choose the column for: {campos}",
   "imp_resumen_total": "Total: {resumen}",
-  "imp_resumen_hoja": "{hoja}: {resumen}"
+  "imp_resumen_hoja": "{hoja}: {resumen}",
+  "imp_aviso_crear_balda": "Shelf {baldas} will be created in «{estanteria}»"
 }

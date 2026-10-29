@@ -719,5 +719,6 @@
   "imp_msg_ninguna_hoja": "Nenhuma planilha tem tipo atribuído: escolha pelo menos uma para importar.",
   "imp_msg_falta_obligatorio_hoja": "Planilha «{hoja}»: falta indicar a coluna de: {campos}",
   "imp_resumen_total": "Total: {resumen}",
-  "imp_resumen_hoja": "{hoja}: {resumen}"
+  "imp_resumen_hoja": "{hoja}: {resumen}",
+  "imp_aviso_crear_balda": "Será criada a prateleira {baldas} em «{estanteria}»"
 }

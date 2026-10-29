@@ -719,5 +719,6 @@
   "imp_msg_ninguna_hoja": "Cap full no té tipus assignat: tria'n almenys un per importar.",
   "imp_msg_falta_obligatorio_hoja": "Full «{hoja}»: falta indicar la columna de: {campos}",
   "imp_resumen_total": "Total: {resumen}",
-  "imp_resumen_hoja": "{hoja}: {resumen}"
+  "imp_resumen_hoja": "{hoja}: {resumen}",
+  "imp_aviso_crear_balda": "Es crearà el prestatge {baldas} a «{estanteria}»"
 }

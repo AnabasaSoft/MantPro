@@ -690,7 +690,8 @@ class _ImportadorArticulos(_Importador):
             avisos.append(t("imp_aviso_crear_suelo").format(estanteria=est["nombre"]))
         else:
             textos = ", ".join(almacen.texto_balda(n, est["estilo_baldas"]) for n in nuevas)
-            avisos.append(t("imp_aviso_crear_baldas").format(baldas=textos, estanteria=est["nombre"]))
+            clave = "imp_aviso_crear_baldas" if len(nuevas) > 1 else "imp_aviso_crear_balda"
+            avisos.append(t(clave).format(baldas=textos, estanteria=est["nombre"]))
         return self.baldas[(est["id"], numero)]
 
     def _seccion(self, balda_id, nombre, avisos):

@@ -719,5 +719,6 @@
   "imp_msg_ninguna_hoja": "Aucune feuille n'a de type attribué : choisissez-en au moins une à importer.",
   "imp_msg_falta_obligatorio_hoja": "Feuille « {hoja} » : indiquez la colonne de : {campos}",
   "imp_resumen_total": "Total : {resumen}",
-  "imp_resumen_hoja": "{hoja} : {resumen}"
+  "imp_resumen_hoja": "{hoja} : {resumen}",
+  "imp_aviso_crear_balda": "La tablette {baldas} sera créée dans « {estanteria} »"
 }
