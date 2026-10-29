@@ -139,4 +139,7 @@ const Map<String, String> traduccionesGl = {
     "msg_sin_actualizaciones_sin_conexion": "❌ Non se puideron comprobar actualizacións (sen conexión)",
     "msg_ya_ultima_version": "✅ Xa tes a última versión",
     "tooltip_buscar_actualizaciones": "Buscar actualizacións",
+    "canal_conexion_pc": "Conexión co PC",
+    "canal_conexion_pc_desc": "Mantén a app sincronizando co PC mentres está aberta en segundo plano",
+    "btn_cerrar_app": "Pechar",
 };

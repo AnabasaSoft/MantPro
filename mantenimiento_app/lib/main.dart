@@ -36,6 +36,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'i18n/strings.dart';
+import 'servicio_conexion.dart';
 
 
 // ==========================================================================
@@ -632,6 +633,8 @@ void main() async {
   final bool isDark = prefs.getBool('is_dark_mode') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   await cargarIdiomaGuardado();
+  // Después de cargar el idioma: el nombre del canal de su notificación va traducido.
+  ServicioConexion.inicializar();
   await AuthService.cargar();
   sesionNotifier.value = AuthService.autenticado;
   permisoDenegadoNotifier.addListener(_alDenegarPermisoTrabajos);
@@ -1049,21 +1052,34 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // detecta que se acaba de recuperar (antes no la había), sincronizamos
     // todo y avisamos a todas las pestañas a la vez con datosSincronizadosNotifier,
     // sin esperar a que el usuario entre manualmente en cada una.
-    _timerConexion = Timer.periodic(const Duration(seconds: 5), (_) => _comprobarConexionYSincronizar());
+    _programarComprobacion(enPantalla: true);
     WidgetsBinding.instance.addObserver(this);
+    // En segundo plano la app sigue sincronizando (y el PC la ve "En línea")
+    // gracias al servicio en primer plano, con su notificación permanente.
+    ServicioConexion.iniciar(conectado: _conectadoPC);
+    ServicioConexion.escucharCerrar(avisarDesconexionPC);
   }
 
-  /// En segundo plano o al cerrarse, deja de comprobar la conexión y se lo
-  /// avisa al PC ("Sesiones de dispositivos"); al volver, la retoma al momento.
+  /// Cada 5 s con la app en pantalla y cada 30 s en segundo plano (para
+  /// gastar menos batería; el PC adapta su margen al ritmo de cada móvil).
+  void _programarComprobacion({required bool enPantalla}) {
+    _timerConexion?.cancel();
+    _timerConexion = Timer.periodic(Duration(seconds: enPantalla ? 5 : 30), (_) => _comprobarConexionYSincronizar());
+  }
+
+  /// En segundo plano sigue sincronizando, más espaciado; solo al cerrarse
+  /// del todo deja de hacerlo y se lo avisa al PC ("Sesiones de dispositivos").
   @override
   void didChangeAppLifecycleState(AppLifecycleState estado) {
-    if (estado == AppLifecycleState.paused || estado == AppLifecycleState.detached) {
+    if (estado == AppLifecycleState.paused) {
+      _programarComprobacion(enPantalla: false);
+    } else if (estado == AppLifecycleState.resumed) {
+      _programarComprobacion(enPantalla: true);
+      _comprobarConexionYSincronizar();
+    } else if (estado == AppLifecycleState.detached) {
       _timerConexion?.cancel();
       avisarDesconexionPC();
-    } else if (estado == AppLifecycleState.resumed) {
-      _timerConexion?.cancel();
-      _timerConexion = Timer.periodic(const Duration(seconds: 5), (_) => _comprobarConexionYSincronizar());
-      _comprobarConexionYSincronizar();
+      ServicioConexion.detener();
     }
   }
 
@@ -1071,6 +1087,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timerConexion?.cancel();
+    // Al cerrar sesión desaparece esta pantalla: sin sesión no hay nada que
+    // mantener vivo en segundo plano.
+    ServicioConexion.dejarDeEscuchar();
+    ServicioConexion.detener();
     super.dispose();
   }
 
@@ -1107,6 +1127,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       try { await SincronizadorGlobal.sincronizarTodo(ip); } catch (_) {}
       datosSincronizadosNotifier.value++;
     }
+    if (ok != _conectadoPC) ServicioConexion.actualizar(ok);
     _conectadoPC = ok;
   }
 

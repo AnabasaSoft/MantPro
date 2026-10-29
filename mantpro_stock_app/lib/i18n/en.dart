@@ -137,4 +137,7 @@ const Map<String, String> traduccionesEn = {
     "msg_sin_actualizaciones_sin_conexion": "❌ Could not check for updates (no connection)",
     "msg_ya_ultima_version": "✅ You already have the latest version",
     "tooltip_buscar_actualizaciones": "Check for updates",
+    "canal_conexion_pc": "Connection to the PC",
+    "canal_conexion_pc_desc": "Keeps the app syncing with the PC while it is open in the background",
+    "btn_cerrar_app": "Close",
 };

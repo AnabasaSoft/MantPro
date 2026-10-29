@@ -187,4 +187,9 @@ const Map<String, String> traduccionesGl = {
     "lbl_coleccion_fotos": "Colección de fotos",
     "btn_foto_coleccion_camara": "Facer foto",
     "btn_fotos_coleccion_galeria": "Escoller da galería",
+    "canal_conexion_pc": "Conexión co PC",
+    "canal_conexion_pc_desc": "Mantén a app sincronizando co PC mentres está aberta en segundo plano",
+    "btn_cerrar_app": "Pechar",
+    "lbl_conectado_pc": "🟢 Conectado ao PC",
+    "lbl_desconectado_pc": "🔴 Sen conexión co PC",
 };

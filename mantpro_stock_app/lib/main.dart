@@ -29,6 +29,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 import 'i18n/strings.dart';
+import 'servicio_conexion.dart';
 import 'api.dart';
 import 'sincronizador.dart';
 import 'pantallas/pantalla_almacen.dart';
@@ -207,6 +208,8 @@ void main() async {
   final bool isDark = prefs.getBool('is_dark_mode') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   await cargarIdiomaGuardado();
+  // Después de cargar el idioma: el nombre del canal de su notificación va traducido.
+  ServicioConexion.inicializar();
   await AuthService.cargar();
   sesionNotifier.value = AuthService.autenticado;
   permisoDenegadoNotifier.addListener(_alDenegarPermiso);
@@ -498,17 +501,26 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     datosSincronizadosNotifier.addListener(_alSincronizarDatos);
     _sincronizarAlArrancar();
     WidgetsBinding.instance.addObserver(this);
-    _iniciarTemporizadores();
+    _iniciarTemporizadores(enPantalla: true);
+    // En segundo plano la app sigue sincronizando (y el PC la ve "En línea")
+    // gracias al servicio en primer plano, con su notificación permanente.
+    ServicioConexion.iniciar(conectado: ConexionPC.estado.value == true);
+    ServicioConexion.escucharCerrar(avisarDesconexionPC);
+    ConexionPC.estado.addListener(_alCambiarConexion);
   }
+
+  void _alCambiarConexion() => ServicioConexion.actualizar(ConexionPC.estado.value == true);
 
   /// Mientras la app está abierta: cada 25 s reintenta enviar lo pendiente y
   /// refresca los roles del usuario (para detectar sin reconectar cambios
   /// hechos desde el PC, p.ej. que le den permiso de almacén a un técnico), y
-  /// cada 5 s un latido ligero para que el PC sepa que sigue conectada.
-  void _iniciarTemporizadores() {
+  /// cada 5 s un latido ligero para que el PC sepa que sigue conectada. En
+  /// segundo plano, cada 60 s y cada 30 s, para gastar menos batería (el PC
+  /// adapta su margen al ritmo de cada móvil).
+  void _iniciarTemporizadores({required bool enPantalla}) {
     _pararTemporizadores();
-    _timerSincronizacion = Timer.periodic(const Duration(seconds: 25), (_) => _sincronizarPeriodico());
-    _timerLatido = Timer.periodic(const Duration(seconds: 5), (_) => latidoPC());
+    _timerSincronizacion = Timer.periodic(Duration(seconds: enPantalla ? 25 : 60), (_) => _sincronizarPeriodico());
+    _timerLatido = Timer.periodic(Duration(seconds: enPantalla ? 5 : 30), (_) => latidoPC());
   }
 
   void _pararTemporizadores() {
@@ -516,16 +528,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _timerLatido?.cancel();
   }
 
-  /// En segundo plano o al cerrarse, deja de llamar al PC y se lo avisa; al
-  /// volver, retoma los temporizadores y contacta con el PC al momento.
+  /// En segundo plano sigue sincronizando, más espaciado; solo al cerrarse
+  /// del todo deja de llamar al PC y se lo avisa.
   @override
   void didChangeAppLifecycleState(AppLifecycleState estado) {
-    if (estado == AppLifecycleState.paused || estado == AppLifecycleState.detached) {
+    if (estado == AppLifecycleState.paused) {
+      _iniciarTemporizadores(enPantalla: false);
+    } else if (estado == AppLifecycleState.resumed) {
+      _iniciarTemporizadores(enPantalla: true);
+      latidoPC();
+    } else if (estado == AppLifecycleState.detached) {
       _pararTemporizadores();
       avisarDesconexionPC();
-    } else if (estado == AppLifecycleState.resumed) {
-      _iniciarTemporizadores();
-      latidoPC();
+      ServicioConexion.detener();
     }
   }
 
@@ -535,6 +550,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     datosSincronizadosNotifier.removeListener(_alSincronizarDatos);
     _pararTemporizadores();
     _sincronizando.dispose();
+    // Al cerrar sesión desaparece esta pantalla: sin sesión no hay nada que
+    // mantener vivo en segundo plano.
+    ConexionPC.estado.removeListener(_alCambiarConexion);
+    ServicioConexion.dejarDeEscuchar();
+    ServicioConexion.detener();
     super.dispose();
   }
 

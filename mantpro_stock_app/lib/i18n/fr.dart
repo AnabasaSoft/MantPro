@@ -126,4 +126,7 @@ const Map<String, String> traduccionesFr = {
   "msg_sin_actualizaciones_sin_conexion": "❌ Impossible de rechercher des mises à jour (pas de connexion)",
   "msg_ya_ultima_version": "✅ Vous avez déjà la dernière version",
   "tooltip_buscar_actualizaciones": "Rechercher des mises à jour",
+  "canal_conexion_pc": "Connexion au PC",
+  "canal_conexion_pc_desc": "Maintient l'application synchronisée avec le PC tant qu'elle est ouverte en arrière-plan",
+  "btn_cerrar_app": "Fermer",
 };

@@ -139,4 +139,7 @@ const Map<String, String> traduccionesCa = {
     "msg_sin_actualizaciones_sin_conexion": "❌ No s'han pogut comprovar actualitzacions (sense connexió)",
     "msg_ya_ultima_version": "✅ Ja tens l'última versió",
     "tooltip_buscar_actualizaciones": "Cercar actualitzacions",
+    "canal_conexion_pc": "Connexió amb el PC",
+    "canal_conexion_pc_desc": "Manté l'app sincronitzant amb el PC mentre és oberta en segon pla",
+    "btn_cerrar_app": "Tancar",
 };

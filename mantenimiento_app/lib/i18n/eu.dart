@@ -186,4 +186,9 @@ const Map<String, String> traduccionesEu = {
     "lbl_coleccion_fotos": "Argazki bilduma",
     "btn_foto_coleccion_camara": "Argazkia atera",
     "btn_fotos_coleccion_galeria": "Galeriatik aukeratu",
+    "canal_conexion_pc": "PCarekiko konexioa",
+    "canal_conexion_pc_desc": "Aplikazioa PCarekin sinkronizatzen mantentzen du bigarren planoan irekita dagoen bitartean",
+    "btn_cerrar_app": "Itxi",
+    "lbl_conectado_pc": "🟢 PCra konektatuta",
+    "lbl_desconectado_pc": "🔴 PCrekin konexiorik gabe",
 };

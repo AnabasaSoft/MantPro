@@ -137,4 +137,7 @@ const Map<String, String> traduccionesEu = {
     "msg_sin_actualizaciones_sin_conexion": "❌ Ezin izan da eguneraketarik egiaztatu (konexiorik gabe)",
     "msg_ya_ultima_version": "✅ Dagoeneko azken bertsioa duzu",
     "tooltip_buscar_actualizaciones": "Eguneraketak bilatu",
+    "canal_conexion_pc": "PCarekiko konexioa",
+    "canal_conexion_pc_desc": "Aplikazioa PCarekin sinkronizatzen mantentzen du bigarren planoan irekita dagoen bitartean",
+    "btn_cerrar_app": "Itxi",
 };
