@@ -153,6 +153,7 @@ Você pode baixar as versões pré-compiladas em [GitHub Releases](https://githu
 - **📦 Controle do estoque do almoxarifado**: estrutura configurável de estantes, prateleiras e seções, ficha de materiais com foto, entradas/saídas com histórico e alertas de estoque abaixo do mínimo
 - **📄 Exportar o estoque**: botão "📄 Exportar" na aba de estoque para gerar o almoxarifado inteiro, uma zona ou uma estante em PDF, CSV ou Excel, ordenado por localização; a aba de estoque abaixo do mínimo também tem seu botão para exportar apenas os materiais em alerta
 - **🗑️ Tempo máximo de armazenamento**: `Ferramentas` permite excluir do histórico os serviços mais antigos que um número de anos, meses ou dias, com suas fotos e uma cópia de segurança prévia (somente administradores)
+- **📥 Importar do Excel/CSV**: `Arquivo > Importar do Excel/CSV…` (somente administradores) traz máquinas, itens do almoxarifado, avisos recorrentes e usuários de um modelo para baixar ou do seu próprio Excel, associando as colunas automaticamente, com pré-visualização linha a linha e cópia de segurança prévia. Localizações (zonas, estantes, prateleiras) e máquinas superiores que não existirem são criadas automaticamente, e os usuários recebem uma senha temporária que terão de alterar no primeiro acesso
 - **🏭 Controle de máquinas**: árvore de máquinas e submáquinas com foto anexada, contador de serviços por ano e mês e vínculo direto a partir de cada serviço registrado ou editado (veja [Máquinas](#-máquinas))
 - **📊 Exportação**: para PDF, CSV e Excel, com filtro opcional por técnico e indicando a máquina/submáquina de cada serviço, se houver
 
@@ -207,6 +208,7 @@ serviços.
   - qrcode
   - requests
   - xlsxwriter
+  - openpyxl
   - sqlite3 (incluído no Python)
 
 ### Aplicativo para celular
@@ -889,6 +891,9 @@ Contribuições são bem-vindas! Se você quiser melhorar o MantPro:
   zona, por estante ou só os materiais abaixo do mínimo.
 - **Tempo máximo de armazenamento de serviços**: exclusão de serviços antigos
   com confirmação e cópia de segurança prévia.
+- **Importar do Excel/CSV**: máquinas, itens do almoxarifado, avisos
+  recorrentes e usuários, com modelo, associação de colunas, pré-visualização
+  linha a linha e cópia de segurança prévia.
 
 ## 📄 Licença
 

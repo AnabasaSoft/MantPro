@@ -153,6 +153,7 @@ Vous pouvez télécharger les versions précompilées depuis [GitHub Releases](h
 - **📦 Gestion du stock du magasin** : structure configurable de rayonnages, tablettes et sections, fiche article avec photo, entrées/sorties avec historique et alertes de stock sous le minimum
 - **📄 Exporter le stock** : bouton « 📄 Exporter » dans l'onglet stock pour générer tout le magasin, une zone ou un rayonnage en PDF, CSV ou Excel, trié par emplacement ; l'onglet du stock sous le minimum a aussi son bouton pour n'exporter que les articles en alerte
 - **🗑️ Durée maximale de conservation** : `Outils` permet de supprimer de l'historique les interventions plus anciennes qu'un nombre d'années, de mois ou de jours, avec leurs photos et une sauvegarde préalable (administrateurs uniquement)
+- **📥 Importer depuis Excel/CSV** : `Fichier > Importer depuis Excel/CSV…` (administrateurs uniquement) importe machines, articles du magasin, rappels récurrents et utilisateurs depuis un modèle téléchargeable ou depuis votre propre Excel, en associant les colonnes automatiquement, avec un aperçu ligne par ligne et une sauvegarde préalable. Les emplacements (zones, rayonnages, tablettes) et machines parentes inexistants sont créés automatiquement, et les utilisateurs reçoivent un mot de passe temporaire à changer à la première connexion
 - **🏭 Suivi des machines** : arborescence de machines et sous-machines avec photo jointe, compteur d'interventions par année et par mois et association directe depuis chaque intervention enregistrée ou modifiée (voir [Machines](#-machines))
 - **📊 Export** : vers PDF, CSV et Excel, avec filtre facultatif par technicien et indiquant la machine/sous-machine de chaque intervention, le cas échéant
 
@@ -207,6 +208,7 @@ l'application des interventions.
   - qrcode
   - requests
   - xlsxwriter
+  - openpyxl
   - sqlite3 (inclus avec Python)
 
 ### Application mobile
@@ -925,6 +927,9 @@ Les contributions sont les bienvenues ! Si vous voulez améliorer MantPro :
   par rayonnage ou seulement les articles sous le minimum.
 - **Durée maximale de conservation des interventions** : suppression des
   anciennes interventions avec confirmation et sauvegarde préalable.
+- **Importer depuis Excel/CSV** : machines, articles du magasin, rappels
+  récurrents et utilisateurs, avec modèle, association des colonnes, aperçu
+  ligne par ligne et sauvegarde préalable.
 
 ## 📄 Licence
 

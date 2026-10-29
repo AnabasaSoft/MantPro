@@ -153,6 +153,7 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
 - **📄 Exportar el Stock**: botón "📄 Exportar" en la pestaña de stock para sacar el almacén entero, una zona o una estantería a PDF, CSV o Excel, ordenado por ubicación; la pestaña de stock bajo mínimo también tiene su botón para exportar solo los materiales en alerta
 - **🗑️ Tiempo Máximo de Guardado**: `Herramientas` permite borrar del historial los trabajos más antiguos que un número de años, meses o días, con sus fotos y una copia de seguridad previa (solo administradores)
+- **📥 Importar desde Excel/CSV**: `Archivo > Importar desde Excel/CSV…` (solo administradores) trae máquinas, artículos del almacén, avisos recurrentes y usuarios desde una plantilla descargable o desde tu propio Excel, emparejando solas las columnas, con vista previa fila a fila y copia de seguridad previa. Las ubicaciones (zonas, estanterías, baldas) y máquinas superiores que no existan se crean solas, y los usuarios reciben una contraseña temporal que tendrán que cambiar al entrar
 - **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
 - **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico e indicando la máquina/submáquina de cada trabajo, si la tiene
 
@@ -206,6 +207,7 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
   - qrcode
   - requests
   - xlsxwriter
+  - openpyxl
   - sqlite3 (incluido en Python)
 
 ### Aplicación Móvil
@@ -887,6 +889,9 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
   estantería o solo los materiales bajo mínimo.
 - **Tiempo máximo de guardado de trabajos**: borrado de trabajos antiguos con
   confirmación y copia de seguridad previa.
+- **Importar desde Excel/CSV**: máquinas, artículos del almacén, avisos
+  recurrentes y usuarios, con plantilla, emparejado de columnas, vista previa
+  fila a fila y copia de seguridad previa.
 
 ## 📄 Licencia
 

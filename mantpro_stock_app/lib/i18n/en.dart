@@ -108,6 +108,7 @@ const Map<String, String> traduccionesEn = {
     "motivo_comprobacion_stock": "Stock check",
     "motivo_usado_en_trabajo": "Used in job: {trabajo}",
     "motivo_alta_inicial": "Initial stock",
+    "motivo_ajuste_importacion": "Import adjustment",
 
     // --- Artículos, permisos y colas ---
     "lbl_articulo": "Item",

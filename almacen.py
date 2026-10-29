@@ -667,6 +667,9 @@ def materiales_bajo_minimo():
 # el PC al registrarlos. Si se cambian, hay que cambiarlos también en
 # mantpro_stock_app/lib/modelos.dart.
 MOTIVO_ALTA_INICIAL = "Alta inicial"
+# Diferencia de stock al actualizar un artículo desde una importación de Excel/CSV
+# (ver importar.py): el stock nunca se pisa sin dejar el movimiento.
+MOTIVO_AJUSTE_IMPORTACION = "Ajuste por importación"
 PREFIJO_MOTIVO_USADO_EN_TRABAJO = "Usado en trabajo: "
 
 

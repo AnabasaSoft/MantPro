@@ -101,6 +101,7 @@ const Map<String, String> traduccionesFr = {
   "motivo_comprobacion_stock": "Contrôle du stock",
   "motivo_usado_en_trabajo": "Utilisé pour l'intervention : {trabajo}",
   "motivo_alta_inicial": "Création initiale",
+  "motivo_ajuste_importacion": "Ajustement par importation",
   "lbl_articulo": "Article",
   "msg_borrado_articulo": "Suppression d'article",
   "lbl_movimiento_stock": "Mouvement de stock",

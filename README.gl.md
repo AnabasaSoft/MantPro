@@ -153,6 +153,7 @@ Podes descargar as versións precompiladas dende [GitHub Releases](https://githu
 - **📦 Control do stock do almacén**: estrutura de andeis, baldas e seccións configurable, ficha de materiais con foto, entradas/saídas con historial e alertas de stock por baixo do mínimo
 - **📄 Exportar o stock**: botón "📄 Exportar" na lapela de stock para sacar o almacén enteiro, unha zona ou un andel a PDF, CSV ou Excel, ordenado por localización; a lapela de stock por baixo do mínimo tamén ten o seu botón para exportar só os materiais en alerta
 - **🗑️ Tempo máximo de gardado**: `Ferramentas` permite borrar do historial os traballos máis antigos que un número de anos, meses ou días, coas súas fotos e unha copia de seguranza previa (só administradores)
+- **📥 Importar dende Excel/CSV**: `Ficheiro > Importar dende Excel/CSV…` (só administradores) trae máquinas, artigos do almacén, avisos recorrentes e usuarios dende un modelo descargable ou dende o teu propio Excel, emparellando soas as columnas, con vista previa fila a fila e copia de seguranza previa. As localizacións (zonas, andeis, baldas) e máquinas superiores que non existan créanse soas, e os usuarios reciben un contrasinal temporal que terán que cambiar ao entrar
 - **🏭 Control de maquinaria**: árbore de máquinas e submáquinas con foto achegada, contador de traballos por ano e mes, e vínculo directo dende cada traballo rexistrado ou editado (ver [Maquinaria](#-maquinaria))
 - **📊 Exportación**: a PDF, CSV e Excel, con filtro opcional por técnico e indicando a máquina/submáquina de cada traballo, se a ten
 
@@ -206,6 +207,7 @@ o stock do almacén dende o móbil sen necesidade da aplicación de traballos.
   - qrcode
   - requests
   - xlsxwriter
+  - openpyxl
   - sqlite3 (incluído en Python)
 
 ### Aplicación móbil
@@ -884,6 +886,9 @@ As contribucións son benvidas! Se queres mellorar MantPro:
   andel ou só os materiais por baixo do mínimo.
 - **Tempo máximo de gardado de traballos**: borrado de traballos antigos con
   confirmación e copia de seguranza previa.
+- **Importar dende Excel/CSV**: máquinas, artigos do almacén, avisos
+  recorrentes e usuarios, con modelo, emparellamento de columnas, vista previa
+  fila a fila e copia de seguranza previa.
 
 ## 📄 Licenza
 

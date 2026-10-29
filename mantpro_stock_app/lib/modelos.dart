@@ -171,12 +171,14 @@ class Movimiento {
 // en esta forma canónica (en español) y se traducen al mostrarlos; tienen
 // que coincidir con las constantes de almacen.py.
 const String _motivoAltaInicial = 'Alta inicial';
+const String _motivoAjusteImportacion = 'Ajuste por importación';
 const String _prefijoMotivoUsadoEnTrabajo = 'Usado en trabajo: ';
 
 /// Traduce al idioma activo los motivos de movimiento generados por la
 /// aplicación. Los que escribe el usuario a mano se devuelven tal cual.
 String traducirMotivoMovimiento(String motivo) {
   if (motivo == _motivoAltaInicial) return t('motivo_alta_inicial');
+  if (motivo == _motivoAjusteImportacion) return t('motivo_ajuste_importacion');
   if (motivo.startsWith(_prefijoMotivoUsadoEnTrabajo)) {
     final trabajo = motivo.substring(_prefijoMotivoUsadoEnTrabajo.length);
     return t('motivo_usado_en_trabajo').replaceAll('{trabajo}', trabajo);

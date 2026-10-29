@@ -53,6 +53,7 @@ import almacen
 
 # --- Listado de maquinaria y su histórico de trabajos ---
 import maquinas
+import importar
 
 
 def tt(clave, defecto):
@@ -68,6 +69,8 @@ def traducir_motivo_movimiento(motivo):
     que escribe el usuario a mano se devuelven tal cual."""
     if motivo == almacen.MOTIVO_ALTA_INICIAL:
         return tt("motivo_alta_inicial", motivo)
+    if motivo == almacen.MOTIVO_AJUSTE_IMPORTACION:
+        return tt("motivo_ajuste_importacion", motivo)
     if motivo.startswith(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):
         trabajo = motivo[len(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):]
         return tt("motivo_usado_en_trabajo", "Usado en trabajo: {trabajo}").format(trabajo=trabajo)
@@ -84,7 +87,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QListWidgetItem, QStyleFactory, QComboBox, QGroupBox, QCheckBox,
                              QCompleter, QFileDialog, QScrollArea, QSizePolicy, QGridLayout,
                              QSpinBox, QDoubleSpinBox, QRadioButton, QProgressBar, QProgressDialog, QTreeView, QMenu, QSplashScreen,
-                             QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog, QFormLayout)
+                             QTreeWidget, QTreeWidgetItem, QSplitter, QInputDialog, QFormLayout,
+                             QStackedWidget)
 
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 from PyQt6.QtCore import (QDate, Qt, pyqtSignal, QThread, QSettings, QDir,
@@ -4341,6 +4345,210 @@ class DialogoExportarStock(QDialog):
             ambito = None
         return formato, zona_id, est_id, ambito
 
+class DialogoImportar(QDialog):
+    """Asistente de importación desde Excel/CSV en tres pasos: fichero y tipo,
+    columnas, y vista previa. La lógica está en importar.py; aquí solo la
+    interfaz. Al aceptar, `self.ejecutar` (de la ventana principal) hace la
+    copia previa y la importación real."""
+    COLORES = {"crear": "#27ae60", "actualizar": "#2980b9", "saltar": "#7f8c8d", "error": "#c0392b", "avisos": "#e67e22"}
+
+    def __init__(self, parent, ejecutar):
+        super().__init__(parent)
+        self.ejecutar = ejecutar
+        self.setWindowTitle(t("imp_titulo")); self.resize(980, 640)
+        self.cabeceras, self.filas, self.resultados = [], [], []
+        l = QVBoxLayout(self)
+        self.paginas = QStackedWidget(); l.addWidget(self.paginas)
+
+        # --- Paso 1: fichero y tipo
+        p1 = QWidget(); v1 = QVBoxLayout(p1)
+        v1.addWidget(QLabel(t("imp_paso1"), styleSheet="font-weight: bold; font-size: 15px;"))
+        f1 = QFormLayout()
+        fila_fichero = QHBoxLayout()
+        self.txt_fichero = QLineEdit(); self.txt_fichero.setReadOnly(True)
+        btn_examinar = QPushButton(t("imp_btn_examinar")); btn_examinar.clicked.connect(self._elegir_fichero)
+        fila_fichero.addWidget(self.txt_fichero); fila_fichero.addWidget(btn_examinar)
+        f1.addRow(t("imp_lbl_fichero"), fila_fichero)
+        self.combo_hoja = QComboBox(); self.combo_hoja.setEnabled(False)
+        self.combo_hoja.currentTextChanged.connect(self._hoja_cambiada)
+        f1.addRow(t("imp_lbl_hoja"), self.combo_hoja)
+        self.combo_tipo = QComboBox()
+        for tipo in importar.TIPOS:
+            self.combo_tipo.addItem(t(f"imp_tipo_{tipo}"), tipo)
+        f1.addRow(t("imp_lbl_tipo"), self.combo_tipo)
+        v1.addLayout(f1)
+        ayuda = QLabel(t("imp_ayuda_paso1")); ayuda.setWordWrap(True); v1.addWidget(ayuda)
+        btn_plantilla = QPushButton(t("imp_btn_plantilla")); btn_plantilla.clicked.connect(self._guardar_plantilla)
+        fila_plantilla = QHBoxLayout(); fila_plantilla.addWidget(btn_plantilla); fila_plantilla.addStretch()
+        v1.addLayout(fila_plantilla); v1.addStretch()
+        self.paginas.addWidget(p1)
+
+        # --- Paso 2: columnas
+        p2 = QWidget(); v2 = QVBoxLayout(p2)
+        v2.addWidget(QLabel(t("imp_paso2"), styleSheet="font-weight: bold; font-size: 15px;"))
+        self.form_columnas = QFormLayout(); v2.addLayout(self.form_columnas)
+        v2.addWidget(QLabel(t("imp_nota_obligatorios")))
+        f2 = QFormLayout()
+        self.combo_modo = QComboBox()
+        self.combo_modo.addItem(t("imp_modo_saltar"), "saltar")
+        self.combo_modo.addItem(t("imp_modo_actualizar"), "actualizar")
+        f2.addRow(t("imp_lbl_duplicados"), self.combo_modo)
+        v2.addLayout(f2); v2.addStretch()
+        self.paginas.addWidget(p2)
+
+        # --- Paso 3: vista previa
+        p3 = QWidget(); v3 = QVBoxLayout(p3)
+        v3.addWidget(QLabel(t("imp_paso3"), styleSheet="font-weight: bold; font-size: 15px;"))
+        self.lbl_resumen = QLabel(); self.lbl_resumen.setWordWrap(True); v3.addWidget(self.lbl_resumen)
+        self.tabla = QTableWidget(); self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla.verticalHeader().setVisible(False)
+        v3.addWidget(self.tabla)
+        self.paginas.addWidget(p3)
+
+        botones = QHBoxLayout()
+        self.btn_atras = QPushButton(t("imp_btn_atras")); self.btn_atras.clicked.connect(self._atras)
+        self.btn_siguiente = QPushButton(t("imp_btn_siguiente")); self.btn_siguiente.clicked.connect(self._siguiente)
+        self.btn_importar = QPushButton(t("imp_btn_importar")); self.btn_importar.clicked.connect(self._importar)
+        btn_cancelar = QPushButton(t("btn_cancelar")); btn_cancelar.clicked.connect(self.reject)
+        botones.addWidget(self.btn_atras); botones.addStretch()
+        for b in (btn_cancelar, self.btn_siguiente, self.btn_importar): botones.addWidget(b)
+        l.addLayout(botones)
+        self._actualizar_botones()
+
+    @property
+    def tipo(self):
+        return self.combo_tipo.currentData()
+
+    def _actualizar_botones(self):
+        pagina = self.paginas.currentIndex()
+        self.btn_atras.setEnabled(pagina > 0)
+        self.btn_siguiente.setVisible(pagina < 2)
+        self.btn_importar.setVisible(pagina == 2)
+        if pagina == 2:
+            c = importar.resumen(self.resultados)
+            self.btn_importar.setEnabled(c["crear"] + c["actualizar"] > 0)
+
+    def _avisar(self, texto):
+        QMessageBox.warning(self, t("title_atencion"), texto)
+
+    def _elegir_fichero(self):
+        ruta, _ = QFileDialog.getOpenFileName(self, t("imp_titulo"), "",
+                                              f"{t('imp_filtro_ficheros')} (*.xlsx *.csv *.txt)")
+        if not ruta: return
+        try:
+            hojas = importar.hojas(ruta)
+        except importar.ErrorLectura as e:
+            self._avisar(str(e)); return
+        self.txt_fichero.setText(ruta)
+        self.combo_hoja.clear(); self.combo_hoja.addItems(hojas); self.combo_hoja.setEnabled(len(hojas) > 1)
+        # Si el Excel es nuestra plantilla, se elige solo el tipo de la hoja
+        hoja_por_tipo = {importar.nombre_hoja(tipo): tipo for tipo in importar.TIPOS}
+        tipo_hoja = next((hoja_por_tipo[h] for h in hojas if h in hoja_por_tipo), None)
+        if tipo_hoja:
+            self.combo_hoja.setCurrentText(next(h for h in hojas if hoja_por_tipo.get(h) == tipo_hoja))
+            self.combo_tipo.setCurrentIndex(self.combo_tipo.findData(tipo_hoja))
+
+    def _hoja_cambiada(self, hoja):
+        tipo = {importar.nombre_hoja(tp): tp for tp in importar.TIPOS}.get(hoja)
+        if tipo: self.combo_tipo.setCurrentIndex(self.combo_tipo.findData(tipo))
+
+    def _guardar_plantilla(self):
+        ruta, _ = QFileDialog.getSaveFileName(self, t("imp_btn_plantilla"), t("imp_nombre_plantilla") + ".xlsx", "Excel (*.xlsx)")
+        if not ruta: return
+        if not ruta.lower().endswith(".xlsx"): ruta += ".xlsx"
+        try:
+            importar.generar_plantilla(ruta)
+            QMessageBox.information(self, t("title_exito"), t("imp_msg_guardado").format(ruta=ruta))
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
+
+    def _cargar_columnas(self):
+        while self.form_columnas.rowCount():
+            self.form_columnas.removeRow(0)
+        mapeo = importar.emparejar_automatico(self.tipo, self.cabeceras)
+        self.combos_campos = {}
+        for campo, obligatorio in importar.CAMPOS[self.tipo]:
+            combo = QComboBox(); combo.addItem(t("imp_no_importar"), None)
+            for j, cab in enumerate(self.cabeceras):
+                combo.addItem(cab, j)
+            idx = combo.findData(mapeo.get(campo))
+            combo.setCurrentIndex(idx if idx >= 0 else 0)
+            etiqueta = importar.etiqueta_campo(campo) + (" *" if obligatorio else "")
+            self.form_columnas.addRow(etiqueta + ":", combo)
+            self.combos_campos[campo] = combo
+
+    def _mapeo(self):
+        return {campo: combo.currentData() for campo, combo in self.combos_campos.items() if combo.currentData() is not None}
+
+    def _siguiente(self):
+        pagina = self.paginas.currentIndex()
+        if pagina == 0:
+            ruta = self.txt_fichero.text()
+            if not ruta:
+                self._avisar(t("imp_msg_elige_fichero")); return
+            try:
+                self.cabeceras, self.filas = importar.leer(ruta, self.combo_hoja.currentText() or None)
+            except importar.ErrorLectura as e:
+                self._avisar(str(e)); return
+            if not self.filas:
+                self._avisar(t("imp_msg_sin_filas")); return
+            self._cargar_columnas()
+        elif pagina == 1:
+            mapeo = self._mapeo()
+            faltan = [importar.etiqueta_campo(c) for c, obligatorio in importar.CAMPOS[self.tipo]
+                      if obligatorio and c not in mapeo]
+            if faltan:
+                self._avisar(t("imp_msg_falta_obligatorio").format(campos=", ".join(faltan))); return
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            try:
+                self.resultados, _ = importar.procesar(self.tipo, self.filas, mapeo, self.combo_modo.currentData(),
+                                                       aplicar=False)
+            except Exception as e:
+                QApplication.restoreOverrideCursor()
+                QMessageBox.critical(self, t("title_error"), t("imp_msg_error").format(error=e)); return
+            QApplication.restoreOverrideCursor()
+            self._llenar_vista_previa(mapeo)
+        self.paginas.setCurrentIndex(pagina + 1)
+        self._actualizar_botones()
+
+    def _atras(self):
+        self.paginas.setCurrentIndex(max(0, self.paginas.currentIndex() - 1))
+        self._actualizar_botones()
+
+    def texto_resumen(self, resultados):
+        c = importar.resumen(resultados)
+        return t("imp_resumen").format(crear=c["crear"], actualizar=c["actualizar"], saltar=c["saltar"],
+                                       error=c["error"], avisos=c["avisos"])
+
+    def _llenar_vista_previa(self, mapeo):
+        self.lbl_resumen.setText(self.texto_resumen(self.resultados))
+        campos = [c for c, _ in importar.CAMPOS[self.tipo] if c in mapeo]
+        # Las observaciones van justo detrás del estado: son lo que explica qué
+        # va a pasar con cada fila y no deben quedar escondidas al final.
+        cabeceras = [t("imp_col_fila"), t("imp_col_estado"), t("imp_col_mensajes")] + [importar.etiqueta_campo(c) for c in campos]
+        self.tabla.clear(); self.tabla.setColumnCount(len(cabeceras)); self.tabla.setHorizontalHeaderLabels(cabeceras)
+        self.tabla.setRowCount(len(self.resultados)); self.tabla.setWordWrap(True)
+        for i, r in enumerate(self.resultados):
+            color = QColor(self.COLORES["avisos" if r.con_avisos else r.estado])
+            celdas = [str(r.numero), t(f"imp_estado_{r.estado}"), "\n".join(r.mensajes)]
+            celdas += [importar.texto_celda(r.valores[mapeo[c]]) for c in campos]
+            for j, texto in enumerate(celdas):
+                item = QTableWidgetItem(texto)
+                if j in (1, 2):
+                    item.setForeground(QBrush(color))
+                if j == 2 and texto:
+                    item.setToolTip(texto)
+                self.tabla.setItem(i, j, item)
+        self.tabla.resizeColumnsToContents()
+        self.tabla.setColumnWidth(2, min(max(self.tabla.columnWidth(2), 200), 420))
+        self.tabla.resizeRowsToContents()
+
+    def _importar(self):
+        if self.ejecutar(self.tipo, self.cabeceras, self.filas, self._mapeo(), self.combo_modo.currentData(), self):
+            self.accept()
+
+
 def traducir_tags_bd(tags_bd):
     traducciones = {
         "Urgente": t("tag_urgente"),
@@ -4841,6 +5049,8 @@ class MaintenanceApp(QMainWindow):
             menu_restaurar.addAction(QAction(tt("menu_restaurar_manual", "Restaurar..."), self, triggered=self.restaurar_backup))
             menu_restaurar.addAction(QAction(tt("menu_restaurar_auto", "Restaurar desde copia automática..."), self, triggered=self.restaurar_backup_auto))
             fm.addSeparator()
+            fm.addAction(QAction(t("menu_importar"), self, triggered=self.importar_datos))
+            fm.addSeparator()
 
         # --- SUBMENÚ PDF ---
         menu_pdf = fm.addMenu(t("menu_opciones_pdf"))
@@ -5305,7 +5515,7 @@ class MaintenanceApp(QMainWindow):
         f.addWidget(QLabel(t("lbl_inicio")), 0, 2); f.addWidget(self.in_av_i, 0, 3)
         self.in_av_freq = QComboBox(); self.in_av_freq.addItems([t("freq_anual"), t("freq_semestral"), t("freq_trimestral"), t("freq_mensual"), t("freq_semanal"), t("freq_diario")])
         f.addWidget(QLabel(t("lbl_repetir")), 1, 0); f.addWidget(self.in_av_freq, 1, 1)
-        self.in_av_dur = QSpinBox(); self.in_av_dur.setRange(1, 60); self.in_av_dur.setValue(5); self.in_av_dur.setSuffix(" días")
+        self.in_av_dur = QSpinBox(); self.in_av_dur.setRange(1, 60); self.in_av_dur.setValue(5); self.in_av_dur.setSuffix(" " + t("lbl_dias_abrev"))
         f.addWidget(QLabel(t("lbl_duracion")), 1, 2); f.addWidget(self.in_av_dur, 1, 3)
         self.in_av_asignar = QComboBox(); self._llenar_combo_usuarios(self.in_av_asignar, incluir_sin_asignar=True)
         f.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"), 2, 0); f.addWidget(self.in_av_asignar, 2, 1, 1, 3)
@@ -7980,6 +8190,91 @@ class MaintenanceApp(QMainWindow):
             if foto: fotos_en_uso.add(foto.strip())
         return fotos_en_uso
 
+    def _copia_previa_bases(self, prefijo):
+        """Copia de las dos bases de datos antes de una operación masiva
+        (borrar trabajos antiguos, importar...). No empieza por "auto_backup_db_"
+        para que la rotación del backup automático (se quedan 3) no la borre."""
+        os.makedirs(self.carpeta_backups_auto, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ruta_copia = os.path.join(self.carpeta_backups_auto, f"{prefijo}_{ts}.zip")
+        with zipfile.ZipFile(ruta_copia, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for ruta in (self.db.db_name, getattr(self.db, "db_almacen_name", None)):
+                if ruta and os.path.exists(ruta):
+                    zipf.write(ruta, arcname=os.path.basename(ruta))
+        return ruta_copia
+
+    def importar_datos(self):
+        if not usuarios.es_admin(): return
+        DialogoImportar(self, self._ejecutar_importacion).exec()
+
+    def _ejecutar_importacion(self, tipo, cabeceras, filas, mapeo, modo, dialogo):
+        """Importación real, llamada desde el último paso del asistente.
+        Devuelve True si se ha hecho (el asistente se cierra)."""
+        c = importar.resumen(dialogo.resultados)
+        respuesta = QMessageBox.question(dialogo, t("imp_titulo"),
+                                         t("imp_msg_confirmar").format(n=c["crear"] + c["actualizar"]))
+        if respuesta != QMessageBox.StandardButton.Yes: return False
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            ruta_copia = self._copia_previa_bases("antes_importacion")
+            resultados, extra = importar.procesar(tipo, filas, mapeo, modo, aplicar=True,
+                                                  usuario_id=usuarios.id_actual(),
+                                                  usuario_nombre=usuarios.nombre_actual())
+        except Exception as e:
+            QApplication.restoreOverrideCursor()
+            QMessageBox.critical(dialogo, t("title_error"), t("imp_msg_error").format(error=e))
+            return False
+        QApplication.restoreOverrideCursor()
+        self.refresh_all()
+
+        msg = QMessageBox(dialogo)
+        msg.setWindowTitle(t("imp_titulo")); msg.setIcon(QMessageBox.Icon.Information)
+        msg.setText(t("imp_msg_terminado").format(resumen=dialogo.texto_resumen(resultados), ruta=ruta_copia))
+        hay_errores = any(r.estado == "error" for r in resultados)
+        btn_errores = msg.addButton(t("imp_btn_guardar_errores"), QMessageBox.ButtonRole.ActionRole) if hay_errores else None
+        msg.addButton(t("btn_aceptar"), QMessageBox.ButtonRole.AcceptRole)
+        msg.exec()
+        if btn_errores is not None and msg.clickedButton() == btn_errores:
+            ruta, _ = QFileDialog.getSaveFileName(dialogo, t("imp_btn_guardar_errores"),
+                                                  t("imp_nombre_errores") + ".xlsx", "Excel (*.xlsx)")
+            if ruta:
+                if not ruta.lower().endswith(".xlsx"): ruta += ".xlsx"
+                importar.exportar_errores(ruta, cabeceras, resultados)
+        if extra["passwords"]:
+            self._mostrar_passwords_temporales(extra["passwords"], dialogo)
+        return True
+
+    def _mostrar_passwords_temporales(self, passwords, padre):
+        """Contraseñas temporales de los usuarios importados: solo se pueden ver
+        ahora (en la BD solo queda el hash), así que se ofrece guardarlas."""
+        dlg = QDialog(padre); dlg.setWindowTitle(t("imp_title_passwords")); dlg.resize(560, 420)
+        v = QVBoxLayout(dlg)
+        aviso = QLabel(t("imp_msg_passwords")); aviso.setWordWrap(True); v.addWidget(aviso)
+        tabla = QTableWidget(len(passwords), 3)
+        tabla.setHorizontalHeaderLabels([importar.etiqueta_campo("login"), importar.etiqueta_campo("nombre"), t("imp_col_password")])
+        tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers); tabla.verticalHeader().setVisible(False)
+        for i, fila in enumerate(passwords):
+            for j, texto in enumerate(fila):
+                tabla.setItem(i, j, QTableWidgetItem(texto))
+        cabecera = tabla.horizontalHeader()
+        cabecera.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        cabecera.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        cabecera.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        v.addWidget(tabla)
+        botones = QHBoxLayout()
+        btn_guardar = QPushButton(t("imp_btn_guardar_passwords")); btn_cerrar = QPushButton(t("btn_cerrar"))
+        def guardar():
+            ruta, _ = QFileDialog.getSaveFileName(dlg, t("imp_btn_guardar_passwords"),
+                                                  t("imp_nombre_passwords") + ".xlsx", "Excel (*.xlsx)")
+            if ruta:
+                if not ruta.lower().endswith(".xlsx"): ruta += ".xlsx"
+                importar.exportar_passwords(ruta, passwords)
+                QMessageBox.information(dlg, t("title_exito"), t("imp_msg_guardado").format(ruta=ruta))
+        btn_guardar.clicked.connect(guardar); btn_cerrar.clicked.connect(dlg.accept)
+        botones.addWidget(btn_guardar); botones.addStretch(); botones.addWidget(btn_cerrar)
+        v.addLayout(botones)
+        dlg.exec()
+
     def borrar_trabajos_antiguos(self):
         """Herramientas > Tiempo máximo de guardado: borra del historial los
         trabajos anteriores a la fecha elegida, con sus fotos, tras confirmar."""
@@ -8012,15 +8307,7 @@ class MaintenanceApp(QMainWindow):
         if msg.clickedButton() != btn_si: return
 
         try:
-            # Copia previa de las bases de datos. No empieza por "auto_backup_db_"
-            # para que la rotación del backup automático (se quedan 3) no la borre.
-            os.makedirs(self.carpeta_backups_auto, exist_ok=True)
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            ruta_copia = os.path.join(self.carpeta_backups_auto, f"antes_borrado_trabajos_{ts}.zip")
-            with zipfile.ZipFile(ruta_copia, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for ruta in (self.db.db_name, getattr(self.db, "db_almacen_name", None)):
-                    if ruta and os.path.exists(ruta):
-                        zipf.write(ruta, arcname=os.path.basename(ruta))
+            ruta_copia = self._copia_previa_bases("antes_borrado_trabajos")
 
             fotos_candidatas = set()
             for _, _, desc in filas:

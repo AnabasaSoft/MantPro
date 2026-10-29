@@ -108,6 +108,7 @@ const Map<String, String> traduccionesEu = {
     "motivo_comprobacion_stock": "Stock egiaztapena",
     "motivo_usado_en_trabajo": "Lan honetan erabilia: {trabajo}",
     "motivo_alta_inicial": "Hasierako stocka",
+    "motivo_ajuste_importacion": "Inportazioaren doikuntza",
 
     // --- Artículos, permisos y colas ---
     "lbl_articulo": "Artikulua",

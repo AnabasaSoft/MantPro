@@ -155,6 +155,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **📦 Biltegiko stockaren kontrola**: Apalategi, apal eta ataleko egitura konfiguragarria, materialen fitxa argazkiarekin, sarrerak/irteerak historiarekin eta gutxienekoaren azpiko stockaren alertak
 - **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta; gutxienekotik beherako stockaren fitxak ere badu bere botoia, alertan dauden materialak soilik esportatzeko
 - **🗑️ Gordetzeko gehieneko denbora**: `Tresnak` menutik historiatik ezaba daitezke urte, hilabete edo egun kopuru bat baino zaharragoak diren lanak, haien argazkiekin eta aurretik segurtasun-kopia bat eginez (administratzaileak soilik)
+- **📥 Excel/CSV-tik inportatu**: `Fitxategia > Excel/CSV-tik inportatu…` (administratzaileak soilik) menutik makinak, biltegiko artikuluak, abisu errepikakorrak eta erabiltzaileak ekar daitezke, deskarga daitekeen txantiloi batetik edo zure Excel-etik, zutabeak berez parekatuz, errenkadaz errenkadako aurrebistarekin eta aurretik segurtasun-kopia eginez. Ez dauden kokapenak (eremuak, apalategiak, apalak) eta goiko makinak berez sortzen dira, eta erabiltzaileek aldi baterako pasahitz bat jasotzen dute, lehen aldiz sartzean aldatu beharko dutena
 - **🏭 Makineriaren kontrola**: Makinen eta azpimakinen zuhaitza argazki erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta erregistratutako edo editatutako lan bakoitzetik zuzeneko lotura (ikusi [Makineria](#-makineria))
 - **📊 Esportazioa**: PDF, CSV eta Excelera, aukerako teknikari-iragazkiarekin eta lan bakoitzaren makina/azpimakina adieraziz, baldin badu
 
@@ -208,6 +209,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
   - qrcode
   - requests
   - xlsxwriter
+  - openpyxl
   - sqlite3 (Python-ekin dator)
 
 ### Mugikorreko aplikazioa
@@ -894,6 +896,9 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
   apalategika edo gutxienekotik beherako materialak soilik.
 - **Lanak gordetzeko gehieneko denbora**: lan zaharrak ezabatzea, berrespenarekin
   eta aurretik segurtasun-kopia eginez.
+- **Excel/CSV-tik inportatzea**: makinak, biltegiko artikuluak, abisu
+  errepikakorrak eta erabiltzaileak, txantiloiarekin, zutabeen parekatzearekin,
+  errenkadaz errenkadako aurrebistarekin eta aurretiko segurtasun-kopiarekin.
 
 ## 📄 Lizentzia
 

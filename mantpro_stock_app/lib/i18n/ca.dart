@@ -110,6 +110,7 @@ const Map<String, String> traduccionesCa = {
     "motivo_comprobacion_stock": "Comprovació d'estoc",
     "motivo_usado_en_trabajo": "Utilitzat en el treball: {trabajo}",
     "motivo_alta_inicial": "Alta inicial",
+    "motivo_ajuste_importacion": "Ajust per importació",
 
     // --- Artículos, permisos y colas ---
     "lbl_articulo": "Article",
