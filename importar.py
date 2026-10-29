@@ -367,6 +367,48 @@ def emparejar_automatico(tipo, cabeceras):
     return mapeo
 
 
+def detectar_tipo(nombre_hoja, cabeceras):
+    """Tipo de una hoja ('maquinas', 'articulos'...) o None si no se reconoce.
+    Primero por el nombre de la hoja (el de la plantilla en cualquier idioma);
+    si no, por las cabeceras: el tipo con más columnas reconocidas, siempre que
+    estén todas sus obligatorias y al menos dos columnas en total (si no, una
+    hoja cualquiera con una columna "Nombre" pasaría por máquinas)."""
+    nombre = normalizar(nombre_hoja)
+    for tipo in TIPOS:
+        if nombre and nombre in {normalizar(x) for x in _traducciones_de(f"imp_tipo_{tipo}")}:
+            return tipo
+    mejor, puntos_mejor = None, 1
+    for tipo in TIPOS:
+        mapeo = emparejar_automatico(tipo, cabeceras)
+        if all(c in mapeo for c, obligatorio in CAMPOS[tipo] if obligatorio) and len(mapeo) > puntos_mejor:
+            mejor, puntos_mejor = tipo, len(mapeo)
+    return mejor
+
+
+def es_hoja_instrucciones(nombre_hoja):
+    """True para la hoja de instrucciones de la plantilla (en cualquier idioma)."""
+    return normalizar(nombre_hoja) in {normalizar(x) for x in _traducciones_de("imp_hoja_instrucciones")}
+
+
+def leer_libro(ruta):
+    """Todas las hojas con contenido de un Excel: [(hoja, cabeceras, filas), ...]
+    (las vacías, las que solo tienen cabecera y la de instrucciones de la
+    plantilla se omiten). Para un CSV, una sola "hoja"
+    con nombre vacío."""
+    if not ruta.lower().endswith(".xlsx"):
+        cabeceras, filas = leer(ruta)
+        return [("", cabeceras, filas)] if filas else []
+    libro = []
+    for hoja in hojas(ruta):
+        try:
+            cabeceras, filas = leer(ruta, hoja)
+        except ErrorLectura:
+            continue
+        if filas and not es_hoja_instrucciones(hoja):
+            libro.append((hoja, cabeceras, filas))
+    return libro
+
+
 # ------------------------------------------------------------------ resultados
 
 class ResultadoFila:
@@ -400,47 +442,56 @@ def resumen(resultados):
 
 # -------------------------------------------------------------------- proceso
 
+# Orden en que se importan las hojas de un libro, sea cual sea el de las
+# hojas en el Excel: así un aviso puede asignarse a un técnico que se crea en
+# la hoja de usuarios del mismo fichero, y una especialidad creada en una hoja
+# ya existe al llegar a la siguiente.
+ORDEN_IMPORTACION = ("usuarios", "maquinas", "articulos", "avisos")
+
+
 def procesar(tipo, filas, mapeo, modo="saltar", aplicar=False, usuario_id=None, usuario_nombre=None):
     """Importa (aplicar=True) o simula la importación (aplicar=False) de
     `filas` según `mapeo` ({campo: índice de columna}). `modo` decide qué
     hacer con lo que ya existe: 'saltar' o 'actualizar'.
-
-    Todo va en una única transacción: o se importa todo lo válido, o nada (si
-    algo falla de forma inesperada, se deshace entero y se relanza el error).
     Devuelve (resultados, extra), con extra["passwords"] = [(login, nombre,
     contraseña temporal)] de los usuarios creados."""
-    ruta = almacen.RUTA_DB if tipo == "articulos" else usuarios.RUTA_DB
-    con = sqlite3.connect(ruta, timeout=20, isolation_level=None)
+    resultados, extra = procesar_varias([(tipo, filas, mapeo)], modo, aplicar, usuario_id, usuario_nombre)
+    return resultados[0], extra
+
+
+def procesar_varias(hojas, modo="saltar", aplicar=False, usuario_id=None, usuario_nombre=None):
+    """Como procesar(), pero para varias hojas [(tipo, filas, mapeo), ...] a la
+    vez. Se procesan en ORDEN_IMPORTACION, todas dentro de la misma
+    transacción, de forma que cada hoja ve lo creado por las anteriores
+    (también en la vista previa). Devuelve (lista de resultados en el mismo
+    orden que `hojas`, extra).
+
+    Las filas con error no se importan, pero el resto sí. Si algo falla de
+    forma inesperada, se deshace todo y se relanza el error.
+
+    Una sola conexión: mantenimiento.db como principal y almacen.db adjunta
+    como "alm" (sus tablas tienen nombres distintos, salvo "zonas", que en el
+    almacén se escribe "alm.zonas"). Con las bases en modo WAL, SQLite
+    garantiza que cada fichero queda entero, pero no que los dos a la vez; para
+    ese caso (casi imposible: un fallo de disco justo entre los dos) está la
+    copia previa que hace la interfaz antes de importar."""
+    con = sqlite3.connect(usuarios.RUTA_DB, timeout=20, isolation_level=None)
     con.row_factory = sqlite3.Row
-    if tipo == "articulos":
-        con.execute("PRAGMA foreign_keys = ON")
-    importador = {"maquinas": _ImportadorMaquinas, "articulos": _ImportadorArticulos,
-                  "avisos": _ImportadorAvisos, "usuarios": _ImportadorUsuarios}[tipo](
-        con, modo, aplicar, usuario_id, usuario_nombre)
-    resultados = []
+    con.execute("ATTACH DATABASE ? AS alm", (almacen.RUTA_DB,))
+    con.execute("PRAGMA foreign_keys = ON")
+    clases = {"maquinas": _ImportadorMaquinas, "articulos": _ImportadorArticulos,
+              "avisos": _ImportadorAvisos, "usuarios": _ImportadorUsuarios}
+    resultados = [None] * len(hojas)
+    passwords = []
     try:
         con.execute("BEGIN IMMEDIATE")
-        for numero, valores in filas:
-            r = ResultadoFila(numero, valores)
-            celda = lambda campo: valores[mapeo[campo]] if mapeo.get(campo) is not None else None
-            if _es_fila_ejemplo(tipo, celda):
-                r.estado = "saltar"
-                r.mensajes = [t("imp_fila_ejemplo")]
-                resultados.append(r)
-                continue
-            con.execute("SAVEPOINT fila")
-            try:
-                for campo, obligatorio in CAMPOS[tipo]:
-                    if obligatorio and not texto_celda(celda(campo)):
-                        raise _ErrorFila(t("imp_err_falta").format(campo=etiqueta_campo(campo)))
-                importador.fila(r, celda)
-                con.execute("RELEASE fila")
-            except _ErrorFila as e:
-                con.execute("ROLLBACK TO fila")
-                con.execute("RELEASE fila")
-                r.estado = "error"
-                r.mensajes = [str(e)]
-            resultados.append(r)
+        for i in sorted(range(len(hojas)), key=lambda i: ORDEN_IMPORTACION.index(hojas[i][0])):
+            tipo, filas, mapeo = hojas[i]
+            # El importador se crea al llegar a su hoja, para que sus cachés
+            # (usuarios, especialidades...) incluyan lo de las hojas anteriores.
+            importador = clases[tipo](con, modo, aplicar, usuario_id, usuario_nombre)
+            resultados[i] = [_procesar_fila(con, tipo, importador, numero, valores, mapeo) for numero, valores in filas]
+            passwords += getattr(importador, "passwords", [])
         con.execute("COMMIT" if aplicar else "ROLLBACK")
     except Exception:
         if con.in_transaction:
@@ -448,7 +499,29 @@ def procesar(tipo, filas, mapeo, modo="saltar", aplicar=False, usuario_id=None, 
         raise
     finally:
         con.close()
-    return resultados, {"passwords": getattr(importador, "passwords", [])}
+    return resultados, {"passwords": passwords}
+
+
+def _procesar_fila(con, tipo, importador, numero, valores, mapeo):
+    r = ResultadoFila(numero, valores)
+    celda = lambda campo: valores[mapeo[campo]] if mapeo.get(campo) is not None else None
+    if _es_fila_ejemplo(tipo, celda):
+        r.estado = "saltar"
+        r.mensajes = [t("imp_fila_ejemplo")]
+        return r
+    con.execute("SAVEPOINT fila")
+    try:
+        for campo, obligatorio in CAMPOS[tipo]:
+            if obligatorio and not texto_celda(celda(campo)):
+                raise _ErrorFila(t("imp_err_falta").format(campo=etiqueta_campo(campo)))
+        importador.fila(r, celda)
+        con.execute("RELEASE fila")
+    except _ErrorFila as e:
+        con.execute("ROLLBACK TO fila")
+        con.execute("RELEASE fila")
+        r.estado = "error"
+        r.mensajes = [str(e)]
+    return r
 
 
 def _es_fila_ejemplo(tipo, celda):
@@ -555,7 +628,7 @@ class _ImportadorArticulos(_Importador):
         super().__init__(*args)
         con = self.con
         self.zonas = {}
-        for f in con.execute("SELECT id, nombre FROM zonas ORDER BY id"):
+        for f in con.execute("SELECT id, nombre FROM alm.zonas ORDER BY id"):
             self.zonas.setdefault(_clave(f["nombre"]), f["id"])
         self.estanterias = [dict(f) for f in con.execute("SELECT id, nombre, zona_id, estilo_baldas FROM estanterias")]
         self.baldas = {(f["estanteria_id"], f["numero"]): f["id"]
@@ -567,7 +640,7 @@ class _ImportadorArticulos(_Importador):
     def _zona(self, nombre, avisos):
         zona_id = self.zonas.get(_clave(nombre))
         if zona_id is None:
-            zona_id = self.con.execute("INSERT INTO zonas (nombre) VALUES (?)", (nombre,)).lastrowid
+            zona_id = self.con.execute("INSERT INTO alm.zonas (nombre) VALUES (?)", (nombre,)).lastrowid
             self.zonas[_clave(nombre)] = zona_id
             avisos.append(t("imp_aviso_crear_zona").format(nombre=nombre))
         return zona_id
@@ -599,7 +672,7 @@ class _ImportadorArticulos(_Importador):
         return est
 
     def _nombre_zona(self, zona_id):
-        fila = self.con.execute("SELECT nombre FROM zonas WHERE id=?", (zona_id,)).fetchone()
+        fila = self.con.execute("SELECT nombre FROM alm.zonas WHERE id=?", (zona_id,)).fetchone()
         return fila["nombre"] if fila else ""
 
     def _balda(self, est, numero, avisos):
@@ -965,29 +1038,31 @@ def generar_plantilla(ruta):
     libro.close()
 
 
-def exportar_errores(ruta, cabeceras, resultados):
+def exportar_errores(ruta, hojas):
     """Excel con las filas que no se han podido importar, sus columnas
-    originales y el motivo, para corregirlas y volver a importarlas."""
+    originales y el motivo, para corregirlas y volver a importarlas. `hojas` es
+    [(nombre de hoja, cabeceras, resultados), ...]: una hoja de salida por cada
+    hoja original que tenga errores, con su mismo nombre."""
     import xlsxwriter
     libro = xlsxwriter.Workbook(ruta)
-    h = libro.add_worksheet()
     cab = libro.add_format({"bold": True, "bg_color": "#3daee9", "font_color": "white"})
     rojo = libro.add_format({"font_color": "#c0392b"})
-    for j, c in enumerate(list(cabeceras) + [t("imp_col_error")]):
-        h.write(0, j, c, cab)
-        h.set_column(j, j, 20)
-    i = 1
-    for r in resultados:
-        if r.estado != "error":
+    for nombre, cabeceras, resultados in hojas:
+        errores = [r for r in resultados if r.estado == "error"]
+        if not errores:
             continue
-        for j, v in enumerate(r.valores):
-            if isinstance(v, (datetime, date)):
-                h.write(i, j, texto_celda(v))
-            elif v is not None:
-                h.write(i, j, v)
-        h.write(i, len(cabeceras), " · ".join(r.mensajes), rojo)
-        i += 1
-    h.set_column(len(cabeceras), len(cabeceras), 60)
+        h = libro.add_worksheet(re.sub(r"[\[\]:*?/\\]", "", nombre)[:31] or None)
+        for j, c in enumerate(list(cabeceras) + [t("imp_col_error")]):
+            h.write(0, j, c, cab)
+            h.set_column(j, j, 20)
+        for i, r in enumerate(errores, start=1):
+            for j, v in enumerate(r.valores):
+                if isinstance(v, (datetime, date)):
+                    h.write(i, j, texto_celda(v))
+                elif v is not None:
+                    h.write(i, j, v)
+            h.write(i, len(cabeceras), " · ".join(r.mensajes), rojo)
+        h.set_column(len(cabeceras), len(cabeceras), 60)
     libro.close()
 
 
