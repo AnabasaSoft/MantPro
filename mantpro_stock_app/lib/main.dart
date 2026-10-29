@@ -478,6 +478,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final List<Widget> _pantallas;
   Timer? _timerSincronizacion;
   Timer? _timerLatido;
+  /// Barra fina bajo la barra superior mientras se sincroniza al abrir la app.
+  final ValueNotifier<bool> _sincronizando = ValueNotifier(false);
 
   @override
   void initState() {
@@ -532,6 +534,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     datosSincronizadosNotifier.removeListener(_alSincronizarDatos);
     _pararTemporizadores();
+    _sincronizando.dispose();
     super.dispose();
   }
 
@@ -541,10 +544,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     final ip = prefs.getString('pc_ip_url');
     if (ip == null || !AuthService.autenticado) return;
+    _sincronizando.value = true;
     try {
       await StockSincronizador.sincronizarTodo(ip);
     } catch (_) {
       // Sin conexión con el PC: se sigue trabajando con la caché local.
+    } finally {
+      _sincronizando.value = false;
     }
     evaluarNotificacionStock();
   }
@@ -613,7 +619,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           t("tab_bajo_minimo"),
         ];
         return Scaffold(
-          appBar: AppBar(title: Text(titulos[_indiceActual]), actions: [
+          appBar: AppBar(
+            title: Text(titulos[_indiceActual]),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(3),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _sincronizando,
+                builder: (_, activo, __) => activo
+                    ? const LinearProgressIndicator(minHeight: 3)
+                    : const SizedBox(height: 3),
+              ),
+            ),
+            actions: [
             IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
             IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
             IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),

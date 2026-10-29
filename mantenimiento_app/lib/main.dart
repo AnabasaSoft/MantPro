@@ -214,20 +214,44 @@ Future<void> avisarDesconexionPC() async {
 /// se reiniciaba la app- volvía a verse "sin foto", aunque el usuario ya la
 /// hubiera visto antes. Hace exactamente lo mismo que ya hacía
 /// TabHistorial._descargarPagina(), pero reutilizable desde fuera de esa pestaña.
-Future<void> cachearFotosHistorial(String ip, List<Map<String, dynamic>> items) async {
+/// Progreso de la sincronización completa (SincronizadorGlobal), para la
+/// barra bajo la barra superior: null cuando no hay ninguna en marcha.
+final ValueNotifier<ProgresoSincronizacion?> progresoSincronizacion = ValueNotifier(null);
+
+class ProgresoSincronizacion {
+  final String texto;
+  /// 0..1, o null mientras no se sabe cuánto queda (barra "indeterminada").
+  final double? fraccion;
+  const ProgresoSincronizacion(this.texto, [this.fraccion]);
+}
+
+/// Descarga a disco las fotos que falten de esas entradas de historial, de 4
+/// en 4 y con un tiempo máximo por foto (antes iban de una en una y una foto
+/// atascada paraba todas las demás). [alAvanzar] recibe (hechas, total).
+Future<void> cachearFotosHistorial(String ip, List<Map<String, dynamic>> items,
+    {void Function(int hechas, int total)? alAvanzar}) async {
   final dir = await getApplicationDocumentsDirectory();
+  final pendientes = <String>[];
   for (var item in items) {
-    final nombres = <String?>[item['serverImageName'], item['serverImageNameDespues'], ...listaTextos(item['serverFotosExtra'])];
-    for (final nombre in nombres) {
-      if (nombre == null) continue;
-      final fp = path.join(dir.path, nombre);
-      if (File(fp).existsSync()) continue;
-      try {
-        final r = await httpGetAuth(Uri.parse("http://$ip/api/foto/$nombre"));
-        if (r.statusCode == 200) await File(fp).writeAsBytes(r.bodyBytes);
-      } catch (_) {}
+    for (final nombre in <String?>[item['serverImageName'], item['serverImageNameDespues'], ...listaTextos(item['serverFotosExtra'])]) {
+      if (nombre == null || pendientes.contains(nombre)) continue;
+      if (!File(path.join(dir.path, nombre)).existsSync()) pendientes.add(nombre);
     }
   }
+  if (pendientes.isEmpty) return;
+  var hechas = 0, siguiente = 0;
+  alAvanzar?.call(0, pendientes.length);
+  Future<void> trabajador() async {
+    while (siguiente < pendientes.length) {
+      final nombre = pendientes[siguiente++];
+      try {
+        final r = await httpGetAuth(Uri.parse("http://$ip/api/foto/$nombre")).timeout(const Duration(seconds: 30));
+        if (r.statusCode == 200) await File(path.join(dir.path, nombre)).writeAsBytes(r.bodyBytes);
+      } catch (_) {}
+      alAvanzar?.call(++hechas, pendientes.length);
+    }
+  }
+  await Future.wait(List.generate(4, (_) => trabajador()));
 }
 
 // ==========================================================================
@@ -977,8 +1001,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _indiceActual = 0;
-  /// Muestra una barrita de progreso mientras se traen los datos al arrancar.
-  bool _sincronizandoInicial = false;
   /// Si la última comprobación periódica encontró el PC accesible. Se usa
   /// para detectar el momento exacto en que se RECUPERA la conexión (pasa de
   /// false a true) y disparar una sincronización + refresco general.
@@ -1038,7 +1060,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final ip = prefs.getString('pc_ip_url');
     if (ip == null || !AuthService.autenticado) return;
 
-    if (mounted) setState(() => _sincronizandoInicial = true);
     try {
       await SincronizadorGlobal.sincronizarTodo(ip);
       _conectadoPC = true;
@@ -1047,7 +1068,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
     // Avisamos a las pestañas de que la caché ya está fresca.
     datosSincronizadosNotifier.value++;
-    if (mounted) setState(() => _sincronizandoInicial = false);
   }
 
   Future<void> _comprobarConexionYSincronizar() async {
@@ -1132,16 +1152,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             appBar: AppBar(title: Text(titulo), actions: [
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
-              if (_sincronizandoInicial)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Center(
-                    child: SizedBox(
-                      width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    ),
-                  ),
-                ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.account_circle),
                 tooltip: AuthService.nombre ?? '',
@@ -1159,7 +1169,33 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 ],
               ),
             ]),
-            body: _pantallas[_indiceActual],
+            body: Column(children: [
+              // Progreso de la sincronización con el PC (al abrir la app y al
+              // recuperar la conexión): qué se está haciendo y cuánto queda.
+              ValueListenableBuilder<ProgresoSincronizacion?>(
+                valueListenable: progresoSincronizacion,
+                builder: (context, p, _) => p == null
+                    ? const SizedBox.shrink()
+                    : Material(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Row(children: [
+                              const Icon(Icons.sync, size: 16),
+                              const SizedBox(width: 6),
+                              Expanded(child: Text(p.texto, style: const TextStyle(fontSize: 13))),
+                              if (p.fraccion != null)
+                                Text('${(p.fraccion! * 100).round()} %', style: const TextStyle(fontSize: 13)),
+                            ]),
+                            const SizedBox(height: 4),
+                            LinearProgressIndicator(value: p.fraccion),
+                          ]),
+                        ),
+                      ),
+              ),
+              Expanded(child: _pantallas[_indiceActual]),
+            ]),
             bottomNavigationBar: BottomNavigationBar(
               currentIndex: _indiceActual,
               type: BottomNavigationBarType.fixed,
@@ -3164,9 +3200,21 @@ class SincronizadorGlobal {
     if (!AuthService.autenticado) await AuthService.cargar();
     if (!AuthService.autenticado) return; // sin sesión no se envía nada
 
-    // 0. LISTADO DE MÁQUINAS (para poder elegirlas al registrar/editar trabajos)
-    await MaquinasCache.sincronizar(ip);
+    void progreso(String texto, [double? fraccion]) =>
+        progresoSincronizacion.value = ProgresoSincronizacion(texto, fraccion);
+    progreso(tt('msg_sync_enviando', 'Enviando cambios al PC…'));
+    try {
+      await _sincronizarTodo(ip, prefs, progreso);
+    } finally {
+      progresoSincronizacion.value = null;
+    }
+  }
 
+  /// Primero se envía al PC todo lo pendiente (para que lo que se descargue
+  /// ya lo incluya), después se descargan a la vez todos los datos y se avisa
+  /// a las pestañas, y por último las fotos del historial.
+  static Future<void> _sincronizarTodo(String ip, SharedPreferences prefs,
+      void Function(String, [double?]) progreso) async {
     // 1. MIS REGISTROS
     final String? datosJson = prefs.getString('registros_pendientes');
     if (datosJson != null) {
@@ -3250,11 +3298,6 @@ class SincronizadorGlobal {
     await prefs.setString('cola_salida', json.encode(colaSalida));
     await prefs.setString('cola_revertir', json.encode(colaRevertir));
 
-    try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/pendientes")).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) { await prefs.setString('trabajos_pc', res.body); }
-    } catch (e) {}
-
     // 3. AVISOS
     List<Map<String, String>> colaCompletados = [];
     String? cc = prefs.getString('avisos_cola_completados');
@@ -3268,11 +3311,6 @@ class SincronizadorGlobal {
     for (var item in co) { colaCompletados.remove(item); }
     await prefs.setString('avisos_cola_completados', json.encode(colaCompletados));
     await prefs.setString('avisos_cola_restaurar', json.encode(colaRestaurar));
-
-    try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/avisos")).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) { await prefs.setString('avisos_cache', res.body); }
-    } catch (e) {}
 
     // 4. HISTORIAL
     List<Map<String, dynamic>> histEdiciones = prefs.getString('historial_cola_ediciones') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cola_ediciones')!)) : [];
@@ -3294,16 +3332,25 @@ class SincronizadorGlobal {
     for (var s in hok) { histEdiciones.remove(s); }
     await prefs.setString('historial_cola_ediciones', json.encode(histEdiciones));
 
-    try {
-      final resH = await httpGetAuth(Uri.parse("http://$ip/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
-      if (resH.statusCode == 200) {
+    // 5. DESCARGA DE DATOS, todo a la vez (son JSON pequeños)
+    progreso(tt('msg_sync_descargando', 'Descargando datos…'));
+    Future<void> descargar(String ruta, String clave) async {
+      try {
+        final res = await httpGetAuth(Uri.parse("http://$ip/api/$ruta")).timeout(const Duration(seconds: 10));
+        if (res.statusCode == 200) await prefs.setString(clave, res.body);
+      } catch (_) {}
+    }
+    List<Map<String, dynamic>> nuevosH = [];
+    Future<void> descargarHistorial() async {
+      try {
+        final resH = await httpGetAuth(Uri.parse("http://$ip/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 10));
+        if (resH.statusCode != 200) return;
         final body = json.decode(resH.body);
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
-        List<Map<String, dynamic>> nuevosH = dH.map((i) => {
+        nuevosH = dH.map((i) => <String, dynamic>{
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
           'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
         }).toList();
-        await cachearFotosHistorial(ip, nuevosH);
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');
         if (actual != null) { try { cacheH = List<Map<String, dynamic>>.from(json.decode(actual)); } catch (_) {} }
@@ -3311,13 +3358,22 @@ class SincronizadorGlobal {
         cacheH = [...nuevosH, ...cacheH];
         await prefs.setString('historial_cache', json.encode(cacheH));
         await podarHistorialCache(ip);
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
+    await Future.wait([
+      MaquinasCache.sincronizar(ip),
+      descargar('pendientes', 'trabajos_pc'),
+      descargar('avisos', 'avisos_cache'),
+      descargar('dashboard', 'dashboard_cache'),
+      descargarHistorial(),
+    ]);
+    // Las pestañas ya pueden enseñar los datos sin esperar a las fotos.
+    datosSincronizadosNotifier.value++;
 
-    // 5. DASHBOARD
-    try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/dashboard")).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) { await prefs.setString('dashboard_cache', res.body); }
-    } catch (e) {}
+    // 6. FOTOS DEL HISTORIAL (lo que más tarda la primera vez)
+    await cachearFotosHistorial(ip, nuevosH, alAvanzar: (hechas, total) => progreso(
+        tt('msg_sync_fotos', 'Descargando fotos {n}/{total}')
+            .replaceAll('{n}', '$hechas').replaceAll('{total}', '$total'),
+        total == 0 ? null : hechas / total));
   }
 }
