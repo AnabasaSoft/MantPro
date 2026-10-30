@@ -131,4 +131,6 @@ const Map<String, String> traduccionesPt = {
   "btn_cerrar_app": "Fechar",
   "title_material_parecido": "Item parecido",
   "msg_material_parecido": "Já existem itens com o mesmo código ou um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?",
+  "lbl_usado_en_maquinas": "Usado em",
+  "lbl_lleva": "Montadas",
 };

@@ -142,4 +142,6 @@ const Map<String, String> traduccionesEs = {
     "btn_cerrar_app": "Cerrar",
     "title_material_parecido": "Artículo parecido",
     "msg_material_parecido": "Ya hay artículos con el mismo código o un nombre igual o muy parecido:\n\n{lista}\n\n¿Guardar igualmente?",
+    "lbl_usado_en_maquinas": "Se usa en",
+    "lbl_lleva": "Lleva",
 };

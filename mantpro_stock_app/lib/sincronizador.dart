@@ -267,6 +267,12 @@ class StockSincronizador {
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheBajoMinimo, res.body);
     } catch (_) {}
+    try {
+      // Repuestos de las máquinas, para el «Se usa en…» de cada artículo.
+      final res = await httpGetAuth(Uri.parse('http://$ip/api/repuestos'))
+          .timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) await prefs.setString(kStockCacheRepuestos, res.body);
+    } catch (_) {}
     await AuthService.refrescarRoles();
 
     if (!ConexionPC.sinConexion) datosSincronizadosNotifier.value++;

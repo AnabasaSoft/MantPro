@@ -35,6 +35,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
 
   Articulo? _material;
   List<Movimiento> _movimientos = [];
+  List<Map<String, dynamic>> _usadoEn = [];
   List<Estanteria> _estanterias = [];
   String? _ip;
 
@@ -96,7 +97,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
     if (widget.materialId == null) return;
     try {
       final (material, movs) = await StockApi.obtenerMaterial(widget.materialId!);
-      if (mounted) setState(() { _material = material; _movimientos = movs; });
+      final usadoEn = await StockApi.maquinasDeArticulo(widget.materialId!);
+      if (mounted) setState(() { _material = material; _movimientos = movs; _usadoEn = usadoEn; });
     } catch (_) {}
   }
 
@@ -109,6 +111,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
         final (material, movs) = await StockApi.obtenerMaterial(widget.materialId!);
         _material = material;
         _movimientos = movs;
+        _usadoEn = await StockApi.maquinasDeArticulo(widget.materialId!);
         _rellenarFormulario(material);
       } else if (widget.seccionIdInicial != null) {
         _preseleccionarSeccion(widget.seccionIdInicial!);
@@ -429,6 +432,21 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               '${formatearCantidad(m.stockMinimo)} ${m.unidad}'.trim()),
           _filaDato(tt('lbl_ubicacion', 'Ubicación'),
               m.ubicacion.isEmpty ? tt('lbl_sin_ubicacion', 'Sin ubicación') : m.ubicacion),
+          if (_usadoEn.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(tt('lbl_usado_en_maquinas', 'Se usa en'), style: Theme.of(context).textTheme.titleMedium),
+            for (final r in _usadoEn)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.precision_manufacturing_outlined),
+                title: Text('${r['maquina']}'),
+                subtitle: Text([
+                  '${tt('lbl_lleva', 'Lleva')}: ${formatearCantidad(((r['cantidad'] as num?) ?? 0).toDouble())} ${m.unidad}'.trim(),
+                  if ((r['notas'] ?? '').toString().isNotEmpty) r['notas'].toString(),
+                ].join(' · ')),
+              ),
+          ],
           if (AuthService.puedeGestionarAlmacen) ...[
             const SizedBox(height: 16),
             Row(children: [

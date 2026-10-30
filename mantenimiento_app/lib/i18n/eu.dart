@@ -191,4 +191,7 @@ const Map<String, String> traduccionesEu = {
     "btn_cerrar_app": "Itxi",
     "lbl_conectado_pc": "🟢 PCra konektatuta",
     "lbl_desconectado_pc": "🔴 PCrekin konexiorik gabe",
+    "lbl_repuestos_maquina": "Ordezko piezak",
+    "lbl_lleva": "Darama",
+    "lbl_en_almacen": "Biltegian",
 };

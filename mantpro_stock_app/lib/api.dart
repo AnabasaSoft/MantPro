@@ -298,6 +298,7 @@ const String kStockCacheEstructura = 'stock_cache_estructura';
 const String kStockCacheZonas = 'stock_cache_zonas';
 const String kStockCacheMateriales = 'stock_cache_materiales';
 const String kStockCacheBajoMinimo = 'stock_cache_bajo_minimo';
+const String kStockCacheRepuestos = 'stock_cache_repuestos';
 const String kStockColaNuevos = 'stock_cola_nuevos';
 const String kStockColaEdiciones = 'stock_cola_ediciones';
 const String kStockColaMovimientos = 'stock_cola_movimientos';
@@ -477,6 +478,23 @@ class StockApi {
   /// sin preguntar al PC: para comprobaciones que no deben esperar a la red.
   static Future<List<Articulo>> materialesLocales() async =>
       _conPendientes(await _cacheMateriales() ?? []);
+
+  /// Máquinas que llevan este artículo como repuesto ({maquina, cantidad,
+  /// notas}), de la caché que se descarga al sincronizar: funciona sin conexión.
+  static Future<List<Map<String, dynamic>>> maquinasDeArticulo(int materialId) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final datos = json.decode(prefs.getString(kStockCacheRepuestos) ?? '{}');
+      final lista = ((datos is Map ? datos['repuestos'] : null) as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .where((r) => r['material_id'] == materialId)
+          .toList();
+      lista.sort((a, b) => '${a['maquina']}'.toLowerCase().compareTo('${b['maquina']}'.toLowerCase()));
+      return lista;
+    } catch (_) {
+      return [];
+    }
+  }
 
   static Future<List<Articulo>> obtenerMateriales({String? q}) async {
     try {

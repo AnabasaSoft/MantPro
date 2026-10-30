@@ -142,4 +142,6 @@ const Map<String, String> traduccionesEn = {
     "btn_cerrar_app": "Close",
     "title_material_parecido": "Similar item",
     "msg_material_parecido": "There are already items with the same code or the same or a very similar name:\n\n{lista}\n\nSave anyway?",
+    "lbl_usado_en_maquinas": "Used in",
+    "lbl_lleva": "Fitted",
 };

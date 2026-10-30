@@ -142,4 +142,6 @@ const Map<String, String> traduccionesEu = {
     "btn_cerrar_app": "Itxi",
     "title_material_parecido": "Antzeko artikulua",
     "msg_material_parecido": "Badaude kode bera edo izen bera edo oso antzekoa duten artikuluak:\n\n{lista}\n\nHala ere gorde?",
+    "lbl_usado_en_maquinas": "Hemen erabiltzen da",
+    "lbl_lleva": "Darama",
 };

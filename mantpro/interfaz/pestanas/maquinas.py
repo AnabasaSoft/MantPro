@@ -23,18 +23,20 @@ import os
 import shutil
 from datetime import datetime
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMessageBox,
-                             QHeaderView, QComboBox, QTreeWidget)
+                             QHeaderView, QComboBox, QTreeWidget, QSplitter, QWidget, QTableWidget,
+                             QAbstractItemView, QMenu)
 from PyQt6.QtCore import Qt, QSettings
-from PyQt6.QtGui import QColor, QPixmap
+from PyQt6.QtGui import QColor, QPixmap, QBrush
 
 from ... import idiomas
 from ...idiomas import t
 from ..comun import _estilo_zona_arrastre, abrir_url_externa, tt
-from ..dialogos.maquinas import DialogoEditarMaquina
+from ..dialogos.maquinas import DialogoEditarMaquina, DialogoRepuestoMaquina
 from ..widgets.fotos import VisorFoto
 from ..widgets.graficos import GraficoCircularTrabajos
-from ..widgets.ordenables import _ItemArbolOrdenable
-from ...nucleo import etiquetas, maquinas
+from ..widgets.ordenables import _ItemArbolOrdenable, _ItemTablaOrdenable
+from ...nucleo import almacen, etiquetas, maquinas
+from ...nucleo.rutas import DATA_DIR
 
 class PestanaMaquinas:
     """Pestaña «Máquinas»: árbol, fotos e indicadores.
@@ -72,7 +74,12 @@ class PestanaMaquinas:
         self.arbol_maquinas.itemExpanded.connect(self._maquina_item_expandido)
         self.arbol_maquinas.itemDoubleClicked.connect(self._maquina_item_doble_click)
         self.arbol_maquinas.currentItemChanged.connect(self._maquina_mostrar_foto_seleccionada)
-        h_cuerpo.addWidget(self.arbol_maquinas, 65)
+        # Árbol arriba y, debajo, los repuestos de la máquina seleccionada.
+        split_izq = QSplitter(Qt.Orientation.Vertical)
+        split_izq.addWidget(self.arbol_maquinas)
+        split_izq.addWidget(self._crear_panel_repuestos())
+        split_izq.setStretchFactor(0, 3); split_izq.setStretchFactor(1, 1)
+        h_cuerpo.addWidget(split_izq, 65)
         b_contraer.clicked.connect(self.arbol_maquinas.collapseAll)
 
         v_foto = QVBoxLayout()
@@ -115,6 +122,210 @@ class PestanaMaquinas:
         l.addLayout(h_cuerpo)
         self.tab_maquinas.setLayout(l)
         self.refrescar_arbol_maquinas()
+        self.refrescar_repuestos_maquina()
+
+    # ------------------------------------------------------- repuestos
+
+    def _crear_panel_repuestos(self):
+        panel = QWidget(); v = QVBoxLayout(panel); v.setContentsMargins(0, 4, 0, 0)
+        cab = QHBoxLayout()
+        self.lbl_repuestos_maquina = QLabel(tt("lbl_repuestos", "🔩 Repuestos"))
+        cab.addWidget(self.lbl_repuestos_maquina); cab.addStretch()
+        self.btn_repuesto_anadir = QPushButton(tt("btn_anadir_repuesto", "➕ Añadir repuesto")); self.btn_repuesto_anadir.clicked.connect(self._repuesto_anadir)
+        self.btn_repuesto_editar = QPushButton(tt("btn_editar_repuesto", "✏️ Cantidad")); self.btn_repuesto_editar.clicked.connect(self._repuesto_editar)
+        self.btn_repuesto_quitar = QPushButton(tt("btn_quitar_repuesto", "🗑️ Quitar")); self.btn_repuesto_quitar.clicked.connect(self._repuesto_quitar)
+        self.btn_repuesto_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); self.btn_repuesto_exportar.clicked.connect(self._repuestos_exportar)
+        for b in (self.btn_repuesto_anadir, self.btn_repuesto_editar, self.btn_repuesto_quitar, self.btn_repuesto_exportar):
+            cab.addWidget(b)
+        v.addLayout(cab)
+        self.tabla_repuestos = QTableWidget(0, 6)
+        self.tabla_repuestos.setHorizontalHeaderLabels([
+            tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_cantidad_montada", "LLEVA"),
+            tt("hdr_stock", "STOCK"), tt("hdr_ubicacion", "UBICACIÓN"), tt("hdr_notas", "NOTAS")])
+        cab_t = self.tabla_repuestos.horizontalHeader()
+        cab_t.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        cab_t.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        cab_t.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.tabla_repuestos.verticalHeader().setVisible(False)
+        self.tabla_repuestos.setSortingEnabled(True)
+        self.tabla_repuestos.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla_repuestos.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.tabla_repuestos.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tabla_repuestos.setAlternatingRowColors(True)
+        self.tabla_repuestos.setToolTip(tt("tt_repuestos", "Doble clic: ver el artículo en Stock de almacén"))
+        self.tabla_repuestos.itemDoubleClicked.connect(self._repuesto_ir_a_stock)
+        v.addWidget(self.tabla_repuestos)
+        return panel
+
+    def _maquina_seleccionada(self):
+        """(id, nombre) de la máquina seleccionada en el árbol, o (None, None)."""
+        item = self.arbol_maquinas.currentItem() if hasattr(self, "arbol_maquinas") else None
+        datos = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if not datos or datos.get("tipo") != "maquina":
+            return None, None
+        return datos["id"], item.text(0)
+
+    def refrescar_repuestos_maquina(self):
+        if not hasattr(self, "tabla_repuestos"): return
+        id_maquina, nombre = self._maquina_seleccionada()
+        self.lbl_repuestos_maquina.setText(
+            tt("lbl_repuestos_de", "🔩 Repuestos de {maquina}").format(maquina=nombre) if id_maquina
+            else tt("lbl_repuestos_sin_maquina", "🔩 Repuestos (selecciona una máquina)"))
+        for b in (self.btn_repuesto_anadir, self.btn_repuesto_editar, self.btn_repuesto_quitar, self.btn_repuesto_exportar):
+            b.setEnabled(id_maquina is not None)
+        self._repuestos_actuales = almacen.repuestos_de_maquina(id_maquina) if id_maquina else []
+        self.tabla_repuestos.setSortingEnabled(False)
+        self.tabla_repuestos.setRowCount(len(self._repuestos_actuales))
+        for fila, r in enumerate(self._repuestos_actuales):
+            unidad = f" {r['unidad']}" if r.get("unidad") else ""
+            valores = [r.get("codigo") or "", r["nombre"], f"{r['cantidad']:g}{unidad}", f"{r['stock_actual']:g}{unidad}",
+                       self._texto_ubicacion(r["seccion_id"]) or "-", r.get("notas") or ""]
+            for col, val in enumerate(valores):
+                item = _ItemTablaOrdenable(val)
+                if col == 0: item.setData(Qt.ItemDataRole.UserRole, r["material_id"])
+                if col in (2, 3):
+                    item.setData(Qt.ItemDataRole.UserRole + 1, r["cantidad"] if col == 2 else r["stock_actual"])
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                if col == 3:
+                    color = self._color_stock(r["stock_actual"], r["stock_minimo"])
+                    if color is not None: item.setForeground(QBrush(color))
+                self.tabla_repuestos.setItem(fila, col, item)
+        self.tabla_repuestos.setSortingEnabled(True)
+
+    def _repuesto_seleccionado(self):
+        fila = self.tabla_repuestos.currentRow()
+        if fila < 0: return None
+        material_id = self.tabla_repuestos.item(fila, 0).data(Qt.ItemDataRole.UserRole)
+        return next((r for r in self._repuestos_actuales if r["material_id"] == material_id), None)
+
+    def _repuesto_anadir(self):
+        id_maquina, nombre = self._maquina_seleccionada()
+        if id_maquina is None: return
+        if not almacen.listar_materiales():
+            QMessageBox.information(self, t("aviso"), tt("msg_almacen_vacio_repuestos", "Todavía no hay artículos en el almacén. Dalos de alta en la pestaña Stock de almacén.")); return
+        dlg = DialogoRepuestoMaquina(self, nombre, ya_vinculados={r["material_id"] for r in self._repuestos_actuales})
+        if dlg.exec():
+            almacen.guardar_repuesto(id_maquina, *dlg.get_data())
+            self.refrescar_repuestos_maquina()
+
+    def _repuesto_editar(self):
+        id_maquina, nombre = self._maquina_seleccionada()
+        r = self._repuesto_seleccionado()
+        if id_maquina is None or r is None:
+            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_repuesto", "Selecciona primero un repuesto de la lista.")); return
+        dlg = DialogoRepuestoMaquina(self, nombre, repuesto=r)
+        if dlg.exec():
+            almacen.guardar_repuesto(id_maquina, *dlg.get_data())
+            self.refrescar_repuestos_maquina()
+
+    def _repuesto_quitar(self):
+        id_maquina, nombre = self._maquina_seleccionada()
+        r = self._repuesto_seleccionado()
+        if id_maquina is None or r is None:
+            QMessageBox.information(self, t("aviso"), tt("msg_selecciona_repuesto", "Selecciona primero un repuesto de la lista.")); return
+        if QMessageBox.question(self, t("aviso"), tt("msg_confirmar_quitar_repuesto", "¿Quitar «{articulo}» de los repuestos de {maquina}?\nEl artículo sigue en el almacén.").format(
+                articulo=r["nombre"], maquina=nombre)) == QMessageBox.StandardButton.Yes:
+            almacen.quitar_repuesto(id_maquina, r["material_id"])
+            self.refrescar_repuestos_maquina()
+
+    def _repuesto_ir_a_stock(self, *args):
+        r = self._repuesto_seleccionado()
+        if r is None: return
+        self.tabs.setCurrentWidget(self.tab_stock)
+        self._ir_a_material_stock(r["material_id"])
+
+    def _repuestos_exportar(self):
+        id_maquina, nombre = self._maquina_seleccionada()
+        if id_maquina is None: return
+        if not self._repuestos_actuales:
+            QMessageBox.information(self, t("aviso"), tt("msg_sin_repuestos", "Esta máquina no tiene repuestos asignados.")); return
+        menu = QMenu(self)
+        a_pdf = menu.addAction("📄 PDF"); menu.addAction("📊 Excel")
+        elegida = menu.exec(self.btn_repuesto_exportar.mapToGlobal(self.btn_repuesto_exportar.rect().bottomLeft()))
+        if elegida is None: return
+        formato = "pdf" if elegida is a_pdf else "xlsx"
+        if formato == "xlsx":
+            try: import xlsxwriter  # noqa: F401
+            except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
+        ruta_maquina = maquinas.mapa_rutas_completas().get(id_maquina, nombre)
+        titulo = tt("titulo_informe_repuestos", "Repuestos de {maquina}").format(maquina=ruta_maquina)
+        import re
+        nombre_defecto = re.sub(r"[^\w-]+", "_", titulo).strip("_") + "." + formato
+        archivo = self.guardar_archivo_dialogo(titulo, nombre_defecto, "PDF (*.pdf)" if formato == "pdf" else "Excel (*.xlsx)")
+        if not archivo: return
+        if not archivo.lower().endswith("." + formato): archivo += "." + formato
+        cabeceras = [self.tabla_repuestos.horizontalHeaderItem(c).text() for c in range(self.tabla_repuestos.columnCount())]
+        filas = [[r.get("codigo") or "", r["nombre"], r["cantidad"], r["stock_actual"], r.get("unidad") or "",
+                  self._texto_ubicacion(r["seccion_id"]) or "-", r.get("notas") or ""] for r in self._repuestos_actuales]
+        fecha = tt("txt_fecha_informe", "Fecha: {fecha}").format(
+            fecha=idiomas.formato_fecha_localizada(datetime.now().strftime("%Y-%m-%d")))
+        try:
+            if formato == "pdf":
+                self._repuestos_a_pdf(archivo, titulo, fecha, cabeceras, filas)
+            else:
+                self._repuestos_a_excel(archivo, titulo, fecha, cabeceras, filas)
+            QMessageBox.information(self, t("title_exportado"), tt("msg_repuestos_exportados", "Repuestos exportados en:\n{ruta}").format(ruta=archivo))
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
+
+    def _repuestos_a_excel(self, archivo, titulo, fecha, cabeceras, filas):
+        import xlsxwriter
+        wb = xlsxwriter.Workbook(archivo)
+        ws = wb.add_worksheet(tt("lbl_repuestos", "🔩 Repuestos").replace("🔩", "").strip()[:31])
+        f_tit = wb.add_format({"bold": True, "font_size": 14})
+        f_cab = wb.add_format({"bold": True, "bg_color": "#3daee9", "color": "white", "border": 1, "align": "center"})
+        f_txt = wb.add_format({"border": 1})
+        f_num = wb.add_format({"border": 1, "num_format": "0.##"})
+        f_rojo = wb.add_format({"border": 1, "num_format": "0.##", "bold": True, "font_color": "#c0392b"})
+        ws.write(0, 0, titulo, f_tit); ws.write(1, 0, fecha)
+        cab = cabeceras[:4] + [tt("hdr_unidad", "UNIDAD")] + cabeceras[4:]
+        for c, txt in enumerate(cab): ws.write(3, c, txt, f_cab)
+        for i, (r, f) in enumerate(zip(self._repuestos_actuales, filas), start=4):
+            for c, v in enumerate(f):
+                if c == 3 and self._bajo_minimo(r): ws.write_number(i, c, v, f_rojo)
+                elif c in (2, 3): ws.write_number(i, c, v, f_num)
+                else: ws.write(i, c, v, f_txt)
+        for c, ancho in enumerate((12, 40, 8, 8, 9, 36, 24)): ws.set_column(c, c, ancho)
+        ws.freeze_panes(4, 0)
+        wb.close()
+
+    def _repuestos_a_pdf(self, archivo, titulo, fecha, cabeceras, filas):
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as PDFImage
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        styles = getSampleStyleSheet()
+        doc = SimpleDocTemplate(archivo, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        celda = ParagraphStyle("CeldaRep", parent=styles["BodyText"], fontSize=9, leading=11)
+        celda_cab = ParagraphStyle("CabRep", parent=celda, textColor=colors.whitesmoke, fontName="Helvetica-Bold", fontSize=8)
+        celda_num = ParagraphStyle("NumRep", parent=celda, alignment=2)
+        celda_rojo = ParagraphStyle("RojoRep", parent=celda_num, textColor=colors.HexColor("#c0392b"), fontName="Helvetica-Bold")
+        esc = lambda s: (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        elementos = []
+        ruta_logo = os.path.join(DATA_DIR, "Logo.jpg")
+        if os.path.exists(ruta_logo):
+            try:
+                logo = PDFImage(ruta_logo, width=4*cm, height=2*cm); logo.hAlign = "LEFT"; logo.keepAspectRatio = True
+                elementos += [logo, Spacer(1, 8)]
+            except Exception: pass
+        elementos += [Paragraph(esc(titulo), styles["Title"]), Paragraph(esc(fecha), styles["Normal"]), Spacer(1, 10)]
+        datos = [[Paragraph(esc(c), celda_cab) for c in cabeceras]]
+        for r, f in zip(self._repuestos_actuales, filas):
+            unidad = f" {f[4]}" if f[4] else ""
+            datos.append([Paragraph(esc(f[0]), celda), Paragraph(esc(f[1]), celda),
+                          Paragraph(f"{f[2]:g}{esc(unidad)}", celda_num),
+                          Paragraph(f"{f[3]:g}{esc(unidad)}", celda_rojo if self._bajo_minimo(r) else celda_num),
+                          Paragraph(esc(f[5]), celda), Paragraph(esc(f[6]), celda)])
+        tabla = Table(datos, colWidths=[1.9*cm, 5.2*cm, 1.7*cm, 1.7*cm, 4.4*cm, 3.0*cm], repeatRows=1)
+        tabla.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3daee9")),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f6f9")]),
+        ]))
+        elementos.append(tabla)
+        doc.build(elementos)
 
     def _maquina_mostrar_foto_seleccionada(self, *args):
         item = self.arbol_maquinas.currentItem()
@@ -136,6 +347,7 @@ class PestanaMaquinas:
             self.lbl_foto_maquina.setPixmap(QPixmap()); self.lbl_foto_maquina.setText(tt("lbl_sin_foto", "Sin foto"))
             self.lbl_foto_maquina.setStyleSheet(_estilo_zona_arrastre())
         self._actualizar_indicadores_maquina(datos["id"] if datos and datos.get("tipo") == "maquina" else None)
+        self.refrescar_repuestos_maquina()
 
     def _maquina_ver_foto_grande(self, event):
         """Abre en grande la foto de la máquina seleccionada en el árbol,
@@ -416,5 +628,7 @@ class PestanaMaquinas:
         if QMessageBox.question(self, t("aviso"),
                 tt("msg_confirmar_eliminar_maquina", "¿Eliminar esta máquina y sus submáquinas?\nLos trabajos ya registrados no se borrarán, quedarán sin máquina asignada.")
                 ) == QMessageBox.StandardButton.Yes:
+            ids = maquinas.descendientes_ids(datos_item["id"])
             maquinas.borrar_maquina(datos_item["id"])
+            almacen.borrar_repuestos_de_maquinas(ids)
             self.refrescar_arbol_maquinas()

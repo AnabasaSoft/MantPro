@@ -131,4 +131,6 @@ const Map<String, String> traduccionesFr = {
   "btn_cerrar_app": "Fermer",
   "title_material_parecido": "Article similaire",
   "msg_material_parecido": "Il existe déjà des articles avec le même code ou un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?",
+  "lbl_usado_en_maquinas": "Utilisé dans",
+  "lbl_lleva": "Montées",
 };

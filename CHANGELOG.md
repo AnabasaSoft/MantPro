@@ -10,6 +10,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **👥 Estadísticas por técnico** (botón en el Dashboard): trabajos de cada técnico por año y mes, averías, preventivos, horas de parada y pendientes asignados ahora mismo, con gráfico de barras, filtrable por tipo (**todos**, **trabajos y averías** o **mantenimiento preventivo**) y exportable a **PDF** (con el logo de la empresa) y **Excel**.
 - **Ayuda → 📖 Instrucciones (F1)** en el PC: manual por apartados (primeros pasos, usuarios, cada pestaña, menús Archivo y Herramientas, apps del móvil y problemas frecuentes), con índice y buscador, en los 7 idiomas.
 - **Las apps móviles siguen conectadas en segundo plano**: MantPro y MantPro Stock sincronizan (cada 5 s en pantalla, cada 30 s en segundo plano) y el PC las ve en línea hasta que se cierran del todo. Mientras están abiertas muestran una notificación permanente («Conectado al PC» / «Sin conexión con el PC») con un botón «Cerrar». El aviso de las 8:00 no cambia.
+- **🔩 Repuestos de cada máquina**: qué artículos del almacén lleva cada máquina y cuántos, con su stock (en rojo bajo mínimo) y ubicación, debajo del árbol de Máquinas; exportable a PDF y Excel. En Stock de almacén cada artículo indica en qué máquinas se usa. En el móvil, sin conexión: MantPro los muestra en la ficha de la máquina (la del QR) y MantPro Stock dice en qué máquinas se usa cada artículo.
 
 ### Mejoras
 - En MantPro (móvil), la pestaña **«Local» pasa a llamarse «Nuevo»**, que describe mejor para qué sirve.
@@ -20,6 +21,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ### Correcciones
 - **Versiones de pruebas** (`3.10.2-dev1`, `3.10.2-rc.1`…): el PC las leía mal (`3.10.2-dev1` como 3.10.21) y no avisaba de la versión final; las apps del móvil las tomaban por la 3.10.0 y avisaban de una «actualización» a una versión más antigua. Ahora se compara la parte numérica y la versión final va por delante de sus versiones de pruebas.
+- **Tema oscuro**: las filas alternas de las tablas (p. ej. Stock de almacén) salían casi blancas y el texto no se leía.
 - **Avisos de actualización con versiones de pruebas** (PC y las dos apps): quien tiene instalada una versión de pruebas no veía las siguientes, porque GitHub no incluye las *pre-releases* en su «última versión», y además dos versiones de pruebas del mismo número se daban por iguales. Ahora, a quien tiene una versión estable solo se le ofrecen estables, y a quien ya tiene una de pruebas (`-dev`, `-beta`, `-rc`…) se le ofrece la más nueva, sea de pruebas o estable (`dev` < `dev.1` < `dev.3` < `beta` < `rc.1` < final).
 - El workflow de OBS se salta las versiones de pruebas en vez de fallar.
 - Las apps del móvil no compilaban con un tag de pruebas con punto (`v3.10.2-dev.1`): el número de versión interno se calculaba con el sufijo. Ahora sale solo de la parte numérica.

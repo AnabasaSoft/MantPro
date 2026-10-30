@@ -21,14 +21,15 @@
 
 import os
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton,
-                             QMessageBox, QDialog, QDialogButtonBox, QComboBox, QInputDialog)
+                             QMessageBox, QDialog, QDialogButtonBox, QComboBox, QInputDialog,
+                             QListWidget, QListWidgetItem, QDoubleSpinBox, QFormLayout)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 
 from ...idiomas import t
 from ..comun import _estilo_zona_arrastre, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import maquinas
+from ...nucleo import almacen, maquinas
 
 class DialogoEditarMaquina(QDialog):
     """Alta/edición de una máquina del listado de maquinaria."""
@@ -207,3 +208,64 @@ class DialogoEditarMaquina(QDialog):
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
             "foto_nombre_existente": self.foto_nombre_existente,
         }
+
+
+class DialogoRepuestoMaquina(QDialog):
+    """Elegir un artículo del almacén como repuesto de una máquina, con la
+    cantidad que lleva montada y una nota. Con «repuesto» se edita uno ya
+    vinculado (el artículo no se cambia, solo la cantidad y la nota)."""
+    def __init__(self, parent, nombre_maquina, repuesto=None, ya_vinculados=()):
+        super().__init__(parent)
+        self.repuesto = repuesto
+        self.setWindowTitle(tt("title_repuesto_maquina", "Repuesto de {maquina}").format(maquina=nombre_maquina))
+        self.resize(480, 520 if repuesto is None else 200)
+        l = QVBoxLayout(self)
+
+        if repuesto is None:
+            self.buscar = QLineEdit(); self.buscar.setPlaceholderText(tt("ph_buscar_material", "Buscar material..."))
+            self.buscar.textChanged.connect(self._filtrar)
+            l.addWidget(self.buscar)
+            self.lista = QListWidget()
+            self.lista.itemDoubleClicked.connect(lambda _: self._validar_aceptar())
+            for m in almacen.listar_materiales():
+                if m["id"] in ya_vinculados:
+                    continue
+                texto = f"[{m['codigo']}] {m['nombre']}" if m.get("codigo") else m["nombre"]
+                stock = f"{m['stock_actual']:g} {m.get('unidad') or ''}".strip()
+                item = QListWidgetItem(f"{texto}   ({stock})")
+                item.setData(Qt.ItemDataRole.UserRole, m["id"])
+                item.setData(Qt.ItemDataRole.UserRole + 1, f"{m.get('codigo') or ''} {m['nombre']}".lower())
+                self.lista.addItem(item)
+            l.addWidget(self.lista, 1)
+        else:
+            l.addWidget(QLabel(f"<b>{repuesto['nombre']}</b>"))
+
+        form = QFormLayout()
+        self.cantidad = QDoubleSpinBox(); self.cantidad.setDecimals(2); self.cantidad.setRange(0.01, 99999)
+        self.cantidad.setValue(float(repuesto["cantidad"]) if repuesto else 1)
+        form.addRow(tt("lbl_cantidad_montada", "Cantidad que lleva:"), self.cantidad)
+        self.notas = QLineEdit(repuesto.get("notas") or "" if repuesto else "")
+        self.notas.setPlaceholderText(tt("ph_notas_repuesto", "Opcional, p. ej. «lado motor»"))
+        form.addRow(tt("lbl_notas", "Notas"), self.notas)
+        l.addLayout(form)
+
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
+        l.addWidget(b)
+
+    def _filtrar(self, texto):
+        texto = texto.strip().lower()
+        for i in range(self.lista.count()):
+            item = self.lista.item(i)
+            item.setHidden(bool(texto) and texto not in item.data(Qt.ItemDataRole.UserRole + 1))
+
+    def _validar_aceptar(self):
+        if self.repuesto is None and self.lista.currentItem() is None:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista."))
+            return
+        self.accept()
+
+    def get_data(self):
+        material_id = self.repuesto["material_id"] if self.repuesto else self.lista.currentItem().data(Qt.ItemDataRole.UserRole)
+        return material_id, self.cantidad.value(), self.notas.text().strip()

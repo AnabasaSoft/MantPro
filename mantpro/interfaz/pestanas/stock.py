@@ -43,7 +43,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen
+from ...nucleo import usuarios, almacen, maquinas
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -104,6 +104,10 @@ class PestanaStock:
         panel_hist = QWidget(); vh = QVBoxLayout(panel_hist)
         self.lbl_historial_stock = QLabel(tt("lbl_historial_movimientos", "Historial de movimientos"))
         vh.addWidget(self.lbl_historial_stock)
+        # Máquinas que llevan el artículo seleccionado (sus repuestos).
+        self.lbl_usado_en_stock = QLabel("")
+        self.lbl_usado_en_stock.setWordWrap(True)
+        vh.addWidget(self.lbl_usado_en_stock)
         self.lista_historial_stock = QListWidget()
         vh.addWidget(self.lista_historial_stock)
         split.addWidget(panel_hist)
@@ -316,8 +320,14 @@ class PestanaStock:
         if not hasattr(self, "lista_historial_stock"): return
         self.lista_historial_stock.clear()
         self.lbl_historial_stock.setText(tt("lbl_historial_movimientos", "Historial de movimientos"))
+        self.lbl_usado_en_stock.setText(""); self.lbl_usado_en_stock.setVisible(False)
         material_id = self._material_seleccionado()
         if not material_id: return
+        rutas = maquinas.mapa_rutas_completas()
+        usado = [f"{rutas[mid]} ({cant:g})" for mid, cant in almacen.maquinas_de_material(material_id) if mid in rutas]
+        if usado:
+            self.lbl_usado_en_stock.setText("🔩 " + tt("lbl_usado_en", "Se usa en: {maquinas}").format(maquinas=", ".join(sorted(usado, key=str.lower))))
+            self.lbl_usado_en_stock.setVisible(True)
         # El nombre del artículo, a la vista: sin él, un traslado ("De Estantería
         # 11 > Balda B a Estantería 12 > Balda C") no dice qué se ha movido.
         material = almacen.obtener_material(material_id) or {}

@@ -132,6 +132,21 @@ def inicializar():
         )
     """)
 
+    # Repuestos de cada máquina: qué artículos lleva montados y cuántos. Las
+    # máquinas viven en mantenimiento.db, así que maquina_id no puede ser una
+    # clave ajena: al borrar una máquina se llama a borrar_repuestos_de_maquinas().
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS maquina_repuestos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            maquina_id INTEGER NOT NULL,
+            material_id INTEGER NOT NULL REFERENCES materiales(id) ON DELETE CASCADE,
+            cantidad REAL NOT NULL DEFAULT 1,
+            notas TEXT,
+            UNIQUE (maquina_id, material_id)
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_repuestos_material ON maquina_repuestos(material_id)")
+
     # --- columnas nuevas en tablas existentes ---
     if "estilo_baldas" not in _columnas(con, "estanterias"):
         cur.execute("ALTER TABLE estanterias ADD COLUMN estilo_baldas TEXT NOT NULL DEFAULT 'numero'")
@@ -613,6 +628,69 @@ def borrar_material(material_id):
     _borrar_seccion_si_implicita_y_vacia(con, seccion_id)
     con.commit()
     con.close()
+
+
+# ---------------------------------------------------------------- repuestos por máquina
+
+def repuestos_de_maquina(maquina_id):
+    """Artículos vinculados a la máquina, con la cantidad montada y su stock:
+    dicts con material_id, codigo, nombre, unidad, stock_actual, stock_minimo,
+    seccion_id, cantidad y notas, ordenados por nombre."""
+    con = _conn()
+    filas = con.execute("""
+        SELECT r.material_id, m.codigo, m.nombre, m.unidad, m.stock_actual, m.stock_minimo,
+               m.seccion_id, r.cantidad, r.notas
+        FROM maquina_repuestos r JOIN materiales m ON m.id = r.material_id
+        WHERE r.maquina_id = ? ORDER BY m.nombre COLLATE NOCASE
+    """, (maquina_id,)).fetchall()
+    con.close()
+    return [dict(f) for f in filas]
+
+
+def guardar_repuesto(maquina_id, material_id, cantidad=1, notas=""):
+    """Vincula el artículo a la máquina, o cambia su cantidad y notas si ya lo estaba."""
+    con = _conn()
+    con.execute("""
+        INSERT INTO maquina_repuestos (maquina_id, material_id, cantidad, notas) VALUES (?, ?, ?, ?)
+        ON CONFLICT (maquina_id, material_id) DO UPDATE SET cantidad=excluded.cantidad, notas=excluded.notas
+    """, (maquina_id, material_id, float(cantidad), (notas or "").strip()))
+    con.commit()
+    con.close()
+
+
+def quitar_repuesto(maquina_id, material_id):
+    con = _conn()
+    con.execute("DELETE FROM maquina_repuestos WHERE maquina_id=? AND material_id=?", (maquina_id, material_id))
+    con.commit()
+    con.close()
+
+
+def borrar_repuestos_de_maquinas(maquina_ids):
+    """Quita los vínculos de las máquinas borradas (los artículos no se tocan)."""
+    ids = list(maquina_ids)
+    if not ids:
+        return
+    con = _conn()
+    con.execute(f"DELETE FROM maquina_repuestos WHERE maquina_id IN ({','.join('?' * len(ids))})", ids)
+    con.commit()
+    con.close()
+
+
+def maquinas_de_material(material_id):
+    """[(maquina_id, cantidad)] de las máquinas que llevan este artículo."""
+    con = _conn()
+    filas = con.execute("SELECT maquina_id, cantidad FROM maquina_repuestos WHERE material_id=?",
+                        (material_id,)).fetchall()
+    con.close()
+    return [(f["maquina_id"], f["cantidad"]) for f in filas]
+
+
+def listar_repuestos():
+    """Todos los vínculos máquina ↔ artículo (para la API de los móviles)."""
+    con = _conn()
+    filas = con.execute("SELECT maquina_id, material_id, cantidad, notas FROM maquina_repuestos").fetchall()
+    con.close()
+    return [dict(f) for f in filas]
 
 
 def materiales_parecidos(codigo, nombre, excluir_id=None):

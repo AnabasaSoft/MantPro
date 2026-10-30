@@ -192,4 +192,7 @@ const Map<String, String> traduccionesGl = {
     "btn_cerrar_app": "Pechar",
     "lbl_conectado_pc": "🟢 Conectado ao PC",
     "lbl_desconectado_pc": "🔴 Sen conexión co PC",
+    "lbl_repuestos_maquina": "Recambios",
+    "lbl_lleva": "Leva",
+    "lbl_en_almacen": "No almacén",
 };

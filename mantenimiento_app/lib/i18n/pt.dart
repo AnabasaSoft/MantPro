@@ -208,4 +208,7 @@ const Map<String, String> traduccionesPt = {
   "btn_cerrar_app": "Fechar",
   "lbl_conectado_pc": "🟢 Conectado ao PC",
   "lbl_desconectado_pc": "🔴 Sem conexão com o PC",
+  "lbl_repuestos_maquina": "Peças de reposição",
+  "lbl_lleva": "Montadas",
+  "lbl_en_almacen": "No almoxarifado",
 };

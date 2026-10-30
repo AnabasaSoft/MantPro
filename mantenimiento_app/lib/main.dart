@@ -763,6 +763,39 @@ class MaquinasCache {
   }
 }
 
+/// Caché local de los repuestos de las máquinas (qué artículos del almacén
+/// lleva cada una, cuántos, y su stock en la última sincronización), para
+/// consultarlos en la ficha de la máquina sin conexión.
+class RepuestosCache {
+  static const _clave = 'repuestos_cache';
+
+  static Future<List<Map<String, dynamic>>> deMaquina(int maquinaId) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final lista = (json.decode(prefs.getString(_clave) ?? '[]') as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .where((r) => r['maquina_id'] == maquinaId)
+          .toList();
+      lista.sort((a, b) => '${a['nombre']}'.toLowerCase().compareTo('${b['nombre']}'.toLowerCase()));
+      return lista;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> sincronizar(String ip) async {
+    try {
+      final res = await httpGetAuth(Uri.parse("http://$ip/api/repuestos")).timeout(const Duration(seconds: 5));
+      if (res.statusCode != 200) return;
+      final datos = json.decode(res.body);
+      if (datos is Map && datos['status'] == 'ok') {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_clave, json.encode(datos['repuestos'] ?? []));
+      }
+    } catch (_) {}
+  }
+}
+
 /// Caché local del catálogo de especialidades (igual que MaquinasCache), para
 /// poder elegir especialidad al crear un trabajo aunque no haya conexión.
 class EspecialidadesCache {
@@ -3441,6 +3474,7 @@ class SincronizadorGlobal {
     }
     await Future.wait([
       MaquinasCache.sincronizar(ip),
+      RepuestosCache.sincronizar(ip),
       descargar('pendientes', 'trabajos_pc'),
       descargar('avisos', 'avisos_cache'),
       descargar('dashboard', 'dashboard_cache'),
@@ -3473,6 +3507,7 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
   String _superior = '';
   List<Map<String, dynamic>> _trabajos = [];
   List<Registro> _locales = [];
+  List<Map<String, dynamic>> _repuestos = [];
 
   @override
   void initState() {
@@ -3502,8 +3537,10 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     try { historial = List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cache') ?? '[]')); } catch (_) {}
     List<Registro> locales = [];
     try { locales = (json.decode(prefs.getString('registros_pendientes') ?? '[]') as List).map((e) => Registro.fromJson(e)).toList(); } catch (_) {}
+    final repuestos = await RepuestosCache.deMaquina(widget.maquinaId);
     if (!mounted) return;
     setState(() {
+      _repuestos = repuestos;
       _maquina = maquina;
       _superior = ruta.join(' > ');
       _trabajos = historial.where((h) => h['maquinaId'] == widget.maquinaId).toList()
@@ -3530,6 +3567,35 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
         urlPC: prefs.getString('pc_ip_url'), maquinaInicialId: widget.maquinaId, onSave: _guardarNuevo)));
   }
 
+  /// Un repuesto: cuántos lleva la máquina, cuántos hay en el almacén (en rojo
+  /// si está bajo mínimo, con el dato de la última sincronización) y dónde.
+  Widget _filaRepuesto(Map<String, dynamic> r) {
+    String cifra(dynamic v) {
+      final d = (v as num?)?.toDouble() ?? 0;
+      return d == d.roundToDouble() ? d.toInt().toString() : d.toString();
+    }
+    final unidad = (r['unidad'] ?? '').toString().isNotEmpty ? ' ${r['unidad']}' : '';
+    final stock = (r['stock_actual'] as num?)?.toDouble() ?? 0;
+    final bajo = stock <= 0 || stock < ((r['stock_minimo'] as num?)?.toDouble() ?? 0);
+    final codigo = (r['codigo'] ?? '').toString();
+    final notas = (r['notas'] ?? '').toString();
+    final ubicacion = (r['ubicacion'] ?? '').toString();
+    return ListTile(
+      dense: true,
+      leading: Icon(Icons.settings_suggest_outlined, color: bajo ? Colors.red : null),
+      title: Text(codigo.isNotEmpty ? '[$codigo] ${r['nombre']}' : '${r['nombre']}'),
+      subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text.rich(TextSpan(children: [
+          TextSpan(text: '${tt('lbl_lleva', 'Lleva')}: ${cifra(r['cantidad'])}$unidad   ·   ${tt('lbl_en_almacen', 'En almacén')}: '),
+          TextSpan(text: '${cifra(stock)}$unidad',
+              style: TextStyle(fontWeight: FontWeight.bold, color: bajo ? Colors.red : Colors.green)),
+        ])),
+        if (ubicacion.isNotEmpty) Text('📍 $ubicacion'),
+        if (notas.isNotEmpty) Text(notas, style: const TextStyle(fontStyle: FontStyle.italic)),
+      ]),
+    );
+  }
+
   String _primeraLinea(String? texto) =>
       (texto ?? '').replaceAll(RegExp(r"\[(FOTO|FOTO_DESPUES|FOTOS|REF):.*?\]"), '').trim().split('\n').first;
 
@@ -3554,6 +3620,12 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
                 label: Text(tt('btn_registrar_en_maquina', 'Registrar trabajo en esta máquina')),
                 onPressed: _registrarTrabajo,
               ),
+              if (_repuestos.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(tt('lbl_repuestos_maquina', 'Repuestos'), style: Theme.of(context).textTheme.titleMedium),
+                const Divider(),
+                for (final r in _repuestos) _filaRepuesto(r),
+              ],
               const SizedBox(height: 20),
               Text(tt('lbl_ultimos_trabajos_maquina', 'Últimos trabajos'), style: Theme.of(context).textTheme.titleMedium),
               const Divider(),

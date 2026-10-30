@@ -144,4 +144,6 @@ const Map<String, String> traduccionesCa = {
     "btn_cerrar_app": "Tancar",
     "title_material_parecido": "Article semblant",
     "msg_material_parecido": "Ja hi ha articles amb el mateix codi o un nom igual o molt semblant:\n\n{lista}\n\nVols desar-lo igualment?",
+    "lbl_usado_en_maquinas": "S'utilitza a",
+    "lbl_lleva": "Porta",
 };

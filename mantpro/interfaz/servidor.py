@@ -239,6 +239,33 @@ class ServidorSincronizacion(QThread):
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
 
+        @self.app.route('/api/repuestos', methods=['GET'])
+        @requiere_token
+        def api_repuestos():
+            """Repuestos de todas las máquinas (vínculo máquina ↔ artículo con la
+            cantidad que lleva), con los datos del artículo y el nombre completo
+            de la máquina, para que los móviles los guarden y los consulten sin
+            conexión: MantPro en la ficha de la máquina y MantPro Stock en el
+            artículo («Se usa en…»)."""
+            try:
+                rutas = maquinas.mapa_rutas_completas()
+                materiales = {m["id"]: m for m in almacen.listar_materiales()}
+                ubicaciones = {}
+                resultado = []
+                for r in almacen.listar_repuestos():
+                    m = materiales.get(r["material_id"])
+                    if m is None or r["maquina_id"] not in rutas:
+                        continue
+                    if m["seccion_id"] not in ubicaciones:
+                        ubicaciones[m["seccion_id"]] = almacen.obtener_ubicacion_texto(m["seccion_id"])
+                    resultado.append({**r, "maquina": rutas[r["maquina_id"]], "codigo": m.get("codigo") or "",
+                                      "nombre": m["nombre"], "unidad": m.get("unidad") or "",
+                                      "stock_actual": m["stock_actual"], "stock_minimo": m["stock_minimo"],
+                                      "ubicacion": ubicaciones[m["seccion_id"]]})
+                return jsonify({"status": "ok", "repuestos": resultado})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+
         @self.app.route('/api/pendientes', methods=['GET'])
         @requiere_token
         def api_get_pendientes():
