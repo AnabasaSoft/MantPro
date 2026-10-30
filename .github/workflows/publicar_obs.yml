@@ -22,6 +22,9 @@ permissions:
 
 jobs:
   obs:
+    # Las versiones de pruebas (v3.10.2-dev1, v3.10.2-rc.1...) no se publican en
+    # OBS: el job se salta (sale en gris, no como fallo). Lanzado a mano sí corre.
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     env:
       OBS_PROYECTO: home:danitxu79

@@ -48,13 +48,18 @@ class ChequeadorActualizaciones(QThread):
     resultado = pyqtSignal(bool, str, str, str)
 
     def comparar_versiones(self, v1, v2):
-        def parse(v): return [int(x) for x in re.sub(r'[^\d.]', '', v).split('.') if x.strip()]
-        p1, p2 = parse(v1), parse(v2)
-        for i in range(max(len(p1), len(p2))):
-            va = p1[i] if i < len(p1) else 0
-            vb = p2[i] if i < len(p2) else 0
-            if va != vb: return va > vb
-        return False
+        """True si v1 es más nueva que v2. Admite el prefijo "v" y sufijos de
+        versión de pruebas ("3.10.2-dev1", "3.10.2-rc.1"): se compara la parte
+        numérica y, si es igual, la versión final va por delante de sus
+        versiones de pruebas. Antes, "3.10.2-dev1" se leía como 3.10.21."""
+        def parse(v):
+            numeros, _, sufijo = v.strip().lstrip("vV").partition("-")
+            partes = [int(x) if x.isdigit() else 0 for x in numeros.split(".")]
+            return partes + [0] * (3 - len(partes)), bool(sufijo)
+        (p1, pruebas1), (p2, pruebas2) = parse(v1), parse(v2)
+        if p1 != p2:
+            return p1 > p2
+        return pruebas2 and not pruebas1
 
     def run(self):
         try:

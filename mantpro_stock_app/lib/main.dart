@@ -132,15 +132,27 @@ const String kAppVersion = '3.9.9';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
+/// Compara dos versiones tipo "1.2.3" (o "v1.2.3"): <0 si a es más antigua que b, 0 si son iguales, >0 si es más nueva.
+/// Admite el prefijo "v" y sufijos de versión de pruebas ("3.10.2-dev1",
+/// "3.10.2-rc.1"): se compara la parte numérica y, si es igual, la versión
+/// final va por delante de sus versiones de pruebas (antes "2-dev1" se leía
+/// como 0, y una versión de pruebas creía ser la 3.10.0).
 int _compararVersiones(String a, String b) {
-  List<int> parse(String v) => v.trim().replaceFirst(RegExp(r'^[vV]'), '').split('.').map((s) => int.tryParse(s.trim()) ?? 0).toList();
-  final pa = parse(a), pb = parse(b);
+  (List<int>, bool) parse(String v) {
+    final limpia = v.trim().replaceFirst(RegExp(r'^[vV]'), '');
+    final guion = limpia.indexOf('-');
+    final numeros = guion < 0 ? limpia : limpia.substring(0, guion);
+    return (numeros.split('.').map((s) => int.tryParse(s.trim()) ?? 0).toList(), guion >= 0);
+  }
+  final (pa, pruebasA) = parse(a);
+  final (pb, pruebasB) = parse(b);
   for (int i = 0; i < 3; i++) {
     final va = i < pa.length ? pa[i] : 0;
     final vb = i < pb.length ? pb[i] : 0;
     if (va != vb) return va.compareTo(vb);
   }
-  return 0;
+  if (pruebasA == pruebasB) return 0;
+  return pruebasA ? -1 : 1;
 }
 
 Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = false}) async {
