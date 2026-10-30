@@ -72,7 +72,13 @@ class DialogoEditarMaquina(QDialog):
         l.addWidget(QLabel(tt("lbl_zona_maquina", "Zona / Ubicación (opcional)")))
         h_zona = QHBoxLayout()
         self.combo_zona = QComboBox()
-        self._recargar_combo_zona(maquina.get("zona_id") if maquina else None)
+        self._recargar_combo_zona(maquina.get("zona_id") if maquina else self._zona_de(seleccion))
+        # Una máquina nueva toma la zona de su máquina superior, también si se
+        # cambia de superior, mientras no se haya elegido otra zona a mano.
+        self._zona_elegida_a_mano = False
+        if self.es_nueva:
+            self.combo_zona.activated.connect(lambda _: setattr(self, "_zona_elegida_a_mano", True))
+            self.combo_padre.currentIndexChanged.connect(self._heredar_zona_del_padre)
         h_zona.addWidget(self.combo_zona, 1)
         btn_nueva_zona = QPushButton("➕")
         btn_nueva_zona.setFixedWidth(32)
@@ -115,11 +121,24 @@ class DialogoEditarMaquina(QDialog):
         idx = self.combo_zona.findData(zona_id_seleccionada)
         self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
 
+    @staticmethod
+    def _zona_de(id_maquina):
+        """Zona de la máquina indicada (None si no tiene o no hay máquina)."""
+        m = maquinas.obtener_maquina(id_maquina) if id_maquina is not None else None
+        return m["zona_id"] if m else None
+
+    def _heredar_zona_del_padre(self):
+        if self._zona_elegida_a_mano:
+            return
+        idx = self.combo_zona.findData(self._zona_de(self.combo_padre.currentData()))
+        self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
+
     def _nueva_zona(self):
         nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona", "Nueva zona"), tt("lbl_nombre_zona", "Nombre de la zona"))
         if ok and nombre.strip():
             nuevo_id = maquinas.agregar_zona(nombre.strip())
             self._recargar_combo_zona(nuevo_id)
+            self._zona_elegida_a_mano = True
 
     def _actualizar_preview_inicial(self):
         if self.foto_nombre_existente:
