@@ -6,6 +6,8 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+## 3.10.2 — 2026-10-30
+
 ### Novedades
 - **👥 Estadísticas por técnico** (botón en el Dashboard): trabajos de cada técnico por año y mes, averías, preventivos, horas de parada y pendientes asignados ahora mismo, con gráfico de barras, filtrable por tipo (**todos**, **trabajos y averías** o **mantenimiento preventivo**) y exportable a **PDF** (con el logo de la empresa) y **Excel**.
 - **Ayuda → 📖 Instrucciones (F1)** en el PC: manual por apartados (primeros pasos, usuarios, cada pestaña, menús Archivo y Herramientas, apps del móvil y problemas frecuentes), con índice y buscador, en los 7 idiomas.
