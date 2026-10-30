@@ -83,6 +83,7 @@ class DialogoEditarMaquina(QDialog):
         h_zona.addWidget(self.combo_zona, 1)
         btn_nueva_zona = QPushButton("➕")
         btn_nueva_zona.setFixedWidth(32)
+        btn_nueva_zona.setStyleSheet("padding: 0;")  # en los temas con más relleno el icono no cabía
         btn_nueva_zona.setToolTip(tt("btn_nueva_zona", "Nueva zona"))
         btn_nueva_zona.clicked.connect(self._nueva_zona)
         h_zona.addWidget(btn_nueva_zona)

@@ -19,10 +19,50 @@
 
 """Temas visuales: oscuro, claro y clásico (Windows 98)."""
 
-from PyQt6.QtWidgets import QApplication, QStyleFactory
+from PyQt6.QtWidgets import QApplication, QStyleFactory, QWidget
 from PyQt6.QtCore import QSettings
 
+import os
+import tempfile
+
 from .comun import _estilo_zona_arrastre
+
+def _flechas(color):
+    """Rutas de dos PNG pequeños (flecha abajo y arriba) del color indicado,
+    para los desplegables y los campos numéricos de los temas claro y
+    clásico: al darles estilo con hoja de estilos, Qt deja de dibujar sus
+    flechas y hay que ponérselas como imagen. Se generan una vez en la
+    carpeta temporal."""
+    from PyQt6.QtGui import QImage, QPainter, QColor, QPolygonF
+    from PyQt6.QtCore import QPointF, Qt
+    carpeta = os.path.join(tempfile.gettempdir(), "mantpro_flechas")
+    os.makedirs(carpeta, exist_ok=True)
+    rutas = []
+    for nombre, puntos in (("abajo", [(1, 3), (9, 3), (5, 8)]), ("arriba", [(1, 7), (9, 7), (5, 2)])):
+        ruta = os.path.join(carpeta, f"{nombre}_{color.lstrip('#')}.png")
+        if not os.path.exists(ruta):
+            img = QImage(10, 10, QImage.Format.Format_ARGB32); img.fill(Qt.GlobalColor.transparent)
+            pintor = QPainter(img); pintor.setRenderHint(QPainter.RenderHint.Antialiasing)
+            pintor.setPen(Qt.PenStyle.NoPen); pintor.setBrush(QColor(color))
+            pintor.drawPolygon(QPolygonF([QPointF(x, y) for x, y in puntos])); pintor.end()
+            img.save(ruta, "PNG")
+        rutas.append(ruta.replace("\\", "/"))
+    return rutas
+
+
+def _estilo_flechas(color, fondo, borde_boton):
+    """Reglas de hoja de estilos para las flechas de desplegables, campos de
+    fecha y campos numéricos."""
+    abajo, arriba = _flechas(color)
+    return f"""
+        QComboBox::drop-down, QDateEdit::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 18px; background: {fondo}; {borde_boton} }}
+        QComboBox::down-arrow, QDateEdit::down-arrow {{ image: url("{abajo}"); width: 10px; height: 10px; }}
+        QAbstractSpinBox::up-button {{ subcontrol-origin: border; subcontrol-position: top right; width: 16px; background: {fondo}; {borde_boton} }}
+        QAbstractSpinBox::down-button {{ subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; background: {fondo}; {borde_boton} }}
+        QAbstractSpinBox::up-arrow {{ image: url("{arriba}"); width: 8px; height: 8px; }}
+        QAbstractSpinBox::down-arrow {{ image: url("{abajo}"); width: 8px; height: 8px; }}
+        """
+
 
 class Temas:
     """Temas visuales: oscuro, claro y clásico (Windows 98).
@@ -60,6 +100,12 @@ class Temas:
             self.search()
         if hasattr(self, 'table_avisos'):
             self.refresh_avisos()
+        if hasattr(self, 'lbl_info') and hasattr(self, 'calendar'):
+            self.update_calendar_list()
+        # Los gráficos toman el color de texto del tema al pintarse.
+        for grafico in self.findChildren(QWidget):
+            if hasattr(grafico, "_color_texto_fijo"):
+                grafico.update()
 
         # Repintar las zonas de "arrastra una foto aquí" si no tienen foto puesta
         if hasattr(self, 'lbl_entry_foto') and not getattr(self, 'entry_foto_filename', None):
@@ -101,33 +147,33 @@ class Temas:
         QMainWindow, QWidget { font-family: "Tahoma", "MS Sans Serif", sans-serif; font-size: 13px; }
         QMenuBar { background-color: #d4d0c8; border-bottom: 1px solid #808080; }
         QMenuBar::item:selected { background-color: #000080; color: white; }
-        QMenu { background-color: #d4d0c8; border: 2px outset #d4d0c8; }
+        QMenu { background-color: #d4d0c8; border-width: 2px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; }
         QMenu::item:selected { background-color: #000080; color: white; }
-        QTabWidget::pane { border: 2px inset #808080; background: #d4d0c8; }
-        QTabBar::tab { background: #d4d0c8; border: 1px outset #d4d0c8; padding: 4px 14px; margin-right: 1px; }
-        QTabBar::tab:selected { background: #d4d0c8; border-bottom: none; font-weight: bold; }
-        QPushButton { background-color: #d4d0c8; border: 2px outset #d4d0c8; padding: 4px 12px; min-height: 20px; }
-        QPushButton:pressed { border-style: inset; }
+        QTabWidget::pane { border-width: 2px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; background: #d4d0c8; }
+        QTabBar::tab { background: #d4d0c8; border-width: 1px 2px 0 1px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; padding: 4px 14px; margin-right: 1px; margin-top: 2px; }
+        QTabBar::tab:selected { background: #d4d0c8; font-weight: bold; margin-top: 0; padding-bottom: 6px; }
+        QPushButton { background-color: #d4d0c8; border-width: 2px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; padding: 4px 12px; min-height: 20px; color: black; }
+        QPushButton:pressed { border-width: 2px; border-style: solid; border-color: #808080 #ffffff #ffffff #808080; }
+        QPushButton:disabled { color: #808080; }
         QPushButton:hover { background-color: #e4e0d8; }
-        QLineEdit, QTextEdit, QDateEdit, QSpinBox { background-color: white; border: 2px inset #808080; padding: 2px; }
-        QTableWidget, QTreeView, QListWidget, QListView { background-color: white; border: 2px inset #808080; gridline-color: #c0c0c0; }
-        QHeaderView::section { background-color: #d4d0c8; border: 1px outset #d4d0c8; padding: 4px; font-weight: bold; }
-        QGroupBox { border: 2px groove #d4d0c8; margin-top: 8px; padding-top: 12px; }
+        QLineEdit, QTextEdit, QDateEdit, QAbstractSpinBox { background-color: white; border-width: 2px; border-style: solid; border-color: #808080 #ffffff #ffffff #808080; padding: 2px; color: black; }
+        QTableWidget, QTreeView, QListWidget, QListView { background-color: white; border-width: 2px; border-style: solid; border-color: #808080 #ffffff #ffffff #808080; gridline-color: #c0c0c0; color: black; }
+        QHeaderView::section { background-color: #d4d0c8; border-width: 1px; border-style: solid; border-color: #ffffff #808080 #808080 #ffffff; padding: 4px; font-weight: bold; color: black; }
+        QGroupBox { border: 1px solid #808080; margin-top: 8px; padding-top: 12px; }
         QGroupBox::title { subcontrol-origin: margin; left: 8px; padding: 0 4px; }
-        QComboBox { background-color: white; border: 2px inset #808080; padding: 2px; }
-        QComboBox::drop-down { border-left: 1px solid #808080; background: #d4d0c8; width: 18px; }
+        QComboBox { background-color: white; border-width: 2px; border-style: solid; border-color: #808080 #ffffff #ffffff #808080; padding: 2px; color: black; }
         QCheckBox::indicator, QRadioButton::indicator { width: 13px; height: 13px; }
-        QProgressBar { border: 2px inset #808080; background: white; text-align: center; }
+        QProgressBar { border-width: 2px; border-style: solid; border-color: #808080 #ffffff #ffffff #808080; background: white; text-align: center; color: black; }
         QProgressBar::chunk { background-color: #000080; }
         QScrollBar:vertical { background: #d4d0c8; width: 16px; border: 1px solid #808080; }
-        QScrollBar::handle:vertical { background: #d4d0c8; border: 1px outset #d4d0c8; min-height: 20px; }
+        QScrollBar::handle:vertical { background: #d4d0c8; border-width: 1px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; min-height: 20px; }
         QScrollBar:horizontal { background: #d4d0c8; height: 16px; border: 1px solid #808080; }
-        QScrollBar::handle:horizontal { background: #d4d0c8; border: 1px outset #d4d0c8; min-width: 20px; }
+        QScrollBar::handle:horizontal { background: #d4d0c8; border-width: 1px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; min-width: 20px; }
         QStatusBar { background: #d4d0c8; border-top: 1px solid #808080; }
         QCalendarWidget QAbstractItemView:enabled { background-color: white; color: black; selection-background-color: #000080; selection-color: white; }
         QSplitter::handle { background: #d4d0c8; }
         QDialog { background-color: #d4d0c8; }
-        """)
+        """ + _estilo_flechas("#000000", "#d4d0c8", "border-width: 1px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff;"))
 
     def _aplicar_tema_claro(self):
         """Tema claro moderno."""
@@ -167,14 +213,13 @@ class Temas:
         QPushButton { background-color: #e6e6e6; border: 1px solid #c0c0c0; border-radius: 5px; padding: 6px 14px; }
         QPushButton:hover { background-color: #d4d4d4; border-color: #0078d4; }
         QPushButton:pressed { background-color: #0078d4; color: white; }
-        QLineEdit, QTextEdit, QDateEdit, QSpinBox { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; padding: 4px; }
+        QLineEdit, QTextEdit, QDateEdit, QAbstractSpinBox { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; padding: 4px; }
         QLineEdit:focus, QTextEdit:focus { border-color: #0078d4; }
         QTableWidget, QTreeView, QListWidget, QListView { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; gridline-color: #e0e0e0; selection-background-color: #0078d4; selection-color: white; }
         QHeaderView::section { background-color: #e6e6e6; border: none; border-right: 1px solid #d0d0d0; border-bottom: 1px solid #d0d0d0; padding: 6px; font-weight: bold; color: #333; }
         QGroupBox { border: 1px solid #d0d0d0; border-radius: 6px; margin-top: 8px; padding-top: 14px; }
         QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 6px; color: #0078d4; }
         QComboBox { background-color: white; border: 1px solid #c0c0c0; border-radius: 4px; padding: 4px; }
-        QComboBox::drop-down { border-left: 1px solid #d0d0d0; background: #e6e6e6; width: 20px; border-radius: 0 4px 4px 0; }
         QProgressBar { border: 1px solid #c0c0c0; border-radius: 4px; background: white; text-align: center; }
         QProgressBar::chunk { background-color: #0078d4; border-radius: 3px; }
         QScrollBar:vertical { background: #f3f3f3; width: 12px; border: none; }
@@ -189,7 +234,7 @@ class Temas:
         QDialog { background-color: #f3f3f3; }
         QCheckBox::indicator:unchecked { border: 1px solid #999; background: white; border-radius: 2px; }
         QCheckBox::indicator:checked { background: #0078d4; border: 1px solid #0078d4; border-radius: 2px; }
-        """)
+        """ + _estilo_flechas("#444444", "#e6e6e6", "border-left: 1px solid #d0d0d0;"))
 
     def _aplicar_tema_oscuro(self):
         """Tema oscuro original de MantPro."""

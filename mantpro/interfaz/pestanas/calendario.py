@@ -45,11 +45,13 @@ class PestanaCalendario:
         if tdb: ets.append(tdb)
         if ef and tdb != "Festivo (Manual)": ets.append("Festivo Oficial")
         ti = f"📅 {sds}" + (f" ({' + '.join(ets)})" if ets else "")
-        c = "#80DEEA"
-        if "Festivo" in ti: c = "#e57373"
-        elif "Vacaciones" in ti: c = "#FFF59D"
-        elif "Puente" in ti: c = "#42A5F5"
-        elif "Día Libre" in ti: c = "#F48FB1"
+        # Colores claros sobre el tema oscuro y oscuros sobre los temas claros.
+        oscuro = getattr(self, "_tema_actual", "oscuro") == "oscuro"
+        c = "#80DEEA" if oscuro else "#00727d"
+        if "Festivo" in ti: c = "#e57373" if oscuro else "#c62828"
+        elif "Vacaciones" in ti: c = "#FFF59D" if oscuro else "#8a6d00"
+        elif "Puente" in ti: c = "#42A5F5" if oscuro else "#1565c0"
+        elif "Día Libre" in ti: c = "#F48FB1" if oscuro else "#ad1457"
         self.lbl_info.setStyleSheet(f"font-weight:bold; font-size:16px; color:{c};"); self.lbl_info.setText(ti)
 
         for aid, tit, finicio, freq, dur, ult, *_ in self._avisos_visibles():

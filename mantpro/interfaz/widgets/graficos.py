@@ -20,7 +20,7 @@
 """Gráficos del dashboard, dibujados con QPainter."""
 
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt, QRectF
+from PyQt6.QtCore import Qt, QRectF, QSettings
 from PyQt6.QtGui import QColor, QBrush, QPainter, QPen, QFont
 
 from ..comun import tt
@@ -32,10 +32,12 @@ class _GraficoBase(QWidget):
     subclase solo la parte de dibujo (_dibujar) que de verdad cambia entre
     ellas."""
 
-    def __init__(self, parent=None, color_texto="#dcdcdc", color_fondo=None, altura_minima=160):
+    def __init__(self, parent=None, color_texto=None, color_fondo=None, altura_minima=160):
         super().__init__(parent)
         self._datos = []
-        self._color_texto = QColor(color_texto)
+        # Sin color de texto fijo (el caso normal en pantalla), se toma el del
+        # tema activo al pintar; los PDF pasan uno fijo (negro sobre blanco).
+        self._color_texto_fijo = QColor(color_texto) if color_texto else None
         self._color_fondo = QColor(color_fondo) if color_fondo else None
         self.setMinimumHeight(altura_minima)
 
@@ -51,6 +53,13 @@ class _GraficoBase(QWidget):
 
     def _texto_vacio(self):
         return tt("lbl_sin_datos_grafico", "Sin datos")
+
+    @property
+    def _color_texto(self):
+        if self._color_texto_fijo is not None:
+            return self._color_texto_fijo
+        oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
+        return QColor("#dcdcdc" if oscuro else "#202020")
 
     def paintEvent(self, evento):
         painter = QPainter(self)
@@ -74,7 +83,7 @@ class GraficoCircularTrabajos(_GraficoBase):
         QColor("#9b59b6"), QColor("#f1c40f"), QColor("#1abc9c"), QColor("#95a5a6"),
     ]
 
-    def __init__(self, parent=None, color_texto="#dcdcdc", color_fondo=None):
+    def __init__(self, parent=None, color_texto=None, color_fondo=None):
         super().__init__(parent, color_texto, color_fondo, altura_minima=180)
 
     def establecer_datos(self, datos):
@@ -124,7 +133,7 @@ class GraficoBarrasRanking(_GraficoBase):
     depender de ninguna librería de gráficos externa), para un ranking ya
     ordenado de mayor a menor."""
 
-    def __init__(self, parent=None, color="#c0392b", color_texto="#dcdcdc", color_fondo=None):
+    def __init__(self, parent=None, color="#c0392b", color_texto=None, color_fondo=None):
         super().__init__(parent, color_texto, color_fondo, altura_minima=160)
         self._color = QColor(color)
 
@@ -161,7 +170,7 @@ class GraficoBarrasMensual(_GraficoBase):
     """Gráfica de barras verticales (evolución mes a mes) dibujada a mano con
     QPainter, sin depender de ninguna librería de gráficos externa."""
 
-    def __init__(self, parent=None, color="#c0392b", color_texto="#dcdcdc", color_fondo=None):
+    def __init__(self, parent=None, color="#c0392b", color_texto=None, color_fondo=None):
         super().__init__(parent, color_texto, color_fondo, altura_minima=160)
         self._color = QColor(color)
 

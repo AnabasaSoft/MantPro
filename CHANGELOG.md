@@ -21,6 +21,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ### Correcciones
 - **Versiones de pruebas** (`3.10.2-dev1`, `3.10.2-rc.1`…): el PC las leía mal (`3.10.2-dev1` como 3.10.21) y no avisaba de la versión final; las apps del móvil las tomaban por la 3.10.0 y avisaban de una «actualización» a una versión más antigua. Ahora se compara la parte numérica y la versión final va por delante de sus versiones de pruebas.
+- **Temas claro y clásico**: los textos de los gráficos (Dashboard, Máquinas, Estadísticas) salían en gris muy claro y casi no se leían; los desplegables y campos numéricos no mostraban sus flechas; en el clásico, los botones, pestañas y recuadros apenas se distinguían del fondo (ahora tienen el relieve clásico); y la fecha del calendario tenía poco contraste.
 - **Tema oscuro**: las filas alternas de las tablas (p. ej. Stock de almacén) salían casi blancas y el texto no se leía.
 - **Avisos de actualización con versiones de pruebas** (PC y las dos apps): quien tiene instalada una versión de pruebas no veía las siguientes, porque GitHub no incluye las *pre-releases* en su «última versión», y además dos versiones de pruebas del mismo número se daban por iguales. Ahora, a quien tiene una versión estable solo se le ofrecen estables, y a quien ya tiene una de pruebas (`-dev`, `-beta`, `-rc`…) se le ofrece la más nueva, sea de pruebas o estable (`dev` < `dev.1` < `dev.3` < `beta` < `rc.1` < final).
 - El workflow de OBS se salta las versiones de pruebas en vez de fallar.

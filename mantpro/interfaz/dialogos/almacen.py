@@ -578,7 +578,8 @@ class DialogoEditarMaterial(QDialog):
         for texto, tip, accion in (("➕", tt("btn_anadir_maquina_material", "Añadir máquina"), self._repuesto_anadir),
                                    ("✏️", tt("btn_editar_repuesto", "✏️ Cantidad"), self._repuesto_editar),
                                    ("🗑️", tt("btn_quitar_repuesto", "🗑️ Quitar"), self._repuesto_quitar)):
-            b_rep = QPushButton(texto); b_rep.setFixedWidth(36); b_rep.setToolTip(tip); b_rep.clicked.connect(accion)
+            b_rep = QPushButton(texto); b_rep.setFixedWidth(36); b_rep.setStyleSheet("padding: 0;")
+            b_rep.setToolTip(tip); b_rep.clicked.connect(accion)
             h_rep.addWidget(b_rep)
         l.addLayout(h_rep)
         self.lista_repuestos = QListWidget(); self.lista_repuestos.setMaximumHeight(90)

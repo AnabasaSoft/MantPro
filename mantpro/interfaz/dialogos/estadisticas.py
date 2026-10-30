@@ -77,10 +77,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         l.addLayout(barra)
 
         l.addWidget(QLabel(tt("lbl_trabajos_por_tecnico", "Trabajos por técnico")))
-        # Texto del gráfico según el tema activo: el oscuro se aplica con hojas
-        # de estilo y no cambia la paleta, así que se mira el tema elegido.
-        oscuro = getattr(parent, "_tema_actual", "oscuro") == "oscuro"
-        self.grafico = GraficoBarrasRanking(color="#3daee9", color_texto="#dcdcdc" if oscuro else "#202020")
+        self.grafico = GraficoBarrasRanking(color="#3daee9")
         l.addWidget(self.grafico)
 
         self.tabla = QTableWidget()
