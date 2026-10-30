@@ -769,5 +769,9 @@
   "title_nombre_maquina_parecido": "Nom semblant",
   "msg_nombre_maquina_parecido": "Al mateix nivell ja hi ha una màquina amb un nom igual o molt semblant:\n\n{lista}\n\nVols desar-la igualment?",
   "title_material_parecido": "Article semblant",
-  "msg_material_parecido": "Ja hi ha articles amb el mateix codi o un nom igual o molt semblant:\n\n{lista}\n\nVols desar-lo igualment?"
+  "msg_material_parecido": "Ja hi ha articles amb el mateix codi o un nom igual o molt semblant:\n\n{lista}\n\nVols desar-lo igualment?",
+  "btn_exportar_pdf_corto": "📄 Exportar PDF",
+  "btn_exportar_excel_corto": "📊 Exportar Excel",
+  "msg_estadisticas_exportadas": "Estadístiques exportades a:\n{ruta}",
+  "msg_sin_datos_estadisticas": "No hi ha treballs per exportar en aquest període."
 }

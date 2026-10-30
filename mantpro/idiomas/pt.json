@@ -769,5 +769,9 @@
   "title_nombre_maquina_parecido": "Nome parecido",
   "msg_nombre_maquina_parecido": "No mesmo nível já existe uma máquina com um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?",
   "title_material_parecido": "Item parecido",
-  "msg_material_parecido": "Já existem itens com o mesmo código ou um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?"
+  "msg_material_parecido": "Já existem itens com o mesmo código ou um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?",
+  "btn_exportar_pdf_corto": "📄 Exportar PDF",
+  "btn_exportar_excel_corto": "📊 Exportar Excel",
+  "msg_estadisticas_exportadas": "Estatísticas exportadas em:\n{ruta}",
+  "msg_sin_datos_estadisticas": "Não há serviços para exportar nesse período."
 }

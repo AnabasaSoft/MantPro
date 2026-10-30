@@ -769,5 +769,9 @@
   "title_nombre_maquina_parecido": "Similar name",
   "msg_nombre_maquina_parecido": "There is already a machine at the same level with the same or a very similar name:\n\n{lista}\n\nSave anyway?",
   "title_material_parecido": "Similar item",
-  "msg_material_parecido": "There are already items with the same code or the same or a very similar name:\n\n{lista}\n\nSave anyway?"
+  "msg_material_parecido": "There are already items with the same code or the same or a very similar name:\n\n{lista}\n\nSave anyway?",
+  "btn_exportar_pdf_corto": "📄 Export PDF",
+  "btn_exportar_excel_corto": "📊 Export Excel",
+  "msg_estadisticas_exportadas": "Statistics exported to:\n{ruta}",
+  "msg_sin_datos_estadisticas": "There are no jobs to export in that period."
 }

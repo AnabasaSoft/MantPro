@@ -769,5 +769,9 @@
   "title_nombre_maquina_parecido": "Nom similaire",
   "msg_nombre_maquina_parecido": "Au même niveau, il existe déjà une machine avec un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?",
   "title_material_parecido": "Article similaire",
-  "msg_material_parecido": "Il existe déjà des articles avec le même code ou un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?"
+  "msg_material_parecido": "Il existe déjà des articles avec le même code ou un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?",
+  "btn_exportar_pdf_corto": "📄 Exporter en PDF",
+  "btn_exportar_excel_corto": "📊 Exporter en Excel",
+  "msg_estadisticas_exportadas": "Statistiques exportées dans :\n{ruta}",
+  "msg_sin_datos_estadisticas": "Aucune intervention à exporter pour cette période."
 }
