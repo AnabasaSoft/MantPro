@@ -754,5 +754,18 @@
   "title_instrucciones": "Instruccions de MantPro",
   "ph_buscar_ayuda": "Cerca a l'ajuda...",
   "btn_buscar_siguiente": "🔍 Cerca",
-  "msg_ayuda_no_encontrado": "No s'ha trobat"
+  "msg_ayuda_no_encontrado": "No s'ha trobat",
+  "btn_estadisticas_tecnicos": "👥 Estadístiques per tècnic",
+  "title_estadisticas_tecnicos": "Estadístiques per tècnic",
+  "lbl_trabajos_por_tecnico": "Treballs per tècnic",
+  "hdr_tecnico": "Tècnic",
+  "hdr_total": "Total",
+  "hdr_averias": "Avaries",
+  "hdr_preventivos": "Preventius",
+  "hdr_horas_paro": "Hores d'aturada",
+  "hdr_pendientes_asignados": "Pendents",
+  "msg_nota_estadisticas_tecnicos": "Les hores d'aturada són les dels treballs d'avaria. «Pendents» són els treballs que cada tècnic té assignats ara mateix.",
+  "lbl_tecnico_historico": "Històric (sense usuari)",
+  "title_nombre_maquina_parecido": "Nom semblant",
+  "msg_nombre_maquina_parecido": "Al mateix nivell ja hi ha una màquina amb un nom igual o molt semblant:\n\n{lista}\n\nVols desar-la igualment?"
 }

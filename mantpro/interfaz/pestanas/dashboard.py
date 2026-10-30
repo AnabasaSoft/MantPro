@@ -19,12 +19,13 @@
 
 """Pestaña «Dashboard»: indicadores y gráficos."""
 
-from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QProgressBar
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QProgressBar, QPushButton
 from PyQt6.QtCore import QDate, Qt
 
 from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
+from ..dialogos.estadisticas import DialogoEstadisticasTecnicos
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking
 from ...nucleo import maquinas
 
@@ -57,7 +58,13 @@ class PestanaDashboard:
         l.addLayout(h_cards)
         h_split = QHBoxLayout()
         v_list = QVBoxLayout()
-        v_list.addWidget(QLabel(tt("lbl_ranking_maquinas_trabajos", "Máquinas con más trabajos")))
+        fila_ranking = QHBoxLayout()
+        fila_ranking.addWidget(QLabel(tt("lbl_ranking_maquinas_trabajos", "Máquinas con más trabajos")))
+        fila_ranking.addStretch()
+        btn_tecnicos = QPushButton(tt("btn_estadisticas_tecnicos", "👥 Estadísticas por técnico"))
+        btn_tecnicos.clicked.connect(lambda: DialogoEstadisticasTecnicos(self, self.db.db_name).exec())
+        fila_ranking.addWidget(btn_tecnicos)
+        v_list.addLayout(fila_ranking)
         self.grafico_ranking_averias = GraficoBarrasRanking(color="#c0392b"); v_list.addWidget(self.grafico_ranking_averias)
         v_list.addWidget(QLabel(tt("lbl_averias_por_mes", "Averías por mes")))
         self.grafico_averias_mes = GraficoBarrasMensual(color="#e67e22"); v_list.addWidget(self.grafico_averias_mes)

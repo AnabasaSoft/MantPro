@@ -754,5 +754,18 @@
   "title_instrucciones": "Instructions de MantPro",
   "ph_buscar_ayuda": "Rechercher dans l'aide...",
   "btn_buscar_siguiente": "🔍 Rechercher",
-  "msg_ayuda_no_encontrado": "Introuvable"
+  "msg_ayuda_no_encontrado": "Introuvable",
+  "btn_estadisticas_tecnicos": "👥 Statistiques par technicien",
+  "title_estadisticas_tecnicos": "Statistiques par technicien",
+  "lbl_trabajos_por_tecnico": "Interventions par technicien",
+  "hdr_tecnico": "Technicien",
+  "hdr_total": "Total",
+  "hdr_averias": "Pannes",
+  "hdr_preventivos": "Préventifs",
+  "hdr_horas_paro": "Heures d'arrêt",
+  "hdr_pendientes_asignados": "En attente",
+  "msg_nota_estadisticas_tecnicos": "Les heures d'arrêt sont celles des interventions de panne. « En attente » correspond aux interventions assignées à chaque technicien en ce moment.",
+  "lbl_tecnico_historico": "Historique (sans utilisateur)",
+  "title_nombre_maquina_parecido": "Nom similaire",
+  "msg_nombre_maquina_parecido": "Au même niveau, il existe déjà une machine avec un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?"
 }

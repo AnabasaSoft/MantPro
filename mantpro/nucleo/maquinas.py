@@ -31,7 +31,10 @@ Uso desde la interfaz (mantpro/interfaz/app.py):
     maquinas.inicializar()            # crea la tabla + migra la columna (idempotente)
 """
 
+import difflib
+import re
 import sqlite3
+import unicodedata
 from datetime import datetime
 
 RUTA_DB = "mantenimiento.db"
@@ -156,6 +159,40 @@ def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None, zona_id=N
     )
     con.commit()
     con.close()
+
+
+def _normalizar_nombre(nombre):
+    """Minúsculas, sin tildes y con los espacios juntados, para comparar nombres."""
+    sin_tildes = "".join(c for c in unicodedata.normalize("NFD", (nombre or "").lower())
+                         if unicodedata.category(c) != "Mn")
+    return " ".join(sin_tildes.split())
+
+
+def nombres_parecidos(nombre, padre_id, excluir_id=None, umbral=0.8):
+    """Máquinas del mismo nivel (mismo padre_id) con un nombre igual o muy
+    parecido a «nombre» (p. ej. «Extractor de finos» / «Extracción de finos»),
+    para avisar antes de crear una repetida sin querer. No cuenta como parecido
+    lo que solo cambia en el número («Lora 1» / «Lora 2»)."""
+    buscado = _normalizar_nombre(nombre)
+    if not buscado:
+        return []
+    numeros = re.findall(r"\d+", buscado)
+    con = _conn()
+    if padre_id is None:
+        filas = con.execute("SELECT id, nombre FROM maquinas WHERE padre_id IS NULL").fetchall()
+    else:
+        filas = con.execute("SELECT id, nombre FROM maquinas WHERE padre_id=?", (padre_id,)).fetchall()
+    con.close()
+    parecidos = []
+    for fila in filas:
+        if fila["id"] == excluir_id:
+            continue
+        otro = _normalizar_nombre(fila["nombre"])
+        if otro != buscado and re.findall(r"\d+", otro) != numeros:
+            continue
+        if difflib.SequenceMatcher(None, buscado, otro).ratio() >= umbral:
+            parecidos.append(fila["nombre"])
+    return parecidos
 
 
 def listar_maquinas():

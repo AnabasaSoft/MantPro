@@ -51,7 +51,7 @@ const Map<String, String> traduccionesGl = {
     "mes_todo": "Todo o ano", "mes_01_corto": "Xan", "mes_02_corto": "Feb", "mes_03_corto": "Mar", "mes_04_corto": "Abr", "mes_05_corto": "Mai", "mes_06_corto": "Xuñ", "mes_07_corto": "Xul", "mes_08_corto": "Ago", "mes_09_corto": "Set", "mes_10_corto": "Out", "mes_11_corto": "Nov", "mes_12_corto": "Dec",
 
     "tab_inicio": "Inicio",
-    "tab_local": "Local",
+    "tab_local": "Novo",
     "tab_pendientes": "Pendentes",
     "tab_avisos": "Avisos",
     "tab_historial": "Historial",

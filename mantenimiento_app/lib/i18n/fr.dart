@@ -73,7 +73,7 @@ const Map<String, String> traduccionesFr = {
   "mes_11_corto": "Nov",
   "mes_12_corto": "Déc",
   "tab_inicio": "Accueil",
-  "tab_local": "Local",
+  "tab_local": "Nouveau",
   "tab_pendientes": "En attente",
   "tab_avisos": "Rappels",
   "tab_historial": "Historique",

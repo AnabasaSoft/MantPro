@@ -162,6 +162,21 @@ class DialogoEditarMaquina(QDialog):
         if not self.campo_nombre.text().strip():
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_maquina_obligatorio", "El nombre de la máquina es obligatorio."))
             return
+        # Avisar si al mismo nivel ya hay otra con un nombre igual o muy
+        # parecido, para no acabar con la misma máquina dada de alta dos veces.
+        # Al editar, solo si cambia el nombre o la máquina superior.
+        cambia = self.es_nueva or (self.campo_nombre.text().strip() != self.maquina["nombre"]
+                                   or self.combo_padre.currentData() != self.maquina["padre_id"])
+        parecidos = maquinas.nombres_parecidos(self.campo_nombre.text(), self.combo_padre.currentData(),
+                                               excluir_id=None if self.es_nueva else self.maquina["id"]) if cambia else []
+        if parecidos:
+            lista = "\n".join(f"  • {n}" for n in parecidos)
+            r = QMessageBox.question(
+                self, tt("title_nombre_maquina_parecido", "Nombre parecido"),
+                tt("msg_nombre_maquina_parecido", "Al mismo nivel ya hay una máquina con un nombre igual o muy parecido:\n\n{lista}\n\n¿Guardar igualmente?").format(lista=lista),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if r != QMessageBox.StandardButton.Yes:
+                return
         self.accept()
 
     def get_data(self):

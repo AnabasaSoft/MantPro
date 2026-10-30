@@ -7,10 +7,13 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Novedades
+- **👥 Estadísticas por técnico** (botón en el Dashboard): trabajos de cada técnico por año y mes, averías, preventivos, horas de parada y pendientes asignados ahora mismo, con gráfico de barras.
 - **Ayuda → 📖 Instrucciones (F1)** en el PC: manual por apartados (primeros pasos, usuarios, cada pestaña, menús Archivo y Herramientas, apps del móvil y problemas frecuentes), con índice y buscador, en los 7 idiomas.
 - **Las apps móviles siguen conectadas en segundo plano**: MantPro y MantPro Stock sincronizan (cada 5 s en pantalla, cada 30 s en segundo plano) y el PC las ve en línea hasta que se cierran del todo. Mientras están abiertas muestran una notificación permanente («Conectado al PC» / «Sin conexión con el PC») con un botón «Cerrar». El aviso de las 8:00 no cambia.
 
 ### Mejoras
+- En MantPro (móvil), la pestaña **«Local» pasa a llamarse «Nuevo»**, que describe mejor para qué sirve.
+- Al crear o renombrar una máquina, **aviso si al mismo nivel ya hay otra con un nombre igual o muy parecido** (p. ej. «Extractor de finos» / «Extracción de finos»), para no darla de alta dos veces. No avisa cuando solo cambia el número («Lora 1» / «Lora 2»).
 - **F1 contextual**: la ayuda se abre directamente en el apartado de la pestaña en la que estás.
 - **Versión de openSUSE (OBS)**: *Ayuda → Buscar actualizaciones* indica que se actualiza con `zypper`, en vez de decir que se ejecuta «desde el código fuente».
 

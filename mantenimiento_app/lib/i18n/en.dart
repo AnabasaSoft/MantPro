@@ -52,7 +52,7 @@ const Map<String, String> traduccionesEn = {
         "mes_todo": "All year", "mes_01_corto": "Jan", "mes_02_corto": "Feb", "mes_03_corto": "Mar", "mes_04_corto": "Apr", "mes_05_corto": "May", "mes_06_corto": "Jun", "mes_07_corto": "Jul", "mes_08_corto": "Aug", "mes_09_corto": "Sep", "mes_10_corto": "Oct", "mes_11_corto": "Nov", "mes_12_corto": "Dec",
 
     "tab_inicio": "Home",
-    "tab_local": "Local",
+    "tab_local": "New",
     "tab_pendientes": "Pending",
     "tab_avisos": "Alerts",
     "tab_historial": "History",

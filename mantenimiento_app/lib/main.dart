@@ -3489,7 +3489,7 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     });
   }
 
-  /// Guarda el trabajo nuevo en la cola local, igual que la pestaña "Local"
+  /// Guarda el trabajo nuevo en la cola local, igual que la pestaña "Nuevo"
   /// (se envía al PC en la siguiente sincronización).
   Future<void> _guardarNuevo(Registro r) async {
     final prefs = await SharedPreferences.getInstance();

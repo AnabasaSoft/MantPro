@@ -754,5 +754,18 @@
   "title_instrucciones": "MantPro instructions",
   "ph_buscar_ayuda": "Search the help...",
   "btn_buscar_siguiente": "🔍 Find",
-  "msg_ayuda_no_encontrado": "Not found"
+  "msg_ayuda_no_encontrado": "Not found",
+  "btn_estadisticas_tecnicos": "👥 Statistics by technician",
+  "title_estadisticas_tecnicos": "Statistics by technician",
+  "lbl_trabajos_por_tecnico": "Jobs by technician",
+  "hdr_tecnico": "Technician",
+  "hdr_total": "Total",
+  "hdr_averias": "Breakdowns",
+  "hdr_preventivos": "Preventive",
+  "hdr_horas_paro": "Downtime hours",
+  "hdr_pendientes_asignados": "Pending",
+  "msg_nota_estadisticas_tecnicos": "Downtime hours are those of breakdown jobs. «Pending» are the jobs each technician has assigned right now.",
+  "lbl_tecnico_historico": "History (no user)",
+  "title_nombre_maquina_parecido": "Similar name",
+  "msg_nombre_maquina_parecido": "There is already a machine at the same level with the same or a very similar name:\n\n{lista}\n\nSave anyway?"
 }

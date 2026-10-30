@@ -50,7 +50,7 @@ const Map<String, String> traduccionesEu = {
     "mes_01": "Urtarrila", "mes_02": "Otsaila", "mes_03": "Martxoa", "mes_04": "Apirila", "mes_05": "Maiatza", "mes_06": "Ekaina", "mes_07": "Uztaila", "mes_08": "Abuztua", "mes_09": "Iraila", "mes_10": "Urria", "mes_11": "Azaroa", "mes_12": "Abendua",
     "mes_todo": "Urte osoa", "mes_01_corto": "Urt", "mes_02_corto": "Ots", "mes_03_corto": "Mar", "mes_04_corto": "Api", "mes_05_corto": "Mai", "mes_06_corto": "Eka", "mes_07_corto": "Uzt", "mes_08_corto": "Abu", "mes_09_corto": "Ira", "mes_10_corto": "Urr", "mes_11_corto": "Aza", "mes_12_corto": "Abe",
     "tab_inicio": "Hasiera",
-    "tab_local": "Lokala",
+    "tab_local": "Berria",
     "tab_pendientes": "Egiteke",
     "tab_avisos": "Abisuak",
     "tab_historial": "Historia",

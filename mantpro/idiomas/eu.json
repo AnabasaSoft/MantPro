@@ -754,5 +754,18 @@
   "title_instrucciones": "MantPro-ren jarraibideak",
   "ph_buscar_ayuda": "Bilatu laguntzan...",
   "btn_buscar_siguiente": "🔍 Bilatu",
-  "msg_ayuda_no_encontrado": "Ez da aurkitu"
+  "msg_ayuda_no_encontrado": "Ez da aurkitu",
+  "btn_estadisticas_tecnicos": "👥 Teknikarien estatistikak",
+  "title_estadisticas_tecnicos": "Teknikarien estatistikak",
+  "lbl_trabajos_por_tecnico": "Lanak teknikariko",
+  "hdr_tecnico": "Teknikaria",
+  "hdr_total": "Guztira",
+  "hdr_averias": "Matxurak",
+  "hdr_preventivos": "Prebentziozkoak",
+  "hdr_horas_paro": "Geldialdi-orduak",
+  "hdr_pendientes_asignados": "Egiteke",
+  "msg_nota_estadisticas_tecnicos": "Geldialdi-orduak matxura-lanenak dira. «Egiteke» teknikari bakoitzak une honetan esleituta dituen lanak dira.",
+  "lbl_tecnico_historico": "Historikoa (erabiltzailerik gabe)",
+  "title_nombre_maquina_parecido": "Antzeko izena",
+  "msg_nombre_maquina_parecido": "Maila berean badago izen bera edo oso antzekoa duen makina bat:\n\n{lista}\n\nHala ere gorde?"
 }

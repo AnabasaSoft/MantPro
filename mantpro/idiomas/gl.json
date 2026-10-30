@@ -754,5 +754,18 @@
   "title_instrucciones": "Instrucións de MantPro",
   "ph_buscar_ayuda": "Buscar na axuda...",
   "btn_buscar_siguiente": "🔍 Buscar",
-  "msg_ayuda_no_encontrado": "Non se atopou"
+  "msg_ayuda_no_encontrado": "Non se atopou",
+  "btn_estadisticas_tecnicos": "👥 Estatísticas por técnico",
+  "title_estadisticas_tecnicos": "Estatísticas por técnico",
+  "lbl_trabajos_por_tecnico": "Traballos por técnico",
+  "hdr_tecnico": "Técnico",
+  "hdr_total": "Total",
+  "hdr_averias": "Avarías",
+  "hdr_preventivos": "Preventivos",
+  "hdr_horas_paro": "Horas de parada",
+  "hdr_pendientes_asignados": "Pendentes",
+  "msg_nota_estadisticas_tecnicos": "As horas de parada son as dos traballos de avaría. «Pendentes» son os traballos que cada técnico ten asignados agora mesmo.",
+  "lbl_tecnico_historico": "Histórico (sen usuario)",
+  "title_nombre_maquina_parecido": "Nome parecido",
+  "msg_nombre_maquina_parecido": "No mesmo nivel xa hai unha máquina cun nome igual ou moi parecido:\n\n{lista}\n\nGardar igualmente?"
 }
