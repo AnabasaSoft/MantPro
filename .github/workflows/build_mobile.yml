@@ -43,7 +43,14 @@ jobs:
         if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
           CLEAN_VERSION="0.0.0"
         fi
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
+        # El versionCode sale solo de la parte numérica: en una versión de
+        # pruebas (3.10.2-dev.1, 3.10.2-rc.1) se ignora el sufijo y queda igual
+        # que la final (31002), que así se instala encima sin problema.
+        NUMEROS="${CLEAN_VERSION%%-*}"
+        if ! [[ "$NUMEROS" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+          echo "::error::Versión no válida: '$CLEAN_VERSION'"; exit 1
+        fi
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$NUMEROS"
         # versionCode de Android: tiene que crecer SIEMPRE de una versión a la
         # siguiente o el móvil rechaza la actualización ("paquete no válido").
         # MAYOR*10000 + MENOR*100 + PARCHE: 3.9.21 -> 30921, 3.10.0 -> 31000.
@@ -126,7 +133,14 @@ jobs:
         if [ -z "$CLEAN_VERSION" ] || [ "$CLEAN_VERSION" == "main" ]; then
           CLEAN_VERSION="0.0.0"
         fi
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
+        # El versionCode sale solo de la parte numérica: en una versión de
+        # pruebas (3.10.2-dev.1, 3.10.2-rc.1) se ignora el sufijo y queda igual
+        # que la final (31002), que así se instala encima sin problema.
+        NUMEROS="${CLEAN_VERSION%%-*}"
+        if ! [[ "$NUMEROS" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+          echo "::error::Versión no válida: '$CLEAN_VERSION'"; exit 1
+        fi
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$NUMEROS"
         # versionCode de Android: tiene que crecer SIEMPRE de una versión a la
         # siguiente o el móvil rechaza la actualización ("paquete no válido").
         # MAYOR*10000 + MENOR*100 + PARCHE: 3.9.21 -> 30921, 3.10.0 -> 31000.

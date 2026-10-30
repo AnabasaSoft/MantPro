@@ -16,6 +16,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ### Correcciones
 - **Versiones de pruebas** (`3.10.2-dev1`, `3.10.2-rc.1`…): el PC las leía mal (`3.10.2-dev1` como 3.10.21) y no avisaba de la versión final; las apps del móvil las tomaban por la 3.10.0 y avisaban de una «actualización» a una versión más antigua. Ahora se compara la parte numérica y la versión final va por delante de sus versiones de pruebas.
 - El workflow de OBS se salta las versiones de pruebas en vez de fallar.
+- Las apps del móvil no compilaban con un tag de pruebas con punto (`v3.10.2-dev.1`): el número de versión interno se calculaba con el sufijo. Ahora sale solo de la parte numérica.
 
 ## 3.10.1 — 2026-10-29
 
