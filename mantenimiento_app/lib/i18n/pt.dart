@@ -107,7 +107,7 @@ const Map<String, String> traduccionesPt = {
   "lbl_tags_extra": "Tags extras",
   "btn_bajar": "BAIXAR",
   "btn_foto_camara": "FOTO",
-  "btn_actualizar": "ATUALIZAR",
+  "btn_actualizar": "Atualizar",
   "btn_terminar": "CONCLUIR",
   "btn_guardar_form": "SALVAR",
   "ph_buscar_historial": "Buscar no histórico...",
@@ -211,4 +211,8 @@ const Map<String, String> traduccionesPt = {
   "lbl_repuestos_maquina": "Peças de reposição",
   "lbl_lleva": "Montadas",
   "lbl_en_almacen": "No almoxarifado",
+  "msg_descargando_actualizacion": "Baixando a atualização…",
+  "msg_permiso_instalar_actualizacion": "Permita que o app instale aplicativos e volte: a instalação começará sozinha.",
+  "msg_error_descarga_actualizacion": "Não foi possível baixar a atualização. Verifique a conexão com a internet.",
+  "btn_abrir_github": "Abrir GitHub",
 };

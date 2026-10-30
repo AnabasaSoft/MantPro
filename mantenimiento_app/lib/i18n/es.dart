@@ -86,7 +86,7 @@ const Map<String, String> traduccionesEs = {
     "lbl_tags_extra": "Tags extra",
     "btn_bajar": "BAJAR",
     "btn_foto_camara": "FOTO",
-    "btn_actualizar": "ACTUALIZAR",
+    "btn_actualizar": "Actualizar",
     "btn_terminar": "TERMINAR",
     "btn_guardar_form": "GUARDAR",
     "ph_buscar_historial": "Buscar historial...",
@@ -162,7 +162,7 @@ const Map<String, String> traduccionesEs = {
     // --- Comprobador de actualizaciones y colas ---
     "msg_nueva_version_titulo": "🚀 Nueva versión disponible",
     "msg_nueva_version_cuerpo": "Tienes la versión {actual} instalada y en GitHub ya está la {nueva}.",
-    "btn_luego": "Luego",
+    "btn_luego": "Después",
     "btn_descargar": "Descargar",
     "msg_sin_actualizaciones_sin_conexion": "❌ No se pudo comprobar actualizaciones (sin conexión)",
     "msg_ya_ultima_version": "✅ Ya tienes la última versión",
@@ -196,4 +196,8 @@ const Map<String, String> traduccionesEs = {
     "lbl_repuestos_maquina": "Repuestos",
     "lbl_lleva": "Lleva",
     "lbl_en_almacen": "En almacén",
+    "msg_descargando_actualizacion": "Descargando la actualización…",
+    "msg_permiso_instalar_actualizacion": "Permite que la app instale aplicaciones y vuelve atrás: la instalación empezará sola.",
+    "msg_error_descarga_actualizacion": "No se pudo descargar la actualización. Comprueba la conexión a internet.",
+    "btn_abrir_github": "Abrir GitHub",
 };

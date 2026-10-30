@@ -30,12 +30,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_painter/image_painter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'i18n/strings.dart';
+import 'actualizador.dart';
 import 'servicio_conexion.dart';
 
 
@@ -587,7 +587,6 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
     if (res.statusCode != 200) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); return; }
     final data = _releaseMasNueva(json.decode(res.body) as List<dynamic>) ?? {};
     final String tag = (data['tag_name'] ?? '').toString();
-    final String urlRelease = (data['html_url'] ?? 'https://github.com/$kRepoOwner/$kRepoName/releases').toString();
     final String notas = (data['body'] ?? '').toString();
     if (tag.isEmpty) return;
     if (_compararVersiones(tag, kAppVersion) <= 0) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: false); return; }
@@ -602,7 +601,11 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
       ])),
       actions: [
         TextButton(onPressed: () async { await prefs.setString('update_descartada', tag); if (ctx.mounted) Navigator.pop(ctx); }, child: Text(t("btn_luego"))),
-        ElevatedButton.icon(icon: const Icon(Icons.download), label: Text(t("btn_descargar")), onPressed: () async { await launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication); if (ctx.mounted) Navigator.pop(ctx); }),
+        // Descarga el APK y abre el instalador de Android (antes llevaba a GitHub).
+        ElevatedButton.icon(icon: const Icon(Icons.system_update), label: Text(t("btn_actualizar")), onPressed: () {
+          Navigator.pop(ctx);
+          descargarEInstalar(context, data, 'MantPro.apk');
+        }),
       ],
     ));
   } catch (e) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); } // sin conexión o GitHub caído: no molestamos

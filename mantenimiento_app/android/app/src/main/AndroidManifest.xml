@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Instalar las actualizaciones descargadas desde la propia app -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Servicio en primer plano: mantiene la app sincronizando en segundo
          plano mientras no se cierre (ver lib/servicio_conexion.dart). El tipo
          connectedDevice exige además uno de sus permisos previos
@@ -21,6 +23,16 @@
         android:label="MantPro"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- APK de actualización descargado por la app (en su caché), para el instalador de Android -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.instalador"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/rutas_actualizacion" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"

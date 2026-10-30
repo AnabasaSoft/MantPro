@@ -133,4 +133,9 @@ const Map<String, String> traduccionesPt = {
   "msg_material_parecido": "Já existem itens com o mesmo código ou um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?",
   "lbl_usado_en_maquinas": "Usado em",
   "lbl_lleva": "Montadas",
+  "btn_actualizar": "Atualizar",
+  "msg_descargando_actualizacion": "Baixando a atualização…",
+  "msg_permiso_instalar_actualizacion": "Permita que o app instale aplicativos e volte: a instalação começará sozinha.",
+  "msg_error_descarga_actualizacion": "Não foi possível baixar a atualização. Verifique a conexão com a internet.",
+  "btn_abrir_github": "Abrir GitHub",
 };

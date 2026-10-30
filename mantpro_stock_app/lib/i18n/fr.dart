@@ -133,4 +133,9 @@ const Map<String, String> traduccionesFr = {
   "msg_material_parecido": "Il existe déjà des articles avec le même code ou un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?",
   "lbl_usado_en_maquinas": "Utilisé dans",
   "lbl_lleva": "Montées",
+  "btn_actualizar": "Mettre à jour",
+  "msg_descargando_actualizacion": "Téléchargement de la mise à jour…",
+  "msg_permiso_instalar_actualizacion": "Autorisez l'application à installer des applications et revenez en arrière : l'installation démarrera toute seule.",
+  "msg_error_descarga_actualizacion": "Impossible de télécharger la mise à jour. Vérifiez la connexion Internet.",
+  "btn_abrir_github": "Ouvrir GitHub",
 };

@@ -134,7 +134,7 @@ const Map<String, String> traduccionesCa = {
     // --- Comprobador de actualizaciones ---
     "msg_nueva_version_titulo": "🚀 Nova versió disponible",
     "msg_nueva_version_cuerpo": "Tens la versió {actual} instal·lada i a GitHub ja hi ha la {nueva}.",
-    "btn_luego": "Més tard",
+    "btn_luego": "Després",
     "btn_descargar": "Descarregar",
     "msg_sin_actualizaciones_sin_conexion": "❌ No s'han pogut comprovar actualitzacions (sense connexió)",
     "msg_ya_ultima_version": "✅ Ja tens l'última versió",
@@ -146,4 +146,9 @@ const Map<String, String> traduccionesCa = {
     "msg_material_parecido": "Ja hi ha articles amb el mateix codi o un nom igual o molt semblant:\n\n{lista}\n\nVols desar-lo igualment?",
     "lbl_usado_en_maquinas": "S'utilitza a",
     "lbl_lleva": "Porta",
+    "btn_actualizar": "Actualitzar",
+    "msg_descargando_actualizacion": "S'està baixant l'actualització…",
+    "msg_permiso_instalar_actualizacion": "Permet que l'app instal·li aplicacions i torna enrere: la instal·lació començarà sola.",
+    "msg_error_descarga_actualizacion": "No s'ha pogut baixar l'actualització. Comprova la connexió a internet.",
+    "btn_abrir_github": "Obrir GitHub",
 };

@@ -7,6 +7,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Mejoras
+- **Actualizar las apps del móvil desde la propia app**: el aviso de nueva versión de MantPro y MantPro Stock tiene los botones «Después» y «Actualizar». «Actualizar» descarga el APK con una barra de progreso y abre el instalador de Android, sin pasar por GitHub. La primera vez Android pide permitir que la app instale aplicaciones; al volver, la instalación empieza sola.
 - **Menú Herramientas ordenado por grupos**: móviles y conexión (QR, sesiones de dispositivos, puerto), usuarios (contraseña, gestión de usuarios, registro de cambios), calendario (días y festivos, país o región), limpieza de datos (tiempo de guardado, fotos sin usar) e idioma.
 - **Pestaña Registrar**: se quita el botón «Sincronizar App», que ya está en *Herramientas → 📲 Sincronizar App (QR)*.
 

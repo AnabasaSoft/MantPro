@@ -144,4 +144,9 @@ const Map<String, String> traduccionesEu = {
     "msg_material_parecido": "Badaude kode bera edo izen bera edo oso antzekoa duten artikuluak:\n\n{lista}\n\nHala ere gorde?",
     "lbl_usado_en_maquinas": "Hemen erabiltzen da",
     "lbl_lleva": "Darama",
+    "btn_actualizar": "Eguneratu",
+    "msg_descargando_actualizacion": "Eguneraketa deskargatzen…",
+    "msg_permiso_instalar_actualizacion": "Baimendu aplikazioari aplikazioak instalatzen eta itzuli atzera: instalazioa bere kabuz hasiko da.",
+    "msg_error_descarga_actualizacion": "Ezin izan da eguneraketa deskargatu. Egiaztatu interneteko konexioa.",
+    "btn_abrir_github": "Ireki GitHub",
 };

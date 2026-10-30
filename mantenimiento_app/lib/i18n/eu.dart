@@ -73,7 +73,7 @@ const Map<String, String> traduccionesEu = {
     "lbl_tags_extra": "Etiketa gehigarriak",
     "btn_bajar": "DESKARGATU",
     "btn_foto_camara": "ARGAZKIA",
-    "btn_actualizar": "EGUNERATU",
+    "btn_actualizar": "Eguneratu",
     "btn_terminar": "AMAIERATU",
     "btn_guardar_form": "GORDE",
     "ph_buscar_historial": "Bilatu historian...",
@@ -194,4 +194,8 @@ const Map<String, String> traduccionesEu = {
     "lbl_repuestos_maquina": "Ordezko piezak",
     "lbl_lleva": "Darama",
     "lbl_en_almacen": "Biltegian",
+    "msg_descargando_actualizacion": "Eguneraketa deskargatzen…",
+    "msg_permiso_instalar_actualizacion": "Baimendu aplikazioari aplikazioak instalatzen eta itzuli atzera: instalazioa bere kabuz hasiko da.",
+    "msg_error_descarga_actualizacion": "Ezin izan da eguneraketa deskargatu. Egiaztatu interneteko konexioa.",
+    "btn_abrir_github": "Ireki GitHub",
 };

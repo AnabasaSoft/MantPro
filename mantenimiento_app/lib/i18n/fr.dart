@@ -107,7 +107,7 @@ const Map<String, String> traduccionesFr = {
   "lbl_tags_extra": "Tags supplémentaires",
   "btn_bajar": "TÉLÉCHARGER",
   "btn_foto_camara": "PHOTO",
-  "btn_actualizar": "ACTUALISER",
+  "btn_actualizar": "Mettre à jour",
   "btn_terminar": "TERMINER",
   "btn_guardar_form": "ENREGISTRER",
   "ph_buscar_historial": "Rechercher dans l'historique...",
@@ -211,4 +211,8 @@ const Map<String, String> traduccionesFr = {
   "lbl_repuestos_maquina": "Pièces de rechange",
   "lbl_lleva": "Montées",
   "lbl_en_almacen": "En magasin",
+  "msg_descargando_actualizacion": "Téléchargement de la mise à jour…",
+  "msg_permiso_instalar_actualizacion": "Autorisez l'application à installer des applications et revenez en arrière : l'installation démarrera toute seule.",
+  "msg_error_descarga_actualizacion": "Impossible de télécharger la mise à jour. Vérifiez la connexion Internet.",
+  "btn_abrir_github": "Ouvrir GitHub",
 };

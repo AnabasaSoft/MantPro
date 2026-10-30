@@ -83,7 +83,7 @@ const Map<String, String> traduccionesEn = {
     "lbl_tags_extra": "Extra tags",
     "btn_bajar": "DOWNLOAD",
     "btn_foto_camara": "PHOTO",
-    "btn_actualizar": "UPDATE",
+    "btn_actualizar": "Update",
     "btn_terminar": "FINISH",
     "btn_guardar_form": "SAVE",
     "ph_buscar_historial": "Search history...",
@@ -196,4 +196,8 @@ const Map<String, String> traduccionesEn = {
     "lbl_repuestos_maquina": "Spare parts",
     "lbl_lleva": "Fitted",
     "lbl_en_almacen": "In warehouse",
+    "msg_descargando_actualizacion": "Downloading the update…",
+    "msg_permiso_instalar_actualizacion": "Allow the app to install apps and go back: the installation will start by itself.",
+    "msg_error_descarga_actualizacion": "The update could not be downloaded. Check the internet connection.",
+    "btn_abrir_github": "Open GitHub",
 };

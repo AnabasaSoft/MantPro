@@ -144,4 +144,9 @@ const Map<String, String> traduccionesEn = {
     "msg_material_parecido": "There are already items with the same code or the same or a very similar name:\n\n{lista}\n\nSave anyway?",
     "lbl_usado_en_maquinas": "Used in",
     "lbl_lleva": "Fitted",
+    "btn_actualizar": "Update",
+    "msg_descargando_actualizacion": "Downloading the update…",
+    "msg_permiso_instalar_actualizacion": "Allow the app to install apps and go back: the installation will start by itself.",
+    "msg_error_descarga_actualizacion": "The update could not be downloaded. Check the internet connection.",
+    "btn_abrir_github": "Open GitHub",
 };
