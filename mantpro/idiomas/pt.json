@@ -749,5 +749,10 @@
   "btn_qr_todas": "Todas as máquinas",
   "nombre_pdf_etiquetas": "etiquetas_qr_maquinas",
   "msg_etiquetas_generadas": "{n} etiquetas salvas em:\n{ruta}",
-  "msg_actualizaciones_gestor_paquetes": "O MantPro foi instalado com o gerenciador de pacotes do sistema ({gestor}) e é atualizado com ele:\n\n{comando}"
+  "msg_actualizaciones_gestor_paquetes": "O MantPro foi instalado com o gerenciador de pacotes do sistema ({gestor}) e é atualizado com ele:\n\n{comando}",
+  "menu_instrucciones": "📖 Instruções",
+  "title_instrucciones": "Instruções do MantPro",
+  "ph_buscar_ayuda": "Buscar na ajuda...",
+  "btn_buscar_siguiente": "🔍 Buscar",
+  "msg_ayuda_no_encontrado": "Não encontrado"
 }

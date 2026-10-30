@@ -1,0 +1,127 @@
+<h1>Instrucciones de MantPro</h1>
+<p>MantPro registra el mantenimiento de tu planta o taller: los trabajos hechos, los que quedan por hacer, los mantenimientos que se repiten, las máquinas y el stock del almacén. Los técnicos trabajan desde el móvil, incluso sin conexión, y todo llega a este PC al sincronizar.</p>
+<p>Elige un apartado en el índice de la izquierda o busca una palabra arriba. Esta ventana se abre también con la tecla <b>F1</b>.</p>
+
+<h2><a name="inicio"></a>🚀 Primeros pasos</h2>
+<ol>
+<li><b>Entra</b> con tu usuario y contraseña. La primera vez existe el usuario <code>admin</code> con la contraseña <code>admin</code>, y el programa te obliga a cambiarla.</li>
+<li><b>Crea los usuarios</b> de los técnicos en <i>Herramientas → 👥 Gestión de usuarios</i>.</li>
+<li><b>Da de alta las máquinas</b> en la pestaña <i>🏭 Máquinas</i>. Si ya las tienes en una hoja de cálculo, impórtalas con <i>Archivo → 📥 Importar desde Excel/CSV…</i></li>
+<li><b>Vincula los móviles</b> con <i>Herramientas → 📲 Sincronizar App (QR)</i> (ver «Apps del móvil»).</li>
+<li>Elige tu <b>país o región</b> en <i>Herramientas → 🌍 País / Región (Festivos)</i> para que el calendario marque los festivos.</li>
+</ol>
+
+<h2><a name="sesion"></a>👤 Sesión, usuarios y permisos</h2>
+<p>Cada persona entra con su propio usuario, y cada trabajo queda firmado con quien lo hizo. Un usuario puede tener uno o varios roles:</p>
+<ul>
+<li><b>Administrador:</b> puede hacer todo, incluido gestionar usuarios, configurar el almacén y modificar o borrar cualquier registro.</li>
+<li><b>Técnico:</b> registra trabajos y completa pendientes y avisos. Solo puede modificar o borrar sus propios registros.</li>
+<li><b>Almacén:</b> gestiona artículos y movimientos de stock desde la app MantPro Stock.</li>
+</ul>
+<p>En el menú <i>Sesión</i> puedes <b>cambiar de usuario</b> o <b>cerrar sesión</b> sin salir del programa. Tu contraseña se cambia en <i>Herramientas → 🔑 Cambiar mi contraseña</i>.</p>
+
+<h2><a name="dashboard"></a>📊 Dashboard</h2>
+<p>Resumen de un vistazo: avisos pendientes, tareas por hacer, registros del mes y los indicadores de fiabilidad de toda la planta (<b>MTBF</b>, tiempo medio entre averías, y <b>MTTR</b>, tiempo medio de reparación). Debajo verás las máquinas con más trabajos, las averías por mes y el reparto de trabajos por tipo.</p>
+<p>Los indicadores de fiabilidad se calculan con los trabajos etiquetados como <b>Avería</b> y sus horas de parada.</p>
+
+<h2><a name="calendario"></a>📅 Calendario</h2>
+<p>Muestra los trabajos y los avisos de cada día. Al pinchar en un día aparece su lista y, haciendo doble clic en un trabajo, se abre para editarlo. <i>Ir a Hoy</i> vuelve al día actual.</p>
+<p>Los festivos, vacaciones, puentes y días libres salen en colores distintos. Se gestionan con el botón <i>Gestión Días</i> o en <i>Herramientas → Gestionar Días / Festivos</i>. Los festivos oficiales se descargan solos según el país o la región elegidos.</p>
+
+<h2><a name="avisos"></a>🔁 Avisos (mantenimientos recurrentes)</h2>
+<p>Un aviso es un mantenimiento que se repite: por ejemplo, engrasar una máquina cada mes. Se crea con título, fecha de inicio, frecuencia (diaria, semanal, mensual, trimestral, semestral o anual), días de margen, técnico y especialidad.</p>
+<ul>
+<li><b>Pendiente</b> (naranja): ya toca y está dentro de los días de margen.</li>
+<li><b>Atrasado</b> (rojo): se ha pasado el margen sin hacerlo. El aviso no se salta: sigue ahí hasta que se haga.</li>
+</ul>
+<p>Al marcarlo como hecho se crea un registro en el historial y la siguiente fecha se cuenta <b>desde el día en que se hizo de verdad</b>. Con el botón derecho puedes asignar o borrar varios avisos a la vez.</p>
+
+<h2><a name="registrar"></a>📝 Registrar un trabajo</h2>
+<p>Para anotar un trabajo ya hecho: fecha, un resumen corto, los detalles, la máquina y las etiquetas (Urgente, Eléctrico, Mecánico, Preventivo, Avería u otras que escribas).</p>
+<ul>
+<li><b>Fotos:</b> arrastra una foto de <i>antes</i> y otra de <i>después</i> a sus recuadros, o haz clic para buscarlas. En la <b>colección de fotos</b> puedes añadir todas las que quieras.</li>
+<li>Si es una <b>avería</b>, indica las <b>horas de parada</b>: se usan para el MTTR.</li>
+</ul>
+<p>Pulsa <b>💾 GUARDAR REGISTRO</b> para guardarlo en el historial.</p>
+
+<h2><a name="historial"></a>📋 Historial</h2>
+<p>Todos los trabajos realizados, organizados por años y meses. Puedes filtrar por técnico y por tipo (trabajos y averías, o avisos preventivos).</p>
+<ul>
+<li><b>Doble clic</b> en un trabajo para verlo o editarlo, con sus fotos.</li>
+<li>Con el <b>botón derecho</b> puedes borrar varios trabajos, <b>volver a pendiente</b> un trabajo terminado por error y, si eres administrador, cambiar el autor de varios registros a la vez.</li>
+</ul>
+<p>Cada edición o borrado queda anotado en <i>Herramientas → 📋 Registro de cambios</i>.</p>
+
+<h2><a name="buscador"></a>🔍 Buscador</h2>
+<p>Busca trabajos por texto (por ejemplo «motor», «fuga» o el nombre de una pieza), por rango de fechas y por etiquetas. Los resultados se abren con doble clic, igual que en el historial.</p>
+
+<h2><a name="pendientes"></a>🔨 Pendientes</h2>
+<p>Trabajos por hacer. Cada pendiente tiene título, detalles, <b>prioridad</b> (Baja, Media, Alta o Crítica, con su color), especialidad, fotos y el técnico al que se asigna.</p>
+<ul>
+<li><b>✅ Completar</b> lo pasa al historial; puedes añadir entonces las fotos y los detalles finales.</li>
+<li><b>👤 Reasignar</b> cambia el técnico. La lista <i>Ver los de</i> filtra por persona.</li>
+<li>En el móvil, cada técnico ve sus pendientes con el filtro «Solo míos».</li>
+</ul>
+
+<h2><a name="maquinas"></a>🏭 Máquinas</h2>
+<p>Árbol de máquinas y submáquinas (por ejemplo, una línea con sus equipos). Al desplegar una máquina aparecen sus trabajos por años y meses, y con doble clic se abre cada trabajo.</p>
+<ul>
+<li>Cada máquina puede tener <b>zona</b>, notas y una <b>foto</b>, que se ve al seleccionarla.</li>
+<li>Al seleccionarla se muestran sus indicadores de fiabilidad (averías, MTBF y MTTR).</li>
+<li><b>🏷️ Etiquetas QR</b> genera un PDF de etiquetas (24 por folio A4, de 70 × 37 mm) para pegar en las máquinas. Al escanearlas con la app MantPro se abre la ficha de esa máquina.</li>
+</ul>
+
+<h2><a name="stock"></a>📦 Stock de almacén</h2>
+<p>El almacén se organiza en <b>zonas → estanterías → baldas → secciones</b> (las secciones son opcionales). Solo un administrador puede cambiar esa estructura, con <b>⚙️ Configurar almacén</b>.</p>
+<ul>
+<li><b>➕ Añadir material:</b> código, nombre, descripción, unidad, stock mínimo, ubicación y foto.</li>
+<li><b>📥 Entrada / 📤 Salida:</b> registra movimientos de stock con un motivo opcional. Una salida manual no puede dejar el stock en negativo.</li>
+<li>Para <b>mover</b> artículos de sitio, selecciónalos y usa el botón derecho.</li>
+<li>Al seleccionar un artículo, abajo ves su historial de movimientos. <b>📜 Historial</b> muestra todos los movimientos del almacén seguidos.</li>
+<li><b>📄 Exportar</b> saca el stock, entero o de una zona o estantería, a PDF, CSV o Excel.</li>
+</ul>
+<p>El stock se ve en <b>rojo</b> si está por debajo del mínimo y en <b>verde</b> si está por encima.</p>
+
+<h2><a name="bajo_minimo"></a>⚠️ Stock bajo mínimo</h2>
+<p>Los artículos sin stock o por debajo de su mínimo. El título de la pestaña indica cuántos hay. Desde aquí puedes ir al artículo, registrar una entrada o exportar la lista para hacer el pedido.</p>
+
+<h2><a name="archivo"></a>💾 Menú Archivo: copias, importar y exportar</h2>
+<ul>
+<li><b>💾 Backup:</b> copia completa (bases de datos y fotos) en un ZIP, donde tú elijas. Además, cada vez que se cierra el programa se hace una copia automática.</li>
+<li><b>♻️ Restaurar:</b> recupera una copia manual o una de las automáticas. <b>Sustituye todos los datos actuales.</b></li>
+<li><b>📥 Importar desde Excel/CSV…:</b> trae máquinas, artículos, avisos y usuarios desde una hoja de cálculo. Puedes descargar una plantilla, revisar una vista previa fila a fila y, antes de importar, se guarda una copia de seguridad.</li>
+<li><b>📤 Exportar:</b> el historial a PDF (con el logo de tu empresa, si lo pones en <i>Opciones PDF</i>), CSV o Excel, con filtro por técnico.</li>
+</ul>
+
+<h2><a name="herramientas"></a>🛠️ Menú Herramientas</h2>
+<ul>
+<li><b>📲 Sincronizar App (QR):</b> muestra el código para vincular los móviles.</li>
+<li><b>Gestionar Días / Festivos</b> y <b>🌍 País / Región (Festivos)</b>: días especiales del calendario.</li>
+<li><b>🔌 Puerto de sincronización…:</b> cámbialo solo si otro programa usa el mismo puerto. Después hay que volver a escanear el QR en los móviles.</li>
+<li><b>🗑️ Tiempo máximo de guardado de trabajos…:</b> borra los trabajos más antiguos que el tiempo que elijas, con una copia de seguridad previa.</li>
+<li><b>🌐 Idioma</b> y, en el menú <i>Apariencia</i>, el tema claro, oscuro o clásico.</li>
+<li><b>🧹 Limpiar Fotos Basura:</b> borra las fotos que ya no usa ningún registro.</li>
+<li><b>👥 Gestión de usuarios</b>, <b>🔐 Sesiones de dispositivos</b> (qué móviles están conectados ahora mismo y revocar su acceso) y <b>📋 Registro de cambios</b> (quién ha editado o borrado cada trabajo).</li>
+</ul>
+
+<h2><a name="movil"></a>📱 Apps del móvil</h2>
+<p>Hay dos apps para Android: <b>MantPro</b> (trabajos) y <b>MantPro Stock</b> (almacén).</p>
+<ol>
+<li>Con el móvil en la <b>misma red WiFi</b> que el PC, abre <i>Herramientas → 📲 Sincronizar App (QR)</i>.</li>
+<li>En el móvil pulsa <b>Vincular PC</b> y escanea el código.</li>
+<li>Entra con tu usuario y contraseña. Solo hace falta la primera vez.</li>
+</ol>
+<ul>
+<li>Las apps funcionan <b>sin conexión</b>: todo se guarda en el móvil y se envía solo al volver a tener el PC al alcance.</li>
+<li>Mientras la app está abierta, aunque sea en segundo plano, sigue sincronizando y muestra una notificación «Conectado al PC». Al cerrarla del todo deja de gastar batería.</li>
+<li>En MantPro, el botón de <b>escanear</b> lee la etiqueta QR de una máquina y abre su ficha.</li>
+</ul>
+
+<h2><a name="problemas"></a>❓ Problemas frecuentes</h2>
+<ul>
+<li><b>El móvil no conecta:</b> comprueba que el PC y el móvil están en la misma WiFi y que MantPro está abierto en el PC. En Windows puede hacer falta permitir el programa en el cortafuegos. Si el PC ha cambiado de IP, vuelve a escanear el QR.</li>
+<li><b>«El puerto está ocupado»:</b> suele ser otro MantPro abierto. Ciérralo o cambia el puerto en <i>Herramientas → 🔌 Puerto de sincronización…</i></li>
+<li><b>Alguien ha olvidado su contraseña:</b> un administrador puede restablecerla en <i>Herramientas → 👥 Gestión de usuarios</i>.</li>
+<li><b>No llega la notificación diaria al móvil:</b> en Xiaomi, OPPO/Realme o Huawei pon la app en <i>Batería → Sin restricciones</i>.</li>
+<li><b>Me he equivocado al restaurar o importar:</b> en la carpeta <code>backups_auto</code> están las copias previas.</li>
+</ul>

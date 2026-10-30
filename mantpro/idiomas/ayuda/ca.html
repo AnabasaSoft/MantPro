@@ -1,0 +1,127 @@
+<h1>Instruccions de MantPro</h1>
+<p>MantPro registra el manteniment de la teva planta o taller: els treballs fets, els que queden per fer, els manteniments que es repeteixen, les màquines i l'estoc del magatzem. Els tècnics treballen des del mòbil, fins i tot sense connexió, i tot arriba a aquest PC en sincronitzar.</p>
+<p>Tria un apartat a l'índex de l'esquerra o cerca una paraula a dalt. Aquesta finestra també s'obre amb la tecla <b>F1</b>.</p>
+
+<h2><a name="inicio"></a>🚀 Primers passos</h2>
+<ol>
+<li><b>Entra</b> amb el teu usuari i contrasenya. La primera vegada existeix l'usuari <code>admin</code> amb la contrasenya <code>admin</code>, i el programa t'obliga a canviar-la.</li>
+<li><b>Crea els usuaris</b> dels tècnics a <i>Eines → 👥 Gestió d'usuaris</i>.</li>
+<li><b>Dona d'alta les màquines</b> a la pestanya <i>🏭 Màquines</i>. Si ja les tens en un full de càlcul, importa-les amb <i>Arxiu → 📥 Importar des d'Excel/CSV…</i></li>
+<li><b>Vincula els mòbils</b> amb <i>Eines → 📲 Sincronitzar App (QR)</i> (vegeu «Apps del mòbil»).</li>
+<li>Tria el teu <b>país o regió</b> a <i>Eines → 🌍 País / Regió (Festius)</i> perquè el calendari marqui els festius.</li>
+</ol>
+
+<h2><a name="sesion"></a>👤 Sessió, usuaris i permisos</h2>
+<p>Cada persona entra amb el seu propi usuari, i cada treball queda signat amb qui el va fer. Un usuari pot tenir un o diversos rols:</p>
+<ul>
+<li><b>Administrador:</b> pot fer-ho tot, inclòs gestionar usuaris, configurar el magatzem i modificar o esborrar qualsevol registre.</li>
+<li><b>Tècnic:</b> registra treballs i completa pendents i avisos. Només pot modificar o esborrar els seus propis registres.</li>
+<li><b>Magatzem:</b> gestiona articles i moviments d'estoc des de l'app MantPro Stock.</li>
+</ul>
+<p>Al menú <i>Sessió</i> pots <b>canviar d'usuari</b> o <b>tancar sessió</b> sense sortir del programa. La teva contrasenya es canvia a <i>Eines → 🔑 Canviar la meva contrasenya</i>.</p>
+
+<h2><a name="dashboard"></a>📊 Dashboard</h2>
+<p>Resum d'un cop d'ull: avisos pendents, tasques per fer, registres del mes i els indicadors de fiabilitat de tota la planta (<b>MTBF</b>, temps mitjà entre avaries, i <b>MTTR</b>, temps mitjà de reparació). A sota hi veuràs les màquines amb més treballs, les avaries per mes i el repartiment de treballs per tipus.</p>
+<p>Els indicadors de fiabilitat es calculen amb els treballs etiquetats com a <b>Avaria</b> i les seves hores d'aturada.</p>
+
+<h2><a name="calendario"></a>📅 Calendari</h2>
+<p>Mostra els treballs i els avisos de cada dia. En fer clic en un dia apareix la seva llista i, fent doble clic en un treball, s'obre per editar-lo. <i>Anar a Avui</i> torna al dia actual.</p>
+<p>Els festius, vacances, ponts i dies lliures surten en colors diferents. Es gestionen amb el botó <i>Gestió Dies</i> o a <i>Eines → Gestionar Dies / Festius</i>. Els festius oficials es descarreguen sols segons el país o la regió triats.</p>
+
+<h2><a name="avisos"></a>🔁 Avisos (manteniments recurrents)</h2>
+<p>Un avís és un manteniment que es repeteix: per exemple, greixar una màquina cada mes. Es crea amb títol, data d'inici, freqüència (diària, setmanal, mensual, trimestral, semestral o anual), dies de marge, tècnic i especialitat.</p>
+<ul>
+<li><b>Pendent</b> (taronja): ja toca i és dins dels dies de marge.</li>
+<li><b>Endarrerit</b> (vermell): ha passat el marge sense fer-lo. L'avís no se salta: continua allà fins que es faci.</li>
+</ul>
+<p>En marcar-lo com a fet es crea un registre a l'historial i la data següent es compta <b>des del dia en què es va fer de veritat</b>. Amb el botó dret pots assignar o esborrar diversos avisos alhora.</p>
+
+<h2><a name="registrar"></a>📝 Registrar un treball</h2>
+<p>Per anotar un treball ja fet: data, un resum curt, els detalls, la màquina i les etiquetes (Urgent, Elèctric, Mecànic, Preventiu, Avaria o altres que escriguis).</p>
+<ul>
+<li><b>Fotos:</b> arrossega una foto d'<i>abans</i> i una altra de <i>després</i> als seus requadres, o fes clic per cercar-les. A la <b>col·lecció de fotos</b> pots afegir-ne totes les que vulguis.</li>
+<li>Si és una <b>avaria</b>, indica les <b>hores d'aturada</b>: s'utilitzen per al MTTR.</li>
+</ul>
+<p>Prem <b>💾 DESAR REGISTRE</b> per desar-lo a l'historial.</p>
+
+<h2><a name="historial"></a>📋 Historial</h2>
+<p>Tots els treballs realitzats, organitzats per anys i mesos. Pots filtrar per tècnic i per tipus (treballs i avaries, o avisos preventius).</p>
+<ul>
+<li><b>Doble clic</b> en un treball per veure'l o editar-lo, amb les seves fotos.</li>
+<li>Amb el <b>botó dret</b> pots esborrar diversos treballs, <b>tornar a pendent</b> un treball acabat per error i, si ets administrador, canviar l'autor de diversos registres alhora.</li>
+</ul>
+<p>Cada edició o esborrat queda anotat a <i>Eines → 📋 Registre de canvis</i>.</p>
+
+<h2><a name="buscador"></a>🔍 Cercador</h2>
+<p>Cerca treballs per text (per exemple «motor», «fuita» o el nom d'una peça), per rang de dates i per etiquetes. Els resultats s'obren amb doble clic, igual que a l'historial.</p>
+
+<h2><a name="pendientes"></a>🔨 Pendents</h2>
+<p>Treballs per fer. Cada pendent té títol, detalls, <b>prioritat</b> (Baixa, Mitjana, Alta o Crítica, amb el seu color), especialitat, fotos i el tècnic a qui s'assigna.</p>
+<ul>
+<li><b>✅ Completar</b> el passa a l'historial; llavors hi pots afegir les fotos i els detalls finals.</li>
+<li><b>👤 Reassignar</b> canvia el tècnic. La llista <i>Veure els de</i> filtra per persona.</li>
+<li>Al mòbil, cada tècnic veu els seus pendents amb el filtre «Només els meus».</li>
+</ul>
+
+<h2><a name="maquinas"></a>🏭 Màquines</h2>
+<p>Arbre de màquines i submàquines (per exemple, una línia amb els seus equips). En desplegar una màquina apareixen els seus treballs per anys i mesos, i amb doble clic s'obre cada treball.</p>
+<ul>
+<li>Cada màquina pot tenir <b>zona</b>, notes i una <b>foto</b>, que es veu en seleccionar-la.</li>
+<li>En seleccionar-la es mostren els seus indicadors de fiabilitat (avaries, MTBF i MTTR).</li>
+<li><b>🏷️ Etiquetes QR</b> genera un PDF d'etiquetes (24 per full A4, de 70 × 37 mm) per enganxar a les màquines. En escanejar-les amb l'app MantPro s'obre la fitxa d'aquella màquina.</li>
+</ul>
+
+<h2><a name="stock"></a>📦 Estoc de magatzem</h2>
+<p>El magatzem s'organitza en <b>zones → prestatgeries → prestatges → seccions</b> (les seccions són opcionals). Només un administrador pot canviar aquesta estructura, amb <b>⚙️ Configurar magatzem</b>.</p>
+<ul>
+<li><b>➕ Afegir material:</b> codi, nom, descripció, unitat, estoc mínim, ubicació i foto.</li>
+<li><b>📥 Entrada / 📤 Sortida:</b> registra moviments d'estoc amb un motiu opcional. Una sortida manual no pot deixar l'estoc en negatiu.</li>
+<li>Per <b>moure</b> articles de lloc, selecciona'ls i fes servir el botó dret.</li>
+<li>En seleccionar un article, a sota veus el seu historial de moviments. <b>📜 Historial</b> mostra tots els moviments del magatzem seguits.</li>
+<li><b>📄 Exportar</b> treu l'estoc, sencer o d'una zona o prestatgeria, a PDF, CSV o Excel.</li>
+</ul>
+<p>L'estoc es veu en <b>vermell</b> si està per sota del mínim i en <b>verd</b> si està per sobre.</p>
+
+<h2><a name="bajo_minimo"></a>⚠️ Estoc per sota del mínim</h2>
+<p>Els articles sense estoc o per sota del seu mínim. El títol de la pestanya indica quants n'hi ha. Des d'aquí pots anar a l'article, registrar una entrada o exportar la llista per fer la comanda.</p>
+
+<h2><a name="archivo"></a>💾 Menú Arxiu: còpies, importar i exportar</h2>
+<ul>
+<li><b>💾 Backup:</b> còpia completa (bases de dades i fotos) en un ZIP, on tu triïs. A més, cada vegada que es tanca el programa es fa una còpia automàtica.</li>
+<li><b>♻️ Restaurar:</b> recupera una còpia manual o una de les automàtiques. <b>Substitueix totes les dades actuals.</b></li>
+<li><b>📥 Importar des d'Excel/CSV…:</b> porta màquines, articles, avisos i usuaris des d'un full de càlcul. Pots descarregar una plantilla i revisar una previsualització fila a fila, i abans d'importar es desa una còpia de seguretat.</li>
+<li><b>📤 Exportar:</b> l'historial a PDF (amb el logotip de la teva empresa, si el poses a <i>Opcions PDF</i>), CSV o Excel, amb filtre per tècnic.</li>
+</ul>
+
+<h2><a name="herramientas"></a>🛠️ Menú Eines</h2>
+<ul>
+<li><b>📲 Sincronitzar App (QR):</b> mostra el codi per vincular els mòbils.</li>
+<li><b>Gestionar Dies / Festius</b> i <b>🌍 País / Regió (Festius)</b>: dies especials del calendari.</li>
+<li><b>🔌 Port de sincronització…:</b> canvia'l només si un altre programa fa servir el mateix port. Després cal tornar a escanejar el QR als mòbils.</li>
+<li><b>🗑️ Temps màxim de conservació de treballs…:</b> esborra els treballs més antics que el temps que triïs, amb una còpia de seguretat prèvia.</li>
+<li><b>🌐 Idioma</b> i, al menú <i>Aparença</i>, el tema clar, fosc o clàssic.</li>
+<li><b>🧹 Netejar Fotos Escombraries:</b> esborra les fotos que ja no fa servir cap registre.</li>
+<li><b>👥 Gestió d'usuaris</b>, <b>🔐 Sessions de dispositius</b> (quins mòbils estan connectats ara mateix i revocar-ne l'accés) i <b>📋 Registre de canvis</b> (qui ha editat o esborrat cada treball).</li>
+</ul>
+
+<h2><a name="movil"></a>📱 Apps del mòbil</h2>
+<p>Hi ha dues apps per a Android: <b>MantPro</b> (treballs) i <b>MantPro Stock</b> (magatzem).</p>
+<ol>
+<li>Amb el mòbil a la <b>mateixa xarxa WiFi</b> que el PC, obre <i>Eines → 📲 Sincronitzar App (QR)</i>.</li>
+<li>Al mòbil prem <b>Vincular PC</b> i escaneja el codi.</li>
+<li>Entra amb el teu usuari i contrasenya. Només cal la primera vegada.</li>
+</ol>
+<ul>
+<li>Les apps funcionen <b>sense connexió</b>: tot es desa al mòbil i s'envia sol quan el PC torna a estar a l'abast.</li>
+<li>Mentre l'app està oberta, encara que sigui en segon pla, continua sincronitzant i mostra una notificació «Connectat al PC». En tancar-la del tot deixa de gastar bateria.</li>
+<li>A MantPro, el botó d'<b>escanejar</b> llegeix l'etiqueta QR d'una màquina i n'obre la fitxa.</li>
+</ul>
+
+<h2><a name="problemas"></a>❓ Problemes freqüents</h2>
+<ul>
+<li><b>El mòbil no connecta:</b> comprova que el PC i el mòbil són a la mateixa WiFi i que MantPro està obert al PC. A Windows pot caldre permetre el programa al tallafoc. Si el PC ha canviat d'IP, torna a escanejar el QR.</li>
+<li><b>«El port està ocupat»:</b> sol ser un altre MantPro obert. Tanca'l o canvia el port a <i>Eines → 🔌 Port de sincronització…</i></li>
+<li><b>Algú ha oblidat la contrasenya:</b> un administrador la pot restablir a <i>Eines → 👥 Gestió d'usuaris</i>.</li>
+<li><b>No arriba la notificació diària al mòbil:</b> a Xiaomi, OPPO/Realme o Huawei posa l'app a <i>Bateria → Sense restriccions</i>.</li>
+<li><b>M'he equivocat en restaurar o importar:</b> a la carpeta <code>backups_auto</code> hi ha les còpies prèvies.</li>
+</ul>

@@ -749,5 +749,10 @@
   "btn_qr_todas": "Makina guztiak",
   "nombre_pdf_etiquetas": "makinen_qr_etiketak",
   "msg_etiquetas_generadas": "{n} etiketa hemen gorde dira:\n{ruta}",
-  "msg_actualizaciones_gestor_paquetes": "MantPro sistemaren pakete-kudeatzailearekin ({gestor}) instalatu da eta harekin eguneratzen da:\n\n{comando}"
+  "msg_actualizaciones_gestor_paquetes": "MantPro sistemaren pakete-kudeatzailearekin ({gestor}) instalatu da eta harekin eguneratzen da:\n\n{comando}",
+  "menu_instrucciones": "📖 Jarraibideak",
+  "title_instrucciones": "MantPro-ren jarraibideak",
+  "ph_buscar_ayuda": "Bilatu laguntzan...",
+  "btn_buscar_siguiente": "🔍 Bilatu",
+  "msg_ayuda_no_encontrado": "Ez da aurkitu"
 }

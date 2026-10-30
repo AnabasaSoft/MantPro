@@ -35,6 +35,7 @@ from .acciones.exportar import AccionesExportar
 from .acciones.importacion import AccionesImportacion
 from .acciones.usuarios import AccionesUsuarios
 from .comun import abrir_url_externa, resource_path, tt
+from .dialogos.ayuda import DialogoAyuda
 from .dialogos.sistema import (DialogoPuertoServidor, DialogoQR, DialogoSeleccionPais,
                                DialogoSeleccionRegion)
 from .festivos import GestorFestivos
@@ -433,8 +434,15 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
                 act.setChecked(True)
 
         hm = mb.addMenu(t("menu_ayuda"))
+        act_ayuda = QAction(tt("menu_instrucciones", "📖 Instrucciones"), self, triggered=self.mostrar_ayuda)
+        act_ayuda.setShortcut("F1")
+        hm.addAction(act_ayuda)
+        hm.addSeparator()
         hm.addAction(QAction(t("menu_buscar_actualizaciones"), self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
         hm.addAction(QAction(t("menu_acerca_de"), self, triggered=self.mostrar_about))
+
+    def mostrar_ayuda(self):
+        DialogoAyuda(self).exec()
 
     def cambiar_idioma(self, codigo):
         if codigo == idiomas.get_idioma():

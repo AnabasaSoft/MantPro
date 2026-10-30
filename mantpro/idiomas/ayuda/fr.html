@@ -1,0 +1,127 @@
+<h1>Instructions de MantPro</h1>
+<p>MantPro enregistre la maintenance de votre usine ou atelier : les interventions réalisées, celles qui restent à faire, les maintenances récurrentes, les machines et le stock du magasin. Les techniciens travaillent depuis leur mobile, même sans connexion, et tout arrive sur ce PC à la synchronisation.</p>
+<p>Choisissez une rubrique dans l'index à gauche ou recherchez un mot en haut. Cette fenêtre s'ouvre aussi avec la touche <b>F1</b>.</p>
+
+<h2><a name="inicio"></a>🚀 Premiers pas</h2>
+<ol>
+<li><b>Connectez-vous</b> avec votre identifiant et votre mot de passe. La première fois, il existe l'utilisateur <code>admin</code> avec le mot de passe <code>admin</code>, et le programme vous oblige à le changer.</li>
+<li><b>Créez les utilisateurs</b> des techniciens dans <i>Outils → 👥 Gestion des utilisateurs</i>.</li>
+<li><b>Ajoutez les machines</b> dans l'onglet <i>🏭 Machines</i>. Si vous les avez déjà dans un tableur, importez-les avec <i>Fichier → 📥 Importer depuis Excel/CSV…</i></li>
+<li><b>Associez les mobiles</b> avec <i>Outils → 📲 Synchroniser l'app (QR)</i> (voir « Applications mobiles »).</li>
+<li>Choisissez votre <b>pays ou région</b> dans <i>Outils → 🌍 Pays / Région (Fériés)</i> pour que le calendrier affiche les jours fériés.</li>
+</ol>
+
+<h2><a name="sesion"></a>👤 Session, utilisateurs et droits</h2>
+<p>Chaque personne se connecte avec son propre utilisateur, et chaque intervention est signée par la personne qui l'a faite. Un utilisateur peut avoir un ou plusieurs rôles :</p>
+<ul>
+<li><b>Administrateur :</b> peut tout faire, y compris gérer les utilisateurs, configurer le magasin et modifier ou supprimer n'importe quel enregistrement.</li>
+<li><b>Technicien :</b> enregistre des interventions et termine les tâches en attente et les rappels. Ne peut modifier ou supprimer que ses propres enregistrements.</li>
+<li><b>Magasin :</b> gère les articles et les mouvements de stock depuis l'application MantPro Stock.</li>
+</ul>
+<p>Dans le menu <i>Session</i>, vous pouvez <b>changer d'utilisateur</b> ou <b>vous déconnecter</b> sans quitter le programme. Votre mot de passe se change dans <i>Outils → 🔑 Changer mon mot de passe</i>.</p>
+
+<h2><a name="dashboard"></a>📊 Tableau de bord</h2>
+<p>Un résumé en un coup d'œil : rappels en attente, tâches à faire, enregistrements du mois et indicateurs de fiabilité de toute l'usine (<b>MTBF</b>, temps moyen entre pannes, et <b>MTTR</b>, temps moyen de réparation). En dessous, vous verrez les machines avec le plus d'interventions, les pannes par mois et la répartition des interventions par type.</p>
+<p>Les indicateurs de fiabilité sont calculés à partir des interventions étiquetées <b>Panne</b> et de leurs heures d'arrêt.</p>
+
+<h2><a name="calendario"></a>📅 Calendrier</h2>
+<p>Affiche les interventions et les rappels de chaque jour. En cliquant sur un jour, sa liste apparaît et un double-clic sur une intervention l'ouvre pour la modifier. <i>Aujourd'hui</i> revient au jour actuel.</p>
+<p>Les jours fériés, congés, ponts et jours de repos apparaissent dans des couleurs différentes. Ils se gèrent avec le bouton <i>Gestion des jours</i> ou dans <i>Outils → Gérer les jours / fériés</i>. Les jours fériés officiels se téléchargent tout seuls selon le pays ou la région choisis.</p>
+
+<h2><a name="avisos"></a>🔁 Rappels (maintenances récurrentes)</h2>
+<p>Un rappel est une maintenance qui se répète : par exemple, graisser une machine chaque mois. On le crée avec un titre, une date de début, une fréquence (quotidienne, hebdomadaire, mensuelle, trimestrielle, semestrielle ou annuelle), des jours de marge, un technicien et une spécialité.</p>
+<ul>
+<li><b>En attente</b> (orange) : c'est le moment et on est dans les jours de marge.</li>
+<li><b>En retard</b> (rouge) : la marge est passée sans que ce soit fait. Le rappel n'est pas sauté : il reste là jusqu'à ce qu'il soit fait.</li>
+</ul>
+<p>En le marquant comme fait, un enregistrement est créé dans l'historique et la date suivante est calculée <b>à partir du jour où il a réellement été fait</b>. Avec le bouton droit de la souris, vous pouvez assigner ou supprimer plusieurs rappels à la fois.</p>
+
+<h2><a name="registrar"></a>📝 Enregistrer une intervention</h2>
+<p>Pour noter une intervention déjà réalisée : date, un bref résumé, les détails, la machine et les étiquettes (Urgent, Électrique, Mécanique, Préventif, Panne ou d'autres que vous saisissez).</p>
+<ul>
+<li><b>Photos :</b> glissez une photo <i>avant</i> et une photo <i>après</i> dans leurs cadres, ou cliquez pour les chercher. Dans la <b>collection de photos</b>, vous pouvez en ajouter autant que vous voulez.</li>
+<li>S'il s'agit d'une <b>panne</b>, indiquez les <b>heures d'arrêt</b> : elles servent au calcul du MTTR.</li>
+</ul>
+<p>Cliquez sur <b>💾 ENREGISTRER</b> pour l'ajouter à l'historique.</p>
+
+<h2><a name="historial"></a>📋 Historique</h2>
+<p>Toutes les interventions réalisées, classées par années et par mois. Vous pouvez filtrer par technicien et par type (interventions et pannes, ou rappels préventifs).</p>
+<ul>
+<li><b>Double-cliquez</b> sur une intervention pour la voir ou la modifier, avec ses photos.</li>
+<li>Avec le <b>bouton droit</b>, vous pouvez supprimer plusieurs interventions, <b>remettre en attente</b> une intervention terminée par erreur et, si vous êtes administrateur, changer l'auteur de plusieurs enregistrements à la fois.</li>
+</ul>
+<p>Chaque modification ou suppression est consignée dans <i>Outils → 📋 Journal des modifications</i>.</p>
+
+<h2><a name="buscador"></a>🔍 Recherche</h2>
+<p>Recherchez des interventions par texte (par exemple « moteur », « fuite » ou le nom d'une pièce), par plage de dates et par étiquettes. Les résultats s'ouvrent par double-clic, comme dans l'historique.</p>
+
+<h2><a name="pendientes"></a>🔨 En attente</h2>
+<p>Les interventions à faire. Chacune a un titre, des détails, une <b>priorité</b> (Basse, Moyenne, Haute ou Critique, chacune avec sa couleur), une spécialité, des photos et le technicien à qui elle est assignée.</p>
+<ul>
+<li><b>✅ Terminer</b> la fait passer dans l'historique ; vous pouvez alors ajouter les photos et les détails finaux.</li>
+<li><b>👤 Réassigner</b> change le technicien. La liste <i>Voir ceux de</i> filtre par personne.</li>
+<li>Sur le mobile, chaque technicien voit ses interventions avec le filtre « Seulement les miens ».</li>
+</ul>
+
+<h2><a name="maquinas"></a>🏭 Machines</h2>
+<p>Arborescence de machines et sous-machines (par exemple, une ligne avec ses équipements). En dépliant une machine, ses interventions apparaissent par années et par mois, et un double-clic ouvre chacune d'elles.</p>
+<ul>
+<li>Chaque machine peut avoir une <b>zone</b>, des notes et une <b>photo</b>, visible quand on la sélectionne.</li>
+<li>En la sélectionnant, ses indicateurs de fiabilité s'affichent (pannes, MTBF et MTTR).</li>
+<li><b>🏷️ Étiquettes QR</b> génère un PDF d'étiquettes (24 par feuille A4, de 70 × 37 mm) à coller sur les machines. En les scannant avec l'application MantPro, la fiche de la machine s'ouvre.</li>
+</ul>
+
+<h2><a name="stock"></a>📦 Stock du magasin</h2>
+<p>Le magasin est organisé en <b>zones → rayonnages → tablettes → sections</b> (les sections sont facultatives). Seul un administrateur peut changer cette structure, avec <b>⚙️ Configurer le magasin</b>.</p>
+<ul>
+<li><b>➕ Ajouter un article :</b> code, nom, description, unité, stock minimum, emplacement et photo.</li>
+<li><b>📥 Entrée / 📤 Sortie :</b> enregistre des mouvements de stock avec un motif facultatif. Une sortie manuelle ne peut pas rendre le stock négatif.</li>
+<li>Pour <b>déplacer</b> des articles, sélectionnez-les et utilisez le bouton droit.</li>
+<li>Quand vous sélectionnez un article, son historique de mouvements s'affiche en dessous. <b>📜 Historique</b> montre tous les mouvements du magasin à la suite.</li>
+<li><b>📄 Exporter</b> sort le stock, complet ou d'une zone ou d'un rayonnage, en PDF, CSV ou Excel.</li>
+</ul>
+<p>Le stock apparaît en <b>rouge</b> s'il est sous le minimum et en <b>vert</b> s'il est au-dessus.</p>
+
+<h2><a name="bajo_minimo"></a>⚠️ Stock sous le minimum</h2>
+<p>Les articles en rupture ou sous leur minimum. Le titre de l'onglet indique combien il y en a. D'ici, vous pouvez aller à l'article, enregistrer une entrée ou exporter la liste pour passer commande.</p>
+
+<h2><a name="archivo"></a>💾 Menu Fichier : sauvegardes, importer et exporter</h2>
+<ul>
+<li><b>💾 Sauvegarde :</b> copie complète (bases de données et photos) dans un ZIP, à l'endroit de votre choix. De plus, une sauvegarde automatique est faite à chaque fermeture du programme.</li>
+<li><b>♻️ Restaurer :</b> récupère une sauvegarde manuelle ou automatique. <b>Elle remplace toutes les données actuelles.</b></li>
+<li><b>📥 Importer depuis Excel/CSV… :</b> importe machines, articles, rappels et utilisateurs depuis un tableur. Vous pouvez télécharger un modèle et vérifier un aperçu ligne par ligne, et une sauvegarde est faite avant l'importation.</li>
+<li><b>📤 Exporter :</b> l'historique en PDF (avec le logo de votre entreprise, si vous l'ajoutez dans <i>Options PDF</i>), CSV ou Excel, avec un filtre par technicien.</li>
+</ul>
+
+<h2><a name="herramientas"></a>🛠️ Menu Outils</h2>
+<ul>
+<li><b>📲 Synchroniser l'app (QR) :</b> affiche le code pour associer les mobiles.</li>
+<li><b>Gérer les jours / fériés</b> et <b>🌍 Pays / Région (Fériés)</b> : jours spéciaux du calendrier.</li>
+<li><b>🔌 Port de synchronisation… :</b> changez-le seulement si un autre programme utilise le même port. Il faut ensuite scanner à nouveau le QR sur les mobiles.</li>
+<li><b>🗑️ Durée maximale de conservation des interventions… :</b> supprime les interventions plus anciennes que la durée choisie, après une sauvegarde.</li>
+<li><b>🌐 Langue</b> et, dans le menu <i>Apparence</i>, le thème clair, sombre ou classique.</li>
+<li><b>🧹 Nettoyer les photos inutiles :</b> supprime les photos qu'aucun enregistrement n'utilise plus.</li>
+<li><b>👥 Gestion des utilisateurs</b>, <b>🔐 Sessions des appareils</b> (quels mobiles sont connectés en ce moment, et révoquer leur accès) et <b>📋 Journal des modifications</b> (qui a modifié ou supprimé chaque intervention).</li>
+</ul>
+
+<h2><a name="movil"></a>📱 Applications mobiles</h2>
+<p>Il existe deux applications Android : <b>MantPro</b> (interventions) et <b>MantPro Stock</b> (magasin).</p>
+<ol>
+<li>Avec le mobile sur le <b>même réseau Wi-Fi</b> que le PC, ouvrez <i>Outils → 📲 Synchroniser l'app (QR)</i>.</li>
+<li>Sur le mobile, appuyez sur <b>Associer le PC</b> et scannez le code.</li>
+<li>Connectez-vous avec votre identifiant et votre mot de passe. Ce n'est nécessaire que la première fois.</li>
+</ol>
+<ul>
+<li>Les applications fonctionnent <b>sans connexion</b> : tout est enregistré sur le mobile et envoyé automatiquement quand le PC est de nouveau accessible.</li>
+<li>Tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser et affiche une notification « Connecté au PC ». Une fois fermée complètement, elle ne consomme plus de batterie.</li>
+<li>Dans MantPro, le bouton <b>scanner</b> lit l'étiquette QR d'une machine et ouvre sa fiche.</li>
+</ul>
+
+<h2><a name="problemas"></a>❓ Problèmes fréquents</h2>
+<ul>
+<li><b>Le mobile ne se connecte pas :</b> vérifiez que le PC et le mobile sont sur le même Wi-Fi et que MantPro est ouvert sur le PC. Sous Windows, il peut être nécessaire d'autoriser le programme dans le pare-feu. Si l'adresse IP du PC a changé, scannez à nouveau le QR.</li>
+<li><b>« Le port est occupé » :</b> c'est souvent un autre MantPro ouvert. Fermez-le ou changez le port dans <i>Outils → 🔌 Port de synchronisation…</i></li>
+<li><b>Quelqu'un a oublié son mot de passe :</b> un administrateur peut le réinitialiser dans <i>Outils → 👥 Gestion des utilisateurs</i>.</li>
+<li><b>La notification quotidienne n'arrive pas sur le mobile :</b> sur Xiaomi, OPPO/Realme ou Huawei, réglez l'application sur <i>Batterie → Aucune restriction</i>.</li>
+<li><b>Je me suis trompé en restaurant ou en important :</b> le dossier <code>backups_auto</code> contient les sauvegardes faites auparavant.</li>
+</ul>

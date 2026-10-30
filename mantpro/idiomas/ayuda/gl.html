@@ -1,0 +1,127 @@
+<h1>Instrucións de MantPro</h1>
+<p>MantPro rexistra o mantemento da túa planta ou taller: os traballos feitos, os que quedan por facer, os mantementos que se repiten, as máquinas e o stock do almacén. Os técnicos traballan dende o móbil, mesmo sen conexión, e todo chega a este PC ao sincronizar.</p>
+<p>Escolle un apartado no índice da esquerda ou busca unha palabra arriba. Esta xanela ábrese tamén coa tecla <b>F1</b>.</p>
+
+<h2><a name="inicio"></a>🚀 Primeiros pasos</h2>
+<ol>
+<li><b>Entra</b> co teu usuario e contrasinal. A primeira vez existe o usuario <code>admin</code> co contrasinal <code>admin</code>, e o programa obrígate a cambialo.</li>
+<li><b>Crea os usuarios</b> dos técnicos en <i>Ferramentas → 👥 Xestión de usuarios</i>.</li>
+<li><b>Dá de alta as máquinas</b> na lapela <i>🏭 Máquinas</i>. Se xa as tes nunha folla de cálculo, impórtaas con <i>Ficheiro → 📥 Importar dende Excel/CSV…</i></li>
+<li><b>Vincula os móbiles</b> con <i>Ferramentas → 📲 Sincronizar App (QR)</i> (ver «Apps do móbil»).</li>
+<li>Escolle o teu <b>país ou rexión</b> en <i>Ferramentas → 🌍 País / Rexión (Festivos)</i> para que o calendario marque os festivos.</li>
+</ol>
+
+<h2><a name="sesion"></a>👤 Sesión, usuarios e permisos</h2>
+<p>Cada persoa entra co seu propio usuario, e cada traballo queda asinado con quen o fixo. Un usuario pode ter un ou varios roles:</p>
+<ul>
+<li><b>Administrador:</b> pode facer todo, incluído xestionar usuarios, configurar o almacén e modificar ou borrar calquera rexistro.</li>
+<li><b>Técnico:</b> rexistra traballos e completa pendentes e avisos. Só pode modificar ou borrar os seus propios rexistros.</li>
+<li><b>Almacén:</b> xestiona artigos e movementos de stock dende a app MantPro Stock.</li>
+</ul>
+<p>No menú <i>Sesión</i> podes <b>cambiar de usuario</b> ou <b>pechar sesión</b> sen saír do programa. O teu contrasinal cámbiase en <i>Ferramentas → 🔑 Cambiar o meu contrasinal</i>.</p>
+
+<h2><a name="dashboard"></a>📊 Dashboard</h2>
+<p>Resumo dunha ollada: avisos pendentes, tarefas por facer, rexistros do mes e os indicadores de fiabilidade de toda a planta (<b>MTBF</b>, tempo medio entre avarías, e <b>MTTR</b>, tempo medio de reparación). Debaixo verás as máquinas con máis traballos, as avarías por mes e o reparto de traballos por tipo.</p>
+<p>Os indicadores de fiabilidade calcúlanse cos traballos etiquetados como <b>Avaría</b> e as súas horas de parada.</p>
+
+<h2><a name="calendario"></a>📅 Calendario</h2>
+<p>Mostra os traballos e os avisos de cada día. Ao premer nun día aparece a súa lista e, facendo dobre clic nun traballo, ábrese para editalo. <i>Ir a Hoxe</i> volve ao día actual.</p>
+<p>Os festivos, vacacións, pontes e días libres saen en cores distintas. Xestiónanse co botón <i>Xestión Días</i> ou en <i>Ferramentas → Xestionar Días / Festivos</i>. Os festivos oficiais descárganse sós segundo o país ou a rexión escollidos.</p>
+
+<h2><a name="avisos"></a>🔁 Avisos (mantementos recorrentes)</h2>
+<p>Un aviso é un mantemento que se repite: por exemplo, engraxar unha máquina cada mes. Créase con título, data de inicio, frecuencia (diaria, semanal, mensual, trimestral, semestral ou anual), días de marxe, técnico e especialidade.</p>
+<ul>
+<li><b>Pendente</b> (laranxa): xa toca e está dentro dos días de marxe.</li>
+<li><b>Atrasado</b> (vermello): pasou a marxe sen facelo. O aviso non se salta: segue aí ata que se faga.</li>
+</ul>
+<p>Ao marcalo como feito créase un rexistro no historial e a seguinte data cóntase <b>dende o día en que se fixo de verdade</b>. Co botón dereito podes asignar ou borrar varios avisos á vez.</p>
+
+<h2><a name="registrar"></a>📝 Rexistrar un traballo</h2>
+<p>Para anotar un traballo xa feito: data, un resumo curto, os detalles, a máquina e as etiquetas (Urxente, Eléctrico, Mecánico, Preventivo, Avaría ou outras que escribas).</p>
+<ul>
+<li><b>Fotos:</b> arrastra unha foto de <i>antes</i> e outra de <i>despois</i> aos seus recadros, ou fai clic para buscalas. Na <b>colección de fotos</b> podes engadir todas as que queiras.</li>
+<li>Se é unha <b>avaría</b>, indica as <b>horas de parada</b>: úsanse para o MTTR.</li>
+</ul>
+<p>Preme <b>💾 GARDAR REXISTRO</b> para gardalo no historial.</p>
+
+<h2><a name="historial"></a>📋 Historial</h2>
+<p>Todos os traballos realizados, organizados por anos e meses. Podes filtrar por técnico e por tipo (traballos e avarías, ou avisos preventivos).</p>
+<ul>
+<li><b>Dobre clic</b> nun traballo para velo ou editalo, coas súas fotos.</li>
+<li>Co <b>botón dereito</b> podes borrar varios traballos, <b>volver a pendente</b> un traballo rematado por erro e, se es administrador, cambiar o autor de varios rexistros á vez.</li>
+</ul>
+<p>Cada edición ou borrado queda anotado en <i>Ferramentas → 📋 Rexistro de cambios</i>.</p>
+
+<h2><a name="buscador"></a>🔍 Buscador</h2>
+<p>Busca traballos por texto (por exemplo «motor», «fuga» ou o nome dunha peza), por rango de datas e por etiquetas. Os resultados ábrense con dobre clic, igual que no historial.</p>
+
+<h2><a name="pendientes"></a>🔨 Pendentes</h2>
+<p>Traballos por facer. Cada pendente ten título, detalles, <b>prioridade</b> (Baixa, Media, Alta ou Crítica, coa súa cor), especialidade, fotos e o técnico ao que se asigna.</p>
+<ul>
+<li><b>✅ Completar</b> pásao ao historial; podes engadir entón as fotos e os detalles finais.</li>
+<li><b>👤 Reasignar</b> cambia o técnico. A lista <i>Ver os de</i> filtra por persoa.</li>
+<li>No móbil, cada técnico ve os seus pendentes co filtro «Só os meus».</li>
+</ul>
+
+<h2><a name="maquinas"></a>🏭 Máquinas</h2>
+<p>Árbore de máquinas e submáquinas (por exemplo, unha liña cos seus equipos). Ao despregar unha máquina aparecen os seus traballos por anos e meses, e con dobre clic ábrese cada traballo.</p>
+<ul>
+<li>Cada máquina pode ter <b>zona</b>, notas e unha <b>foto</b>, que se ve ao seleccionala.</li>
+<li>Ao seleccionala móstranse os seus indicadores de fiabilidade (avarías, MTBF e MTTR).</li>
+<li><b>🏷️ Etiquetas QR</b> xera un PDF de etiquetas (24 por folla A4, de 70 × 37 mm) para pegar nas máquinas. Ao escanealas coa app MantPro ábrese a ficha desa máquina.</li>
+</ul>
+
+<h2><a name="stock"></a>📦 Stock de almacén</h2>
+<p>O almacén organízase en <b>zonas → andeis → baldas → seccións</b> (as seccións son opcionais). Só un administrador pode cambiar esa estrutura, con <b>⚙️ Configurar almacén</b>.</p>
+<ul>
+<li><b>➕ Engadir material:</b> código, nome, descrición, unidade, stock mínimo, localización e foto.</li>
+<li><b>📥 Entrada / 📤 Saída:</b> rexistra movementos de stock cun motivo opcional. Unha saída manual non pode deixar o stock en negativo.</li>
+<li>Para <b>mover</b> artigos de sitio, selecciónaos e usa o botón dereito.</li>
+<li>Ao seleccionar un artigo, abaixo ves o seu historial de movementos. <b>📜 Historial</b> mostra todos os movementos do almacén seguidos.</li>
+<li><b>📄 Exportar</b> saca o stock, enteiro ou dunha zona ou andel, a PDF, CSV ou Excel.</li>
+</ul>
+<p>O stock vese en <b>vermello</b> se está por baixo do mínimo e en <b>verde</b> se está por riba.</p>
+
+<h2><a name="bajo_minimo"></a>⚠️ Stock por baixo do mínimo</h2>
+<p>Os artigos sen stock ou por baixo do seu mínimo. O título da lapela indica cantos hai. Dende aquí podes ir ao artigo, rexistrar unha entrada ou exportar a lista para facer o pedido.</p>
+
+<h2><a name="archivo"></a>💾 Menú Ficheiro: copias, importar e exportar</h2>
+<ul>
+<li><b>💾 Backup:</b> copia completa (bases de datos e fotos) nun ZIP, onde ti escollas. Ademais, cada vez que se pecha o programa faise unha copia automática.</li>
+<li><b>♻️ Restaurar:</b> recupera unha copia manual ou unha das automáticas. <b>Substitúe todos os datos actuais.</b></li>
+<li><b>📥 Importar dende Excel/CSV…:</b> trae máquinas, artigos, avisos e usuarios dende unha folla de cálculo. Podes descargar un modelo e revisar unha vista previa fila a fila, e antes de importar gárdase unha copia de seguranza.</li>
+<li><b>📤 Exportar:</b> o historial a PDF (co logotipo da túa empresa, se o pos en <i>Opcións PDF</i>), CSV ou Excel, con filtro por técnico.</li>
+</ul>
+
+<h2><a name="herramientas"></a>🛠️ Menú Ferramentas</h2>
+<ul>
+<li><b>📲 Sincronizar App (QR):</b> mostra o código para vincular os móbiles.</li>
+<li><b>Xestionar Días / Festivos</b> e <b>🌍 País / Rexión (Festivos)</b>: días especiais do calendario.</li>
+<li><b>🔌 Porto de sincronización…:</b> cámbiao só se outro programa usa o mesmo porto. Despois hai que volver escanear o QR nos móbiles.</li>
+<li><b>🗑️ Tempo máximo de gardado de traballos…:</b> borra os traballos máis antigos que o tempo que escollas, cunha copia de seguranza previa.</li>
+<li><b>🌐 Idioma</b> e, no menú <i>Aparencia</i>, o tema claro, escuro ou clásico.</li>
+<li><b>🧹 Limpar Fotos Lixo:</b> borra as fotos que xa non usa ningún rexistro.</li>
+<li><b>👥 Xestión de usuarios</b>, <b>🔐 Sesións de dispositivos</b> (que móbiles están conectados agora mesmo e revogar o seu acceso) e <b>📋 Rexistro de cambios</b> (quen editou ou borrou cada traballo).</li>
+</ul>
+
+<h2><a name="movil"></a>📱 Apps do móbil</h2>
+<p>Hai dúas apps para Android: <b>MantPro</b> (traballos) e <b>MantPro Stock</b> (almacén).</p>
+<ol>
+<li>Co móbil na <b>mesma rede WiFi</b> que o PC, abre <i>Ferramentas → 📲 Sincronizar App (QR)</i>.</li>
+<li>No móbil preme <b>Vincular PC</b> e escanea o código.</li>
+<li>Entra co teu usuario e contrasinal. Só fai falta a primeira vez.</li>
+</ol>
+<ul>
+<li>As apps funcionan <b>sen conexión</b>: todo se garda no móbil e envíase só ao volver ter o PC ao alcance.</li>
+<li>Mentres a app está aberta, aínda que sexa en segundo plano, segue sincronizando e mostra unha notificación «Conectado ao PC». Ao pechala de todo deixa de gastar batería.</li>
+<li>En MantPro, o botón de <b>escanear</b> le a etiqueta QR dunha máquina e abre a súa ficha.</li>
+</ul>
+
+<h2><a name="problemas"></a>❓ Problemas frecuentes</h2>
+<ul>
+<li><b>O móbil non conecta:</b> comproba que o PC e o móbil están na mesma WiFi e que MantPro está aberto no PC. En Windows pode facer falta permitir o programa no cortalumes. Se o PC cambiou de IP, volve escanear o QR.</li>
+<li><b>«O porto está ocupado»:</b> adoita ser outro MantPro aberto. Pechao ou cambia o porto en <i>Ferramentas → 🔌 Porto de sincronización…</i></li>
+<li><b>Alguén esqueceu o seu contrasinal:</b> un administrador pode restablecelo en <i>Ferramentas → 👥 Xestión de usuarios</i>.</li>
+<li><b>Non chega a notificación diaria ao móbil:</b> en Xiaomi, OPPO/Realme ou Huawei pon a app en <i>Batería → Sen restricións</i>.</li>
+<li><b>Equivoqueime ao restaurar ou importar:</b> no cartafol <code>backups_auto</code> están as copias previas.</li>
+</ul>

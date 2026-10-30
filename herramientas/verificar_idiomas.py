@@ -124,8 +124,42 @@ def revisar_app_movil(carpeta_i18n):
     return total
 
 
+# --------------------------------------------------------------------
+# Ayuda del PC: idiomas/ayuda/*.html (Ayuda > Instrucciones)
+# --------------------------------------------------------------------
+
+DIR_AYUDA = os.path.join(DIR_IDIOMAS_PC, "ayuda")
+_RE_SECCION_AYUDA = re.compile(r'<h2><a name="([\w-]+)"></a>')
+
+
+def revisar_ayuda():
+    """Cada idioma del PC debe tener su fichero de ayuda con las mismas
+    secciones que el español (si no, la ventana de ayuda sale en español o
+    le faltan apartados). Solo informa; la traducción se hace a mano."""
+    referencia = os.path.join(DIR_AYUDA, f"{IDIOMA_REFERENCIA}.html")
+    if not os.path.exists(referencia):
+        return 0
+    secciones_ref = _RE_SECCION_AYUDA.findall(open(referencia, encoding="utf-8").read())
+    total = 0
+    for codigo in sorted(os.path.splitext(f)[0] for f in os.listdir(DIR_IDIOMAS_PC) if f.endswith(".json")):
+        if codigo == IDIOMA_REFERENCIA:
+            continue
+        ruta = os.path.join(DIR_AYUDA, f"{codigo}.html")
+        if not os.path.exists(ruta):
+            print(f"[Ayuda/{codigo}.html] No existe: la ayuda saldría en español.")
+            total += len(secciones_ref)
+            continue
+        secciones = _RE_SECCION_AYUDA.findall(open(ruta, encoding="utf-8").read())
+        faltan = [s for s in secciones_ref if s not in secciones]
+        if faltan:
+            print(f"[Ayuda/{codigo}.html] Faltan {len(faltan)} sección(es): {', '.join(faltan)}")
+            total += len(faltan)
+    return total
+
+
 def main():
     total = revisar_pc()
+    total += revisar_ayuda()
     for carpeta in CARPETAS_I18N_MOVIL:
         total += revisar_app_movil(carpeta)
 

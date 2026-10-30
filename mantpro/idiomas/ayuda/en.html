@@ -1,0 +1,127 @@
+<h1>MantPro instructions</h1>
+<p>MantPro keeps track of maintenance in your plant or workshop: jobs done, jobs still to do, recurring maintenance, machines and warehouse stock. Technicians work from their phones, even offline, and everything reaches this PC when they sync.</p>
+<p>Pick a topic in the index on the left or search for a word at the top. You can also open this window with the <b>F1</b> key.</p>
+
+<h2><a name="inicio"></a>🚀 Getting started</h2>
+<ol>
+<li><b>Sign in</b> with your username and password. The first time there is a user <code>admin</code> with password <code>admin</code>, and the program makes you change it.</li>
+<li><b>Create the technicians' users</b> in <i>Tools → 👥 User management</i>.</li>
+<li><b>Add your machines</b> in the <i>🏭 Machines</i> tab. If you already have them in a spreadsheet, import them with <i>File → 📥 Import from Excel/CSV…</i></li>
+<li><b>Link the phones</b> with <i>Tools → 📲 Sync App (QR)</i> (see «Phone apps»).</li>
+<li>Choose your <b>country or region</b> in <i>Tools → 🌍 Country / Region (Holidays)</i> so the calendar shows public holidays.</li>
+</ol>
+
+<h2><a name="sesion"></a>👤 Session, users and permissions</h2>
+<p>Everyone signs in with their own user, and every job is signed with whoever did it. A user can have one or more roles:</p>
+<ul>
+<li><b>Administrator:</b> can do everything, including managing users, configuring the warehouse and editing or deleting any record.</li>
+<li><b>Technician:</b> logs jobs and completes pending jobs and alerts. Can only edit or delete their own records.</li>
+<li><b>Warehouse:</b> manages items and stock movements from the MantPro Stock app.</li>
+</ul>
+<p>In the <i>Session</i> menu you can <b>switch user</b> or <b>log out</b> without closing the program. You change your password in <i>Tools → 🔑 Change my password</i>.</p>
+
+<h2><a name="dashboard"></a>📊 Dashboard</h2>
+<p>An overview at a glance: pending alerts, tasks to do, records this month and the reliability indicators for the whole plant (<b>MTBF</b>, mean time between failures, and <b>MTTR</b>, mean time to repair). Below you will find the machines with the most jobs, breakdowns per month and how jobs are split by type.</p>
+<p>The reliability indicators are calculated from jobs tagged as <b>Breakdown</b> and their downtime hours.</p>
+
+<h2><a name="calendario"></a>📅 Calendar</h2>
+<p>Shows the jobs and alerts for each day. Click a day to see its list and double-click a job to edit it. <i>Go to Today</i> brings you back to the current day.</p>
+<p>Public holidays, holidays, bridge days and days off are shown in different colours. They are managed with the <i>Manage Days</i> button or in <i>Tools → Manage Days / Holidays</i>. Public holidays are downloaded automatically for the chosen country or region.</p>
+
+<h2><a name="avisos"></a>🔁 Alerts (recurring maintenance)</h2>
+<p>An alert is maintenance that repeats: for example, greasing a machine every month. You create it with a title, start date, frequency (daily, weekly, monthly, quarterly, half-yearly or yearly), margin days, technician and specialty.</p>
+<ul>
+<li><b>Pending</b> (orange): it is due and within its margin days.</li>
+<li><b>Overdue</b> (red): the margin has passed without doing it. The alert is not skipped: it stays there until it is done.</li>
+</ul>
+<p>Marking it as done creates a record in the history, and the next date is counted <b>from the day it was actually done</b>. With the right mouse button you can assign or delete several alerts at once.</p>
+
+<h2><a name="registrar"></a>📝 Logging a job</h2>
+<p>To record a job already done: date, a short summary, the details, the machine and the tags (Urgent, Electrical, Mechanical, Preventive, Breakdown or others you type).</p>
+<ul>
+<li><b>Photos:</b> drag a <i>before</i> photo and an <i>after</i> photo onto their boxes, or click to browse. In the <b>photo collection</b> you can add as many as you like.</li>
+<li>If it is a <b>breakdown</b>, enter the <b>downtime hours</b>: they are used for the MTTR.</li>
+</ul>
+<p>Press <b>💾 SAVE RECORD</b> to save it to the history.</p>
+
+<h2><a name="historial"></a>📋 History</h2>
+<p>All the jobs done, organised by years and months. You can filter by technician and by type (jobs and breakdowns, or preventive alerts).</p>
+<ul>
+<li><b>Double-click</b> a job to view or edit it, with its photos.</li>
+<li>With the <b>right mouse button</b> you can delete several jobs, <b>revert to pending</b> a job finished by mistake and, if you are an administrator, change the author of several records at once.</li>
+</ul>
+<p>Every edit or deletion is logged in <i>Tools → 📋 Change log</i>.</p>
+
+<h2><a name="buscador"></a>🔍 Search</h2>
+<p>Find jobs by text (for example «motor», «leak» or the name of a part), by date range and by tags. Results open with a double-click, just like in the history.</p>
+
+<h2><a name="pendientes"></a>🔨 Pending</h2>
+<p>Jobs still to do. Each pending job has a title, details, <b>priority</b> (Low, Medium, High or Critical, each with its colour), specialty, photos and the technician it is assigned to.</p>
+<ul>
+<li><b>✅ Complete</b> moves it to the history; you can then add the final photos and details.</li>
+<li><b>👤 Reassign</b> changes the technician. The <i>Show those of</i> list filters by person.</li>
+<li>On the phone, each technician sees their pending jobs with the «Only mine» filter.</li>
+</ul>
+
+<h2><a name="maquinas"></a>🏭 Machines</h2>
+<p>A tree of machines and sub-machines (for example, a line with its equipment). Expanding a machine shows its jobs by years and months, and double-clicking opens each job.</p>
+<ul>
+<li>Each machine can have a <b>zone</b>, notes and a <b>photo</b>, shown when you select it.</li>
+<li>Selecting it shows its reliability indicators (breakdowns, MTBF and MTTR).</li>
+<li><b>🏷️ QR labels</b> creates a PDF of labels (24 per A4 sheet, 70 × 37 mm) to stick on the machines. Scanning them with the MantPro app opens that machine's page.</li>
+</ul>
+
+<h2><a name="stock"></a>📦 Warehouse stock</h2>
+<p>The warehouse is organised into <b>zones → shelving units → shelves → sections</b> (sections are optional). Only an administrator can change that structure, with <b>⚙️ Configure warehouse</b>.</p>
+<ul>
+<li><b>➕ Add material:</b> code, name, description, unit, minimum stock, location and photo.</li>
+<li><b>📥 Stock in / 📤 Stock out:</b> records stock movements with an optional reason. A manual stock out cannot leave the stock negative.</li>
+<li>To <b>move</b> items to another place, select them and use the right mouse button.</li>
+<li>When you select an item, its movement history appears below. <b>📜 History</b> shows every movement in the warehouse in order.</li>
+<li><b>📄 Export</b> outputs the stock, all of it or one zone or shelving unit, to PDF, CSV or Excel.</li>
+</ul>
+<p>Stock is shown in <b>red</b> when it is below the minimum and in <b>green</b> when it is above it.</p>
+
+<h2><a name="bajo_minimo"></a>⚠️ Low stock</h2>
+<p>Items out of stock or below their minimum. The tab title shows how many there are. From here you can go to the item, record a stock in or export the list to place the order.</p>
+
+<h2><a name="archivo"></a>💾 File menu: backups, import and export</h2>
+<ul>
+<li><b>💾 Backup:</b> a full copy (databases and photos) in a ZIP, wherever you choose. An automatic backup is also made every time the program closes.</li>
+<li><b>♻️ Restore:</b> recovers a manual backup or one of the automatic ones. <b>It replaces all current data.</b></li>
+<li><b>📥 Import from Excel/CSV…:</b> brings in machines, items, alerts and users from a spreadsheet. You can download a template and check a row-by-row preview, and a backup is saved before importing.</li>
+<li><b>📤 Export:</b> the history to PDF (with your company logo, if you add it in <i>PDF Options</i>), CSV or Excel, with a filter by technician.</li>
+</ul>
+
+<h2><a name="herramientas"></a>🛠️ Tools menu</h2>
+<ul>
+<li><b>📲 Sync App (QR):</b> shows the code to link the phones.</li>
+<li><b>Manage Days / Holidays</b> and <b>🌍 Country / Region (Holidays)</b>: special days in the calendar.</li>
+<li><b>🔌 Sync port…:</b> change it only if another program uses the same port. The QR then has to be scanned again on the phones.</li>
+<li><b>🗑️ Maximum job retention time…:</b> deletes jobs older than the time you choose, after making a backup.</li>
+<li><b>🌐 Language</b> and, in the <i>Appearance</i> menu, the light, dark or classic theme.</li>
+<li><b>🧹 Clean Orphan Photos:</b> deletes photos that no record uses any more.</li>
+<li><b>👥 User management</b>, <b>🔐 Device sessions</b> (which phones are connected right now, and revoking their access) and <b>📋 Change log</b> (who edited or deleted each job).</li>
+</ul>
+
+<h2><a name="movil"></a>📱 Phone apps</h2>
+<p>There are two Android apps: <b>MantPro</b> (jobs) and <b>MantPro Stock</b> (warehouse).</p>
+<ol>
+<li>With the phone on the <b>same WiFi network</b> as the PC, open <i>Tools → 📲 Sync App (QR)</i>.</li>
+<li>On the phone, tap <b>Link PC</b> and scan the code.</li>
+<li>Sign in with your username and password. You only need to do this the first time.</li>
+</ol>
+<ul>
+<li>The apps work <b>offline</b>: everything is stored on the phone and sent automatically when the PC is within reach again.</li>
+<li>While the app is open, even in the background, it keeps syncing and shows a «Connected to the PC» notification. Once fully closed it stops using battery.</li>
+<li>In MantPro, the <b>scan</b> button reads a machine's QR label and opens its page.</li>
+</ul>
+
+<h2><a name="problemas"></a>❓ Common problems</h2>
+<ul>
+<li><b>The phone does not connect:</b> check that the PC and the phone are on the same WiFi and that MantPro is open on the PC. On Windows you may need to allow the program in the firewall. If the PC's IP address has changed, scan the QR again.</li>
+<li><b>«The port is in use»:</b> usually another MantPro is open. Close it or change the port in <i>Tools → 🔌 Sync port…</i></li>
+<li><b>Someone forgot their password:</b> an administrator can reset it in <i>Tools → 👥 User management</i>.</li>
+<li><b>The daily notification does not reach the phone:</b> on Xiaomi, OPPO/Realme or Huawei set the app to <i>Battery → No restrictions</i>.</li>
+<li><b>I made a mistake when restoring or importing:</b> the <code>backups_auto</code> folder holds the backups made beforehand.</li>
+</ul>

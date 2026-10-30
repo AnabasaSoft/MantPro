@@ -749,5 +749,10 @@
   "btn_qr_todas": "Totes les màquines",
   "nombre_pdf_etiquetas": "etiquetes_qr_maquines",
   "msg_etiquetas_generadas": "{n} etiquetes desades a:\n{ruta}",
-  "msg_actualizaciones_gestor_paquetes": "MantPro s'ha instal·lat amb el gestor de paquets del sistema ({gestor}) i s'actualitza amb ell:\n\n{comando}"
+  "msg_actualizaciones_gestor_paquetes": "MantPro s'ha instal·lat amb el gestor de paquets del sistema ({gestor}) i s'actualitza amb ell:\n\n{comando}",
+  "menu_instrucciones": "📖 Instruccions",
+  "title_instrucciones": "Instruccions de MantPro",
+  "ph_buscar_ayuda": "Cerca a l'ajuda...",
+  "btn_buscar_siguiente": "🔍 Cerca",
+  "msg_ayuda_no_encontrado": "No s'ha trobat"
 }
