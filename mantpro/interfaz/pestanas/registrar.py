@@ -23,7 +23,8 @@ import os
 import shutil
 from datetime import datetime
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton,
-                             QDateEdit, QMessageBox, QComboBox, QCompleter, QDoubleSpinBox)
+                             QDateEdit, QMessageBox, QComboBox, QCompleter, QDoubleSpinBox,
+                             QWidget, QScrollArea, QFrame)
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QPixmap
 
@@ -88,7 +89,16 @@ class PestanaRegistrar:
         fila_horas_paro_entry.addWidget(self.spin_horas_paro_entry)
         l.addLayout(fila_horas_paro_entry)
 
-        b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch(); self.tab_entry.setLayout(l)
+        b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch()
+        # Dentro de una zona con desplazamiento: en pantallas bajas (o al sacar
+        # la ventana de maximizada) el formulario no cabe y, sin ella, Qt lo
+        # aprieta por debajo de su tamaño mínimo y los recuadros de las fotos
+        # y los botones acaban dibujados unos encima de otros.
+        contenido = QWidget(); contenido.setLayout(l)
+        scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(contenido)
+        l_tab = QVBoxLayout(self.tab_entry); l_tab.setContentsMargins(0, 0, 0, 0); l_tab.addWidget(scroll)
 
     def borrar_foto_entry(self):
         self.entry_foto_filename = None; self.lbl_entry_foto.setPixmap(QPixmap()); self.lbl_entry_foto.setText(t("lbl_arrastra_foto")); self.lbl_entry_foto.setStyleSheet(_estilo_zona_arrastre()); self.btn_del_foto.hide()

@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Correcciones
+- **Pestaña Registrar**: en pantallas bajas o al sacar la ventana de maximizada, los recuadros de las fotos y los botones «Añadir fotos» / «Quitar» se dibujaban unos encima de otros y el botón «Guardar registro» quedaba cortado. Ahora, si el formulario no cabe, aparece una barra de desplazamiento.
+
 ## 3.10.2 — 2026-10-30
 
 ### Novedades
