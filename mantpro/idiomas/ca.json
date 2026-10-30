@@ -795,5 +795,11 @@
   "lbl_usado_en": "S'utilitza a: {maquinas}",
   "lbl_maquinas_del_material": "🔩 S'utilitza a les màquines",
   "btn_anadir_maquina_material": "Afegir màquina",
-  "txt_sin_maquinas_material": "— En cap màquina —"
+  "txt_sin_maquinas_material": "— En cap màquina —",
+  "menu_instalar_mantpro": "📱 Instal·lar MantPro al mòbil",
+  "menu_instalar_mantpro_stock": "📦 Instal·lar MantPro Stock al mòbil",
+  "title_instalar_app_movil": "Instal·lar {app} al mòbil",
+  "lbl_qr_instalar_paso1": "1. Escaneja el codi amb la càmera del mòbil.",
+  "lbl_qr_instalar_paso2": "2. Obre l'enllaç: es baixa l'última versió de {app}.",
+  "lbl_qr_instalar_paso3": "3. Obre el fitxer baixat i instal·la'l (Android pot demanar que permetis la instal·lació)."
 }

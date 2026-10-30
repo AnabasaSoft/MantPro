@@ -795,5 +795,11 @@
   "lbl_usado_en": "Se usa en: {maquinas}",
   "lbl_maquinas_del_material": "🔩 Se usa en las máquinas",
   "btn_anadir_maquina_material": "Añadir máquina",
-  "txt_sin_maquinas_material": "— En ninguna máquina —"
+  "txt_sin_maquinas_material": "— En ninguna máquina —",
+  "menu_instalar_mantpro": "📱 Instalar MantPro en móvil",
+  "menu_instalar_mantpro_stock": "📦 Instalar MantPro Stock en móvil",
+  "title_instalar_app_movil": "Instalar {app} en el móvil",
+  "lbl_qr_instalar_paso1": "1. Escanea el código con la cámara del móvil.",
+  "lbl_qr_instalar_paso2": "2. Abre el enlace: se descarga la última versión de {app}.",
+  "lbl_qr_instalar_paso3": "3. Abre el fichero descargado e instálalo (Android puede pedir permitir la instalación)."
 }

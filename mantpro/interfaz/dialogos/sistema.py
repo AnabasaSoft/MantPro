@@ -33,13 +33,16 @@ from ..festivos import PROVINCIAS_ESPAÑA
 from ..servidor import PUERTO_POR_DEFECTO, primer_puerto_libre, puerto_libre
 
 class DialogoQR(QDialog):
-    def __init__(self, url, parent=None):
+    """QR con una dirección. Por defecto, el de vincular el móvil con el PC;
+    con «titulo» y «pasos» sirve para otros (p. ej. instalar las apps)."""
+    def __init__(self, url, parent=None, titulo=None, pasos=None):
         super().__init__(parent)
-        self.setWindowTitle(t("title_sincronizar_movil"))
+        self.setWindowTitle(titulo or t("title_sincronizar_movil"))
         self.resize(300, 420)
         l = QVBoxLayout()
-        l.addWidget(QLabel(t("lbl_qr_paso1"), alignment=Qt.AlignmentFlag.AlignCenter))
-        l.addWidget(QLabel(t("lbl_qr_paso2"), alignment=Qt.AlignmentFlag.AlignCenter))
+        for paso in (pasos or [t("lbl_qr_paso1"), t("lbl_qr_paso2")]):
+            lbl = QLabel(paso, alignment=Qt.AlignmentFlag.AlignCenter); lbl.setWordWrap(True)
+            l.addWidget(lbl)
         qr = qrcode.QRCode(box_size=10, border=2)
         qr.add_data(url)
         qr.make(fit=True)

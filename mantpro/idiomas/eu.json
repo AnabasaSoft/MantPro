@@ -795,5 +795,11 @@
   "lbl_usado_en": "Hemen erabiltzen da: {maquinas}",
   "lbl_maquinas_del_material": "🔩 Makina hauetan erabiltzen da",
   "btn_anadir_maquina_material": "Gehitu makina",
-  "txt_sin_maquinas_material": "— Ez dago inongo makinatan —"
+  "txt_sin_maquinas_material": "— Ez dago inongo makinatan —",
+  "menu_instalar_mantpro": "📱 Instalatu MantPro mugikorrean",
+  "menu_instalar_mantpro_stock": "📦 Instalatu MantPro Stock mugikorrean",
+  "title_instalar_app_movil": "Instalatu {app} mugikorrean",
+  "lbl_qr_instalar_paso1": "1. Eskaneatu kodea mugikorraren kamerarekin.",
+  "lbl_qr_instalar_paso2": "2. Ireki esteka: {app}(r)en azken bertsioa deskargatzen da.",
+  "lbl_qr_instalar_paso3": "3. Ireki deskargatutako fitxategia eta instalatu (Android-ek instalazioa baimentzeko eska dezake)."
 }

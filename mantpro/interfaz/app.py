@@ -53,7 +53,7 @@ from .temas import Temas
 from ..nucleo import usuarios
 from ..nucleo.basedatos import GestorBaseDatos
 from ..nucleo.rutas import DATA_DIR
-from ..version import APP_VERSION, GESTOR_PAQUETES
+from ..version import APP_VERSION, GESTOR_PAQUETES, REPO_NAME, REPO_OWNER
 
 # ==========================================
 # 4. APLICACIÓN PRINCIPAL
@@ -264,6 +264,16 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.qr_dialog = DialogoQR(url, self)
         self.qr_dialog.exec(); self.qr_dialog = None
 
+    def mostrar_qr_instalar_app(self, apk, nombre_app):
+        """QR con el enlace de descarga del APK de la última versión estable en
+        GitHub («releases/latest» se salta las versiones de pruebas): al
+        escanearlo con la cámara del móvil se descarga la app."""
+        url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/releases/latest/download/{apk}"
+        DialogoQR(url, self, titulo=tt("title_instalar_app_movil", "Instalar {app} en el móvil").format(app=nombre_app),
+                  pasos=[tt("lbl_qr_instalar_paso1", "1. Escanea el código con la cámara del móvil."),
+                         tt("lbl_qr_instalar_paso2", "2. Abre el enlace: se descarga la última versión de {app}.").format(app=nombre_app),
+                         tt("lbl_qr_instalar_paso3", "3. Abre el fichero descargado e instálalo (Android puede pedir permitir la instalación).")]).exec()
+
     def mostrar_about(self):
         import webbrowser
         texto = f"""
@@ -384,6 +394,8 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         grupos = [
             # Móviles y conexión con el PC
             [(t("menu_sync_qr"), self.mostrar_dialogo_qr, True),
+             (tt("menu_instalar_mantpro", "📱 Instalar MantPro en móvil"), lambda: self.mostrar_qr_instalar_app("MantPro.apk", "MantPro"), True),
+             (tt("menu_instalar_mantpro_stock", "📦 Instalar MantPro Stock en móvil"), lambda: self.mostrar_qr_instalar_app("MantProStock.apk", "MantPro Stock"), True),
              (tt("menu_sesiones", "🔐 Sesiones de dispositivos"), self.gestionar_sesiones, admin),
              (tt("menu_puerto_servidor", "🔌 Puerto de sincronización…"), self.cambiar_puerto_servidor, admin)],
             # Usuarios y seguridad
