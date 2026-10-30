@@ -47,26 +47,47 @@ from ..version import APP_VERSION, REPO_NAME, REPO_OWNER
 class ChequeadorActualizaciones(QThread):
     resultado = pyqtSignal(bool, str, str, str)
 
+    # Orden de las etiquetas de versión de pruebas; cualquier otra cuenta como "dev".
+    _ORDEN_PRUEBAS = {"dev": 0, "alpha": 1, "a": 1, "beta": 2, "b": 2, "rc": 3}
+
+    @classmethod
+    def clave_version(cls, v):
+        """Clave ordenable de una versión: parte numérica, luego si es final
+        (va por delante de sus versiones de pruebas) y, entre versiones de
+        pruebas del mismo número, su etiqueta y su número: 3.10.2-dev <
+        3.10.2-dev.1 < 3.10.2-dev.3 < 3.10.2-beta < 3.10.2-rc.1 < 3.10.2."""
+        numeros, _, sufijo = v.strip().lstrip("vV").partition("-")
+        partes = [int(x) if x.isdigit() else 0 for x in numeros.split(".")][:3]
+        partes += [0] * (3 - len(partes))
+        if not sufijo:
+            return partes + [1, 0, 0]
+        etiqueta = re.sub(r"[^a-z]", "", sufijo.lower())
+        numero = re.findall(r"\d+", sufijo)
+        return partes + [0, cls._ORDEN_PRUEBAS.get(etiqueta, 0), int(numero[0]) if numero else 0]
+
+    @classmethod
+    def es_version_pruebas(cls, v):
+        return "-" in v.strip()
+
     def comparar_versiones(self, v1, v2):
-        """True si v1 es más nueva que v2. Admite el prefijo "v" y sufijos de
-        versión de pruebas ("3.10.2-dev1", "3.10.2-rc.1"): se compara la parte
-        numérica y, si es igual, la versión final va por delante de sus
-        versiones de pruebas. Antes, "3.10.2-dev1" se leía como 3.10.21."""
-        def parse(v):
-            numeros, _, sufijo = v.strip().lstrip("vV").partition("-")
-            partes = [int(x) if x.isdigit() else 0 for x in numeros.split(".")]
-            return partes + [0] * (3 - len(partes)), bool(sufijo)
-        (p1, pruebas1), (p2, pruebas2) = parse(v1), parse(v2)
-        if p1 != p2:
-            return p1 > p2
-        return pruebas2 and not pruebas1
+        """True si v1 es más nueva que v2 (admite el prefijo "v")."""
+        return self.clave_version(v1) > self.clave_version(v2)
 
     def run(self):
+        """Busca la release más nueva en GitHub. A quien tiene una versión
+        estable solo se le ofrecen estables; a quien ya tiene instalada una
+        versión de pruebas (-dev, -beta, -rc…), también las de pruebas.
+        («releases/latest» de GitHub nunca devuelve pre-releases, por eso se
+        pide la lista.)"""
         try:
-            url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+            url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases?per_page=30"
             res = requests.get(url, timeout=5)
             if res.status_code == 200:
-                data = res.json()
+                acepta_pruebas = self.es_version_pruebas(APP_VERSION)
+                candidatas = [r for r in res.json()
+                              if r.get("tag_name") and not r.get("draft")
+                              and (acepta_pruebas or not r.get("prerelease"))]
+                data = max(candidatas, key=lambda r: self.clave_version(r["tag_name"]), default={})
                 tag = data.get("tag_name", "")
                 html_url = data.get("html_url", "")
                 body = data.get("body", "")

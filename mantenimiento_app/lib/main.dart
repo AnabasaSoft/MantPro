@@ -528,22 +528,45 @@ const String kRepoName = 'MantPro';
 /// "3.10.2-rc.1"): se compara la parte numérica y, si es igual, la versión
 /// final va por delante de sus versiones de pruebas (antes "2-dev1" se leía
 /// como 0, y una versión de pruebas creía ser la 3.10.0).
+/// Clave ordenable de una versión: parte numérica, luego si es final (va por
+/// delante de sus versiones de pruebas) y, entre versiones de pruebas del mismo
+/// número, su etiqueta y su número: 3.10.2-dev < 3.10.2-dev.1 < 3.10.2-dev.3 <
+/// 3.10.2-beta < 3.10.2-rc.1 < 3.10.2. Igual que clave_version() en el PC.
+List<int> _claveVersion(String v) {
+  const ordenPruebas = {'dev': 0, 'alpha': 1, 'a': 1, 'beta': 2, 'b': 2, 'rc': 3};
+  final limpia = v.trim().replaceFirst(RegExp(r'^[vV]'), '');
+  final guion = limpia.indexOf('-');
+  final numeros = guion < 0 ? limpia : limpia.substring(0, guion);
+  final partes = numeros.split('.').map((s) => int.tryParse(s.trim()) ?? 0).take(3).toList();
+  while (partes.length < 3) { partes.add(0); }
+  if (guion < 0) return [...partes, 1, 0, 0];
+  final sufijo = limpia.substring(guion + 1).toLowerCase();
+  final etiqueta = sufijo.replaceAll(RegExp(r'[^a-z]'), '');
+  final numero = RegExp(r'\d+').firstMatch(sufijo)?.group(0);
+  return [...partes, 0, ordenPruebas[etiqueta] ?? 0, int.tryParse(numero ?? '') ?? 0];
+}
+
 int _compararVersiones(String a, String b) {
-  (List<int>, bool) parse(String v) {
-    final limpia = v.trim().replaceFirst(RegExp(r'^[vV]'), '');
-    final guion = limpia.indexOf('-');
-    final numeros = guion < 0 ? limpia : limpia.substring(0, guion);
-    return (numeros.split('.').map((s) => int.tryParse(s.trim()) ?? 0).toList(), guion >= 0);
+  final ka = _claveVersion(a), kb = _claveVersion(b);
+  for (int i = 0; i < ka.length; i++) {
+    if (ka[i] != kb[i]) return ka[i].compareTo(kb[i]);
   }
-  final (pa, pruebasA) = parse(a);
-  final (pb, pruebasB) = parse(b);
-  for (int i = 0; i < 3; i++) {
-    final va = i < pa.length ? pa[i] : 0;
-    final vb = i < pb.length ? pb[i] : 0;
-    if (va != vb) return va.compareTo(vb);
+  return 0;
+}
+
+/// Release más nueva de la lista de GitHub. A quien tiene una versión estable
+/// solo se le ofrecen estables; a quien ya tiene instalada una versión de
+/// pruebas (-dev, -beta, -rc…), también las de pruebas. («releases/latest» de
+/// GitHub nunca devuelve pre-releases, por eso se pide la lista.)
+Map<String, dynamic>? _releaseMasNueva(List<dynamic> releases) {
+  final aceptaPruebas = kAppVersion.contains('-');
+  Map<String, dynamic>? mejor;
+  for (final r in releases.whereType<Map<String, dynamic>>()) {
+    final tag = (r['tag_name'] ?? '').toString();
+    if (tag.isEmpty || r['draft'] == true || (r['prerelease'] == true && !aceptaPruebas)) continue;
+    if (mejor == null || _compararVersiones(tag, mejor['tag_name'].toString()) > 0) mejor = r;
   }
-  if (pruebasA == pruebasB) return 0;
-  return pruebasA ? -1 : 1;
+  return mejor;
 }
 
 /// Consulta el último release del repo en GitHub y, si hay una versión más nueva que la instalada,
@@ -557,12 +580,12 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
   }
   try {
     final res = await http.get(
-      Uri.parse('https://api.github.com/repos/$kRepoOwner/$kRepoName/releases/latest'),
+      Uri.parse('https://api.github.com/repos/$kRepoOwner/$kRepoName/releases?per_page=30'),
       headers: {'Accept': 'application/vnd.github+json'},
     ).timeout(const Duration(seconds: 6));
     await prefs.setInt('update_ultima_comprobacion', DateTime.now().millisecondsSinceEpoch);
     if (res.statusCode != 200) { if (forzar && context.mounted) _mostrarSnackSinNovedad(context, error: true); return; }
-    final data = json.decode(res.body);
+    final data = _releaseMasNueva(json.decode(res.body) as List<dynamic>) ?? {};
     final String tag = (data['tag_name'] ?? '').toString();
     final String urlRelease = (data['html_url'] ?? 'https://github.com/$kRepoOwner/$kRepoName/releases').toString();
     final String notas = (data['body'] ?? '').toString();
