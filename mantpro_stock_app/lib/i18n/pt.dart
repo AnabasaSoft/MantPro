@@ -129,4 +129,6 @@ const Map<String, String> traduccionesPt = {
   "canal_conexion_pc": "Conexão com o PC",
   "canal_conexion_pc_desc": "Mantém o app sincronizando com o PC enquanto está aberto em segundo plano",
   "btn_cerrar_app": "Fechar",
+  "title_material_parecido": "Item parecido",
+  "msg_material_parecido": "Já existem itens com o mesmo código ou um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?",
 };

@@ -140,4 +140,6 @@ const Map<String, String> traduccionesEu = {
     "canal_conexion_pc": "PCarekiko konexioa",
     "canal_conexion_pc_desc": "Aplikazioa PCarekin sinkronizatzen mantentzen du bigarren planoan irekita dagoen bitartean",
     "btn_cerrar_app": "Itxi",
+    "title_material_parecido": "Antzeko artikulua",
+    "msg_material_parecido": "Badaude kode bera edo izen bera edo oso antzekoa duten artikuluak:\n\n{lista}\n\nHala ere gorde?",
 };

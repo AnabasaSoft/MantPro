@@ -473,6 +473,11 @@ class StockApi {
     return lista;
   }
 
+  /// Artículos que el móvil ya tiene guardados (con lo pendiente de enviar),
+  /// sin preguntar al PC: para comprobaciones que no deben esperar a la red.
+  static Future<List<Articulo>> materialesLocales() async =>
+      _conPendientes(await _cacheMateriales() ?? []);
+
   static Future<List<Articulo>> obtenerMateriales({String? q}) async {
     try {
       final ip = await _ip();

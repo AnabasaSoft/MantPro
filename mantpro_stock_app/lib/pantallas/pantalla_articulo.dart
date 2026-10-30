@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import '../api.dart';
 import '../i18n/strings.dart';
 import '../modelos.dart';
+import '../nombres.dart';
 
 /// Muestra (y, si el usuario puede gestionar el almacén, permite editar) un artículo.
 /// - Si [materialId] es null se abre directamente en modo creación, preseleccionando
@@ -199,6 +200,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
           SnackBar(content: Text(tt('msg_selecciona_seccion', 'Selecciona una sección del almacén.'))));
       return;
     }
+    if (!await _confirmarSiHayParecidos()) return;
     setState(() => _guardando = true);
     try {
       final sincronizado = await StockApi.guardarMaterial(
@@ -226,6 +228,43 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
       }
     }
     if (mounted) setState(() => _guardando = false);
+  }
+
+  /// Avisa si ya hay otro artículo con el mismo código o un nombre igual o
+  /// muy parecido (al editar, solo si cambia alguno de los dos). Compara con
+  /// los artículos guardados en el móvil, así que funciona sin conexión.
+  /// Devuelve false si el usuario prefiere no guardar.
+  Future<bool> _confirmarSiHayParecidos() async {
+    final codigo = _codigo.text.trim();
+    final nombre = _nombre.text.trim();
+    final m = _material;
+    if (widget.materialId != null && m != null && m.codigo == codigo && m.nombre == nombre) return true;
+    final codigoNorm = normalizarNombre(codigo);
+    final parecidos = (await StockApi.materialesLocales())
+        .where((a) => a.id != widget.materialId &&
+            ((codigoNorm.isNotEmpty && normalizarNombre(a.codigo) == codigoNorm) || sonParecidos(nombre, a.nombre)))
+        .take(10)
+        .toList();
+    if (parecidos.isEmpty || !mounted) return true;
+    final lista = parecidos.map((a) {
+      final texto = a.codigo.isNotEmpty ? '[${a.codigo}] ${a.nombre}' : a.nombre;
+      return '• $texto${a.ubicacion.isNotEmpty ? ' — ${a.ubicacion}' : ''}';
+    }).join('\n');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tt('title_material_parecido', 'Artículo parecido')),
+        content: SingleChildScrollView(
+            child: Text(tt('msg_material_parecido',
+                    'Ya hay artículos con el mismo código o un nombre igual o muy parecido:\n\n{lista}\n\n¿Guardar igualmente?')
+                .replaceAll('{lista}', lista))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('btn_cancelar'))),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t('btn_guardar'))),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _registrarMovimiento(String tipo) async {

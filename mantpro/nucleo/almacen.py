@@ -44,6 +44,8 @@ Uso desde la interfaz (mantpro/interfaz/app.py):
 import re
 import sqlite3
 
+from . import nombres
+
 RUTA_DB = "almacen.db"
 
 
@@ -611,6 +613,21 @@ def borrar_material(material_id):
     _borrar_seccion_si_implicita_y_vacia(con, seccion_id)
     con.commit()
     con.close()
+
+
+def materiales_parecidos(codigo, nombre, excluir_id=None):
+    """Artículos de todo el almacén con el mismo código o un nombre igual o
+    muy parecido (ver nucleo/nombres.py), para avisar antes de dar de alta
+    el mismo material dos veces. Devuelve dicts con id, codigo, nombre y
+    seccion_id."""
+    codigo_buscado = nombres.normalizar(codigo)
+    con = _conn()
+    filas = con.execute("SELECT id, codigo, nombre, seccion_id FROM materiales ORDER BY nombre").fetchall()
+    con.close()
+    return [dict(f) for f in filas
+            if f["id"] != excluir_id and (
+                (codigo_buscado and nombres.normalizar(f["codigo"]) == codigo_buscado)
+                or nombres.son_parecidos(nombre, f["nombre"]))]
 
 
 def obtener_material(material_id):

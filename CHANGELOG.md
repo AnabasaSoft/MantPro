@@ -13,7 +13,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ### Mejoras
 - En MantPro (móvil), la pestaña **«Local» pasa a llamarse «Nuevo»**, que describe mejor para qué sirve.
-- Al crear o renombrar una máquina, **aviso si al mismo nivel ya hay otra con un nombre igual o muy parecido** (p. ej. «Extractor de finos» / «Extracción de finos»), para no darla de alta dos veces. No avisa cuando solo cambia el número («Lora 1» / «Lora 2»).
+- **Aviso de repetidos**: al crear o renombrar una máquina, avisa si al mismo nivel ya hay otra con un nombre igual o muy parecido (p. ej. «Extractor de finos» / «Extracción de finos»); al crear o editar un artículo del almacén (en el PC y en MantPro Stock, también sin conexión), si ya hay otro con el mismo código o un nombre muy parecido. No avisa cuando solo cambia el número («Lora 1» / «Lora 2», «Grapa 8mm» / «Grapa 16mm»).
 - **F1 contextual**: la ayuda se abre directamente en el apartado de la pestaña en la que estás.
 - **Versión de openSUSE (OBS)**: *Ayuda → Buscar actualizaciones* indica que se actualiza con `zypper`, en vez de decir que se ejecuta «desde el código fuente».
 

@@ -767,5 +767,7 @@
   "msg_nota_estadisticas_tecnicos": "Les heures d'arrêt sont celles des interventions de panne. « En attente » correspond aux interventions assignées à chaque technicien en ce moment.",
   "lbl_tecnico_historico": "Historique (sans utilisateur)",
   "title_nombre_maquina_parecido": "Nom similaire",
-  "msg_nombre_maquina_parecido": "Au même niveau, il existe déjà une machine avec un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?"
+  "msg_nombre_maquina_parecido": "Au même niveau, il existe déjà une machine avec un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?",
+  "title_material_parecido": "Article similaire",
+  "msg_material_parecido": "Il existe déjà des articles avec le même code ou un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?"
 }

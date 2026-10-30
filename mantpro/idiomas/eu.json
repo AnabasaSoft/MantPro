@@ -767,5 +767,7 @@
   "msg_nota_estadisticas_tecnicos": "Geldialdi-orduak matxura-lanenak dira. «Egiteke» teknikari bakoitzak une honetan esleituta dituen lanak dira.",
   "lbl_tecnico_historico": "Historikoa (erabiltzailerik gabe)",
   "title_nombre_maquina_parecido": "Antzeko izena",
-  "msg_nombre_maquina_parecido": "Maila berean badago izen bera edo oso antzekoa duen makina bat:\n\n{lista}\n\nHala ere gorde?"
+  "msg_nombre_maquina_parecido": "Maila berean badago izen bera edo oso antzekoa duen makina bat:\n\n{lista}\n\nHala ere gorde?",
+  "title_material_parecido": "Antzeko artikulua",
+  "msg_material_parecido": "Badaude kode bera edo izen bera edo oso antzekoa duten artikuluak:\n\n{lista}\n\nHala ere gorde?"
 }

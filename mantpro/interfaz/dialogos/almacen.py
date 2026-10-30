@@ -663,6 +663,24 @@ class DialogoEditarMaterial(QDialog):
         if not self.campo_nombre.text().strip():
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_material_obligatorio", "El nombre del material es obligatorio."))
             return
+        # Avisar si ya hay otro artículo con el mismo código o un nombre muy
+        # parecido (al editar, solo si cambia alguno de los dos).
+        codigo, nombre = self.campo_codigo.text().strip(), self.campo_nombre.text().strip()
+        cambia = self.es_nuevo or codigo != (self.material.get("codigo") or "") or nombre != self.material["nombre"]
+        parecidos = almacen.materiales_parecidos(codigo, nombre, None if self.es_nuevo else self.material["id"]) if cambia else []
+        if parecidos:
+            ubicacion = getattr(self.parent(), "_texto_ubicacion", None)
+            def linea(m):
+                texto = f"[{m['codigo']}] {m['nombre']}" if m["codigo"] else m["nombre"]
+                donde = ubicacion(m["seccion_id"]) if ubicacion and m["seccion_id"] else ""
+                return f"  • {texto}" + (f" — {donde}" if donde else "")
+            r = QMessageBox.question(
+                self, tt("title_material_parecido", "Artículo parecido"),
+                tt("msg_material_parecido", "Ya hay artículos con el mismo código o un nombre igual o muy parecido:\n\n{lista}\n\n¿Guardar igualmente?").format(
+                    lista="\n".join(linea(m) for m in parecidos[:10])),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if r != QMessageBox.StandardButton.Yes:
+                return
         self.accept()
 
     def get_data(self):

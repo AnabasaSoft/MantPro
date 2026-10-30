@@ -767,5 +767,7 @@
   "msg_nota_estadisticas_tecnicos": "As horas de parada son as dos traballos de avaría. «Pendentes» son os traballos que cada técnico ten asignados agora mesmo.",
   "lbl_tecnico_historico": "Histórico (sen usuario)",
   "title_nombre_maquina_parecido": "Nome parecido",
-  "msg_nombre_maquina_parecido": "No mesmo nivel xa hai unha máquina cun nome igual ou moi parecido:\n\n{lista}\n\nGardar igualmente?"
+  "msg_nombre_maquina_parecido": "No mesmo nivel xa hai unha máquina cun nome igual ou moi parecido:\n\n{lista}\n\nGardar igualmente?",
+  "title_material_parecido": "Artigo parecido",
+  "msg_material_parecido": "Xa hai artigos co mesmo código ou un nome igual ou moi parecido:\n\n{lista}\n\nGardar igualmente?"
 }

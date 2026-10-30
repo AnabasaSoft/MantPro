@@ -767,5 +767,7 @@
   "msg_nota_estadisticas_tecnicos": "As horas de parada são as dos serviços de falha. «Pendentes» são os serviços que cada técnico tem atribuídos agora.",
   "lbl_tecnico_historico": "Histórico (sem usuário)",
   "title_nombre_maquina_parecido": "Nome parecido",
-  "msg_nombre_maquina_parecido": "No mesmo nível já existe uma máquina com um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?"
+  "msg_nombre_maquina_parecido": "No mesmo nível já existe uma máquina com um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?",
+  "title_material_parecido": "Item parecido",
+  "msg_material_parecido": "Já existem itens com o mesmo código ou um nome igual ou muito parecido:\n\n{lista}\n\nSalvar mesmo assim?"
 }

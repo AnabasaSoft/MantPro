@@ -129,4 +129,6 @@ const Map<String, String> traduccionesFr = {
   "canal_conexion_pc": "Connexion au PC",
   "canal_conexion_pc_desc": "Maintient l'application synchronisée avec le PC tant qu'elle est ouverte en arrière-plan",
   "btn_cerrar_app": "Fermer",
+  "title_material_parecido": "Article similaire",
+  "msg_material_parecido": "Il existe déjà des articles avec le même code ou un nom identique ou très similaire :\n\n{lista}\n\nEnregistrer quand même ?",
 };

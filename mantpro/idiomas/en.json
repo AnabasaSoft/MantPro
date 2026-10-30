@@ -767,5 +767,7 @@
   "msg_nota_estadisticas_tecnicos": "Downtime hours are those of breakdown jobs. «Pending» are the jobs each technician has assigned right now.",
   "lbl_tecnico_historico": "History (no user)",
   "title_nombre_maquina_parecido": "Similar name",
-  "msg_nombre_maquina_parecido": "There is already a machine at the same level with the same or a very similar name:\n\n{lista}\n\nSave anyway?"
+  "msg_nombre_maquina_parecido": "There is already a machine at the same level with the same or a very similar name:\n\n{lista}\n\nSave anyway?",
+  "title_material_parecido": "Similar item",
+  "msg_material_parecido": "There are already items with the same code or the same or a very similar name:\n\n{lista}\n\nSave anyway?"
 }
