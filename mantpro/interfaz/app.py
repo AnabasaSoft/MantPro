@@ -377,22 +377,37 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
 
         menu_exportar.addAction(QAction(t("menu_csv"), self, triggered=self.exportar_csv))
         menu_exportar.addAction(QAction(t("menu_excel"), self, triggered=self.exportar_excel))
+        # Herramientas, agrupadas por tema (los grupos vacíos para quien no es
+        # administrador no dejan separadores sueltos).
         tm = mb.addMenu(t("menu_herramientas"))
-        act_sync = QAction(t("menu_sync_qr"), self); act_sync.triggered.connect(self.mostrar_dialogo_qr); tm.addAction(act_sync)
-        if usuarios.es_admin():
-            tm.addAction(QAction(t("menu_gestionar_dias"), self, triggered=self.gest_dias));
-
-            # --- OPCIÓN DE PAÍS / PROVINCIA ---
-            act_prov = QAction(t("menu_pais_region"), self)
-            act_prov.triggered.connect(self.cambiar_pais_region)
-            tm.addAction(act_prov)
-            tm.addAction(QAction(tt("menu_puerto_servidor", "🔌 Puerto de sincronización…"), self,
-                                 triggered=self.cambiar_puerto_servidor))
-            tm.addAction(QAction(tt("menu_tiempo_guardado", "🗑️ Tiempo máximo de guardado de trabajos…"), self,
-                                 triggered=self.borrar_trabajos_antiguos))
-            # ---------------------------------
+        admin = usuarios.es_admin()
+        grupos = [
+            # Móviles y conexión con el PC
+            [(t("menu_sync_qr"), self.mostrar_dialogo_qr, True),
+             (tt("menu_sesiones", "🔐 Sesiones de dispositivos"), self.gestionar_sesiones, admin),
+             (tt("menu_puerto_servidor", "🔌 Puerto de sincronización…"), self.cambiar_puerto_servidor, admin)],
+            # Usuarios y seguridad
+            [(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"), self.cambiar_mi_password, True),
+             (tt("menu_usuarios", "👥 Gestión de usuarios"), self.gestionar_usuarios, admin),
+             (tt("menu_auditoria", "📋 Registro de cambios"), self.ver_auditoria, admin)],
+            # Calendario
+            [(t("menu_gestionar_dias"), self.gest_dias, admin),
+             (t("menu_pais_region"), self.cambiar_pais_region, admin)],
+            # Limpieza de datos
+            [(tt("menu_tiempo_guardado", "🗑️ Tiempo máximo de guardado de trabajos…"), self.borrar_trabajos_antiguos, admin),
+             (t("menu_limpiar_fotos"), lambda: self.limpiar_fotos_huerfanas(limpiar_backups=True), admin)],
+        ]
+        for grupo in grupos:
+            visibles = [(texto, accion) for texto, accion, permitido in grupo if permitido]
+            if not visibles:
+                continue
+            if not tm.isEmpty():
+                tm.addSeparator()
+            for texto, accion in visibles:
+                tm.addAction(QAction(texto, self, triggered=accion))
 
         # --- SUBMENÚ DE IDIOMA ---
+        tm.addSeparator()
         menu_idioma = tm.addMenu(t("menu_idioma"))
         self.acciones_idioma = []
         for codigo, nombre in idiomas.IDIOMAS_DISPONIBLES:
@@ -404,19 +419,6 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             self.acciones_idioma.append((codigo, act_idioma))
         # -------------------------
 
-        fm.addSeparator()
-        if usuarios.es_admin():
-            tm.addAction(QAction(t("menu_limpiar_fotos"), self, triggered=lambda: self.limpiar_fotos_huerfanas(limpiar_backups=True)))
-            tm.addSeparator()
-        tm.addAction(QAction(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"),
-                             self, triggered=self.cambiar_mi_password))
-        if usuarios.es_admin():
-            tm.addAction(QAction(tt("menu_usuarios", "👥 Gestión de usuarios"),
-                                 self, triggered=self.gestionar_usuarios))
-            tm.addAction(QAction(tt("menu_sesiones", "🔐 Sesiones de dispositivos"),
-                                 self, triggered=self.gestionar_sesiones))
-            tm.addAction(QAction(tt("menu_auditoria", "📋 Registro de cambios"),
-                                 self, triggered=self.ver_auditoria))
         # --- Menú de tema visual ---
         vm = mb.addMenu(tt("menu_tema", "Apariencia"))
         self._acciones_tema = {}

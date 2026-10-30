@@ -6,6 +6,10 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Mejoras
+- **Menú Herramientas ordenado por grupos**: móviles y conexión (QR, sesiones de dispositivos, puerto), usuarios (contraseña, gestión de usuarios, registro de cambios), calendario (días y festivos, país o región), limpieza de datos (tiempo de guardado, fotos sin usar) e idioma.
+- **Pestaña Registrar**: se quita el botón «Sincronizar App», que ya está en *Herramientas → 📲 Sincronizar App (QR)*.
+
 ### Correcciones
 - **Pestaña Registrar**: en pantallas bajas o al sacar la ventana de maximizada, los recuadros de las fotos y los botones «Añadir fotos» / «Quitar» se dibujaban unos encima de otros y el botón «Guardar registro» quedaba cortado. Ahora, si el formulario no cabe, aparece una barra de desplazamiento.
 
