@@ -441,8 +441,21 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         hm.addAction(QAction(t("menu_buscar_actualizaciones"), self, triggered=lambda: self.comprobar_actualizaciones(manual=True)))
         hm.addAction(QAction(t("menu_acerca_de"), self, triggered=self.mostrar_about))
 
+    def _seccion_ayuda_actual(self):
+        """Apartado de la ayuda de la pestaña que se está viendo (ver los
+        <a name> de mantpro/idiomas/ayuda/*.html)."""
+        secciones = {
+            "tab_dashboard": "dashboard", "tab_calendar": "calendario", "tab_avisos": "avisos",
+            "tab_entry": "registrar", "tab_history": "historial", "tab_search": "buscador",
+            "tab_todo": "pendientes", "tab_maquinas": "maquinas", "tab_stock": "stock",
+            "tab_stock_alertas": "bajo_minimo",
+        }
+        actual = self.tabs.currentWidget()
+        return next((sec for atributo, sec in secciones.items() if getattr(self, atributo, None) is actual), None)
+
     def mostrar_ayuda(self):
-        DialogoAyuda(self).exec()
+        # F1 (o el menú) abre la ayuda directamente en el apartado de la pestaña activa.
+        DialogoAyuda(self, seccion=self._seccion_ayuda_actual()).exec()
 
     def cambiar_idioma(self, codigo):
         if codigo == idiomas.get_idioma():

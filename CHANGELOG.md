@@ -11,6 +11,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **Las apps móviles siguen conectadas en segundo plano**: MantPro y MantPro Stock sincronizan (cada 5 s en pantalla, cada 30 s en segundo plano) y el PC las ve en línea hasta que se cierran del todo. Mientras están abiertas muestran una notificación permanente («Conectado al PC» / «Sin conexión con el PC») con un botón «Cerrar». El aviso de las 8:00 no cambia.
 
 ### Mejoras
+- **F1 contextual**: la ayuda se abre directamente en el apartado de la pestaña en la que estás.
 - **Versión de openSUSE (OBS)**: *Ayuda → Buscar actualizaciones* indica que se actualiza con `zypper`, en vez de decir que se ejecuta «desde el código fuente».
 
 ### Correcciones
