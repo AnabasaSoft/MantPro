@@ -773,5 +773,6 @@
   "btn_exportar_pdf_corto": "📄 Esportatu PDF",
   "btn_exportar_excel_corto": "📊 Esportatu Excel",
   "msg_estadisticas_exportadas": "Estatistikak hemen esportatu dira:\n{ruta}",
-  "msg_sin_datos_estadisticas": "Ez dago esportatzeko lanik aldi horretan."
+  "msg_sin_datos_estadisticas": "Ez dago esportatzeko lanik aldi horretan.",
+  "filtro_mantenimiento_preventivo": "Mantentze prebentiboa"
 }

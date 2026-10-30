@@ -65,7 +65,15 @@ class DialogoEstadisticasTecnicos(QDialog):
         if self.combo_anio.count() > 1:
             self.combo_anio.setCurrentIndex(1)  # el año más reciente
         self.combo_anio.currentIndexChanged.connect(self._cargar)
-        barra.addWidget(self.combo_anio); barra.addStretch()
+        barra.addWidget(self.combo_anio)
+        barra.addSpacing(16)
+        barra.addWidget(QLabel(tt("hdr_tipo_historial", "Tipo") + ":"))
+        self.combo_tipo = QComboBox()
+        self.combo_tipo.addItem(tt("filtro_todos", "Todos"), None)
+        self.combo_tipo.addItem(tt("filtro_trabajos_averias", "Trabajos y averías"), "trabajos")
+        self.combo_tipo.addItem(tt("filtro_mantenimiento_preventivo", "Mantenimiento preventivo"), "preventivos")
+        self.combo_tipo.currentIndexChanged.connect(self._cargar)
+        barra.addWidget(self.combo_tipo); barra.addStretch()
         l.addLayout(barra)
 
         l.addWidget(QLabel(tt("lbl_trabajos_por_tecnico", "Trabajos por técnico")))
@@ -95,27 +103,34 @@ class DialogoEstadisticasTecnicos(QDialog):
 
     def _cargar(self):
         anio = self.combo_anio.currentData()
-        datos = estadisticas.por_tecnico(self.ruta_db, anio)
+        tipo = self.combo_tipo.currentData()
+        datos = estadisticas.por_tecnico(self.ruta_db, anio, tipo)
         for d in datos:
             if d["nombre"] == usuarios.ETIQUETA_HISTORICO:
                 d["nombre"] = tt("lbl_tecnico_historico", "Histórico (sin usuario)")
-        self._datos, self._anio = datos, anio
+        self._datos, self._anio, self._tipo = datos, anio, tipo
         self.grafico.establecer_datos([(d["nombre"], d["total"]) for d in datos if d["total"]])
 
         meses = [t(f"mes_{m:02d}_corto") for m in range(1, 13)] if anio else []
         # Primero los totales (lo que más se mira) y después los meses, que en
         # pantallas estrechas pueden quedar a la derecha con desplazamiento.
-        cabeceras = ([tt("hdr_tecnico", "Técnico"), tt("hdr_total", "Total"),
-                      tt("hdr_averias", "Averías"), tt("hdr_preventivos", "Preventivos"),
-                      tt("hdr_horas_paro", "Horas de parada"), tt("hdr_pendientes_asignados", "Pendientes")] + meses)
+        # Las columnas que no aportan nada con el tipo elegido no se muestran
+        # (en preventivos todo es preventivo y no hay averías ni pendientes; en
+        # trabajos no hay preventivos).
+        self._columnas = [] if tipo == "preventivos" else [
+            c for c in ("averias", "preventivos", "horas_paro", "pendientes") if not (tipo == "trabajos" and c == "preventivos")]
+        self.lbl_nota.setVisible(bool(self._columnas))
+        nombres_col = {"averias": tt("hdr_averias", "Averías"), "preventivos": tt("hdr_preventivos", "Preventivos"),
+                       "horas_paro": tt("hdr_horas_paro", "Horas de parada"), "pendientes": tt("hdr_pendientes_asignados", "Pendientes")}
+        cabeceras = ([tt("hdr_tecnico", "Técnico"), tt("hdr_total", "Total")]
+                     + [nombres_col[c] for c in self._columnas] + meses)
         self.tabla.setSortingEnabled(False)
         self.tabla.clear()
         self.tabla.setColumnCount(len(cabeceras)); self.tabla.setHorizontalHeaderLabels(cabeceras)
         self.tabla.setRowCount(len(datos))
         for i, d in enumerate(datos):
-            celdas = [QTableWidgetItem(d["nombre"]), _ItemNumero(d["total"]),
-                      _ItemNumero(d["averias"]), _ItemNumero(d["preventivos"]),
-                      _ItemNumero(d["horas_paro"], f"{d['horas_paro']:g}"), _ItemNumero(d["pendientes"])]
+            celdas = [QTableWidgetItem(d["nombre"]), _ItemNumero(d["total"])]
+            celdas += [_ItemNumero(d[c], f"{d[c]:g}") for c in self._columnas]
             if anio:
                 celdas += [_ItemNumero(n, str(n) if n else "·") for n in d["meses"]]
             for j, item in enumerate(celdas):
@@ -123,11 +138,10 @@ class DialogoEstadisticasTecnicos(QDialog):
                     fuente = item.font(); fuente.setBold(True); item.setFont(fuente)
                 self.tabla.setItem(i, j, item)
         self.tabla.setSortingEnabled(True)
-        # Todas las columnas a su contenido (el nombre completo del técnico
-        # incluido); el sobrante va a la última.
+        # Todas las columnas a su contenido (el nombre completo del técnico incluido).
         cab = self.tabla.horizontalHeader()
         cab.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        cab.setStretchLastSection(True)
+        cab.setStretchLastSection(False)
 
     # ------------------------------------------------------------ exportar
 
@@ -137,7 +151,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         cabeceras = [self.tabla.horizontalHeaderItem(c).text() for c in range(self.tabla.columnCount())]
         filas = []
         for d in self._datos:
-            fila = [d["nombre"], d["total"], d["averias"], d["preventivos"], d["horas_paro"], d["pendientes"]]
+            fila = [d["nombre"], d["total"]] + [d[c] for c in self._columnas]
             if self._anio:
                 fila += d["meses"]
             filas.append(fila)
@@ -152,8 +166,11 @@ class DialogoEstadisticasTecnicos(QDialog):
             except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
         periodo = str(self._anio) if self._anio else tt("lbl_todos_los_anos", "Todos los años")
         titulo = f"{tt('title_estadisticas_tecnicos', 'Estadísticas por técnico')} — {periodo}"
+        if self._tipo:
+            titulo += f" — {self.combo_tipo.currentText()}"
         base = re.sub(r"[^\w-]+", "_", tt("title_estadisticas_tecnicos", "Estadísticas por técnico")).strip("_")
-        nombre_defecto = f"{base}_{self._anio or re.sub(r'[^\w-]+', '_', periodo)}.{formato}"
+        sufijo_tipo = "_" + re.sub(r"[^\w-]+", "_", self.combo_tipo.currentText()).strip("_") if self._tipo else ""
+        nombre_defecto = f"{base}_{self._anio or re.sub(r'[^\w-]+', '_', periodo)}{sufijo_tipo}.{formato}"
         filtro = "PDF (*.pdf)" if formato == "pdf" else "Excel (*.xlsx)"
         titulo_dlg = t("title_exportar_pdf") if formato == "pdf" else t("title_exportar_excel")
         guardar = getattr(self.parent(), "guardar_archivo_dialogo", None)
@@ -189,7 +206,8 @@ class DialogoEstadisticasTecnicos(QDialog):
         f_total = wb.add_format({"border": 1, "num_format": "0.##", "align": "right", "bold": True})
         ws.write(0, 0, titulo, f_tit)
         ws.write(1, 0, fecha)
-        ws.write(2, 0, self.lbl_nota.text(), f_nota)
+        if self._columnas:
+            ws.write(2, 0, self.lbl_nota.text(), f_nota)
         fila0 = 4
         for c, txt in enumerate(cabeceras): ws.write(fila0, c, txt, f_cab)
         for i, fila in enumerate(filas, start=fila0 + 1):
@@ -197,8 +215,9 @@ class DialogoEstadisticasTecnicos(QDialog):
             for c, valor in enumerate(fila[1:], start=1):
                 ws.write_number(i, c, valor, f_total if c == 1 else f_num)
         ws.set_column(0, 0, max(14, max(len(f[0]) for f in filas) + 2))
-        ws.set_column(1, 5, 13)
-        if len(cabeceras) > 6: ws.set_column(6, len(cabeceras) - 1, 6)
+        fijas = 2 + len(self._columnas)
+        ws.set_column(1, fijas - 1, 13)
+        if len(cabeceras) > fijas: ws.set_column(fijas, len(cabeceras) - 1, 6)
         ws.freeze_panes(fila0 + 1, 1)
         ws.autofilter(fila0, 0, fila0 + len(filas), len(cabeceras) - 1)
         wb.close()
@@ -241,17 +260,21 @@ class DialogoEstadisticasTecnicos(QDialog):
                 img = PDFImage(png, width=ancho_util, height=ancho_util * alto_px / 900)
                 elementos += [img, Spacer(1, 10)]
 
+            fijas = 2 + len(self._columnas)
+
             def num(v):
                 return f"{v:g}" if v else "·"
             datos = [[Paragraph(esc(c), celda_cab) for c in cabeceras]]
             for f in filas:
-                datos.append([Paragraph(esc(f[0]), celda), f"{f[1]:g}"] + [num(v) if i >= 6 else f"{v:g}" for i, v in enumerate(f[2:], start=2)])
+                datos.append([Paragraph(esc(f[0]), celda), f"{f[1]:g}"] + [num(v) if i >= fijas else f"{v:g}" for i, v in enumerate(f[2:], start=2)])
             ancho_nombre = 5.5*cm if self._anio else 6*cm
             resto = (ancho_util - ancho_nombre)
             if self._anio:
-                anchos = [ancho_nombre] + [resto * 0.11] * 5 + [resto * 0.45 / 12] * 12
+                # Las columnas de totales no necesitan más de 2,6 cm; el resto, para los meses.
+                ancho_fija = min(2.6*cm, resto * 0.55 / (fijas - 1))
+                anchos = [ancho_nombre] + [ancho_fija] * (fijas - 1) + [(resto - ancho_fija * (fijas - 1)) / 12] * 12
             else:
-                anchos = [ancho_nombre] + [resto / 5] * 5
+                anchos = [ancho_nombre] + [resto / (fijas - 1)] * (fijas - 1)
             tabla = Table(datos, colWidths=anchos, repeatRows=1)
             tabla.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3daee9")),
@@ -262,9 +285,11 @@ class DialogoEstadisticasTecnicos(QDialog):
                 ("FONTNAME", (1, 1), (1, -1), "Helvetica-Bold"),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f6f9")]),
                 # Meses: poco margen para que quepan abreviaturas de 4 letras («Janv»).
-                ("LEFTPADDING", (6, 0), (-1, -1), 1), ("RIGHTPADDING", (6, 0), (-1, -1), 2),
+                ("LEFTPADDING", (fijas, 0), (-1, -1), 1), ("RIGHTPADDING", (fijas, 0), (-1, -1), 2),
             ]))
-            elementos += [tabla, Spacer(1, 8), Paragraph(esc(self.lbl_nota.text()), nota)]
+            elementos.append(tabla)
+            if self._columnas:
+                elementos += [Spacer(1, 8), Paragraph(esc(self.lbl_nota.text()), nota)]
             doc.build(elementos)
         finally:
             import shutil

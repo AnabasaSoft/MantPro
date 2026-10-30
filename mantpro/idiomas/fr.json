@@ -773,5 +773,6 @@
   "btn_exportar_pdf_corto": "📄 Exporter en PDF",
   "btn_exportar_excel_corto": "📊 Exporter en Excel",
   "msg_estadisticas_exportadas": "Statistiques exportées dans :\n{ruta}",
-  "msg_sin_datos_estadisticas": "Aucune intervention à exporter pour cette période."
+  "msg_sin_datos_estadisticas": "Aucune intervention à exporter pour cette période.",
+  "filtro_mantenimiento_preventivo": "Maintenance préventive"
 }

@@ -773,5 +773,6 @@
   "btn_exportar_pdf_corto": "📄 Export PDF",
   "btn_exportar_excel_corto": "📊 Export Excel",
   "msg_estadisticas_exportadas": "Statistics exported to:\n{ruta}",
-  "msg_sin_datos_estadisticas": "There are no jobs to export in that period."
+  "msg_sin_datos_estadisticas": "There are no jobs to export in that period.",
+  "filtro_mantenimiento_preventivo": "Preventive maintenance"
 }
