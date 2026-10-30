@@ -793,5 +793,8 @@
   "msg_sin_repuestos": "Makina honek ez du ordezko piezarik esleituta.",
   "titulo_informe_repuestos": "{maquina} makinaren ordezko piezak",
   "msg_repuestos_exportados": "Ordezko piezak hemen esportatu dira:\n{ruta}",
-  "lbl_usado_en": "Hemen erabiltzen da: {maquinas}"
+  "lbl_usado_en": "Hemen erabiltzen da: {maquinas}",
+  "lbl_maquinas_del_material": "🔩 Makina hauetan erabiltzen da",
+  "btn_anadir_maquina_material": "Gehitu makina",
+  "txt_sin_maquinas_material": "— Ez dago inongo makinatan —"
 }

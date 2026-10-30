@@ -793,5 +793,8 @@
   "msg_sin_repuestos": "Aquesta màquina no té recanvis assignats.",
   "titulo_informe_repuestos": "Recanvis de {maquina}",
   "msg_repuestos_exportados": "Recanvis exportats a:\n{ruta}",
-  "lbl_usado_en": "S'utilitza a: {maquinas}"
+  "lbl_usado_en": "S'utilitza a: {maquinas}",
+  "lbl_maquinas_del_material": "🔩 S'utilitza a les màquines",
+  "btn_anadir_maquina_material": "Afegir màquina",
+  "txt_sin_maquinas_material": "— En cap màquina —"
 }

@@ -793,5 +793,8 @@
   "msg_sin_repuestos": "Esta máquina no tiene repuestos asignados.",
   "titulo_informe_repuestos": "Repuestos de {maquina}",
   "msg_repuestos_exportados": "Repuestos exportados en:\n{ruta}",
-  "lbl_usado_en": "Se usa en: {maquinas}"
+  "lbl_usado_en": "Se usa en: {maquinas}",
+  "lbl_maquinas_del_material": "🔩 Se usa en las máquinas",
+  "btn_anadir_maquina_material": "Añadir máquina",
+  "txt_sin_maquinas_material": "— En ninguna máquina —"
 }

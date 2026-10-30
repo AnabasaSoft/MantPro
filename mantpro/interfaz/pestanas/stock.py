@@ -497,9 +497,10 @@ class PestanaStock:
             d = dlg.get_data()
             if not d["nombre"]: return
             foto_guardada = self._guardar_foto_material(d["ruta_foto_seleccionada"])
-            almacen.crear_material(d["codigo"], d["nombre"], d["descripcion"], d["unidad"], d["stock_minimo"],
-                                    d["seccion_id"], foto_guardada, d["stock_inicial"],
-                                    usuarios.id_actual(), usuarios.nombre_actual())
+            nuevo_id = almacen.crear_material(d["codigo"], d["nombre"], d["descripcion"], d["unidad"], d["stock_minimo"],
+                                               d["seccion_id"], foto_guardada, d["stock_inicial"],
+                                               usuarios.id_actual(), usuarios.nombre_actual())
+            almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
             self.refresh_stock()
 
     def stock_editar_material(self):
@@ -520,6 +521,7 @@ class PestanaStock:
             almacen.actualizar_material(material_id, d["codigo"], d["nombre"], d["descripcion"], d["unidad"],
                                          d["stock_minimo"], d["seccion_id"], foto_final,
                                          usuarios.id_actual(), usuarios.nombre_actual())
+            almacen.fijar_maquinas_de_material(material_id, d["repuestos"])
             self.refresh_stock()
 
     def stock_borrar_material(self, ids=None):

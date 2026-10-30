@@ -685,6 +685,26 @@ def maquinas_de_material(material_id):
     return [(f["maquina_id"], f["cantidad"]) for f in filas]
 
 
+def repuestos_de_material(material_id):
+    """{maquina_id: (cantidad, notas)} de las máquinas que llevan este artículo."""
+    con = _conn()
+    filas = con.execute("SELECT maquina_id, cantidad, notas FROM maquina_repuestos WHERE material_id=?",
+                        (material_id,)).fetchall()
+    con.close()
+    return {f["maquina_id"]: (f["cantidad"], f["notas"] or "") for f in filas}
+
+
+def fijar_maquinas_de_material(material_id, vinculos):
+    """Deja el artículo vinculado exactamente a las máquinas de «vinculos»
+    ({maquina_id: (cantidad, notas)}), quitando las que ya no estén."""
+    con = _conn()
+    con.execute("DELETE FROM maquina_repuestos WHERE material_id=?", (material_id,))
+    con.executemany("INSERT INTO maquina_repuestos (maquina_id, material_id, cantidad, notas) VALUES (?, ?, ?, ?)",
+                    [(mid, material_id, float(c), (n or "").strip()) for mid, (c, n) in vinculos.items()])
+    con.commit()
+    con.close()
+
+
 def listar_repuestos():
     """Todos los vínculos máquina ↔ artículo (para la API de los móviles)."""
     con = _conn()

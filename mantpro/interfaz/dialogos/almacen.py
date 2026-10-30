@@ -24,15 +24,15 @@ from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextE
                              QMessageBox, QDialog, QDialogButtonBox, QAbstractItemView, QComboBox,
                              QGroupBox, QCheckBox, QSpinBox, QDoubleSpinBox, QRadioButton, QMenu,
                              QTreeWidget, QTreeWidgetItem, QInputDialog, QFormLayout,
-                             QTableWidget, QTableWidgetItem, QHeaderView)
+                             QTableWidget, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem)
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QColor, QPixmap
 
 from ...idiomas import t
 from ... import idiomas
-from ..comun import _estilo_zona_arrastre, traducir_motivo_movimiento, tt
+from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen
+from ...nucleo import almacen, maquinas
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -512,7 +512,7 @@ class DialogoEditarMaterial(QDialog):
         self.ruta_foto_seleccionada = ""
         self.foto_nombre_existente = material.get("foto") if material else None
         self.setWindowTitle(tt("title_nuevo_material", "Nuevo material") if self.es_nuevo else tt("title_editar_material", "Editar material"))
-        self.resize(480, 620)
+        self.resize(480, 740)
         l = QVBoxLayout()
 
         l.addWidget(QLabel(tt("lbl_codigo", "Código (opcional)")))
@@ -571,6 +571,24 @@ class DialogoEditarMaterial(QDialog):
         h_foto.addWidget(btn_cambiar); h_foto.addWidget(btn_borrar)
         l.addLayout(h_foto)
 
+        # Máquinas que llevan este artículo como repuesto (lo mismo que se
+        # gestiona desde la pestaña Máquinas, pero desde el lado del artículo).
+        h_rep = QHBoxLayout()
+        h_rep.addWidget(QLabel(tt("lbl_maquinas_del_material", "🔩 Se usa en las máquinas")), 1)
+        for texto, tip, accion in (("➕", tt("btn_anadir_maquina_material", "Añadir máquina"), self._repuesto_anadir),
+                                   ("✏️", tt("btn_editar_repuesto", "✏️ Cantidad"), self._repuesto_editar),
+                                   ("🗑️", tt("btn_quitar_repuesto", "🗑️ Quitar"), self._repuesto_quitar)):
+            b_rep = QPushButton(texto); b_rep.setFixedWidth(36); b_rep.setToolTip(tip); b_rep.clicked.connect(accion)
+            h_rep.addWidget(b_rep)
+        l.addLayout(h_rep)
+        self.lista_repuestos = QListWidget(); self.lista_repuestos.setMaximumHeight(90)
+        self.lista_repuestos.itemDoubleClicked.connect(lambda _: self._repuesto_editar())
+        l.addWidget(self.lista_repuestos)
+        self._rutas_maquinas = maquinas.mapa_rutas_completas()
+        self.repuestos = {mid: v for mid, v in (almacen.repuestos_de_material(material["id"]) if material else {}).items()
+                          if mid in self._rutas_maquinas}
+        self._pintar_repuestos()
+
         # Preselección de ubicación si estamos editando
         if material and material.get("seccion_id"):
             self._preseleccionar_ubicacion(material["seccion_id"])
@@ -581,6 +599,66 @@ class DialogoEditarMaterial(QDialog):
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
         l.addWidget(b); self.setLayout(l)
+
+    def _pintar_repuestos(self):
+        self.lista_repuestos.clear()
+        for mid, (cantidad, notas) in sorted(self.repuestos.items(), key=lambda x: self._rutas_maquinas[x[0]].lower()):
+            texto = f"{self._rutas_maquinas[mid]}  ×{cantidad:g}" + (f"  ({notas})" if notas else "")
+            item = QListWidgetItem(texto); item.setData(Qt.ItemDataRole.UserRole, mid)
+            self.lista_repuestos.addItem(item)
+        if not self.repuestos:
+            item = QListWidgetItem(tt("txt_sin_maquinas_material", "— En ninguna máquina —"))
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.lista_repuestos.addItem(item)
+
+    def _pedir_repuesto(self, maquina_id=None):
+        """Diálogo pequeño: máquina (solo al añadir), cantidad que lleva y notas."""
+        dlg = QDialog(self); dlg.setWindowTitle(tt("btn_anadir_maquina_material", "Añadir máquina"))
+        form = QFormLayout(dlg)
+        combo = QComboBox()
+        if maquina_id is None:
+            _poblar_combo_maquinas(combo)
+            for mid in self.repuestos:  # las que ya lo llevan no se ofrecen
+                combo.removeItem(combo.findData(mid))
+            form.addRow(tt("lbl_maquina", "Máquina"), combo)
+        else:
+            form.addRow(QLabel(f"<b>{self._rutas_maquinas[maquina_id]}</b>"))
+        cantidad = QDoubleSpinBox(); cantidad.setDecimals(2); cantidad.setRange(0.01, 99999)
+        cant0, notas0 = self.repuestos.get(maquina_id, (1, ""))
+        cantidad.setValue(float(cant0))
+        form.addRow(tt("lbl_cantidad_montada", "Cantidad que lleva:"), cantidad)
+        notas = QLineEdit(notas0); notas.setPlaceholderText(tt("ph_notas_repuesto", "Opcional, p. ej. «lado motor»"))
+        form.addRow(tt("lbl_notas", "Notas"), notas)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(dlg.accept); b.rejected.connect(dlg.reject)
+        form.addRow(b)
+        self._dlg_repuesto = dlg  # para las pruebas
+        if not dlg.exec():
+            return
+        mid = maquina_id if maquina_id is not None else combo.currentData()
+        if mid is None:
+            return
+        self.repuestos[mid] = (cantidad.value(), notas.text().strip())
+        self._pintar_repuestos()
+
+    def _repuesto_actual(self):
+        item = self.lista_repuestos.currentItem()
+        return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _repuesto_anadir(self):
+        self._pedir_repuesto()
+
+    def _repuesto_editar(self):
+        mid = self._repuesto_actual()
+        if mid is not None:
+            self._pedir_repuesto(mid)
+
+    def _repuesto_quitar(self):
+        mid = self._repuesto_actual()
+        if mid is not None:
+            self.repuestos.pop(mid, None)
+            self._pintar_repuestos()
 
     def _actualizar_baldas(self):
         self.combo_balda.clear()
@@ -694,6 +772,7 @@ class DialogoEditarMaterial(QDialog):
             "seccion_id": _seccion_destino(self.combo_seccion.currentData(), self.combo_balda.currentData()),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
             "foto_nombre_existente": self.foto_nombre_existente,
+            "repuestos": dict(self.repuestos),
         }
 
 

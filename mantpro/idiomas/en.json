@@ -793,5 +793,8 @@
   "msg_sin_repuestos": "This machine has no spare parts assigned.",
   "titulo_informe_repuestos": "Spare parts for {maquina}",
   "msg_repuestos_exportados": "Spare parts exported to:\n{ruta}",
-  "lbl_usado_en": "Used in: {maquinas}"
+  "lbl_usado_en": "Used in: {maquinas}",
+  "lbl_maquinas_del_material": "🔩 Used in machines",
+  "btn_anadir_maquina_material": "Add machine",
+  "txt_sin_maquinas_material": "— Not in any machine —"
 }
