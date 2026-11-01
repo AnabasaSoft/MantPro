@@ -125,6 +125,12 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
   - `MantPro.apk`: app de trabajos de mantenimiento
   - `MantProStock.apk`: app de stock de almacén
 
+Las versiones marcadas como *pre-release* (`v3.10.2-dev`, `-rc.1`…) son de
+pruebas: solo se ofrecen como actualización a quien ya tiene instalada una
+versión de pruebas. Quien usa una versión estable solo recibe avisos de
+versiones estables. Los cambios de cada versión están en
+[CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## ✨ Características
@@ -157,6 +163,13 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **📥 Importar desde Excel/CSV**: `Archivo > Importar desde Excel/CSV…` (solo administradores) trae máquinas, artículos del almacén, avisos recurrentes y usuarios desde una plantilla descargable o desde tu propio Excel (una hoja o el libro entero de una vez), emparejando solas las columnas, con vista previa fila a fila y copia de seguridad previa. Las ubicaciones (zonas, estanterías, baldas) y máquinas superiores que no existan se crean solas, y los usuarios reciben una contraseña temporal que tendrán que cambiar al entrar
 - **🏭 Control de Maquinaria**: Árbol de máquinas y submáquinas con foto adjunta, contador de trabajos por año y mes, y vínculo directo desde cada trabajo registrado o editado (ver [Maquinaria](#-maquinaria))
 - **📊 Exportación**: A PDF, CSV y Excel, con filtro opcional por técnico e indicando la máquina/submáquina de cada trabajo, si la tiene
+- **📖 Ayuda integrada**: `Ayuda > 📖 Instrucciones` abre un manual completo por apartados (primeros pasos, usuarios, cada pestaña, menús, apps del móvil y problemas frecuentes), con índice y buscador, en los 7 idiomas. Con **F1** se abre directamente en el apartado de la pestaña en la que estás
+- **👥 Estadísticas por Técnico**: botón en el Dashboard con los trabajos de cada técnico por año y mes, averías, preventivos, horas de parada y pendientes asignados ahora mismo, con gráfico de barras; filtrable por tipo (todos, trabajos y averías o mantenimiento preventivo) y exportable a PDF (con logo) y Excel
+- **🔩 Repuestos por Máquina**: qué artículos del almacén lleva cada máquina y cuántos, con su stock y ubicación, y en qué máquinas se usa cada artículo (ver [Maquinaria](#-maquinaria))
+- **🏷️ Etiquetas QR por Máquina**: PDF de etiquetas para pegar en las máquinas; al escanearlas con la app MantPro se abre la ficha de la máquina
+- **🔍 Aviso de Repetidos**: al crear o renombrar una máquina, o al crear o editar un artículo, avisa si ya hay otro con el mismo código o un nombre igual o muy parecido (por ejemplo «Extractor de finos» / «Extracción de finos»), sin avisar cuando solo cambia el número («Lora 1» / «Lora 2»)
+- **📲 Instalar las Apps con un QR**: `Herramientas > 📱 Instalar MantPro en móvil` y `📦 Instalar MantPro Stock en móvil` muestran un QR que, al escanearlo con la cámara del móvil, descarga la última versión estable de la app
+- **🔔 Avisos de Actualización**: `Ayuda > 🔄 Buscar Actualizaciones` avisa de las nuevas versiones; la instalada desde OBS (openSUSE) indica que se actualiza con `zypper`
 
 ### 📱 Aplicación Móvil (Android)
 
@@ -176,6 +189,10 @@ Puedes descargar las versiones precompiladas desde [GitHub Releases](https://git
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
 - **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén))
 - **🏭 Vincular Máquina**: Selecciona en un desplegable la máquina o submáquina en la que se ha hecho el trabajo, tanto al crear un registro nuevo como al editar uno ya sincronizado del historial
+- **🔄 Conectada en Segundo Plano**: mientras la app está abierta, aunque sea en segundo plano, sigue sincronizando con el PC y muestra una notificación («Conectado al PC» / «Sin conexión con el PC») con un botón «Cerrar». Al cerrarla del todo deja de gastar batería
+- **📶 Primera Sincronización con Progreso**: barra de progreso al descargar los datos y las fotos, con descarga en paralelo para que sea más rápida
+- **🏷️ Escanear la Máquina**: el botón de escanear lee la etiqueta QR de una máquina y abre su ficha, sin conexión: dónde está, sus últimos trabajos, sus **repuestos** con el stock del almacén, y un botón para registrar un trabajo ya vinculado a ella
+- **⬆️ Actualizar desde la App**: cuando hay una versión nueva, el aviso tiene los botones «Después» y «Actualizar»; «Actualizar» descarga el APK con una barra de progreso y abre el instalador de Android, sin pasar por GitHub
 
 ### 📦 Aplicación Móvil de Stock (Android)
 
@@ -192,6 +209,10 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 - **🔄 Auto-actualización**: la pantalla se refresca sola al detectar cambios, tanto si el cambio se hizo en el propio móvil como en el PC
 - **🔌 Modo Offline**: sin conexión con el PC la app no se queda esperando: consulta los datos guardados y deja registrar altas, ediciones, entradas y salidas al momento, que se envían solas al PC en cuanto vuelve a estar accesible
 - **🔔 Recordatorio Diario de Comprobación de Stock**: notificación automática a las 8:00 AM (hora local) invitando a revisar la cantidad real de 5 materiales del almacén, elegidos al azar y distintos cada día; al pulsarla se abre una pantalla para corregir la cantidad de cada uno sin buscarlos a mano. Si no hay ningún material dado de alta, no se muestra ninguna notificación
+- **🔄 Conectada en Segundo Plano**: como MantPro, sigue sincronizando en segundo plano, con su notificación; el icono de usuario se pone **verde** si hay conexión con el PC y **rojo** si no
+- **🔩 Se Usa En**: cada artículo muestra en qué máquinas se usa como repuesto y cuántos lleva cada una, también sin conexión
+- **🔍 Aviso de Repetidos**: al crear o editar un artículo avisa si ya hay otro con el mismo código o un nombre muy parecido, comparando con los artículos guardados en el móvil (funciona sin conexión)
+- **⬆️ Actualizar desde la App**: igual que MantPro, descarga e instala la nueva versión desde el propio aviso
 
 ---
 
@@ -308,6 +329,12 @@ Una firma válida confirma que el paquete procede de AnabasaSoft y no ha sido mo
 Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) e instálalo en tu dispositivo Android: `MantPro.apk` para trabajos, `MantProStock.apk` para el stock de almacén. Son apps independientes y puedes instalar una, otra o ambas.
 
 **Nota**: Es posible que necesites habilitar "Orígenes desconocidos" en la configuración de seguridad de tu dispositivo.
+
+**Desde el PC, con un QR**: en `Herramientas > 📱 Instalar MantPro en móvil`
+(o `📦 Instalar MantPro Stock en móvil`) aparece un QR. Escanéalo con la cámara
+del móvil, abre el enlace y se descarga la última versión estable de la app.
+Una vez instaladas, las apps avisan de las nuevas versiones y se actualizan
+desde el propio aviso con el botón «Actualizar».
 
 #### Opción 2: Compilar desde Código Fuente
 
@@ -444,6 +471,11 @@ una sesión abierta (mismo fabricante y modelo), la sesión anterior de ese
 dispositivo se borra automáticamente al crear la nueva, en vez de quedarse
 acumulada como una sesión suelta más en el listado.
 
+La columna **Conexión** indica si cada móvil está **en línea** ahora mismo y
+cuándo fue su último contacto. Las apps avisan al PC cada pocos segundos
+mientras están abiertas (también en segundo plano), y al cerrarlas del todo
+avisan de que se desconectan, así que el estado se actualiza al momento.
+
 ### Autoría de los trabajos
 
 Cada registro guarda el técnico que lo hizo, tanto si se creó en el PC como si
@@ -500,6 +532,19 @@ intervenciones de cada equipo a lo largo del tiempo.
   o editar uno existente se puede elegir a qué máquina/submáquina pertenece
 - **📊 En las exportaciones**: la máquina o submáquina vinculada aparece como
   columna adicional en las exportaciones a PDF, CSV y Excel
+- **🗺️ Zona heredada**: al crear una submáquina, toma por defecto la zona de
+  su máquina superior
+- **🔩 Repuestos de cada máquina**: debajo del árbol se ven los artículos del
+  almacén que lleva la máquina seleccionada, cuántos lleva, su stock (en rojo
+  si está bajo mínimo), su ubicación y una nota (por ejemplo «lado motor»). Se
+  añaden con «➕ Añadir repuesto», se exportan a PDF o Excel, y con doble clic
+  se salta al artículo en el almacén
+- **🏷️ Etiquetas QR**: el botón «🏷️ Etiquetas QR» genera un PDF de folios A4
+  con 24 etiquetas de 70 × 37 mm (de la máquina seleccionada, con sus
+  submáquinas o de todas). Al escanearlas con la app MantPro se abre la ficha
+  de la máquina
+- **🔍 Nombres parecidos**: al crear o renombrar una máquina, avisa si al mismo
+  nivel ya hay otra con un nombre igual o muy parecido
 
 ---
 
@@ -541,6 +586,11 @@ pestaña "📦 Stock de almacén", visible **solo para administradores**.
   tanto en el PC como en el móvil
 - Seleccionando varios materiales a la vez (Ctrl/Shift + clic derecho) en el
   PC se pueden **mover de ubicación** o **eliminar** en bloque
+- Cada material indica **en qué máquinas se usa** como repuesto, y al crearlo
+  o editarlo se le pueden asociar máquinas directamente, con la cantidad que
+  lleva cada una
+- Al crear o editar un material se avisa si ya hay otro con el **mismo código
+  o un nombre muy parecido**, para no darlo de alta dos veces
 
 ### Entradas, salidas y traslados
 
@@ -553,6 +603,9 @@ pestaña "📦 Stock de almacén", visible **solo para administradores**.
 - Cambiar la ubicación de un material también queda registrado en su
   historial, como un movimiento de tipo **traslado** (de qué sección a qué
   sección)
+- El botón **«📜 Historial»** muestra todos los movimientos del almacén
+  seguidos (entradas, salidas y traslados), con el nombre de cada artículo y
+  filtros por texto y tipo
 
 ### Material usado en un trabajo (MantPro)
 
@@ -603,6 +656,11 @@ MantPro utiliza un sistema de sincronización basado en:
 4. **WiFi local** - sin necesidad de internet
 5. **Sincronización completa al abrir la app**, en segundo plano y sin bloquear
    la interfaz
+6. Mientras las apps del móvil están abiertas, aunque sea en segundo plano,
+   siguen sincronizando y el PC las ve **en línea** en `Herramientas > 🔐
+   Sesiones de dispositivos`
+7. La primera sincronización muestra una **barra de progreso** y descarga los
+   datos en paralelo y las fotos de 4 en 4
 
 > ⚠️ El tráfico viaja por **HTTP dentro de la red local**. El sistema de usuarios
 > aporta trazabilidad (saber quién hizo cada trabajo), no protección frente a
@@ -913,6 +971,29 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 - **Importar desde Excel/CSV**: máquinas, artículos del almacén, avisos
   recurrentes y usuarios, con plantilla, emparejado de columnas, vista previa
   fila a fila y copia de seguridad previa.
+- **Ayuda integrada** (`Ayuda > 📖 Instrucciones`) con índice y buscador en los
+  7 idiomas, y **F1** contextual que la abre en el apartado de la pestaña
+  activa.
+- **Estadísticas por técnico** en el Dashboard: trabajos por año y mes,
+  averías, preventivos, horas de parada y pendientes asignados, con filtro por
+  tipo y exportación a PDF y Excel.
+- **Repuestos por máquina**: artículos del almacén que lleva cada máquina, con
+  su stock, «Se usa en» en cada artículo y consulta sin conexión en MantPro y
+  MantPro Stock.
+- **Etiquetas QR por máquina** y escáner en MantPro que abre la ficha de la
+  máquina sin conexión.
+- **Aviso de repetidos** al dar de alta máquinas y artículos (mismo código o
+  nombre muy parecido).
+- **Apps conectadas en segundo plano**, con notificación y estado en línea
+  preciso en «Sesiones de dispositivos».
+- **Primera sincronización del móvil** con barra de progreso y descarga en
+  paralelo.
+- **Historial de movimientos de todo el almacén**.
+- **Actualizar las apps desde la propia app** (descarga del APK e instalador
+  de Android) e **instalarlas desde el PC con un QR**.
+- **Versiones de pruebas** (`-dev`, `-rc`) ofrecidas solo a quien ya usa una,
+  y paquete para **openSUSE (OBS)** publicado automáticamente con cada versión
+  estable.
 
 ## 📄 Licencia
 

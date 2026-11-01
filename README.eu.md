@@ -127,6 +127,12 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
   - `MantPro.apk`: mantentze-lanen aplikazioa
   - `MantProStock.apk`: biltegiko stockaren aplikazioa
 
+*Pre-release* gisa markatutako bertsioak (`v3.10.2-dev`, `-rc.1`…) probakoak
+dira: proba-bertsio bat instalatuta dutenei bakarrik eskaintzen zaizkie
+eguneraketa gisa. Bertsio egonkorra erabiltzen dutenek bertsio egonkorren
+abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
+[CHANGELOG.md](CHANGELOG.md) fitxategian daude.
+
 ---
 
 ## ✨ Ezaugarriak
@@ -159,6 +165,13 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **📥 Excel/CSV-tik inportatu**: `Fitxategia > Excel/CSV-tik inportatu…` (administratzaileak soilik) menutik makinak, biltegiko artikuluak, abisu errepikakorrak eta erabiltzaileak ekar daitezke, deskarga daitekeen txantiloi batetik edo zure Excel-etik (orri bat edo liburu osoa batera), zutabeak berez parekatuz, errenkadaz errenkadako aurrebistarekin eta aurretik segurtasun-kopia eginez. Ez dauden kokapenak (eremuak, apalategiak, apalak) eta goiko makinak berez sortzen dira, eta erabiltzaileek aldi baterako pasahitz bat jasotzen dute, lehen aldiz sartzean aldatu beharko dutena
 - **🏭 Makineriaren kontrola**: Makinen eta azpimakinen zuhaitza argazki erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta erregistratutako edo editatutako lan bakoitzetik zuzeneko lotura (ikusi [Makineria](#-makineria))
 - **📊 Esportazioa**: PDF, CSV eta Excelera, aukerako teknikari-iragazkiarekin eta lan bakoitzaren makina/azpimakina adieraziz, baldin badu
+- **📖 Laguntza integratua**: `Laguntza > 📖 Jarraibideak` aukerak eskuliburu osoa irekitzen du ataletan (lehen urratsak, erabiltzaileak, fitxa bakoitza, menuak, mugikorreko aplikazioak eta ohiko arazoak), aurkibide eta bilatzailearekin, 7 hizkuntzetan. **F1** sakatuta, zauden fitxaren atalean irekitzen da zuzenean
+- **👥 Teknikarien estatistikak**: Aginte-mahaiko botoia, teknikari bakoitzaren lanak urteka eta hilabeteka, matxurak, prebentiboak, geldialdi-orduak eta une honetan esleituta dituen lanak erakusten dituena, barra-grafikoarekin; motaren arabera iragazten da (guztiak, lanak eta matxurak edo mantentze prebentiboa) eta PDFra (logoarekin) eta Excelera esportatzen da
+- **🔩 Makina bakoitzeko ordezko piezak**: makina bakoitzak biltegiko zein artikulu daramatzan eta zenbat, haien stockarekin eta kokapenarekin, eta artikulu bakoitza zein makinatan erabiltzen den (ikus [Makineria](#-makineria))
+- **🏷️ Makina bakoitzeko QR etiketak**: makinetan itsasteko etiketen PDFa; MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen da
+- **🔍 Bikoiztuen abisua**: makina bat sortzean edo izena aldatzean, edo artikulu bat sortzean edo editatzean, kode bera edo izen bera edo oso antzekoa duen beste bat badagoen abisatzen du (adib. «Finoen erauzgailua» / «Finoen erauzketa»), zenbakia bakarrik aldatzen denean abisatu gabe («Lora 1» / «Lora 2»)
+- **📲 Aplikazioak QR batekin instalatu**: `Tresnak > 📱 Instalatu MantPro mugikorrean` eta `📦 Instalatu MantPro Stock mugikorrean` aukerek QR bat erakusten dute; mugikorraren kamerarekin eskaneatzean aplikazioaren azken bertsio egonkorra deskargatzen da
+- **🔔 Eguneraketa-abisuak**: `Laguntza > 🔄 Bilatu Eguneraketak` aukerak bertsio berriak jakinarazten ditu; OBSetik (openSUSE) instalatutakoak `zypper` bidez eguneratzen dela adierazten du
 
 ### 📱 Mugikorreko aplikazioa (Android)
 
@@ -178,6 +191,10 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **⏰ Eguneroko gogorarazleak**: Jakinarazpen automatikoa 8:00etan (ordu lokala) osatu gabeko lanak badaude
 - **🧰 Erabilitako materiala**: Gehitu lanari erabili duzun biltegiko materiala, izenaren edo kodearen arabera bilatuz; gordetzean stocketik automatikoki kentzen da (ikusi [Lan batean erabilitako materiala](#-biltegiko-stocka))
 - **🏭 Makina lotu**: Aukeratu goitibeherako zerrenda batean lana zein makinatan edo azpimakinatan egin den, bai erregistro berri bat sortzean, bai historian dagoeneko sinkronizatutako bat editatzean
+- **🔄 Atzeko planoan konektatuta**: aplikazioa irekita dagoen bitartean, atzeko planoan egon arren, ordenagailuarekin sinkronizatzen jarraitzen du eta jakinarazpen bat erakusten du («Ordenagailura konektatuta» / «Ordenagailuarekin konexiorik gabe») «Itxi» botoiarekin. Guztiz ixtean bateria gastatzeari uzten dio
+- **📶 Lehen sinkronizazioa aurrerapenarekin**: aurrerapen-barra datuak eta argazkiak deskargatzean, paraleloan deskargatuta azkarrago izan dadin
+- **🏷️ Makina eskaneatu**: eskaneatzeko botoiak makina baten QR etiketa irakurri eta haren fitxa irekitzen du, konexiorik gabe: non dagoen, azken lanak, bere **ordezko piezak** biltegiko stockarekin, eta hari lotutako lan bat erregistratzeko botoia
+- **⬆️ Aplikaziotik eguneratu**: bertsio berri bat dagoenean, abisuak «Geroago» eta «Eguneratu» botoiak ditu; «Eguneratu» botoiak APKa deskargatzen du aurrerapen-barrarekin eta Androiden instalatzailea irekitzen du, GitHubetik pasatu gabe
 
 ### 📦 Stockaren mugikorreko aplikazioa (Android)
 
@@ -194,6 +211,10 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 - **🔄 Eguneratze automatikoa**: pantaila bere kabuz freskatzen da aldaketak detektatzean, aldaketa mugikorrean bertan nahiz PCan egin bada
 - **🔌 Konexiorik gabeko modua**: PCrekin konexiorik gabe aplikazioak ez du itxaroten: gordetako datuak erakusten ditu eta altak, edizioak, sarrerak eta irteerak berehala erregistratzen uzten du; PCra bere kabuz bidaltzen dira berriro eskuragarri dagoenean
 - **🔔 Stocka egiaztatzeko eguneroko gogorarazlea**: jakinarazpen automatikoa 8:00etan (ordu lokala), biltegiko 5 materialen benetako kantitatea berrikusteko gonbidatuz, ausaz aukeratuak eta egunero desberdinak; sakatzean, bakoitzaren kantitatea zuzentzeko pantaila bat irekitzen da, eskuz bilatu beharrik gabe. Altan emandako materialik ez badago, ez da jakinarazpenik erakusten
+- **🔄 Atzeko planoan konektatuta**: MantPro bezala, atzeko planoan sinkronizatzen jarraitzen du bere jakinarazpenarekin; erabiltzailearen ikonoa **berde** jartzen da ordenagailuarekin konexioa badago eta **gorri** ez badago
+- **🔩 Hemen erabiltzen da**: artikulu bakoitzak zein makinatan erabiltzen den ordezko pieza gisa eta bakoitzak zenbat daraman erakusten du, konexiorik gabe ere
+- **🔍 Bikoiztuen abisua**: artikulu bat sortzean edo editatzean, kode bera edo oso antzeko izena duen beste bat badagoen abisatzen du, mugikorrean gordetako artikuluekin alderatuta (konexiorik gabe dabil)
+- **⬆️ Aplikaziotik eguneratu**: MantPro bezala, bertsio berria abisutik bertatik deskargatu eta instalatzen du
 
 ---
 
@@ -310,6 +331,13 @@ Sinadura baliodun batek baieztatzen du paketea AnabasaSoft-ena dela eta ez dela 
 Deskargatu dagokion `.apk`-a [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) orritik eta instalatu zure Android gailuan: `MantPro.apk` lanetarako, `MantProStock.apk` biltegiko stockerako. Aplikazio independenteak dira, eta bata, bestea edo biak instala ditzakezu.
 
 **Oharra**: Baliteke zure gailuaren segurtasun-ezarpenetan "Jatorri ezezagunak" gaitu behar izatea.
+
+**Ordenagailutik, QR batekin**: `Tresnak > 📱 Instalatu MantPro mugikorrean`
+(edo `📦 Instalatu MantPro Stock mugikorrean`) aukeran QR bat agertzen da.
+Eskaneatu mugikorraren kamerarekin, ireki esteka eta aplikazioaren azken
+bertsio egonkorra deskargatzen da. Instalatu ondoren, aplikazioek bertsio
+berriak jakinarazten dituzte eta abisutik bertatik eguneratzen dira
+«Eguneratu» botoiarekin.
 
 #### 2. aukera: Iturburu-kodetik konpilatu
 
@@ -446,6 +474,12 @@ modelo bera) berriro saioa hasten badu, gailu horren aurreko saioa automatikoki
 ezabatzen da berria sortzean, zerrendan beste saio solte bat bezala pilatuta
 geratu beharrean.
 
+**Konexioa** zutabeak mugikor bakoitza une honetan **linean** dagoen eta azken
+kontaktua noiz izan zen adierazten du. Aplikazioek ordenagailuari segundo
+gutxitik behin abisatzen diote irekita dauden bitartean (atzeko planoan ere), eta
+guztiz ixtean deskonektatzen direla abisatzen dute; beraz, egoera berehala
+eguneratzen da.
+
 ### Lanen egiletza
 
 Erregistro bakoitzak hura egin zuen teknikaria gordetzen du, PCan sortu nahiz
@@ -502,6 +536,20 @@ denboran zehar eramateko pentsatua.
   dagokion aukera daiteke
 - **📊 Esportazioetan**: lotutako makina edo azpimakina zutabe gehigarri gisa
   agertzen da PDF, CSV eta Excel esportazioetan
+- **🗺️ Heredatutako eremua**: azpimakina bat sortzean, bere goiko makinaren
+  eremua hartzen du lehenetsita
+- **🔩 Makina bakoitzaren ordezko piezak**: zuhaitzaren azpian hautatutako
+  makinak daramatzan biltegiko artikuluak ikusten dira, zenbat daramatzan,
+  haien stocka (gorriz gutxienekoaren azpitik badago), kokapena eta ohar bat
+  (adib. «motorraren aldea»). «➕ Gehitu ordezko pieza» botoiarekin gehitzen
+  dira, PDFra edo Excelera esportatzen dira, eta klik bikoitzarekin biltegiko
+  artikulura joaten da
+- **🏷️ QR etiketak**: «🏷️ QR etiketak» botoiak A4 orrien PDF bat sortzen du,
+  70 × 37 mm-ko 24 etiketekin (hautatutako makinarenak, bere azpimakinekin edo
+  guztienak). MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen
+  da
+- **🔍 Antzeko izenak**: makina bat sortzean edo izena aldatzean, maila berean
+  izen bera edo oso antzekoa duen beste bat badagoen abisatzen du
 
 ---
 
@@ -543,6 +591,11 @@ stocka" fitxan, **administratzaileentzat soilik** ikusgai.
   bai mugikorrean
 - PCan hainbat material aldi berean hautatuz (Ctrl/Shift + eskuineko klik)
   multzoka **beste kokapen batera eraman** edo **ezabatu** daitezke
+- Artikulu bakoitzak **zein makinatan erabiltzen den** adierazten du ordezko
+  pieza gisa, eta sortzean edo editatzean makinak lotu dakizkioke zuzenean,
+  bakoitzak daraman kopuruarekin
+- Artikulu bat sortzean edo editatzean, **kode bera edo oso antzeko izena**
+  duen beste bat badagoen abisatzen da, bi aldiz altan ez emateko
 
 ### Sarrerak, irteerak eta lekualdaketak
 
@@ -555,6 +608,9 @@ stocka" fitxan, **administratzaileentzat soilik** ikusgai.
   stocka negatiboan utzi
 - Material baten kokapena aldatzea ere haren historian erregistratzen da,
   **lekualdaketa** motako mugimendu gisa (zein ataletik zein atalera)
+- **«📜 Historia»** botoiak biltegiko mugimendu guztiak jarraian erakusten ditu
+  (sarrerak, irteerak eta lekualdaketak), artikulu bakoitzaren izenarekin eta
+  testu eta motaren araberako iragazkiekin
 
 ### Lan batean erabilitako materiala (MantPro)
 
@@ -604,6 +660,11 @@ MantPro-k sinkronizazio-sistema bat erabiltzen du, oinarri hauekin:
 4. **WiFi lokala** - internetik behar gabe
 5. **Sinkronizazio osoa aplikazioa irekitzean**, atzeko planoan eta
    interfazea blokeatu gabe
+6. Mugikorreko aplikazioak irekita dauden bitartean, atzeko planoan egon
+   arren, sinkronizatzen jarraitzen dute eta ordenagailuak **linean** ikusten
+   ditu `Tresnak > 🔐 Gailuen saioak` atalean
+7. Lehen sinkronizazioak **aurrerapen-barra** erakusten du eta datuak
+   paraleloan eta argazkiak 4naka deskargatzen ditu
 
 > ⚠️ Trafikoa **HTTP bidez doa sare lokalaren barruan**. Erabiltzaile-sistemak
 > trazabilitatea ematen du (lan bakoitza nork egin zuen jakitea), ez sare
@@ -920,6 +981,29 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
 - **Excel/CSV-tik inportatzea**: makinak, biltegiko artikuluak, abisu
   errepikakorrak eta erabiltzaileak, txantiloiarekin, zutabeen parekatzearekin,
   errenkadaz errenkadako aurrebistarekin eta aurretiko segurtasun-kopiarekin.
+- **Laguntza integratua** (`Laguntza > 📖 Jarraibideak`) aurkibide eta
+  bilatzailearekin 7 hizkuntzetan, eta testuinguruko **F1**, fitxa aktiboaren
+  atalean irekitzen duena.
+- **Teknikarien estatistikak** Aginte-mahaian: lanak urteka eta hilabeteka,
+  matxurak, prebentiboak, geldialdi-orduak eta esleitutako lanak,
+  mota-iragazkiarekin eta PDF eta Excel esportazioarekin.
+- **Makina bakoitzeko ordezko piezak**: makina bakoitzak daramatzan biltegiko
+  artikuluak, haien stockarekin, «Hemen erabiltzen da» artikulu bakoitzean eta
+  konexiorik gabeko kontsulta MantPro eta MantPro Stock aplikazioetan.
+- **Makina bakoitzeko QR etiketak** eta MantPro-ko eskanerra, makinaren fitxa
+  konexiorik gabe irekitzen duena.
+- **Bikoiztuen abisua** makinak eta artikuluak altan ematean (kode bera edo
+  oso antzeko izena).
+- **Atzeko planoan konektatutako aplikazioak**, jakinarazpenarekin eta
+  «Gailuen saioak» ataleko linean egoera zehatzarekin.
+- **Mugikorraren lehen sinkronizazioa** aurrerapen-barrarekin eta deskarga
+  paraleloarekin.
+- **Biltegi osoaren mugimenduen historia**.
+- **Aplikazioak aplikaziotik bertatik eguneratu** (APKaren deskarga eta
+  Androiden instalatzailea) eta **ordenagailutik QR batekin instalatu**.
+- **Proba-bertsioak** (`-dev`, `-rc`) dagoeneko bat erabiltzen dutenei
+  bakarrik eskainita, eta **openSUSE (OBS)** paketea bertsio egonkor
+  bakoitzarekin automatikoki argitaratua.
 
 ## 📄 Lizentzia
 

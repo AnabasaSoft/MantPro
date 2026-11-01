@@ -123,6 +123,11 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
   - `MantPro.apk`: maintenance jobs app
   - `MantProStock.apk`: warehouse stock app
 
+Versions marked as *pre-release* (`v3.10.2-dev`, `-rc.1`…) are test builds:
+they are only offered as an update to those who already have a test version
+installed. Those using a stable version only get notified of stable versions.
+The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## ✨ Features
@@ -155,6 +160,13 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **📥 Import from Excel/CSV**: `File > Import from Excel/CSV…` (administrators only) brings in machines, warehouse items, recurring reminders and users from a downloadable template or from your own Excel (one sheet or the whole workbook at once), with automatic column matching, a row-by-row preview and a backup made beforehand. Missing locations (zones, shelving units, shelves) and parent machines are created automatically, and users get a temporary password they must change on first login
 - **🏭 Machinery Control**: Tree of machines and sub-machines with an attached photo, job counter per year and month, and a direct link from every job logged or edited (see [Machinery](#-machinery))
 - **📊 Export**: To PDF, CSV and Excel, with an optional technician filter and showing each job's machine/sub-machine, if it has one
+- **📖 Built-in Help**: `Help > 📖 Instructions` opens a full manual by section (getting started, users, each tab, menus, mobile apps and common problems), with an index and search box, in all 7 languages. **F1** opens it directly at the section of the tab you are on
+- **👥 Statistics by Technician**: button on the Dashboard showing each technician's jobs by year and month, breakdowns, preventive jobs, downtime hours and pending jobs assigned right now, with a bar chart; can be filtered by type (all, work orders and breakdowns, or preventive maintenance) and exported to PDF (with logo) and Excel
+- **🔩 Spare Parts per Machine**: which warehouse items each machine has fitted and how many, with their stock and location, and which machines use each item (see [Machinery](#-machinery))
+- **🏷️ QR Labels per Machine**: PDF of labels to stick on the machines; scanning them with the MantPro app opens the machine's page
+- **🔍 Duplicate Warning**: when creating or renaming a machine, or creating or editing an item, it warns if there is already another one with the same code or the same or a very similar name (e.g. “Fines extractor” / “Fines extraction”), without warning when only the number changes (“Lora 1” / “Lora 2”)
+- **📲 Install the Apps with a QR Code**: `Tools > 📱 Install MantPro on phone` and `📦 Install MantPro Stock on phone` show a QR code that, when scanned with the phone's camera, downloads the latest stable version of the app
+- **🔔 Update Notifications**: `Help > 🔄 Check for Updates` notifies you of new versions; the version installed from OBS (openSUSE) says it is updated with `zypper`
 
 ### 📱 Mobile Application (Android)
 
@@ -174,6 +186,10 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **⏰ Daily Reminders**: Automatic notification at 8:00 AM (local time) if there are pending jobs not yet completed
 - **🧰 Materials Used**: Add the warehouse materials you used to the job, searching by name or code; they are deducted from stock automatically when saving (see [Materials used in a job](#-warehouse-stock))
 - **🏭 Link Machine**: Choose from a drop-down list the machine or sub-machine the job was done on, both when creating a new record and when editing one already synced in the history
+- **🔄 Connected in the Background**: while the app is open, even in the background, it keeps syncing with the PC and shows a notification (“Connected to the PC” / “No connection to the PC”) with a “Close” button. Once fully closed it stops using battery
+- **📶 First Sync with Progress**: progress bar while downloading the data and photos, downloaded in parallel so it is faster
+- **🏷️ Scan the Machine**: the scan button reads a machine's QR label and opens its page, offline: where it is, its latest jobs, its **spare parts** with the warehouse stock, and a button to register a job already linked to it
+- **⬆️ Update from the App**: when there is a new version, the notice has “Later” and “Update” buttons; “Update” downloads the APK with a progress bar and opens the Android installer, without going to GitHub
 
 ### 📦 Mobile Stock Application (Android)
 
@@ -190,6 +206,10 @@ from your phone without needing the jobs app.
 - **🔄 Auto-refresh**: the screen refreshes itself when it detects changes, whether they were made on the phone itself or on the PC
 - **🔌 Offline Mode**: with no connection to the PC the app does not keep waiting: it shows the saved data and lets you create, edit and register stock in/out instantly, sent to the PC automatically as soon as it is reachable again
 - **🔔 Daily Stock Check Reminder**: automatic notification at 8:00 AM (local time) inviting you to check the real quantity of 5 warehouse materials, picked at random and different each day; tapping it opens a screen to correct each quantity without searching for them by hand. If no materials have been added, no notification is shown
+- **🔄 Connected in the Background**: like MantPro, it keeps syncing while in the background, with its notification; the user icon turns **green** when connected to the PC and **red** when not
+- **🔩 Used In**: each item shows which machines use it as a spare part and how many each one has, also offline
+- **🔍 Duplicate Warning**: when creating or editing an item it warns if there is already another one with the same code or a very similar name, comparing with the items stored on the phone (works offline)
+- **⬆️ Update from the App**: like MantPro, it downloads and installs the new version from the notice itself
 
 ---
 
@@ -306,6 +326,12 @@ A valid signature confirms that the package comes from AnabasaSoft and has not b
 Download the matching `.apk` from [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) and install it on your Android device: `MantPro.apk` for jobs, `MantProStock.apk` for warehouse stock. They are independent apps and you can install either one or both.
 
 **Note**: You may need to enable "Unknown sources" in your device's security settings.
+
+**From the PC, with a QR code**: `Tools > 📱 Install MantPro on phone` (or
+`📦 Install MantPro Stock on phone`) shows a QR code. Scan it with the phone's
+camera, open the link and the latest stable version of the app is downloaded.
+Once installed, the apps notify you of new versions and update themselves from
+the notice with the “Update” button.
 
 #### Option 2: Building from Source
 
@@ -442,6 +468,11 @@ session (same manufacturer and model), that device's previous session is
 deleted automatically when the new one is created, instead of piling up as
 one more stray session in the list.
 
+The **Connection** column shows whether each phone is **online** right now and
+when it was last in contact. The apps check in with the PC every few seconds
+while they are open (also in the background), and when fully closed they report
+that they are disconnecting, so the status updates immediately.
+
 ### Job authorship
 
 Each record stores the technician who did it, whether it was created on the
@@ -494,6 +525,20 @@ on each piece of equipment over time.
   an existing one, you can choose which machine/sub-machine it belongs to
 - **📊 In exports**: the linked machine or sub-machine appears as an extra
   column in PDF, CSV and Excel exports
+- **🗺️ Inherited area**: a new sub-machine takes the area of its parent
+  machine by default
+- **🔩 Spare parts for each machine**: below the tree you can see the warehouse
+  items fitted to the selected machine, how many it has, their stock (in red
+  if below the minimum), their location and a note (e.g. “motor side”). They
+  are added with “➕ Add spare part”, exported to PDF or Excel, and
+  double-clicking jumps to the item in the warehouse
+- **🏷️ QR labels**: the “🏷️ QR labels” button generates a PDF of A4 sheets
+  with 24 labels of 70 × 37 mm (for the selected machine, with its
+  sub-machines, or for all of them). Scanning them with the MantPro app opens
+  the machine's page
+- **🔍 Similar names**: when creating or renaming a machine, it warns if there
+  is already another one at the same level with the same or a very similar
+  name
 
 ---
 
@@ -534,6 +579,11 @@ The structure is managed from the **"⚙️ Configure warehouse"** button in the
   PC and on the phone
 - By selecting several materials at once (Ctrl/Shift + right click) on the
   PC you can **move them to another location** or **delete** them in bulk
+- Each item shows **which machines use it** as a spare part, and machines can
+  be linked to it directly when creating or editing it, with the quantity each
+  one has
+- When creating or editing an item it warns if there is already another one
+  with the **same code or a very similar name**, so it is not added twice
 
 ### Stock in, stock out and transfers
 
@@ -545,6 +595,9 @@ The structure is managed from the **"⚙️ Configure warehouse"** button in the
   below zero
 - Changing a material's location is also recorded in its history, as a
   **transfer** movement (from which section to which section)
+- The **“📜 History”** button shows all warehouse movements in sequence (stock
+  in, stock out and transfers), with each item's name and filters by text and
+  type
 
 ### Materials used in a job (MantPro)
 
@@ -594,6 +647,10 @@ MantPro uses a sync system based on:
 4. **Local Wi-Fi** - no internet needed
 5. **Full sync when the app opens**, in the background and without blocking
    the interface
+6. While the mobile apps are open, even in the background, they keep syncing
+   and the PC sees them **online** in `Tools > 🔐 Device sessions`
+7. The first sync shows a **progress bar** and downloads the data in parallel
+   and the photos 4 at a time
 
 > ⚠️ Traffic travels over **HTTP within the local network**. The user system
 > provides traceability (knowing who did each job), not protection against
@@ -902,6 +959,28 @@ Contributions are welcome! If you want to improve MantPro:
 - **Import from Excel/CSV**: machines, warehouse items, recurring reminders and
   users, with a template, column matching, row-by-row preview and a backup
   made beforehand.
+- **Built-in help** (`Help > 📖 Instructions`) with an index and search in all
+  7 languages, and context-sensitive **F1** that opens it at the section of
+  the active tab.
+- **Statistics by technician** on the Dashboard: jobs by year and month,
+  breakdowns, preventive jobs, downtime hours and assigned pending jobs, with
+  a type filter and PDF and Excel export.
+- **Spare parts per machine**: warehouse items fitted to each machine, with
+  their stock, “Used in” on each item and offline viewing in MantPro and
+  MantPro Stock.
+- **QR labels per machine** and a scanner in MantPro that opens the machine's
+  page offline.
+- **Duplicate warning** when adding machines and items (same code or very
+  similar name).
+- **Apps connected in the background**, with a notification and an accurate
+  online status in “Device sessions”.
+- **First mobile sync** with a progress bar and parallel download.
+- **Movement history for the whole warehouse**.
+- **Update the apps from within the app** (APK download and Android installer)
+  and **install them from the PC with a QR code**.
+- **Test versions** (`-dev`, `-rc`) offered only to those already using one,
+  and an **openSUSE (OBS)** package published automatically with each stable
+  version.
 
 ## 📄 License
 

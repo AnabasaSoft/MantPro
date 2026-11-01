@@ -125,6 +125,12 @@ Vous pouvez télécharger les versions précompilées depuis [GitHub Releases](h
   - `MantPro.apk` : application des interventions de maintenance
   - `MantProStock.apk` : application de stock du magasin
 
+Les versions marquées comme *pre-release* (`v3.10.2-dev`, `-rc.1`…) sont des
+versions de test : elles ne sont proposées comme mise à jour qu'à ceux qui ont
+déjà une version de test installée. Ceux qui utilisent une version stable ne
+sont avertis que des versions stables. Les changements de chaque version sont
+dans [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## ✨ Fonctionnalités
@@ -157,6 +163,13 @@ Vous pouvez télécharger les versions précompilées depuis [GitHub Releases](h
 - **📥 Importer depuis Excel/CSV** : `Fichier > Importer depuis Excel/CSV…` (administrateurs uniquement) importe machines, articles du magasin, rappels récurrents et utilisateurs depuis un modèle téléchargeable ou depuis votre propre Excel (une feuille ou le classeur entier en une fois), en associant les colonnes automatiquement, avec un aperçu ligne par ligne et une sauvegarde préalable. Les emplacements (zones, rayonnages, tablettes) et machines parentes inexistants sont créés automatiquement, et les utilisateurs reçoivent un mot de passe temporaire à changer à la première connexion
 - **🏭 Suivi des machines** : arborescence de machines et sous-machines avec photo jointe, compteur d'interventions par année et par mois et association directe depuis chaque intervention enregistrée ou modifiée (voir [Machines](#-machines))
 - **📊 Export** : vers PDF, CSV et Excel, avec filtre facultatif par technicien et indiquant la machine/sous-machine de chaque intervention, le cas échéant
+- **📖 Aide intégrée** : `Aide > 📖 Instructions` ouvre un manuel complet par rubriques (premiers pas, utilisateurs, chaque onglet, menus, applications mobiles et problèmes fréquents), avec index et recherche, dans les 7 langues. Avec **F1**, il s'ouvre directement à la rubrique de l'onglet où vous êtes
+- **👥 Statistiques par technicien** : bouton du tableau de bord affichant les interventions de chaque technicien par année et par mois, les pannes, les préventifs, les heures d'arrêt et les tâches en attente qui lui sont assignées en ce moment, avec un graphique en barres ; filtrable par type (toutes, interventions et pannes ou maintenance préventive) et exportable en PDF (avec logo) et Excel
+- **🔩 Pièces de rechange par machine** : quels articles du magasin chaque machine porte et en quelle quantité, avec leur stock et leur emplacement, et dans quelles machines chaque article est utilisé (voir [Machines](#-machines))
+- **🏷️ Étiquettes QR par machine** : PDF d'étiquettes à coller sur les machines ; en les scannant avec l'application MantPro, la fiche de la machine s'ouvre
+- **🔍 Alerte de doublons** : lors de la création ou du renommage d'une machine, ou de la création ou modification d'un article, avertit s'il en existe déjà un autre avec le même code ou un nom identique ou très similaire (par exemple « Extracteur de fines » / « Extraction de fines »), sans avertir quand seul le numéro change (« Lora 1 » / « Lora 2 »)
+- **📲 Installer les applications avec un QR code** : `Outils > 📱 Installer MantPro sur le mobile` et `📦 Installer MantPro Stock sur le mobile` affichent un QR code qui, scanné avec l'appareil photo du mobile, télécharge la dernière version stable de l'application
+- **🔔 Avis de mise à jour** : `Aide > 🔄 Rechercher des mises à jour` signale les nouvelles versions ; la version installée depuis OBS (openSUSE) indique qu'elle se met à jour avec `zypper`
 
 ### 📱 Application mobile (Android)
 
@@ -176,6 +189,10 @@ Vous pouvez télécharger les versions précompilées depuis [GitHub Releases](h
 - **⏰ Rappels quotidiens** : notification automatique à 8 h 00 (heure locale) s'il reste des interventions en attente non terminées
 - **🧰 Articles utilisés** : ajoutez à l'intervention les articles du magasin que vous avez utilisés, en les recherchant par nom ou code ; ils sont déduits du stock automatiquement à l'enregistrement (voir [Articles utilisés dans une intervention](#-stock-du-magasin))
 - **🏭 Associer une machine** : choisissez dans une liste la machine ou sous-machine sur laquelle l'intervention a été faite, aussi bien en créant un enregistrement qu'en modifiant un enregistrement déjà synchronisé de l'historique
+- **🔄 Connectée en arrière-plan** : tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser avec le PC et affiche une notification (« Connecté au PC » / « Pas de connexion avec le PC ») avec un bouton « Fermer ». Une fois complètement fermée, elle ne consomme plus de batterie
+- **📶 Première synchronisation avec progression** : barre de progression pendant le téléchargement des données et des photos, téléchargées en parallèle pour aller plus vite
+- **🏷️ Scanner la machine** : le bouton de scan lit l'étiquette QR d'une machine et ouvre sa fiche, sans connexion : son emplacement, ses dernières interventions, ses **pièces de rechange** avec le stock du magasin, et un bouton pour enregistrer une intervention déjà liée à elle
+- **⬆️ Mise à jour depuis l'application** : quand une nouvelle version existe, l'avis propose les boutons « Plus tard » et « Mettre à jour » ; « Mettre à jour » télécharge l'APK avec une barre de progression et ouvre l'installateur d'Android, sans passer par GitHub
 
 ### 📦 Application mobile de stock (Android)
 
@@ -193,6 +210,10 @@ l'application des interventions.
 - **🔄 Actualisation automatique** : l'écran se met à jour tout seul lorsqu'il détecte des modifications, faites sur le mobile comme sur le PC
 - **🔌 Mode hors ligne** : sans connexion au PC, l'application n'attend pas : elle consulte les données enregistrées et permet d'enregistrer immédiatement créations, modifications, entrées et sorties, qui sont envoyées toutes seules au PC dès qu'il est de nouveau joignable
 - **🔔 Rappel quotidien de contrôle du stock** : notification automatique à 8 h 00 (heure locale) invitant à vérifier la quantité réelle de 5 articles du magasin, choisis au hasard et différents chaque jour ; en la touchant, un écran s'ouvre pour corriger la quantité de chacun sans avoir à les chercher. S'il n'y a aucun article enregistré, aucune notification n'est affichée
+- **🔄 Connectée en arrière-plan** : comme MantPro, elle continue de se synchroniser en arrière-plan, avec sa notification ; l'icône utilisateur devient **verte** s'il y a une connexion avec le PC et **rouge** sinon
+- **🔩 Utilisé dans** : chaque article indique dans quelles machines il sert de pièce de rechange et combien chacune en porte, même sans connexion
+- **🔍 Alerte de doublons** : lors de la création ou de la modification d'un article, avertit s'il en existe déjà un autre avec le même code ou un nom très similaire, en comparant avec les articles enregistrés sur le mobile (fonctionne sans connexion)
+- **⬆️ Mise à jour depuis l'application** : comme MantPro, elle télécharge et installe la nouvelle version depuis l'avis lui-même
 
 ---
 
@@ -309,6 +330,13 @@ Une signature valide confirme que le paquet provient d'AnabasaSoft et qu'il n'a 
 Téléchargez le `.apk` correspondant depuis [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) et installez-le sur votre appareil Android : `MantPro.apk` pour les interventions, `MantProStock.apk` pour le stock du magasin. Ce sont des applications indépendantes : vous pouvez installer l'une, l'autre ou les deux.
 
 **Remarque** : il peut être nécessaire d'activer « Sources inconnues » dans les paramètres de sécurité de l'appareil.
+
+**Depuis le PC, avec un QR code** : `Outils > 📱 Installer MantPro sur le
+mobile` (ou `📦 Installer MantPro Stock sur le mobile`) affiche un QR code.
+Scannez-le avec l'appareil photo du mobile, ouvrez le lien et la dernière
+version stable de l'application est téléchargée. Une fois installées, les
+applications signalent les nouvelles versions et se mettent à jour depuis l'avis
+lui-même avec le bouton « Mettre à jour ».
 
 #### Option 2 : compiler depuis le code source
 
@@ -449,6 +477,12 @@ session ouverte (même fabricant et même modèle), l'ancienne session de cet
 appareil est supprimée automatiquement lors de la création de la nouvelle, au
 lieu de s'accumuler dans la liste.
 
+La colonne **Connexion** indique si chaque mobile est **en ligne** en ce moment
+et quand a eu lieu son dernier contact. Les applications se signalent au PC
+toutes les quelques secondes tant qu'elles sont ouvertes (y compris en
+arrière-plan), et préviennent qu'elles se déconnectent une fois complètement
+fermées : l'état se met donc à jour immédiatement.
+
 ### Auteur des interventions
 
 Chaque enregistrement conserve le technicien qui l'a réalisé, qu'il ait été
@@ -510,6 +544,21 @@ interventions de chaque équipement dans le temps.
   peut choisir à quelle machine/sous-machine elle appartient
 - **📊 Dans les exports** : la machine ou sous-machine associée apparaît comme
   colonne supplémentaire dans les exports PDF, CSV et Excel
+- **🗺️ Zone héritée** : une nouvelle sous-machine prend par défaut la zone de
+  sa machine parente
+- **🔩 Pièces de rechange de chaque machine** : sous l'arborescence s'affichent
+  les articles du magasin montés sur la machine sélectionnée, combien elle en
+  porte, leur stock (en rouge sous le minimum), leur emplacement et une note
+  (par exemple « côté moteur »). On les ajoute avec « ➕ Ajouter une pièce »,
+  on les exporte en PDF ou Excel, et un double-clic ouvre l'article dans le
+  magasin
+- **🏷️ Étiquettes QR** : le bouton « 🏷️ Étiquettes QR » génère un PDF de
+  feuilles A4 avec 24 étiquettes de 70 × 37 mm (de la machine sélectionnée,
+  avec ses sous-machines, ou de toutes). En les scannant avec l'application
+  MantPro, la fiche de la machine s'ouvre
+- **🔍 Noms similaires** : lors de la création ou du renommage d'une machine,
+  avertit s'il en existe déjà une autre au même niveau avec un nom identique
+  ou très similaire
 
 ---
 
@@ -553,6 +602,12 @@ administrateurs**.
   aussi bien sur le PC que sur le mobile
 - En sélectionnant plusieurs articles à la fois (Ctrl/Maj + clic droit) sur
   le PC, on peut **les changer d'emplacement** ou **les supprimer** en bloc
+- Chaque article indique **dans quelles machines il est utilisé** comme pièce
+  de rechange, et on peut lui associer des machines directement en le créant
+  ou en le modifiant, avec la quantité que porte chacune
+- Lors de la création ou de la modification d'un article, une alerte s'affiche
+  s'il en existe déjà un autre avec le **même code ou un nom très similaire**,
+  pour ne pas le créer deux fois
 
 ### Entrées, sorties et transferts
 
@@ -566,6 +621,9 @@ administrateurs**.
 - Changer un article d'emplacement est aussi consigné dans son historique,
   comme un mouvement de type **transfert** (de quelle section vers quelle
   section)
+- Le bouton **« 📜 Historique »** affiche tous les mouvements du magasin à la
+  suite (entrées, sorties et transferts), avec le nom de chaque article et des
+  filtres par texte et par type
 
 ### Articles utilisés dans une intervention (MantPro)
 
@@ -616,6 +674,11 @@ MantPro utilise un système de synchronisation basé sur :
 4. **Le Wi-Fi local**, sans besoin d'internet
 5. **Une synchronisation complète à l'ouverture de l'application**, en
    arrière-plan et sans bloquer l'interface
+6. Tant que les applications mobiles sont ouvertes, même en arrière-plan,
+   elles continuent de se synchroniser et le PC les voit **en ligne** dans
+   `Outils > 🔐 Sessions des appareils`
+7. La première synchronisation affiche une **barre de progression** et
+   télécharge les données en parallèle et les photos 4 par 4
 
 > ⚠️ Le trafic passe en **HTTP sur le réseau local**. Le système
 > d'utilisateurs apporte de la traçabilité (savoir qui a fait chaque
@@ -951,6 +1014,29 @@ Les contributions sont les bienvenues ! Si vous voulez améliorer MantPro :
 - **Importer depuis Excel/CSV** : machines, articles du magasin, rappels
   récurrents et utilisateurs, avec modèle, association des colonnes, aperçu
   ligne par ligne et sauvegarde préalable.
+- **Aide intégrée** (`Aide > 📖 Instructions`) avec index et recherche dans les
+  7 langues, et **F1** contextuel qui l'ouvre à la rubrique de l'onglet actif.
+- **Statistiques par technicien** dans le tableau de bord : interventions par
+  année et par mois, pannes, préventifs, heures d'arrêt et tâches en attente
+  assignées, avec filtre par type et export PDF et Excel.
+- **Pièces de rechange par machine** : articles du magasin montés sur chaque
+  machine, avec leur stock, « Utilisé dans » sur chaque article et
+  consultation hors connexion dans MantPro et MantPro Stock.
+- **Étiquettes QR par machine** et scanner dans MantPro qui ouvre la fiche de
+  la machine hors connexion.
+- **Alerte de doublons** lors de l'ajout de machines et d'articles (même code
+  ou nom très similaire).
+- **Applications connectées en arrière-plan**, avec notification et état en
+  ligne précis dans « Sessions des appareils ».
+- **Première synchronisation mobile** avec barre de progression et
+  téléchargement en parallèle.
+- **Historique des mouvements de tout le magasin**.
+- **Mettre à jour les applications depuis l'application elle-même**
+  (téléchargement de l'APK et installateur d'Android) et **les installer
+  depuis le PC avec un QR code**.
+- **Versions de test** (`-dev`, `-rc`) proposées uniquement à ceux qui en
+  utilisent déjà une, et paquet **openSUSE (OBS)** publié automatiquement avec
+  chaque version stable.
 
 ## 📄 Licence
 

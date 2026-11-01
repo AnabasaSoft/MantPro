@@ -126,6 +126,11 @@ Pots descarregar les versions precompilades des de [GitHub Releases](https://git
   - `MantPro.apk`: aplicació de treballs de manteniment
   - `MantProStock.apk`: aplicació d'estoc del magatzem
 
+Les versions marcades com a *pre-release* (`v3.10.2-dev`, `-rc.1`…) són de
+proves: només s'ofereixen com a actualització a qui ja té instal·lada una
+versió de proves. Qui fa servir una versió estable només rep avisos de versions
+estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## ✨ Característiques
@@ -158,6 +163,13 @@ Pots descarregar les versions precompilades des de [GitHub Releases](https://git
 - **📥 Importar des d'Excel/CSV**: `Arxiu > Importar des d'Excel/CSV…` (només administradors) porta màquines, articles del magatzem, avisos recurrents i usuaris des d'una plantilla descarregable o des del teu propi Excel (un full o tot el llibre d'una vegada), aparellant soles les columnes, amb previsualització fila a fila i còpia de seguretat prèvia. Les ubicacions (zones, prestatgeries, prestatges) i màquines superiors que no existeixin es creen soles, i els usuaris reben una contrasenya temporal que hauran de canviar en entrar
 - **🏭 Control de maquinària**: arbre de màquines i submàquines amb foto adjunta, comptador de treballs per any i mes, i vincle directe des de cada treball registrat o editat (vegeu [Maquinària](#-maquinària))
 - **📊 Exportació**: a PDF, CSV i Excel, amb filtre opcional per tècnic i indicant la màquina/submàquina de cada treball, si en té
+- **📖 Ajuda integrada**: `Ajuda > 📖 Instruccions` obre un manual complet per apartats (primers passos, usuaris, cada pestanya, menús, apps del mòbil i problemes freqüents), amb índex i cercador, en els 7 idiomes. Amb **F1** s'obre directament a l'apartat de la pestanya on ets
+- **👥 Estadístiques per tècnic**: botó al Dashboard amb els treballs de cada tècnic per any i mes, avaries, preventius, hores d'aturada i pendents assignats ara mateix, amb gràfic de barres; filtrable per tipus (tots, treballs i avaries o manteniment preventiu) i exportable a PDF (amb logotip) i Excel
+- **🔩 Recanvis per màquina**: quins articles del magatzem porta cada màquina i quants, amb el seu estoc i ubicació, i a quines màquines s'utilitza cada article (vegeu [Maquinària](#-maquinària))
+- **🏷️ Etiquetes QR per màquina**: PDF d'etiquetes per enganxar a les màquines; en escanejar-les amb l'app MantPro s'obre la fitxa de la màquina
+- **🔍 Avís de repetits**: en crear o reanomenar una màquina, o en crear o editar un article, avisa si ja n'hi ha un altre amb el mateix codi o un nom igual o molt semblant (per exemple «Extractor de fins» / «Extracció de fins»), sense avisar quan només canvia el número («Lora 1» / «Lora 2»)
+- **📲 Instal·lar les apps amb un QR**: `Eines > 📱 Instal·lar MantPro al mòbil` i `📦 Instal·lar MantPro Stock al mòbil` mostren un QR que, en escanejar-lo amb la càmera del mòbil, baixa l'última versió estable de l'app
+- **🔔 Avisos d'actualització**: `Ajuda > 🔄 Cercar Actualitzacions` avisa de les versions noves; la instal·lada des d'OBS (openSUSE) indica que s'actualitza amb `zypper`
 
 ### 📱 Aplicació mòbil (Android)
 
@@ -177,6 +189,10 @@ Pots descarregar les versions precompilades des de [GitHub Releases](https://git
 - **⏰ Recordatoris diaris**: notificació automàtica a les 8:00 (hora local) si hi ha treballs pendents sense completar
 - **🧰 Material utilitzat**: afegeix al treball el material del magatzem que has fet servir, cercant-lo pel nom o el codi; es descompta sol de l'estoc en desar (vegeu [Material utilitzat en un treball](#-estoc-del-magatzem))
 - **🏭 Vincular màquina**: tria en un desplegable la màquina o submàquina en què s'ha fet el treball, tant en crear un registre nou com en editar-ne un de ja sincronitzat de l'historial
+- **🔄 Connectada en segon pla**: mentre l'app és oberta, encara que sigui en segon pla, continua sincronitzant amb el PC i mostra una notificació («Connectat al PC» / «Sense connexió amb el PC») amb un botó «Tancar». En tancar-la del tot deixa de gastar bateria
+- **📶 Primera sincronització amb progrés**: barra de progrés en baixar les dades i les fotos, amb baixada en paral·lel perquè sigui més ràpida
+- **🏷️ Escanejar la màquina**: el botó d'escanejar llegeix l'etiqueta QR d'una màquina i n'obre la fitxa, sense connexió: on és, els seus últims treballs, els seus **recanvis** amb l'estoc del magatzem, i un botó per registrar un treball ja vinculat a ella
+- **⬆️ Actualitzar des de l'app**: quan hi ha una versió nova, l'avís té els botons «Després» i «Actualitzar»; «Actualitzar» baixa l'APK amb una barra de progrés i obre l'instal·lador d'Android, sense passar per GitHub
 
 ### 📦 Aplicació mòbil d'estoc (Android)
 
@@ -194,6 +210,10 @@ treballs.
 - **🔄 Actualització automàtica**: la pantalla es refresca sola en detectar canvis, tant si el canvi es va fer al mateix mòbil com al PC
 - **🔌 Mode fora de línia**: sense connexió amb el PC l'aplicació no es queda esperant: consulta les dades desades i permet registrar altes, edicions, entrades i sortides al moment, que s'envien soles al PC tan bon punt torna a ser accessible
 - **🔔 Recordatori diari de comprovació d'estoc**: notificació automàtica a les 8:00 (hora local) que convida a revisar la quantitat real de 5 materials del magatzem, triats a l'atzar i diferents cada dia; en prémer-la s'obre una pantalla per corregir la quantitat de cadascun sense haver-los de cercar. Si no hi ha cap material donat d'alta, no es mostra cap notificació
+- **🔄 Connectada en segon pla**: com MantPro, continua sincronitzant en segon pla, amb la seva notificació; la icona d'usuari es posa **verda** si hi ha connexió amb el PC i **vermella** si no
+- **🔩 S'utilitza a**: cada article mostra a quines màquines s'utilitza com a recanvi i quants en porta cadascuna, també sense connexió
+- **🔍 Avís de repetits**: en crear o editar un article avisa si ja n'hi ha un altre amb el mateix codi o un nom molt semblant, comparant amb els articles desats al mòbil (funciona sense connexió)
+- **⬆️ Actualitzar des de l'app**: igual que MantPro, baixa i instal·la la nova versió des del mateix avís
 
 ---
 
@@ -310,6 +330,12 @@ Una signatura vàlida confirma que el paquet prové d'AnabasaSoft i que no s'ha 
 Descarrega l'`.apk` corresponent des de [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) i instal·la'l al teu dispositiu Android: `MantPro.apk` per als treballs, `MantProStock.apk` per a l'estoc del magatzem. Són aplicacions independents i en pots instal·lar una, l'altra o totes dues.
 
 **Nota**: és possible que hagis d'habilitar "Orígens desconeguts" a la configuració de seguretat del dispositiu.
+
+**Des del PC, amb un QR**: a `Eines > 📱 Instal·lar MantPro al mòbil` (o
+`📦 Instal·lar MantPro Stock al mòbil`) apareix un QR. Escaneja'l amb la càmera
+del mòbil, obre l'enllaç i es baixa l'última versió estable de l'app. Un cop
+instal·lades, les apps avisen de les versions noves i s'actualitzen des del
+mateix avís amb el botó «Actualitzar».
 
 #### Opció 2: compilar des del codi font
 
@@ -447,6 +473,11 @@ sessió oberta (mateix fabricant i model), la sessió anterior d'aquest
 dispositiu s'esborra automàticament en crear la nova, en lloc de quedar-se
 acumulada com una sessió solta més al llistat.
 
+La columna **Connexió** indica si cada mòbil està **en línia** ara mateix i quan
+va ser el seu últim contacte. Les apps avisen el PC cada pocs segons mentre són
+obertes (també en segon pla), i en tancar-les del tot avisen que es
+desconnecten, així que l'estat s'actualitza al moment.
+
 ### Autoria dels treballs
 
 Cada registre desa el tècnic que el va fer, tant si es va crear al PC com si
@@ -502,6 +533,19 @@ intervencions de cada equip al llarg del temps.
   editar-ne un d'existent es pot triar a quina màquina/submàquina pertany
 - **📊 A les exportacions**: la màquina o submàquina vinculada apareix com a
   columna addicional a les exportacions a PDF, CSV i Excel
+- **🗺️ Zona heretada**: en crear una submàquina, pren per defecte la zona de
+  la seva màquina superior
+- **🔩 Recanvis de cada màquina**: a sota de l'arbre es veuen els articles del
+  magatzem que porta la màquina seleccionada, quants en porta, el seu estoc
+  (en vermell si és per sota del mínim), la seva ubicació i una nota (per
+  exemple «costat motor»). S'afegeixen amb «➕ Afegir recanvi», s'exporten a
+  PDF o Excel, i amb doble clic es salta a l'article al magatzem
+- **🏷️ Etiquetes QR**: el botó «🏷️ Etiquetes QR» genera un PDF de fulls A4 amb
+  24 etiquetes de 70 × 37 mm (de la màquina seleccionada, amb les seves
+  submàquines o de totes). En escanejar-les amb l'app MantPro s'obre la fitxa
+  de la màquina
+- **🔍 Noms semblants**: en crear o reanomenar una màquina, avisa si al mateix
+  nivell ja n'hi ha una altra amb un nom igual o molt semblant
 
 ---
 
@@ -543,6 +587,11 @@ pestanya "📦 Estoc de magatzem", visible **només per als administradors**.
   com al mòbil
 - Seleccionant diversos materials alhora (Ctrl/Maj + botó dret) al PC es poden
   **moure d'ubicació** o **eliminar** en bloc
+- Cada material indica **a quines màquines s'utilitza** com a recanvi, i en
+  crear-lo o editar-lo s'hi poden associar màquines directament, amb la
+  quantitat que en porta cadascuna
+- En crear o editar un material s'avisa si ja n'hi ha un altre amb el **mateix
+  codi o un nom molt semblant**, per no donar-lo d'alta dues vegades
 
 ### Entrades, sortides i trasllats
 
@@ -555,6 +604,9 @@ pestanya "📦 Estoc de magatzem", visible **només per als administradors**.
   l'estoc en negatiu
 - Canviar la ubicació d'un material també queda registrat al seu historial, com
   un moviment de tipus **trasllat** (de quina secció a quina secció)
+- El botó **«📜 Historial»** mostra tots els moviments del magatzem seguits
+  (entrades, sortides i trasllats), amb el nom de cada article i filtres per
+  text i tipus
 
 ### Material utilitzat en un treball (MantPro)
 
@@ -604,6 +656,11 @@ MantPro fa servir un sistema de sincronització basat en:
 4. **WiFi local**, sense necessitat d'internet
 5. **Sincronització completa en obrir l'aplicació**, en segon pla i sense
    bloquejar la interfície
+6. Mentre les apps del mòbil són obertes, encara que sigui en segon pla,
+   continuen sincronitzant i el PC les veu **en línia** a `Eines > 🔐 Sessions
+   de dispositius`
+7. La primera sincronització mostra una **barra de progrés** i baixa les dades
+   en paral·lel i les fotos de 4 en 4
 
 > ⚠️ El trànsit viatja per **HTTP dins de la xarxa local**. El sistema d'usuaris
 > aporta traçabilitat (saber qui va fer cada treball), no protecció davant d'algú
@@ -916,6 +973,28 @@ Les contribucions són benvingudes! Si vols millorar MantPro:
 - **Importar des d'Excel/CSV**: màquines, articles del magatzem, avisos
   recurrents i usuaris, amb plantilla, aparellament de columnes,
   previsualització fila a fila i còpia de seguretat prèvia.
+- **Ajuda integrada** (`Ajuda > 📖 Instruccions`) amb índex i cercador en els 7
+  idiomes, i **F1** contextual que l'obre a l'apartat de la pestanya activa.
+- **Estadístiques per tècnic** al Dashboard: treballs per any i mes, avaries,
+  preventius, hores d'aturada i pendents assignats, amb filtre per tipus i
+  exportació a PDF i Excel.
+- **Recanvis per màquina**: articles del magatzem que porta cada màquina, amb
+  el seu estoc, «S'utilitza a» a cada article i consulta sense connexió a
+  MantPro i MantPro Stock.
+- **Etiquetes QR per màquina** i escàner a MantPro que obre la fitxa de la
+  màquina sense connexió.
+- **Avís de repetits** en donar d'alta màquines i articles (mateix codi o nom
+  molt semblant).
+- **Apps connectades en segon pla**, amb notificació i estat en línia precís a
+  «Sessions de dispositius».
+- **Primera sincronització del mòbil** amb barra de progrés i baixada en
+  paral·lel.
+- **Historial de moviments de tot el magatzem**.
+- **Actualitzar les apps des de la mateixa app** (baixada de l'APK i
+  instal·lador d'Android) i **instal·lar-les des del PC amb un QR**.
+- **Versions de proves** (`-dev`, `-rc`) ofertes només a qui ja en fa servir
+  una, i paquet per a **openSUSE (OBS)** publicat automàticament amb cada
+  versió estable.
 
 ## 📄 Llicència
 

@@ -125,6 +125,11 @@ Você pode baixar as versões pré-compiladas em [GitHub Releases](https://githu
   - `MantPro.apk`: aplicativo de serviços de manutenção
   - `MantProStock.apk`: aplicativo de estoque do almoxarifado
 
+As versões marcadas como *pre-release* (`v3.10.2-dev`, `-rc.1`…) são de
+teste: só são oferecidas como atualização a quem já tem uma versão de teste
+instalada. Quem usa uma versão estável só recebe avisos de versões estáveis.
+As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## ✨ Recursos
@@ -157,6 +162,13 @@ Você pode baixar as versões pré-compiladas em [GitHub Releases](https://githu
 - **📥 Importar do Excel/CSV**: `Arquivo > Importar do Excel/CSV…` (somente administradores) traz máquinas, itens do almoxarifado, avisos recorrentes e usuários de um modelo para baixar ou do seu próprio Excel (uma planilha ou a pasta de trabalho inteira de uma vez), associando as colunas automaticamente, com pré-visualização linha a linha e cópia de segurança prévia. Localizações (zonas, estantes, prateleiras) e máquinas superiores que não existirem são criadas automaticamente, e os usuários recebem uma senha temporária que terão de alterar no primeiro acesso
 - **🏭 Controle de máquinas**: árvore de máquinas e submáquinas com foto anexada, contador de serviços por ano e mês e vínculo direto a partir de cada serviço registrado ou editado (veja [Máquinas](#-máquinas))
 - **📊 Exportação**: para PDF, CSV e Excel, com filtro opcional por técnico e indicando a máquina/submáquina de cada serviço, se houver
+- **📖 Ajuda integrada**: `Ajuda > 📖 Instruções` abre um manual completo por tópicos (primeiros passos, usuários, cada aba, menus, aplicativos do celular e problemas comuns), com índice e busca, nos 7 idiomas. Com **F1** ele abre direto no tópico da aba em que você está
+- **👥 Estatísticas por técnico**: botão no Painel com os serviços de cada técnico por ano e mês, falhas, preventivos, horas de parada e pendentes atribuídos agora, com gráfico de barras; filtrável por tipo (todos, serviços e falhas ou manutenção preventiva) e exportável para PDF (com logo) e Excel
+- **🔩 Peças de reposição por máquina**: quais itens do almoxarifado cada máquina leva e quantos, com seu estoque e localização, e em quais máquinas cada item é usado (veja [Máquinas](#-máquinas))
+- **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para colar nas máquinas; ao escaneá-las com o aplicativo MantPro abre-se a ficha da máquina
+- **🔍 Aviso de duplicados**: ao criar ou renomear uma máquina, ou ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome igual ou muito parecido (por exemplo «Extrator de finos» / «Extração de finos»), sem avisar quando só muda o número («Lora 1» / «Lora 2»)
+- **📲 Instalar os aplicativos com um QR**: `Ferramentas > 📱 Instalar MantPro no celular` e `📦 Instalar MantPro Stock no celular` mostram um QR que, ao ser escaneado com a câmera do celular, baixa a última versão estável do aplicativo
+- **🔔 Avisos de atualização**: `Ajuda > 🔄 Procurar Atualizações` avisa das novas versões; a instalada pelo OBS (openSUSE) indica que é atualizada com `zypper`
 
 ### 📱 Aplicativo para celular (Android)
 
@@ -176,6 +188,10 @@ Você pode baixar as versões pré-compiladas em [GitHub Releases](https://githu
 - **⏰ Lembretes diários**: notificação automática às 8:00 (horário local) se houver serviços pendentes não concluídos
 - **🧰 Material usado**: adicione ao serviço o material do almoxarifado que você usou, buscando pelo nome ou código; ele é descontado do estoque automaticamente ao salvar (veja [Material usado em um serviço](#-estoque-do-almoxarifado))
 - **🏭 Vincular máquina**: escolha em uma lista a máquina ou submáquina em que o serviço foi feito, tanto ao criar um registro novo quanto ao editar um já sincronizado do histórico
+- **🔄 Conectado em segundo plano**: enquanto o aplicativo está aberto, mesmo em segundo plano, ele continua sincronizando com o PC e mostra uma notificação («Conectado ao PC» / «Sem conexão com o PC») com um botão «Fechar». Ao fechá-lo totalmente, ele para de gastar bateria
+- **📶 Primeira sincronização com progresso**: barra de progresso ao baixar os dados e as fotos, com download em paralelo para ser mais rápido
+- **🏷️ Escanear a máquina**: o botão de escanear lê a etiqueta QR de uma máquina e abre sua ficha, sem conexão: onde ela está, seus últimos serviços, suas **peças de reposição** com o estoque do almoxarifado, e um botão para registrar um serviço já vinculado a ela
+- **⬆️ Atualizar pelo aplicativo**: quando há uma versão nova, o aviso tem os botões «Depois» e «Atualizar»; «Atualizar» baixa o APK com uma barra de progresso e abre o instalador do Android, sem passar pelo GitHub
 
 ### 📦 Aplicativo de estoque para celular (Android)
 
@@ -193,6 +209,10 @@ serviços.
 - **🔄 Atualização automática**: a tela se atualiza sozinha ao detectar alterações, feitas tanto no próprio celular quanto no PC
 - **🔌 Modo offline**: sem conexão com o PC, o aplicativo não fica esperando: consulta os dados salvos e permite registrar cadastros, edições, entradas e saídas na hora, que são enviados sozinhos ao PC assim que ele voltar a estar acessível
 - **🔔 Lembrete diário de conferência de estoque**: notificação automática às 8:00 (horário local) convidando a conferir a quantidade real de 5 materiais do almoxarifado, escolhidos ao acaso e diferentes a cada dia; ao tocá-la, abre-se uma tela para corrigir a quantidade de cada um sem precisar procurá-los. Se não houver nenhum material cadastrado, nenhuma notificação é exibida
+- **🔄 Conectado em segundo plano**: como o MantPro, continua sincronizando em segundo plano, com sua notificação; o ícone de usuário fica **verde** se há conexão com o PC e **vermelho** se não há
+- **🔩 Usado em**: cada item mostra em quais máquinas é usado como peça de reposição e quantos cada uma leva, também sem conexão
+- **🔍 Aviso de duplicados**: ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome muito parecido, comparando com os itens salvos no celular (funciona sem conexão)
+- **⬆️ Atualizar pelo aplicativo**: como o MantPro, baixa e instala a nova versão a partir do próprio aviso
 
 ---
 
@@ -309,6 +329,12 @@ Uma assinatura válida confirma que o pacote vem da AnabasaSoft e que não foi m
 Baixe o `.apk` correspondente em [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) e instale-o no seu dispositivo Android: `MantPro.apk` para os serviços, `MantProStock.apk` para o estoque do almoxarifado. São aplicativos independentes e você pode instalar um, o outro ou os dois.
 
 **Observação**: talvez seja necessário habilitar "Fontes desconhecidas" nas configurações de segurança do dispositivo.
+
+**Pelo PC, com um QR**: em `Ferramentas > 📱 Instalar MantPro no celular` (ou
+`📦 Instalar MantPro Stock no celular`) aparece um QR. Escaneie-o com a câmera
+do celular, abra o link e a última versão estável do aplicativo é baixada.
+Depois de instalados, os aplicativos avisam das novas versões e se atualizam a
+partir do próprio aviso com o botão «Atualizar».
 
 #### Opção 2: compilar a partir do código-fonte
 
@@ -446,6 +472,11 @@ aberta (mesmo fabricante e modelo), a sessão anterior desse dispositivo é
 apagada automaticamente ao criar a nova, em vez de ficar acumulada como mais
 uma sessão solta na lista.
 
+A coluna **Conexão** indica se cada celular está **online** agora e quando foi
+seu último contato. Os aplicativos avisam o PC a cada poucos segundos enquanto
+estão abertos (também em segundo plano), e ao serem fechados totalmente avisam
+que estão se desconectando, então o estado é atualizado na hora.
+
 ### Autoria dos serviços
 
 Cada registro guarda o técnico que o fez, tenha sido criado no PC ou vindo do
@@ -502,6 +533,20 @@ cada equipamento ao longo do tempo.
   máquina/submáquina ele pertence
 - **📊 Nas exportações**: a máquina ou submáquina vinculada aparece como coluna
   adicional nas exportações para PDF, CSV e Excel
+- **🗺️ Zona herdada**: ao criar uma submáquina, ela recebe por padrão a zona
+  da sua máquina superior
+- **🔩 Peças de reposição de cada máquina**: abaixo da árvore aparecem os itens
+  do almoxarifado montados na máquina selecionada, quantos ela leva, seu
+  estoque (em vermelho se abaixo do mínimo), sua localização e uma observação
+  (por exemplo «lado do motor»). São adicionados com «➕ Adicionar peça»,
+  exportados para PDF ou Excel, e com clique duplo você vai ao item no
+  almoxarifado
+- **🏷️ Etiquetas QR**: o botão «🏷️ Etiquetas QR» gera um PDF de folhas A4 com
+  24 etiquetas de 70 × 37 mm (da máquina selecionada, com suas submáquinas ou
+  de todas). Ao escaneá-las com o aplicativo MantPro abre-se a ficha da
+  máquina
+- **🔍 Nomes parecidos**: ao criar ou renomear uma máquina, avisa se no mesmo
+  nível já existe outra com um nome igual ou muito parecido
 
 ---
 
@@ -543,6 +588,11 @@ A estrutura é gerenciada pelo botão **"⚙️ Configurar almoxarifado"** da ab
   celular
 - Selecionando vários materiais de uma vez (Ctrl/Shift + botão direito) no PC,
   é possível **mudá-los de localização** ou **excluí-los** em bloco
+- Cada item indica **em quais máquinas é usado** como peça de reposição, e ao
+  criá-lo ou editá-lo é possível associar máquinas diretamente, com a
+  quantidade que cada uma leva
+- Ao criar ou editar um item, avisa-se se já existe outro com o **mesmo código
+  ou um nome muito parecido**, para não cadastrá-lo duas vezes
 
 ### Entradas, saídas e transferências
 
@@ -555,6 +605,9 @@ A estrutura é gerenciada pelo botão **"⚙️ Configurar almoxarifado"** da ab
 - Mudar um material de localização também fica registrado no histórico dele,
   como uma movimentação do tipo **transferência** (de qual seção para qual
   seção)
+- O botão **«📜 Histórico»** mostra todas as movimentações do almoxarifado em
+  sequência (entradas, saídas e transferências), com o nome de cada item e
+  filtros por texto e tipo
 
 ### Material usado em um serviço (MantPro)
 
@@ -605,6 +658,11 @@ O MantPro usa um sistema de sincronização baseado em:
 4. **Wi-Fi local**, sem precisar de internet
 5. **Sincronização completa ao abrir o aplicativo**, em segundo plano e sem
    travar a interface
+6. Enquanto os aplicativos do celular estão abertos, mesmo em segundo plano,
+   eles continuam sincronizando e o PC os vê **online** em `Ferramentas > 🔐
+   Sessões de dispositivos`
+7. A primeira sincronização mostra uma **barra de progresso** e baixa os dados
+   em paralelo e as fotos de 4 em 4
 
 > ⚠️ O tráfego passa por **HTTP dentro da rede local**. O sistema de usuários
 > oferece rastreabilidade (saber quem fez cada serviço), não proteção contra
@@ -915,6 +973,28 @@ Contribuições são bem-vindas! Se você quiser melhorar o MantPro:
 - **Importar do Excel/CSV**: máquinas, itens do almoxarifado, avisos
   recorrentes e usuários, com modelo, associação de colunas, pré-visualização
   linha a linha e cópia de segurança prévia.
+- **Ajuda integrada** (`Ajuda > 📖 Instruções`) com índice e busca nos 7
+  idiomas, e **F1** contextual que a abre no tópico da aba ativa.
+- **Estatísticas por técnico** no Painel: serviços por ano e mês, falhas,
+  preventivos, horas de parada e pendentes atribuídos, com filtro por tipo e
+  exportação para PDF e Excel.
+- **Peças de reposição por máquina**: itens do almoxarifado que cada máquina
+  leva, com seu estoque, «Usado em» em cada item e consulta sem conexão no
+  MantPro e no MantPro Stock.
+- **Etiquetas QR por máquina** e scanner no MantPro que abre a ficha da
+  máquina sem conexão.
+- **Aviso de duplicados** ao cadastrar máquinas e itens (mesmo código ou nome
+  muito parecido).
+- **Aplicativos conectados em segundo plano**, com notificação e estado online
+  preciso em «Sessões de dispositivos».
+- **Primeira sincronização do celular** com barra de progresso e download em
+  paralelo.
+- **Histórico de movimentações de todo o almoxarifado**.
+- **Atualizar os aplicativos pelo próprio aplicativo** (download do APK e
+  instalador do Android) e **instalá-los pelo PC com um QR**.
+- **Versões de teste** (`-dev`, `-rc`) oferecidas só a quem já usa uma, e
+  pacote para **openSUSE (OBS)** publicado automaticamente a cada versão
+  estável.
 
 ## 📄 Licença
 
