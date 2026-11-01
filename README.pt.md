@@ -267,7 +267,7 @@ Baixe a versão correspondente ao seu sistema em [GitHub Releases](https://githu
 
 Os pacotes `.deb` e `.rpm` publicados em cada release são assinados com a chave GPG oficial da AnabasaSoft. Para verificá-los antes de instalar:
 
-**Impressão digital da chave** (confira também em [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, expira em 2028-10-06). Se a que o `gpg` mostrar não coincidir exatamente, não instale o pacote.
+**Impressão digital da chave** (confira também em [anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, expira em 2028-10-06). Se a que o `gpg` mostrar não coincidir exatamente, não instale o pacote.
 
 1. Baixe a chave pública do repositório ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) para um arquivo (**não use `curl | rpm --import -`**: algumas versões do `rpm` não aceitam ler a chave pela entrada padrão e falham):
    ```bash

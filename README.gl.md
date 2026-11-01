@@ -266,7 +266,7 @@ Descarga a versión correspondente ao teu sistema dende [GitHub Releases](https:
 
 Os paquetes `.deb` e `.rpm` publicados en cada release están asinados coa chave GPG oficial de AnabasaSoft. Para verificalos antes de instalalos:
 
-**Pegada da clave** (compróbaa tamén en [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, caduca o 2028-10-06). Se a que che mostra `gpg` non coincide exactamente, non instales o paquete.
+**Pegada da clave** (compróbaa tamén en [anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, caduca o 2028-10-06). Se a que che mostra `gpg` non coincide exactamente, non instales o paquete.
 
 1. Descarga a chave pública do repositorio ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) a un ficheiro (**non empregues `curl | rpm --import -`**: algunhas versións de `rpm` non admiten ler a chave pola entrada estándar e fallan):
    ```bash

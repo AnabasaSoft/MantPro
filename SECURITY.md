@@ -50,7 +50,9 @@ GPG key ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)):
 11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199
 ```
 
-The steps to verify them are in the [README](README.md).
+The fingerprint is also published at
+[anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma). The steps to
+verify the packages are in the [README](README.md).
 
 ---
 
@@ -103,4 +105,6 @@ AnabasaSoft ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)):
 11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199
 ```
 
-Los pasos para verificarlos están en el [README](README.es.md).
+La huella está publicada también en
+[anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma). Los pasos
+para verificar los paquetes están en el [README](README.es.md).

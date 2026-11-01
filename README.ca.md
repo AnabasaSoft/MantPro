@@ -268,7 +268,7 @@ Descarrega la versió corresponent al teu sistema des de [GitHub Releases](https
 
 Els paquets `.deb` i `.rpm` publicats a cada release estan signats amb la clau GPG oficial d'AnabasaSoft. Per verificar-los abans d'instal·lar-los:
 
-**Empremta de la clau** (comprova-la també a [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, caduca el 2028-10-06). Si la que et mostra `gpg` no coincideix exactament, no instal·lis el paquet.
+**Empremta de la clau** (comprova-la també a [anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, caduca el 2028-10-06). Si la que et mostra `gpg` no coincideix exactament, no instal·lis el paquet.
 
 1. Descarrega la clau pública del repositori ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) a un fitxer (**no facis servir `curl | rpm --import -`**: algunes versions de `rpm` no admeten llegir la clau per l'entrada estàndard i fallen):
    ```bash

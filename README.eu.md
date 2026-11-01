@@ -269,7 +269,7 @@ Deskargatu zure sistemari dagokion bertsioa [GitHub Releases](https://github.com
 
 Release bakoitzean argitaratutako `.deb` eta `.rpm` paketeak AnabasaSoft-en GPG gako ofizialarekin sinatuta daude. Instalatu aurretik egiaztatzeko:
 
-**Gakoaren hatz-marka** (egiaztatu [anabasasoft.github.io](https://anabasasoft.github.io) webgunean ere): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, 2028-10-06an iraungitzen da). `gpg`-k erakusten dizuna zehatz-mehatz bat ez badator, ez instalatu paketea.
+**Gakoaren hatz-marka** (egiaztatu [anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma) webgunean ere): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, 2028-10-06an iraungitzen da). `gpg`-k erakusten dizuna zehatz-mehatz bat ez badator, ez instalatu paketea.
 
 1. Deskargatu biltegiko gako publikoa ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) fitxategi batera (**ez erabili `curl | rpm --import -`**: `rpm`-ren bertsio batzuek ezin dute gakoa sarrera estandarretik irakurri eta huts egiten dute):
    ```bash

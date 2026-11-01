@@ -264,7 +264,7 @@ Download the version for your system from [GitHub Releases](https://github.com/A
 
 The `.deb` and `.rpm` packages published in each release are signed with AnabasaSoft's official GPG key. To verify them before installing:
 
-**Key fingerprint** (also check it at [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, expires 2028-10-06). If the one shown by `gpg` does not match exactly, do not install the package.
+**Key fingerprint** (also check it at [anabasasoft.github.io](https://anabasasoft.github.io/about.html#firma)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, expires 2028-10-06). If the one shown by `gpg` does not match exactly, do not install the package.
 
 1. Download the public key from the repository ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) to a file (**do not use `curl | rpm --import -`**: some versions of `rpm` cannot read the key from standard input and fail with `read failed`):
    ```bash
