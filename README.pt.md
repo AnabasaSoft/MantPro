@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
-  <img src="https://img.shields.io/badge/Sem%20assinatura-100%25%20gr%C3%A1tis-orange.svg" alt="Sem assinatura">
+  <img src="https://img.shields.io/badge/Auto--hospedado-gr%C3%A1tis%20para%20sempre-orange.svg" alt="Auto-hospedado: grátis para sempre">
 </p>
 
 ---
@@ -53,7 +53,7 @@ máquinas, intervenções e estoque sem depender de planilhas soltas.
 
 - **Código aberto e grátis**: código aberto sob AGPL-3.0, sem limite de
   técnicos, máquinas ou registros
-- **Sem assinatura**: não se paga por usuário nem por mês de uso
+- **Auto-hospedado: grátis para sempre**: instalado no seu próprio PC ou servidor, não se paga por usuário nem por mês de uso
 - **Seus dados, na sua infraestrutura**: o banco de dados fica no seu próprio
   PC; você não depende de que um serviço de nuvem de terceiros continue
   existindo no ano que vem
@@ -267,6 +267,8 @@ Baixe a versão correspondente ao seu sistema em [GitHub Releases](https://githu
 
 Os pacotes `.deb` e `.rpm` publicados em cada release são assinados com a chave GPG oficial da AnabasaSoft. Para verificá-los antes de instalar:
 
+**Impressão digital da chave** (confira também em [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, expira em 2028-10-06). Se a que o `gpg` mostrar não coincidir exatamente, não instale o pacote.
+
 1. Baixe a chave pública do repositório ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) para um arquivo (**não use `curl | rpm --import -`**: algumas versões do `rpm` não aceitam ler a chave pela entrada padrão e falham):
    ```bash
    curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
@@ -283,7 +285,11 @@ Os pacotes `.deb` e `.rpm` publicados em cada release são assinados com a chave
 
 3. Verifique se a chave foi importada corretamente:
    ```bash
+   # RPM
    rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+
+   # DEB (ou qualquer distribuição com gpg): mostra também a impressão digital
+   gpg --fingerprint AnabasaSoft
    ```
 
 4. Verifique a assinatura do pacote baixado:

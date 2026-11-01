@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
-  <img src="https://img.shields.io/badge/Sense%20subscripci%C3%B3-100%25%20gratu%C3%AFt-orange.svg" alt="Sense subscripció">
+  <img src="https://img.shields.io/badge/Autoallotjat-gratu%C3%AFt%20per%20sempre-orange.svg" alt="Autoallotjat: gratuït per sempre">
 </p>
 
 ---
@@ -53,7 +53,7 @@ màquines, intervencions i estoc sense dependre de fulls de càlcul solts.
 
 - **Codi obert i gratuït**: codi obert sota AGPL-3.0, sense límit de tècnics,
   màquines o registres
-- **Sense subscripció**: no es paga per usuari ni per mes d'ús
+- **Autoallotjat: gratuït per sempre**: instal·lat al teu propi PC o servidor, no es paga per usuari ni per mes d'ús
 - **Les teves dades, a la teva infraestructura**: la base de dades viu al teu
   propi PC; no depens que un servei al núvol d'un tercer continuï existint
   l'any vinent
@@ -268,6 +268,8 @@ Descarrega la versió corresponent al teu sistema des de [GitHub Releases](https
 
 Els paquets `.deb` i `.rpm` publicats a cada release estan signats amb la clau GPG oficial d'AnabasaSoft. Per verificar-los abans d'instal·lar-los:
 
+**Empremta de la clau** (comprova-la també a [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, caduca el 2028-10-06). Si la que et mostra `gpg` no coincideix exactament, no instal·lis el paquet.
+
 1. Descarrega la clau pública del repositori ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) a un fitxer (**no facis servir `curl | rpm --import -`**: algunes versions de `rpm` no admeten llegir la clau per l'entrada estàndard i fallen):
    ```bash
    curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
@@ -284,7 +286,11 @@ Els paquets `.deb` i `.rpm` publicats a cada release estan signats amb la clau G
 
 3. Comprova que la clau s'ha importat correctament:
    ```bash
+   # RPM
    rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+
+   # DEB (o qualsevol distribució amb gpg): mostra també l'empremta
+   gpg --fingerprint AnabasaSoft
    ```
 
 4. Verifica la signatura del paquet descarregat:

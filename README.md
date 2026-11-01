@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
-  <img src="https://img.shields.io/badge/No%20subscription-100%25%20free-orange.svg" alt="No subscription">
+  <img src="https://img.shields.io/badge/Self--hosted-free%20forever-orange.svg" alt="Self-hosted: free forever">
 </p>
 
 ---
@@ -53,7 +53,7 @@ without relying on scattered spreadsheets.
 
 - **Open source and free**: open code under AGPL-3.0, with no limit on
   technicians, machines or records
-- **No subscription**: no per-user or per-month fees
+- **Self-hosted: free forever**: installed on your own PC or server, there are no per-user or per-month fees
 - **Your data, on your infrastructure**: the database lives on your own PC;
   you do not depend on a third-party cloud service still existing next year
 - **Truly offline**: the phone works without an internet or PC connection
@@ -264,6 +264,8 @@ Download the version for your system from [GitHub Releases](https://github.com/A
 
 The `.deb` and `.rpm` packages published in each release are signed with AnabasaSoft's official GPG key. To verify them before installing:
 
+**Key fingerprint** (also check it at [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, expires 2028-10-06). If the one shown by `gpg` does not match exactly, do not install the package.
+
 1. Download the public key from the repository ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) to a file (**do not use `curl | rpm --import -`**: some versions of `rpm` cannot read the key from standard input and fail with `read failed`):
    ```bash
    curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
@@ -280,7 +282,11 @@ The `.deb` and `.rpm` packages published in each release are signed with Anabasa
 
 3. Check that the key was imported correctly:
    ```bash
+   # RPM
    rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+
+   # DEB (or any distribution with gpg): also shows the fingerprint
+   gpg --fingerprint AnabasaSoft
    ```
 
 4. Verify the signature of the downloaded package:

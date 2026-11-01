@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
-  <img src="https://img.shields.io/badge/Sin%20suscripción-100%25%20gratis-orange.svg" alt="Sin suscripción">
+  <img src="https://img.shields.io/badge/Autoalojado-gratis%20para%20siempre-orange.svg" alt="Autoalojado: gratis para siempre">
 </p>
 
 ---
@@ -53,7 +53,7 @@ máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
 
 - **Open source y gratis**: código abierto bajo AGPL-3.0, sin límite de
   técnicos, máquinas o registros
-- **Sin suscripción**: no se paga por usuario ni por mes de uso
+- **Autoalojado: gratis para siempre**: instalado en tu propio PC o servidor, no se paga por usuario ni por mes de uso
 - **Tus datos, en tu infraestructura**: la base de datos vive en tu propio PC;
   no dependes de que un servicio en la nube de terceros siga existiendo el año
   que viene
@@ -267,6 +267,8 @@ Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https:
 
 Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la clave GPG oficial de AnabasaSoft. Para verificarlos antes de instalar:
 
+**Huella de la clave** (compruébala también en [anabasasoft.github.io](https://anabasasoft.github.io)): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, caduca el 2028-10-06). Si la que te muestra `gpg` no coincide exactamente, no instales el paquete.
+
 1. Descarga la clave pública del repositorio ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) a un fichero (**no uses `curl | rpm --import -`**, algunas versiones de `rpm` no admiten leer la clave por la entrada estándar y fallan con `falló la lectura para importar`):
    ```bash
    curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
@@ -283,7 +285,11 @@ Los paquetes `.deb` y `.rpm` publicados en cada release están firmados con la c
 
 3. Comprueba que la clave se ha importado correctamente:
    ```bash
+   # RPM
    rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+
+   # DEB (o cualquier distribución con gpg): muestra también la huella
+   gpg --fingerprint AnabasaSoft
    ```
 
 4. Verifica la firma del paquete descargado:

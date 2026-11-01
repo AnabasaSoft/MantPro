@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
-  <img src="https://img.shields.io/badge/Harpidetzarik%20gabe-%25100%20doan-orange.svg" alt="Harpidetzarik gabe">
+  <img src="https://img.shields.io/badge/Norberak%20ostatatua-betiko%20doan-orange.svg" alt="Norberak ostatatua: betiko doan">
 </p>
 
 ---
@@ -54,7 +54,7 @@ kalkulu-orri solteen menpe egon gabe.
 
 - **Kode irekia eta doakoa**: AGPL-3.0 lizentziapeko kode irekia, teknikari,
   makina edo erregistro kopuruaren mugarik gabe
-- **Harpidetzarik gabe**: ez da erabiltzaileko edo hilabeteko ordaintzen
+- **Norberak ostatatua: betiko doan**: zure PCan edo zerbitzarian instalatuta, ez da erabiltzaileko edo hilabeteko ordaintzen
 - **Zure datuak, zure azpiegituran**: datu-basea zure PCan bertan dago; ez
   zaude hirugarren baten hodeiko zerbitzu batek datorren urtean ere bizirik
   jarraitzearen menpe
@@ -269,6 +269,8 @@ Deskargatu zure sistemari dagokion bertsioa [GitHub Releases](https://github.com
 
 Release bakoitzean argitaratutako `.deb` eta `.rpm` paketeak AnabasaSoft-en GPG gako ofizialarekin sinatuta daude. Instalatu aurretik egiaztatzeko:
 
+**Gakoaren hatz-marka** (egiaztatu [anabasasoft.github.io](https://anabasasoft.github.io) webgunean ere): `11C7 C6C8 127D FE48 33DE  30EF 9D7A AEC8 1842 C199` (RSA 4096, 2028-10-06an iraungitzen da). `gpg`-k erakusten dizuna zehatz-mehatz bat ez badator, ez instalatu paketea.
+
 1. Deskargatu biltegiko gako publikoa ([`firma/anabasasoft_public.asc`](firma/anabasasoft_public.asc)) fitxategi batera (**ez erabili `curl | rpm --import -`**: `rpm`-ren bertsio batzuek ezin dute gakoa sarrera estandarretik irakurri eta huts egiten dute):
    ```bash
    curl -sL https://raw.githubusercontent.com/AnabasaSoft/MantPro/main/firma/anabasasoft_public.asc -o /tmp/anabasasoft_public.asc
@@ -285,7 +287,11 @@ Release bakoitzean argitaratutako `.deb` eta `.rpm` paketeak AnabasaSoft-en GPG 
 
 3. Egiaztatu gakoa ondo inportatu dela:
    ```bash
+   # RPM
    rpm -qa 'gpg-pubkey*' --qf '%{name}-%{version}-%{release} --> %{summary}\n' | grep -i anabasasoft
+
+   # DEB (edo gpg duen edozein banaketa): hatz-marka ere erakusten du
+   gpg --fingerprint AnabasaSoft
    ```
 
 4. Egiaztatu deskargatutako paketearen sinadura:
