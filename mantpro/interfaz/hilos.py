@@ -40,6 +40,7 @@ from .comun import tt
 from ..nucleo import usuarios
 from ..nucleo.fotos import _RE_GALERIA, fotos_galeria
 from ..nucleo.rutas import DATA_DIR
+from ..nucleo.seguridad import anadir_bd_a_zip
 from ..version import APP_VERSION, REPO_NAME, REPO_OWNER
 
 # ==========================================
@@ -381,11 +382,16 @@ class BackupThread(QThread):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             nombre_zip = f"auto_backup_db_{timestamp}.zip"
             ruta_zip = os.path.join(self.carpeta_backups_auto, nombre_zip)
-            with zipfile.ZipFile(ruta_zip, 'w', zipfile.ZIP_STORED) as zipf:
-                if os.path.exists(self.db_name):
-                    zipf.write(self.db_name, arcname=os.path.basename(self.db_name))
-                if os.path.exists(self.db_almacen_name):
-                    zipf.write(self.db_almacen_name, arcname=os.path.basename(self.db_almacen_name))
+            # Copia consistente de cada base de datos (incluye lo que siga en
+            # el fichero -wal) en un ZIP temporal que solo se renombra al
+            # final: un corte a mitad no deja un ZIP roto con el nombre bueno.
+            temporal = ruta_zip + ".tmp"
+            with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_STORED) as zipf:
+                for ruta_bd in (self.db_name, self.db_almacen_name):
+                    integridad = anadir_bd_a_zip(zipf, ruta_bd)
+                    if integridad not in (None, "ok"):
+                        print(f"Aviso: {os.path.basename(ruta_bd)} no pasa la comprobación de integridad: {integridad}")
+            os.replace(temporal, ruta_zip)
 
             backups = []
             for f in os.listdir(self.carpeta_backups_auto):
@@ -427,19 +433,25 @@ class BackupManualThread(QThread):
             total = len(archivos_fotos) + 2
             hechos = 0
             self.progreso.emit(0, total)
-            with zipfile.ZipFile(self.ruta_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                if os.path.exists(self.db_name):
-                    zipf.write(self.db_name, arcname=os.path.basename(self.db_name))
-                hechos += 1; self.progreso.emit(hechos, total)
-                if os.path.exists(self.db_almacen_name):
-                    zipf.write(self.db_almacen_name, arcname=os.path.basename(self.db_almacen_name))
-                hechos += 1; self.progreso.emit(hechos, total)
+            # ZIP temporal que solo se renombra al final (ver BackupThread),
+            # con una copia consistente de cada base de datos.
+            temporal = self.ruta_zip + ".tmp"
+            dañadas = []
+            with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for ruta_bd in (self.db_name, self.db_almacen_name):
+                    integridad = anadir_bd_a_zip(zipf, ruta_bd)
+                    if integridad not in (None, "ok"):
+                        dañadas.append(f"{os.path.basename(ruta_bd)}: {integridad}")
+                    hechos += 1; self.progreso.emit(hechos, total)
                 for ruta_archivo in archivos_fotos:
                     ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
                     zipf.write(ruta_archivo, arcname=ruta_en_zip)
                     hechos += 1; self.progreso.emit(hechos, total)
+            os.replace(temporal, self.ruta_zip)
 
-            self.resultado.emit(True, "", self.ruta_zip)
+            # La copia se guarda igualmente, pero se avisa si alguna base de
+            # datos no ha pasado la comprobación de integridad.
+            self.resultado.emit(True, "\n".join(dañadas), self.ruta_zip)
         except Exception as ex:
             self.resultado.emit(False, str(ex), self.ruta_zip)
 

@@ -34,6 +34,7 @@ from ..dialogos.trabajos import DialogoTiempoGuardado
 from ..hilos import BackupManualThread, RestoreManualThread
 from ...nucleo import usuarios, almacen
 from ...nucleo.fotos import fotos_galeria
+from ...nucleo.seguridad import anadir_bd_a_zip
 
 class AccionesCopias:
     """Copias de seguridad, restauración, limpieza de fotos y borrado de trabajos antiguos.
@@ -74,6 +75,9 @@ class AccionesCopias:
             dlg.accept()
             if exito:
                 QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=os.path.basename(ruta)))
+                if mensaje:   # la copia se ha hecho, pero alguna base de datos está dañada
+                    QMessageBox.warning(self, t("title_backup_completo"), tt(
+                        "msg_bd_integridad", "La copia se ha guardado, pero la comprobación de integridad ha encontrado errores en:\n\n{detalle}\n\nGuarda también una copia anterior y revisa el equipo (disco, cortes de luz).").format(detalle=mensaje))
             else:
                 QMessageBox.critical(self, t("title_error_backup"), mensaje)
 
@@ -185,10 +189,11 @@ class AccionesCopias:
         os.makedirs(self.carpeta_backups_auto, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         ruta_copia = os.path.join(self.carpeta_backups_auto, f"{prefijo}_{ts}.zip")
-        with zipfile.ZipFile(ruta_copia, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        temporal = ruta_copia + ".tmp"
+        with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for ruta in (self.db.db_name, getattr(self.db, "db_almacen_name", None)):
-                if ruta and os.path.exists(ruta):
-                    zipf.write(ruta, arcname=os.path.basename(ruta))
+                anadir_bd_a_zip(zipf, ruta)   # copia consistente (incluye el -wal)
+        os.replace(temporal, ruta_copia)
         return ruta_copia
 
     def borrar_trabajos_antiguos(self):
