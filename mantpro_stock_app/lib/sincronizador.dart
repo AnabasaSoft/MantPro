@@ -18,6 +18,7 @@
 // Deberías haber recibido una copia de la Licencia Pública General Affero de
 // GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
+import 'conexion_segura.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -77,19 +78,19 @@ class StockSincronizador {
 
   static Future<_ResultadoEnvio> _enviarMaterial(String ip, Map<String, dynamic> item, {required bool esNuevo}) {
     if (esNuevo) {
-      return _enviarMultipart('http://$ip/api/stock/material', item, omitir: const ['localId']);
+      return _enviarMultipart('$esquemaPC://$ip/api/stock/material', item, omitir: const ['localId']);
     }
     final id = item['id'];
     final campos = Map<String, dynamic>.from(item)..remove('id');
     if (item['borrarFoto'] == true) campos['borrar_foto'] = '1';
-    return _enviarMultipart('http://$ip/api/stock/material/$id', campos,
+    return _enviarMultipart('$esquemaPC://$ip/api/stock/material/$id', campos,
         omitir: const ['localId', 'borrarFoto']);
   }
 
   static Future<_ResultadoEnvio> _enviarBorrado(String ip, int id) async {
     try {
       final res = await http
-          .delete(Uri.parse('http://$ip/api/stock/material/$id'), headers: AuthService.cabeceras())
+          .delete(Uri.parse('$esquemaPC://$ip/api/stock/material/$id'), headers: AuthService.cabeceras())
           .timeout(const Duration(seconds: 10));
       await comprobar401(res.statusCode);
       // 404 (el material ya no existe en el PC) también se considera hecho.
@@ -105,7 +106,7 @@ class StockSincronizador {
   static Future<_ResultadoEnvio> _enviarMovimiento(String ip, Map<String, dynamic> item) async {
     try {
       final res = await http.post(
-        Uri.parse('http://$ip/api/stock/material/${item['materialId']}/movimiento'),
+        Uri.parse('$esquemaPC://$ip/api/stock/material/${item['materialId']}/movimiento'),
         headers: AuthService.cabeceras(),
         body: {
           'tipo': item['tipo'].toString(),
@@ -270,23 +271,23 @@ class StockSincronizador {
     // 5. Refrescamos las cachés de lectura y los roles del usuario (por si
     // han cambiado en el PC mientras la app estaba conectada).
     try {
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/estructura'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura'))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheEstructura, res.body);
     } catch (_) {}
     try {
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/materiales'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/materiales'))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheMateriales, res.body);
     } catch (_) {}
     try {
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/bajo_minimo'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/bajo_minimo'))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheBajoMinimo, res.body);
     } catch (_) {}
     try {
       // Repuestos de las máquinas, para el «Se usa en…» de cada artículo.
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/repuestos'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/repuestos'))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheRepuestos, res.body);
     } catch (_) {}

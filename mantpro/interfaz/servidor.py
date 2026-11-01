@@ -25,12 +25,13 @@ import os
 import socket
 import re
 import logging
+import threading
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import usuarios, almacen, maquinas, seguridad
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad
 from ..nucleo.basedatos import get_db_connection
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -82,6 +83,8 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "error": "demasiado_grande",
                                 "message": "El envío es demasiado grande."}), 413
         self.server_port = puerto or PUERTO_POR_DEFECTO
+        self.puerto_https = self.server_port + 1
+        self.huella = None   # huella del certificado, cuando HTTPS está en marcha
         usuarios.configurar_db(db_path)
 
         # Reutilizamos get_db_connection (timeout=20 + modo WAL) para que
@@ -188,6 +191,15 @@ class ServidorSincronizacion(QThread):
             # dispositivos" sale "Sin conexión" al momento.
             usuarios.registrar_desconexion(_token_peticion())
             return jsonify({"status": "ok"})
+
+        @self.app.route('/api/tls', methods=['GET'])
+        def api_tls():
+            # Para que un móvil ya vinculado por HTTP pase solo a HTTPS: le
+            # dice el puerto y la huella del certificado, que luego comprueba
+            # en cada conexión. Un móvil vinculado con el QR nuevo ya la trae.
+            if not self.huella:
+                return jsonify({"status": "error", "message": "HTTPS no disponible"}), 404
+            return jsonify({"status": "ok", "puerto": self.puerto_https, "huella": self.huella})
 
         @self.app.route('/api/ping', methods=['GET'])
         def api_ping():
@@ -818,6 +830,11 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/foto/<path:filename>')
         def serve_foto(filename):
+            # Por HTTPS hace falta el token, como en el resto de la API. Por
+            # HTTP se sigue sirviendo sin él para las versiones anteriores de
+            # las apps (que piden algunas fotos sin token) hasta quitar HTTP.
+            if request.is_secure and _usuario_peticion() is None:
+                return jsonify({"status": "error", "error": "token_invalido"}), 401
             try:
                 return send_from_directory(self.carpeta_destino, filename)
             except Exception as e:
@@ -1304,7 +1321,28 @@ class ServidorSincronizacion(QThread):
         # Werkzeug llama a sys.exit() si no puede abrir el puerto: dentro de
         # este hilo eso acababa tumbando la ventana principal. Se captura y se
         # avisa a la interfaz por señal.
+        #
+        # Se sirven dos puertos a la vez: HTTPS en el siguiente al configurado
+        # (el que usan las apps actuales, con el certificado fijado por la
+        # huella del QR) y HTTP en el configurado, para que los móviles con
+        # versiones anteriores sigan sincronizando hasta que se actualicen.
         try:
-            self.app.run(host='0.0.0.0', port=self.server_port, debug=False, use_reloader=False)
+            from werkzeug.serving import make_server
+            servidor_http = make_server('0.0.0.0', self.server_port, self.app, threaded=True)
+        except BaseException as e:
+            self.error_arranque.emit(str(e) or type(e).__name__)
+            return
+        try:
+            cert, clave = certificado.asegurar_certificado()
+            servidor_https = make_server('0.0.0.0', self.puerto_https, self.app, threaded=True,
+                                         ssl_context=(cert, clave))
+            self.huella = certificado.huella_certificado(cert)
+            threading.Thread(target=servidor_https.serve_forever, daemon=True).start()
+        except BaseException as e:
+            # Sin HTTPS los móviles siguen pudiendo sincronizar por HTTP.
+            self.huella = None
+            print(f"No se pudo arrancar HTTPS en el puerto {self.puerto_https}: {e}")
+        try:
+            servidor_http.serve_forever()
         except BaseException as e:
             self.error_arranque.emit(str(e) or type(e).__name__)

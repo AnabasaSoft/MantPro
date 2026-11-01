@@ -69,3 +69,7 @@ CLAUDE.md
 
 # Roadmap interno (ideas y notas de desarrollo, no se sube al repo)
 ROADMAP.md
+
+# Certificado TLS y clave privada del servidor (los genera MantPro)
+servidor_cert.pem
+servidor_clave.pem

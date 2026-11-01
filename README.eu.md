@@ -684,9 +684,11 @@ MantPro-k sinkronizazio-sistema bat erabiltzen du, oinarri hauekin:
 7. Lehen sinkronizazioak **aurrerapen-barra** erakusten du eta datuak
    paraleloan eta argazkiak 4naka deskargatzen ditu
 
-> ⚠️ Trafikoa **HTTP bidez doa sare lokalaren barruan**. Erabiltzaile-sistemak
-> trazabilitatea ematen du (lan bakoitza nork egin zuen jakitea), ez sare
-> horretara sarbidea duen norbaiten aurkako babesa.
+> 🔒 Sinkronizazioa **zifratuta (HTTPS)** doa. PCak bere ziurtagiria sortzen du
+> eta haren hatz-marka QRan doa: mugikorra PC *horretara* bakarrik konektatzen
+> da, beraz WiFian inork ezin du trafikoa irakurri ez PCaren itxurarik egin.
+> Dagoeneko lotutako mugikorrak bere kabuz pasatzen dira HTTPSra aplikazioa
+> eguneratzean.
 
 ### Sarearen konfigurazioa
 
@@ -739,11 +741,12 @@ Sinkronizazioak funtziona dezan:
 
 ### 🔒 Segurtasunari buruzko oharra
 
-Sinkronizazioa HTTP bidez doa sare lokalaren barruan. Erabiltzaile-sistema
-**trazabilitaterako** pentsatuta dago (lan bakoitza nork egin zuen jakitea), ez
-sare horretara sarbidea duen norbaiten aurkako hesi gisa. Etorkizunean
-zerbitzaria sare lokaletik kanpo jartzen bada, trafikoak zifratuta joan behar du
-(VPN edo HTTPSdun tunel bat).
+Sinkronizazioa HTTPS bidez zifratuta doa, eta PCaren ziurtagiria QRko
+hatz-markaren bidez finkatuta dago. Trantsizioan, PCak HTTP bidez ere erantzuten
+jarraitzen du konfiguratutako atakan, aurreko bertsioetako aplikazioentzat;
+HTTPSk **hurrengo ataka** erabiltzen du (adibidez, 5000 eta 5001), beraz
+suhesia badago biak ireki behar dira. Zerbitzaria sare lokaletik kanpo jartzen
+baduzu inoiz, egin VPN baten bidez.
 
 ---
 
@@ -786,7 +789,6 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Lan egindako denbora eta sinadura** lan bat ixtean
 - **Makina bakoitzeko dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFan)
 - **Hainbat PC aldi berean** eta leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker)
-- **Komunikazio zifratuak** (HTTPS)
 - Hizkuntza gehiago eta iPhonerako aplikazioa
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.

@@ -18,6 +18,7 @@
 // Deberías haber recibido una copia de la Licencia Pública General Affero de
 // GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
+import 'conexion_segura.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -99,7 +100,7 @@ class ConexionPC {
 
   static Future<bool> _sondear(String ip) async {
     try {
-      final uri = Uri.parse(ip.contains('://') ? ip : 'http://$ip');
+      final uri = Uri.parse(ip.contains('://') ? ip : '$esquemaPC://$ip');
       final socket = await Socket.connect(uri.host, uri.hasPort ? uri.port : 80,
           timeout: const Duration(milliseconds: 1500));
       socket.destroy();
@@ -201,7 +202,7 @@ class AuthService {
   static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
     try {
       final res = await http.post(
-        Uri.parse('http://$ip/api/login'),
+        Uri.parse('$esquemaPC://$ip/api/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'login': usuario,
@@ -244,7 +245,7 @@ class AuthService {
   static Future<void> cerrarSesion({String? ip}) async {
     if (ip != null && token != null) {
       try {
-        await http.post(Uri.parse('http://$ip/api/logout'), headers: cabeceras())
+        await http.post(Uri.parse('$esquemaPC://$ip/api/logout'), headers: cabeceras())
             .timeout(const Duration(seconds: 5));
       } catch (_) {}
     }
@@ -270,7 +271,7 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       final ip = prefs.getString('pc_ip_url');
       if (ip == null) return;
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/yo')).timeout(const Duration(seconds: 8));
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/yo')).timeout(const Duration(seconds: 8));
       if (res.statusCode != 200) return;
       final datos = json.decode(res.body);
       if (datos['status'] != 'ok') return;
@@ -314,7 +315,7 @@ Future<void> latidoPC() async {
   final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
   if (ip == null) return;
   try {
-    await httpGetAuth(Uri.parse('http://$ip/api/yo')).timeout(const Duration(seconds: 3));
+    await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/yo')).timeout(const Duration(seconds: 3));
   } catch (e) {
     if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
   }
@@ -328,7 +329,7 @@ Future<void> avisarDesconexionPC() async {
   final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
   if (ip == null) return;
   try {
-    await http.post(Uri.parse('http://$ip/api/desconectar'), headers: AuthService.cabeceras())
+    await http.post(Uri.parse('$esquemaPC://$ip/api/desconectar'), headers: AuthService.cabeceras())
         .timeout(const Duration(seconds: 2));
   } catch (_) {}
 }
@@ -378,7 +379,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/estructura'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -409,7 +410,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/zonas'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/zonas'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -549,7 +550,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final uri = Uri.parse('http://$ip/api/stock/materiales')
+      final uri = Uri.parse('$esquemaPC://$ip/api/stock/materiales')
           .replace(queryParameters: (q != null && q.isNotEmpty) ? {'q': q} : null);
       final res = await httpGetAuth(uri).timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
@@ -582,7 +583,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/bajo_minimo'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/bajo_minimo'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -608,7 +609,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('http://$ip/api/stock/material/$id'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/material/$id'))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -638,7 +639,7 @@ class StockApi {
     }
   }
 
-  static String urlFoto(String ip, String foto) => 'http://$ip/api/foto/$foto';
+  static String urlFoto(String ip, String foto) => '$esquemaPC://$ip/api/foto/$foto';
 
   static Future<String> ipActual() => _ip();
 

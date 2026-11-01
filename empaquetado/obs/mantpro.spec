@@ -31,6 +31,7 @@ BuildRequires:  python3
 # que existen en la distribución y %%check prueba que la app las puede importar.
 BuildRequires:  python3-Flask
 BuildRequires:  python3-Pillow
+BuildRequires:  python3-cryptography
 BuildRequires:  python3-PyQt6
 BuildRequires:  python3-XlsxWriter
 BuildRequires:  python3-openpyxl
@@ -40,6 +41,7 @@ BuildRequires:  python3-requests
 Requires:       python3
 Requires:       python3-Flask
 Requires:       python3-Pillow
+Requires:       python3-cryptography
 Requires:       python3-PyQt6
 Requires:       python3-XlsxWriter
 Requires:       python3-openpyxl
@@ -125,7 +127,7 @@ cd "$HOME"
 python3 - << 'EOF'
 import importlib, pkgutil, sys
 sys.path.insert(0, "%{buildroot}%{_datadir}/%{name}")
-for m in ("flask", "openpyxl", "PIL", "PyQt6.QtWidgets", "PyQt6.QtNetwork", "qrcode",
+for m in ("flask", "openpyxl", "PIL", "cryptography", "PyQt6.QtWidgets", "PyQt6.QtNetwork", "qrcode",
           "reportlab", "requests", "xlsxwriter"):
     importlib.import_module(m)
 import mantpro

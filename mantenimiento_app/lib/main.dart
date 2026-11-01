@@ -39,6 +39,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'i18n/strings.dart';
 import 'actualizador.dart';
 import 'servicio_conexion.dart';
+import 'conexion_segura.dart';
 
 
 // ==========================================================================
@@ -143,7 +144,7 @@ class AuthService {
   static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
     try {
       final res = await http.post(
-        Uri.parse('http://$ip/api/login'),
+        Uri.parse('$esquemaPC://$ip/api/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'login': usuario,
@@ -187,7 +188,7 @@ class AuthService {
   static Future<void> cerrarSesion({String? ip}) async {
     if (ip != null && token != null) {
       try {
-        await http.post(Uri.parse('http://$ip/api/logout'), headers: cabeceras())
+        await http.post(Uri.parse('$esquemaPC://$ip/api/logout'), headers: cabeceras())
             .timeout(const Duration(seconds: 5));
       } catch (_) {}
     }
@@ -233,7 +234,7 @@ Future<void> avisarDesconexionPC() async {
   final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
   if (ip == null) return;
   try {
-    await http.post(Uri.parse("http://$ip/api/desconectar"), headers: AuthService.cabeceras())
+    await http.post(Uri.parse("$esquemaPC://$ip/api/desconectar"), headers: AuthService.cabeceras())
         .timeout(const Duration(seconds: 2));
   } catch (_) {}
 }
@@ -279,7 +280,7 @@ Future<void> cachearFotosHistorial(String ip, List<Map<String, dynamic>> items,
     while (siguiente < pendientes.length) {
       final nombre = pendientes[siguiente++];
       try {
-        final r = await httpGetAuth(Uri.parse("http://$ip/api/foto/$nombre")).timeout(const Duration(seconds: 30));
+        final r = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/foto/$nombre")).timeout(const Duration(seconds: 30));
         if (r.statusCode == 200) await File(path.join(dir.path, nombre)).writeAsBytes(r.bodyBytes);
       } catch (_) {}
       alAvanzar?.call(++hechas, pendientes.length);
@@ -321,8 +322,9 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _vincular() async {
-    final c = await Navigator.push(
+    final leido = await Navigator.push<String>(
         context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    final c = await guardarVinculacion(leido);
     if (c != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pc_ip_url', c);
@@ -681,6 +683,13 @@ void _alDenegarPermisoTrabajos() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Conexión cifrada con el PC (ver conexion_segura.dart): antes de
+  // cualquier petición. Si este móvil se vinculó por HTTP con un PC que ya
+  // tiene HTTPS, pasa aquí a HTTPS, antes de que ninguna pantalla lea la
+  // dirección del PC (sin conexión no espera más de un segundo).
+  await iniciarConexionSegura();
+  final ipGuardada = (await SharedPreferences.getInstance()).getString('pc_ip_url');
+  if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
 
   tz.initializeTimeZones();
   try {
@@ -773,7 +782,7 @@ class MaquinasCache {
 
   static Future<void> sincronizar(String ip) async {
     try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/maquinas")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/maquinas")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_clave, res.body);
@@ -821,7 +830,7 @@ class RepuestosCache {
 
   static Future<void> sincronizar(String ip) async {
     try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/repuestos")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/repuestos")).timeout(const Duration(seconds: 5));
       if (res.statusCode != 200) return;
       final datos = json.decode(res.body);
       if (datos is Map && datos['status'] == 'ok') {
@@ -851,7 +860,7 @@ class EspecialidadesCache {
 
   static Future<void> sincronizar(String ip) async {
     try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/especialidades")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/especialidades")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_clave, res.body);
@@ -1220,7 +1229,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (ip == null || !AuthService.autenticado) return;
     bool ok = false;
     try {
-      final res = await httpGetAuth(Uri.parse("http://$ip/api/dashboard")).timeout(const Duration(seconds: 4));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/dashboard")).timeout(const Duration(seconds: 4));
       ok = res.statusCode == 200;
     } catch (_) { ok = false; }
     if (ok && !_conectadoPC) {
@@ -1447,7 +1456,7 @@ class _TabDashboardState extends State<TabDashboard> {
     if (!mounted) return;
     setState(() { _cargando = true; _conexionActiva = false; });
     try {
-      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         setState(() { _stats = json.decode(res.body); _conexionActiva = true; });
         final prefs = await SharedPreferences.getInstance();
@@ -1465,7 +1474,7 @@ class _TabDashboardState extends State<TabDashboard> {
     if (_urlPC == null) { _abrirQR(); return; }
     setState(() => _cargando = true);
     try {
-      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         setState(() { _stats = json.decode(res.body); _conexionActiva = true; _cargando = false; });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_conexion_recuperada")), duration: const Duration(seconds: 2)));
@@ -1576,7 +1585,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     String? urlUsar = nuevaUrl ?? prefs.getString('pc_ip_url');
     if (urlUsar == null) return;
     setState(() => _cargando = true);
-    final uri = Uri.parse("http://$urlUsar/api/upload");
+    final uri = Uri.parse("$esquemaPC://$urlUsar/api/upload");
     List<Registro> enviados = [];
     for (var item in _pendientes) {
       try {
@@ -1611,7 +1620,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
       if (enviados.isNotEmpty) {
         // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
         try {
-          final resH = await httpGetAuth(Uri.parse("http://$urlUsar/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+          final resH = await httpGetAuth(Uri.parse("$esquemaPC://$urlUsar/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
           if (resH.statusCode == 200) {
             final body = json.decode(resH.body);
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -1774,7 +1783,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       final dir = await getApplicationDocumentsDirectory(); final fp = path.join(dir.path, nombreFoto);
       if (File(fp).existsSync()) return fp;
       if (_urlPC != null) {
-        final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
+        final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/foto/$nombreFoto")).timeout(const Duration(seconds: 10));
         if (res.statusCode == 200) { await File(fp).writeAsBytes(res.bodyBytes); return fp; }
       }
     } catch (e) { /* */ } return null;
@@ -1806,7 +1815,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     // --- NUEVO: Descargar el nuevo historial en segundo plano al subir algo ---
     if (bo.isNotEmpty || no.isNotEmpty || eo.isNotEmpty || so.isNotEmpty) {
       try {
-        final resH = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+        final resH = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
         if (resH.statusCode == 200) {
           final body = json.decode(resH.body);
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -1826,7 +1835,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     }
     // --------------------------------------------------------------------------
     try {
-      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/pendientes")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         List<PendientePC> nuevos = d.map((i) => PendientePC.fromJson(i)).toList();
@@ -1850,14 +1859,14 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   // cola para el siguiente intento.
   Future<bool> _apiPost(String ep, Map<String, String> b, {String? descripcion}) async {
     try {
-      final res = await httpPostAuth(Uri.parse("http://$_urlPC/api/$ep"), body: b);
+      final res = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/$ep"), body: b);
       if (res.statusCode == 403) { avisarSinPermisoTrabajos(descripcion ?? ep); return true; }
       return res.statusCode == 200;
     } catch (e) { return false; }
   }
   Future<bool> _apiMultipart(String ep, Map<String, dynamic> d) async {
     try {
-      var r = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/$ep"));
+      var r = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$_urlPC/api/$ep"));
       r.headers.addAll(AuthService.cabeceras());
       if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
       r.fields['titulo'] = d['titulo'];
@@ -2270,7 +2279,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     _sincronizarTodo(silencioso: true);
   }
   Future<void> _escanearQR() async {
-    final c = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    final leido = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    final c = await guardarVinculacion(leido);
     if (c != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pc_ip_url', c);
@@ -2342,8 +2352,8 @@ class _TabAvisosState extends State<TabAvisos> {
     if (!mounted) return;
     setState(() => _cargando = true);
 
-    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("http://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("http://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2351,7 +2361,7 @@ class _TabAvisosState extends State<TabAvisos> {
 
       // --- NUEVO: Descargar el nuevo historial en segundo plano al marcar avisos ---
       try {
-        final resH = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
+        final resH = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 5));
         if (resH.statusCode == 200) {
           final body = json.decode(resH.body);
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
@@ -2371,7 +2381,7 @@ class _TabAvisosState extends State<TabAvisos> {
       // -----------------------------------------------------------------------------
     }
     try {
-      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/avisos")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         final lista = d.map((x) => AvisoPC.fromJson(x)).toList();
@@ -2481,7 +2491,7 @@ class _TabHistorialState extends State<TabHistorial> {
     List<Map<String, dynamic>> ok = [];
     for (var e in _colaEdiciones) {
       try {
-        var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/editar_historial"));
+        var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$_urlPC/api/editar_historial"));
         req.headers.addAll(AuthService.cabeceras());
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
@@ -2533,7 +2543,7 @@ class _TabHistorialState extends State<TabHistorial> {
   // Descarga una página del historial (page=0 es la más reciente) y cachea sus fotos localmente.
   Future<List<Registro>> _descargarPagina(String q, int pagina) async {
     String fDate = _filtroAno != "TODO" ? (_filtroMes != "TODO" ? "$_filtroAno-$_filtroMes" : _filtroAno) : "";
-    final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial?q=$q&mes=$fDate&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
+    final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/historial?q=$q&mes=$fDate&page=$pagina&limit=$_porPagina")).timeout(const Duration(seconds: 8));
     if (res.statusCode != 200) return [];
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
@@ -2541,8 +2551,8 @@ class _TabHistorialState extends State<TabHistorial> {
     List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'])).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
-      if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
-      if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await httpGetAuth(Uri.parse("http://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
+      if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
+      if (r.serverImageNameDespues != null) { final fp_d = path.join(dir.path, r.serverImageNameDespues!); if (!File(fp_d).existsSync()) { try { var ir_d = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/foto/${r.serverImageNameDespues}")); if (ir_d.statusCode == 200) await File(fp_d).writeAsBytes(ir_d.bodyBytes); } catch (e) { /* */ } } }
       if (r.serverFotosExtra.isNotEmpty && _urlPC != null) await cachearFotosHistorial(_urlPC!, [{'serverFotosExtra': r.serverFotosExtra}]);
     }
     return nuevos;
@@ -2612,7 +2622,7 @@ class _TabHistorialState extends State<TabHistorial> {
     if (serverName != null) {
       return FutureBuilder<String>(future: _localPath(serverName), builder: (c, s) {
         if (s.hasData && File(s.data!).existsSync()) return Image.file(File(s.data!), width: 50, height: 50, fit: BoxFit.cover);
-        else if (_urlPC != null) return Image.network("http://$_urlPC/api/foto/$serverName", width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.red));
+        else if (_urlPC != null) return Image.network("$esquemaPC://$_urlPC/api/foto/$serverName", headers: AuthService.cabeceras(), width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.red));
         else return const Icon(Icons.no_photography, color: Colors.grey);
       });
     }
@@ -2620,13 +2630,13 @@ class _TabHistorialState extends State<TabHistorial> {
   }
   Future<bool> _faltaEnPC(String filename) async {
     try {
-      final r = await http.head(Uri.parse("http://$_urlPC/api/foto/$filename")).timeout(const Duration(seconds: 5));
+      final r = await http.head(Uri.parse("$esquemaPC://$_urlPC/api/foto/$filename"), headers: AuthService.cabeceras()).timeout(const Duration(seconds: 5));
       return r.statusCode != 200;
     } catch (e) { return true; } // si no se puede comprobar, se intenta subir igualmente
   }
   Future<bool> _subirFotoRestaurar(String id, String tipo, String rutaLocal, {String? nombre}) async {
     try {
-      var req = http.MultipartRequest('POST', Uri.parse("http://$_urlPC/api/restaurar_foto"));
+      var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$_urlPC/api/restaurar_foto"));
       req.headers.addAll(AuthService.cabeceras());
       req.fields['id'] = id; req.fields['tipo'] = tipo;
       if (nombre != null) req.fields['nombre'] = nombre;
@@ -2643,7 +2653,7 @@ class _TabHistorialState extends State<TabHistorial> {
     int enviadas = 0, revisados = 0;
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final res = await httpGetAuth(Uri.parse("http://$_urlPC/api/historial_todo")).timeout(const Duration(seconds: 20));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/historial_todo")).timeout(const Duration(seconds: 20));
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         for (var item in d) {
@@ -2831,7 +2841,7 @@ List<String> fotosGaleriaDe(String? texto) {
 Future<void> podarHistorialCache(String ip) async {
   final Set<int> existentes;
   try {
-    final res = await httpGetAuth(Uri.parse("http://$ip/api/historial_todo")).timeout(const Duration(seconds: 10));
+    final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/historial_todo")).timeout(const Duration(seconds: 10));
     if (res.statusCode != 200) return;
     final d = json.decode(res.body);
     if (d is! List) return;
@@ -2889,7 +2899,7 @@ ImageProvider? proveedorFotoTrabajo(FotoTrabajo f, String? dirDocs, String? urlP
       final fp = path.join(dirDocs, n);
       if (File(fp).existsSync()) return FileImage(File(fp));
     }
-    if (urlPC != null) return NetworkImage("http://$urlPC/api/foto/$n");
+    if (urlPC != null) return NetworkImage("$esquemaPC://$urlPC/api/foto/$n", headers: AuthService.cabeceras());
   }
   return null;
 }
@@ -3109,9 +3119,9 @@ class _FormScreenState extends State<FormScreen> {
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
   Future<void> _cam() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _img = n); } }
-  Future<void> _down() async { String? sn = widget.serverImageName ?? widget.registroExistente?.serverImageName; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
+  Future<void> _down() async { String? sn = widget.serverImageName ?? widget.registroExistente?.serverImageName; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await httpGetAuth(Uri.parse("$esquemaPC://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _img = fp); } } }
   Future<void> _camDespues() async { final f = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 60); if (f!=null) { final d = await getApplicationDocumentsDirectory(); final n = path.join(d.path, 'foto_d_${DateTime.now().millisecondsSinceEpoch}.jpg'); await File(f.path).copy(n); setState(() => _imgDespues = n); } }
-  Future<void> _downDespues() async { String? sn = widget.serverImageNameDespues ?? widget.registroExistente?.serverImageNameDespues; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _imgDespues = fp); } } }
+  Future<void> _downDespues() async { String? sn = widget.serverImageNameDespues ?? widget.registroExistente?.serverImageNameDespues; if (sn!=null && widget.urlPC!=null) { final d = await getApplicationDocumentsDirectory(); final fp = path.join(d.path, sn); var r = await httpGetAuth(Uri.parse("$esquemaPC://${widget.urlPC}/api/foto/$sn")); if (r.statusCode==200) { await File(fp).writeAsBytes(r.bodyBytes); setState(() => _imgDespues = fp); } } }
   @override Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(title: Text(widget.esHistorial ? t("lbl_editar") : t("lbl_nuevo"))), body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       if(!widget.esHistorial) TextField(controller: _t, decoration: InputDecoration(labelText: t("lbl_titulo"))), const SizedBox(height: 15),
@@ -3236,7 +3246,7 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
     setState(() => _buscando = true);
     bool ok = false;
     try {
-      final res = await httpGetAuth(Uri.parse("http://${widget.urlPC}/api/stock/materiales?q=${Uri.encodeQueryComponent(q)}")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://${widget.urlPC}/api/stock/materiales?q=${Uri.encodeQueryComponent(q)}")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         _resultados = List<Map<String, dynamic>>.from(data['materiales'] ?? []);
@@ -3331,7 +3341,7 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
 class QRScanScreen extends StatefulWidget { const QRScanScreen({super.key}); @override State<QRScanScreen> createState() => _QRScanScreenState(); }
 class _QRScanScreenState extends State<QRScanScreen> {
   bool _s = false;
-  @override Widget build(BuildContext context) { return Scaffold(appBar: AppBar(title: Text(t("title_qr"))), body: MobileScanner(onDetect: (c) { if (!_s && c.barcodes.isNotEmpty && c.barcodes.first.rawValue!=null) { setState(()=>_s=true); Navigator.pop(context, c.barcodes.first.rawValue!.replaceAll("http://", "").replaceAll("/", "")); } })); }
+  @override Widget build(BuildContext context) { return Scaffold(appBar: AppBar(title: Text(t("title_qr"))), body: MobileScanner(onDetect: (c) { if (!_s && c.barcodes.isNotEmpty && c.barcodes.first.rawValue!=null) { setState(()=>_s=true); Navigator.pop(context, c.barcodes.first.rawValue!); } })); }
 }
 class ImageEditorScreen extends StatefulWidget { final File imageFile; const ImageEditorScreen({super.key, required this.imageFile}); @override State<ImageEditorScreen> createState() => _ImageEditorScreenState(); }
 class _ImageEditorScreenState extends State<ImageEditorScreen> {
@@ -3371,7 +3381,7 @@ class SincronizadorGlobal {
       List<Registro> enviados = [];
       for (var item in pendientes) {
         try {
-          var req = http.MultipartRequest('POST', Uri.parse("http://$ip/api/upload"));
+          var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$ip/api/upload"));
           req.headers.addAll(AuthService.cabeceras());
           req.fields['titulo'] = item.titulo;
           req.fields['detalles'] = item.detalles;
@@ -3402,15 +3412,15 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> colaSalida = prefs.getString('cola_salida') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_salida')!)) : [];
     List<Map<String, dynamic>> colaRevertir = prefs.getString('cola_revertir') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_revertir')!)) : [];
 
-    List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/eliminar_pendiente"), body: {'id': id.toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
+    List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/eliminar_pendiente"), body: {'id': id.toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
 
-    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
+    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
     for (var t in rv) { colaRevertir.remove(t); }
 
     Future<bool> apiMultipart(String ep, Map<String, dynamic> d) async {
       try {
-        var r = http.MultipartRequest('POST', Uri.parse("http://$ip/api/$ep"));
+        var r = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$ip/api/$ep"));
         r.headers.addAll(AuthService.cabeceras());
         if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
         r.fields['titulo'] = d['titulo'];
@@ -3452,8 +3462,8 @@ class SincronizadorGlobal {
     if (cc != null) { colaCompletados = (json.decode(cc) as List<dynamic>).map((e) => Map<String, String>.from(e)).toList(); }
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
-    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("http://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -3465,7 +3475,7 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> hok = [];
     for (var e in histEdiciones) {
       try {
-        var req = http.MultipartRequest('POST', Uri.parse("http://$ip/api/editar_historial"));
+        var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$ip/api/editar_historial"));
         req.headers.addAll(AuthService.cabeceras());
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
@@ -3484,14 +3494,14 @@ class SincronizadorGlobal {
     progreso(tt('msg_sync_descargando', 'Descargando datos…'));
     Future<void> descargar(String ruta, String clave) async {
       try {
-        final res = await httpGetAuth(Uri.parse("http://$ip/api/$ruta")).timeout(const Duration(seconds: 10));
+        final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/$ruta")).timeout(const Duration(seconds: 10));
         if (res.statusCode == 200) await prefs.setString(clave, res.body);
       } catch (_) {}
     }
     List<Map<String, dynamic>> nuevosH = [];
     Future<void> descargarHistorial() async {
       try {
-        final resH = await httpGetAuth(Uri.parse("http://$ip/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 10));
+        final resH = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/historial?q=&page=0&limit=$_historialPorPagina")).timeout(const Duration(seconds: 10));
         if (resH.statusCode != 200) return;
         final body = json.decode(resH.body);
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;

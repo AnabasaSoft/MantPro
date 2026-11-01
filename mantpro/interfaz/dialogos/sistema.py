@@ -36,7 +36,7 @@ from ..servidor import PUERTO_POR_DEFECTO, primer_puerto_libre, puerto_libre
 class DialogoQR(QDialog):
     """QR con una dirección. Por defecto, el de vincular el móvil con el PC;
     con «titulo» y «pasos» sirve para otros (p. ej. instalar las apps)."""
-    def __init__(self, url, parent=None, titulo=None, pasos=None):
+    def __init__(self, url, parent=None, titulo=None, pasos=None, texto_visible=None):
         super().__init__(parent)
         self.setWindowTitle(titulo or t("title_sincronizar_movil"))
         self.resize(300, 420)
@@ -55,7 +55,7 @@ class DialogoQR(QDialog):
         li.setPixmap(p.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
         li.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l.addWidget(li)
-        l.addWidget(QLabel(url, alignment=Qt.AlignmentFlag.AlignCenter))
+        l.addWidget(QLabel(texto_visible or url, alignment=Qt.AlignmentFlag.AlignCenter))
         self.setLayout(l)
 
 

@@ -261,8 +261,17 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
                    "porque su puerto estaba ocupado. Cierra el programa que lo usa o cambia el puerto en "
                    "Herramientas > Puerto de sincronización, y vuelve a abrir MantPro."))
             return
-        url = f"http://{self.server_thread.obtener_ip_local()}:{self.server_thread.server_port}"
-        self.qr_dialog = DialogoQR(url, self)
+        ip = self.server_thread.obtener_ip_local()
+        huella = self.server_thread.huella
+        if huella:
+            # Conexión cifrada: el QR lleva la huella del certificado del PC,
+            # que la app comprueba en cada conexión, y el puerto HTTP («p»)
+            # por si hiciera falta volver a él.
+            url = f"https://{ip}:{self.server_thread.puerto_https}/?h={huella}&p={self.server_thread.server_port}"
+            visible = f"https://{ip}:{self.server_thread.puerto_https}  🔒"
+        else:
+            url = visible = f"http://{ip}:{self.server_thread.server_port}"
+        self.qr_dialog = DialogoQR(url, self, texto_visible=visible)
         self.qr_dialog.exec(); self.qr_dialog = None
 
     def mostrar_qr_instalar_app(self, apk, nombre_app):

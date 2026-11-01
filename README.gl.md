@@ -675,9 +675,10 @@ MantPro emprega un sistema de sincronización baseado en:
 7. A primeira sincronización mostra unha **barra de progreso** e descarga os
    datos en paralelo e as fotos de 4 en 4
 
-> ⚠️ O tráfico viaxa por **HTTP dentro da rede local**. O sistema de usuarios
-> achega trazabilidade (saber quen fixo cada traballo), non protección fronte a
-> alguén con acceso a esa mesma rede.
+> 🔒 A sincronización vai **cifrada (HTTPS)**. O PC crea o seu propio
+> certificado e a súa pegada viaxa no QR: o móbil só se conecta a *ese* PC,
+> así que ninguén na WiFi pode ler o tráfico nin facerse pasar por el. Os
+> móbiles xa vinculados pasan sós a HTTPS ao actualizar a app.
 
 ### Configuración da rede
 
@@ -728,11 +729,12 @@ Para que a sincronización funcione:
 
 ### 🔒 Nota sobre seguranza
 
-A sincronización viaxa por HTTP dentro da rede local. O sistema de usuarios
-está pensado para a **trazabilidade** (saber quen fixo cada traballo), non como
-barreira fronte a alguén con acceso a esa mesma rede. Se no futuro se expón o
-servidor fóra da rede local, o tráfico debe ir cifrado (VPN ou túnel con
-HTTPS).
+A sincronización vai cifrada con HTTPS e o certificado do PC queda fixado
+pola pegada do QR. Durante a transición, o PC segue atendendo tamén por HTTP
+no porto configurado para as apps de versións anteriores; HTTPS usa o **porto
+seguinte** (por exemplo, 5000 e 5001), así que se hai un cortalumes hai que
+abrir os dous. Se algunha vez expós o servidor fóra da rede local, faino a
+través dunha VPN.
 
 ---
 
@@ -774,7 +776,6 @@ O que vén, sen datas e sen unha orde pechada:
 - **Tempo traballado e sinatura** ao pechar un traballo
 - **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
 - **Varios PC á vez** e servidor sen xanela (Raspberry Pi, NAS, Docker)
-- **Comunicacións cifradas** (HTTPS)
 - Máis idiomas e app para iPhone
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo

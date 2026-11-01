@@ -31,6 +31,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'i18n/strings.dart';
 import 'actualizador.dart';
 import 'servicio_conexion.dart';
+import 'conexion_segura.dart';
 import 'api.dart';
 import 'sincronizador.dart';
 import 'pantallas/pantalla_almacen.dart';
@@ -224,6 +225,13 @@ void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Conexión cifrada con el PC (ver conexion_segura.dart): antes de
+  // cualquier petición. Si este móvil se vinculó por HTTP con un PC que ya
+  // tiene HTTPS, pasa aquí a HTTPS, antes de que ninguna pantalla lea la
+  // dirección del PC (sin conexión no espera más de un segundo).
+  await iniciarConexionSegura();
+  final ipGuardada = (await SharedPreferences.getInstance()).getString('pc_ip_url');
+  if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
 
   tz.initializeTimeZones();
   try {
@@ -333,8 +341,9 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _vincular() async {
-    final c = await Navigator.push(
+    final leido = await Navigator.push<String>(
         context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    final c = await guardarVinculacion(leido);
     if (c != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pc_ip_url', c);
@@ -499,7 +508,7 @@ class _QRScanScreenState extends State<QRScanScreen> {
         if (!_s && c.barcodes.isNotEmpty && c.barcodes.first.rawValue != null) {
           setState(() => _s = true);
           Navigator.pop(context,
-              c.barcodes.first.rawValue!.replaceAll("http://", "").replaceAll("/", ""));
+              c.barcodes.first.rawValue!);
         }
       }),
     );

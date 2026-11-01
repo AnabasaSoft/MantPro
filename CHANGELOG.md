@@ -7,6 +7,8 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Seguridad
+- **Sincronización cifrada (HTTPS)** entre el PC y los móviles. El PC crea su propio certificado y su huella va en el QR de vinculación: las apps solo se conectan a *ese* PC, así que nadie en la WiFi puede leer el tráfico ni hacerse pasar por él. Los móviles ya vinculados pasan solos a HTTPS al actualizar la app, sin volver a escanear. HTTPS usa el puerto siguiente al configurado (p. ej. 5001); el PC sigue atendiendo por HTTP en el configurado para las apps de versiones anteriores.
+- **Fotos con sesión**: por HTTPS, descargar una foto del PC exige haber iniciado sesión.
 - **Límite de intentos de inicio de sesión**: desde los móviles, 5 fallos seguidos bloquean ese usuario 15 minutos y 20 fallos desde un mismo móvil lo bloquean igual; en la ventana del PC, 5 fallos bloquean un minuto. Las apps muestran cuánto hay que esperar.
 - **Fotos recibidas de los móviles comprobadas**: solo se guardan imágenes de verdad (formato y contenido), de 30 MB como mucho y con un nombre que no puede salirse de su carpeta; los envíos de más de 300 MB se rechazan.
 - **Token de sesión de las apps en el almacenamiento seguro de Android** (Keystore) en vez de en claro. Se pasa solo al actualizar, sin tener que volver a iniciar sesión.

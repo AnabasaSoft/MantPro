@@ -670,9 +670,10 @@ MantPro uses a sync system based on:
 7. The first sync shows a **progress bar** and downloads the data in parallel
    and the photos 4 at a time
 
-> ⚠️ Traffic travels over **HTTP within the local network**. The user system
-> provides traceability (knowing who did each job), not protection against
-> someone with access to that same network.
+> 🔒 Sync is **encrypted (HTTPS)**. The PC creates its own certificate and its
+> fingerprint travels in the QR code: the phone only connects to *that* PC, so
+> nobody on the Wi-Fi can read the traffic or impersonate it. Phones that are
+> already linked switch to HTTPS by themselves after updating the app.
 
 ### Network Setup
 
@@ -723,11 +724,12 @@ For sync to work:
 
 ### 🔒 Security note
 
-Sync travels over HTTP within the local network. The user system is
-designed for **traceability** (knowing who did each job), not as a barrier
-against someone with access to that same network. If the server is ever
-exposed outside the local network, the traffic must be encrypted (VPN or a
-tunnel with HTTPS).
+Sync is encrypted with HTTPS and the PC's certificate is pinned by the
+fingerprint in the QR code. During the transition, the PC also keeps serving
+HTTP on the configured port for apps from earlier versions; HTTPS uses the
+**next port** (for example, 5000 and 5001), so if there is a firewall both must
+be open. If you ever expose the server outside the local network, do it through
+a VPN.
 
 ---
 
@@ -769,7 +771,6 @@ What's coming, without dates and in no fixed order:
 - **Time worked and sign-off** when closing a job
 - **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
 - **Several PCs at once** and a headless server (Raspberry Pi, NAS, Docker)
-- **Encrypted communications** (HTTPS)
 - More languages and an iPhone app
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing

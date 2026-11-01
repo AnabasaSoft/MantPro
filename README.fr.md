@@ -698,10 +698,11 @@ MantPro utilise un système de synchronisation basé sur :
 7. La première synchronisation affiche une **barre de progression** et
    télécharge les données en parallèle et les photos 4 par 4
 
-> ⚠️ Le trafic passe en **HTTP sur le réseau local**. Le système
-> d'utilisateurs apporte de la traçabilité (savoir qui a fait chaque
-> intervention), pas une protection contre quelqu'un ayant accès à ce même
-> réseau.
+> 🔒 La synchronisation est **chiffrée (HTTPS)**. Le PC crée son propre
+> certificat et son empreinte voyage dans le QR code : le mobile ne se connecte
+> qu'à *ce* PC, donc personne sur le Wi-Fi ne peut lire le trafic ni se faire
+> passer pour lui. Les mobiles déjà associés passent tout seuls en HTTPS en
+> mettant l'application à jour.
 
 ### Configuration réseau
 
@@ -754,11 +755,12 @@ Pour que la synchronisation fonctionne :
 
 ### 🔒 Remarque sur la sécurité
 
-La synchronisation passe en HTTP sur le réseau local. Le système
-d'utilisateurs est pensé pour la **traçabilité** (savoir qui a fait chaque
-intervention), pas comme une barrière contre quelqu'un ayant accès à ce même
-réseau. Si un jour le serveur est exposé en dehors du réseau local, le trafic
-doit être chiffré (VPN ou tunnel HTTPS).
+La synchronisation est chiffrée en HTTPS et le certificat du PC est épinglé
+par l'empreinte du QR code. Pendant la transition, le PC continue aussi de
+répondre en HTTP sur le port configuré pour les applications des versions
+précédentes ; HTTPS utilise le **port suivant** (par exemple 5000 et 5001),
+donc s'il y a un pare-feu il faut ouvrir les deux. Si vous exposez un jour le
+serveur hors du réseau local, faites-le via un VPN.
 
 ---
 
@@ -801,7 +803,6 @@ Ce qui arrive, sans dates et sans ordre figé :
 - **Temps passé et signature** à la clôture d'une intervention
 - **Documentation technique par machine** (manuels, plans et schémas en PDF)
 - **Plusieurs PC en même temps** et serveur sans interface (Raspberry Pi, NAS, Docker)
-- **Communications chiffrées** (HTTPS)
 - Plus de langues et une application iPhone
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il

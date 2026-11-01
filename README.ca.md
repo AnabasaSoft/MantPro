@@ -680,9 +680,10 @@ MantPro fa servir un sistema de sincronització basat en:
 7. La primera sincronització mostra una **barra de progrés** i baixa les dades
    en paral·lel i les fotos de 4 en 4
 
-> ⚠️ El trànsit viatja per **HTTP dins de la xarxa local**. El sistema d'usuaris
-> aporta traçabilitat (saber qui va fer cada treball), no protecció davant d'algú
-> amb accés a aquesta mateixa xarxa.
+> 🔒 La sincronització va **xifrada (HTTPS)**. El PC crea el seu propi
+> certificat i la seva empremta viatja al QR: el mòbil només es connecta a
+> *aquell* PC, així que ningú a la WiFi pot llegir el trànsit ni fer-se passar
+> per ell. Els mòbils ja vinculats passen sols a HTTPS en actualitzar l'app.
 
 ### Configuració de la xarxa
 
@@ -733,11 +734,12 @@ Perquè la sincronització funcioni:
 
 ### 🔒 Nota sobre seguretat
 
-La sincronització viatja per HTTP dins de la xarxa local. El sistema d'usuaris
-està pensat per a la **traçabilitat** (saber qui va fer cada treball), no com a
-barrera davant d'algú amb accés a aquesta mateixa xarxa. Si en el futur
-s'exposa el servidor fora de la xarxa local, el trànsit ha d'anar xifrat (VPN o
-túnel amb HTTPS).
+La sincronització va xifrada amb HTTPS i el certificat del PC queda fixat
+per l'empremta del QR. Durant la transició, el PC continua atenent també per
+HTTP al port configurat per a les apps de versions anteriors; HTTPS fa servir
+el **port següent** (per exemple, 5000 i 5001), així que si hi ha un tallafoc
+cal obrir-los tots dos. Si mai exposes el servidor fora de la xarxa local,
+fes-ho a través d'una VPN.
 
 ---
 
@@ -779,7 +781,6 @@ El que ve, sense dates i sense un ordre tancat:
 - **Temps treballat i signatura** en tancar un treball
 - **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
 - **Diversos PC alhora** i servidor sense finestra (Raspberry Pi, NAS, Docker)
-- **Comunicacions xifrades** (HTTPS)
 - Més idiomes i app per a iPhone
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a

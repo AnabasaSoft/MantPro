@@ -30,9 +30,11 @@ the problem is fixed and a new version is published, it will be listed in
 MantPro is designed today to run **inside a local network** (office or
 workshop Wi-Fi). Keep in mind:
 
-- **Sync between the PC and the phones uses HTTP**, not HTTPS. Every request
-  needs a session token, but traffic is not encrypted: anyone on the same
-  network could read it. Do not expose the sync port to the internet.
+- **Sync between the PC and the phones is encrypted (HTTPS).** The PC creates
+  its own certificate and the phones only accept it if its fingerprint matches
+  the one in the pairing QR code. During the transition the PC also answers
+  over unencrypted HTTP on the configured port, for apps from earlier
+  versions. Do not expose the sync ports to the internet.
 - **Data is stored unencrypted** on the PC (`mantenimiento.db`, `almacen.db`
   and the photos folder). Protect the computer and the backups.
 - On the first start the user `admin` / `admin` is created, and the program
@@ -45,8 +47,7 @@ workshop Wi-Fi). Keep in mind:
   system account keeps its own separate data. To protect the data on disk,
   use full-disk encryption (BitLocker on Windows, LUKS on Linux).
 
-An encryption layer (HTTPS and encrypted data at rest) is planned, and will be
-mandatory before offering a server reachable from outside the local network.
+Encrypting the data on disk is planned; meanwhile, use full-disk encryption.
 
 ### Verifying packages
 
@@ -90,10 +91,12 @@ pasos para reproducir el problema. Recibirás respuesta en un máximo de
 MantPro está pensado hoy para funcionar **dentro de una red local** (la WiFi de
 la oficina o del taller). Ten en cuenta que:
 
-- **La sincronización entre el PC y los móviles va por HTTP**, no HTTPS. Todas
-  las peticiones necesitan un token de sesión, pero el tráfico no va cifrado:
-  alguien en la misma red podría leerlo. No expongas el puerto de
-  sincronización a internet.
+- **La sincronización entre el PC y los móviles va cifrada (HTTPS).** El PC
+  crea su propio certificado y los móviles solo lo aceptan si su huella
+  coincide con la del QR de vinculación. Durante la transición, el PC sigue
+  respondiendo también por HTTP sin cifrar en el puerto configurado, para las
+  apps de versiones anteriores. No expongas los puertos de sincronización a
+  internet.
 - **Los datos se guardan sin cifrar** en el PC (`mantenimiento.db`,
   `almacen.db` y la carpeta de fotos). Protege el equipo y las copias de
   seguridad.
@@ -108,8 +111,8 @@ la oficina o del taller). Ten en cuenta que:
   datos del disco, usa el cifrado de disco completo (BitLocker en Windows,
   LUKS en Linux).
 
-Está prevista una capa de cifrado (HTTPS y datos cifrados en disco), que será
-obligatoria antes de ofrecer un servidor accesible desde fuera de la red local.
+Está previsto cifrar los datos en disco; mientras tanto, usa el cifrado de
+disco completo.
 
 ### Verificar los paquetes
 
