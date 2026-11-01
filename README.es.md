@@ -29,6 +29,30 @@
 
 ---
 
+## 📋 Índice
+
+- [¿Qué problema resuelve?](#-qué-problema-resuelve)
+- [¿Para quién es?](#-para-quién-es)
+- [¿Por qué MantPro?](#-por-qué-mantpro-y-no-un-gmaocmms-comercial)
+- [Vídeo de demostración](#-vídeo-de-demostración)
+- [Capturas de Pantalla](#-capturas-de-pantalla)
+- [Descargas](#-descargas)
+- [Características](#-características)
+- [Requisitos](#-requisitos)
+- [Instalación](#-instalación)
+- [Uso](#-uso)
+- [Usuarios y Acceso](#-usuarios-y-acceso)
+- [Maquinaria](#-maquinaria)
+- [Stock de Almacén](#-stock-de-almacén)
+- [Sincronización PC-Móvil](#-sincronización-pc-móvil)
+- [Copias de Seguridad](#-copias-de-seguridad)
+- [Contribuir](#-contribuir)
+- [Hoja de ruta](#-hoja-de-ruta)
+- [Licencia](#-licencia)
+- [Contacto](#-contacto)
+
+---
+
 ## 🧩 ¿Qué problema resuelve?
 
 En muchos talleres y plantas pequeñas o medianas, el mantenimiento se lleva
@@ -96,30 +120,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
   <img src="Capturas/Almacen-movil.jpg" alt="Almacén Móvil" width="30%"/>
   <img src="Capturas/Historial-movil.jpg" alt="Historial Móvil" width="30%"/>
 </p>
-
----
-
-## 📋 Índice
-
-- [¿Qué problema resuelve?](#-qué-problema-resuelve)
-- [¿Para quién es?](#-para-quién-es)
-- [¿Por qué MantPro?](#-por-qué-mantpro-y-no-un-gmaocmms-comercial)
-- [Vídeo de demostración](#-vídeo-de-demostración)
-- [Capturas de Pantalla](#-capturas-de-pantalla)
-- [Descargas](#-descargas)
-- [Características](#-características)
-- [Requisitos](#-requisitos)
-- [Instalación](#-instalación)
-- [Uso](#-uso)
-- [Usuarios y Acceso](#-usuarios-y-acceso)
-- [Maquinaria](#-maquinaria)
-- [Stock de Almacén](#-stock-de-almacén)
-- [Sincronización PC-Móvil](#-sincronización-pc-móvil)
-- [Copias de Seguridad](#-copias-de-seguridad)
-- [Contribuir](#-contribuir)
-- [Hoja de ruta](#-hoja-de-ruta)
-- [Licencia](#-licencia)
-- [Contacto](#-contacto)
 
 ---
 

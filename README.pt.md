@@ -29,6 +29,30 @@
 
 ---
 
+## 📋 Índice
+
+- [Que problema ele resolve?](#-que-problema-ele-resolve)
+- [Para quem é?](#-para-quem-é)
+- [Por que o MantPro?](#-por-que-o-mantpro-e-não-um-gmaocmms-comercial)
+- [Vídeo de demonstração](#-vídeo-de-demonstração)
+- [Capturas de tela](#-capturas-de-tela)
+- [Downloads](#-downloads)
+- [Recursos](#-recursos)
+- [Requisitos](#-requisitos)
+- [Instalação](#-instalação)
+- [Uso](#-uso)
+- [Usuários e acesso](#-usuários-e-acesso)
+- [Máquinas](#-máquinas)
+- [Estoque do almoxarifado](#-estoque-do-almoxarifado)
+- [Sincronização PC-celular](#-sincronização-pc-celular)
+- [Cópias de segurança](#-cópias-de-segurança)
+- [Contribuir](#-contribuir)
+- [Roteiro](#-roteiro)
+- [Licença](#-licença)
+- [Contato](#-contato)
+
+---
+
 ## 🧩 Que problema ele resolve?
 
 Em muitas oficinas e plantas pequenas e médias, a manutenção é controlada entre
@@ -96,30 +120,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
   <img src="Capturas/Almacen-movil.jpg" alt="Almoxarifado no celular" width="30%"/>
   <img src="Capturas/Historial-movil.jpg" alt="Histórico no celular" width="30%"/>
 </p>
-
----
-
-## 📋 Índice
-
-- [Que problema ele resolve?](#-que-problema-ele-resolve)
-- [Para quem é?](#-para-quem-é)
-- [Por que o MantPro?](#-por-que-o-mantpro-e-não-um-gmaocmms-comercial)
-- [Vídeo de demonstração](#-vídeo-de-demonstração)
-- [Capturas de tela](#-capturas-de-tela)
-- [Downloads](#-downloads)
-- [Recursos](#-recursos)
-- [Requisitos](#-requisitos)
-- [Instalação](#-instalação)
-- [Uso](#-uso)
-- [Usuários e acesso](#-usuários-e-acesso)
-- [Máquinas](#-máquinas)
-- [Estoque do almoxarifado](#-estoque-do-almoxarifado)
-- [Sincronização PC-celular](#-sincronização-pc-celular)
-- [Cópias de segurança](#-cópias-de-segurança)
-- [Contribuir](#-contribuir)
-- [Roteiro](#-roteiro)
-- [Licença](#-licença)
-- [Contato](#-contato)
 
 ---
 

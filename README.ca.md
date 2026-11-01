@@ -29,6 +29,30 @@
 
 ---
 
+## 📋 Índex
+
+- [Quin problema resol?](#-quin-problema-resol)
+- [Per a qui és?](#-per-a-qui-és)
+- [Per què MantPro?](#-per-què-mantpro-i-no-un-gmaocmms-comercial)
+- [Vídeo de demostració](#-vídeo-de-demostració)
+- [Captures de pantalla](#-captures-de-pantalla)
+- [Descàrregues](#-descàrregues)
+- [Característiques](#-característiques)
+- [Requisits](#-requisits)
+- [Instal·lació](#-installació)
+- [Ús](#-ús)
+- [Usuaris i accés](#-usuaris-i-accés)
+- [Maquinària](#-maquinària)
+- [Estoc del magatzem](#-estoc-del-magatzem)
+- [Sincronització PC-mòbil](#-sincronització-pc-mòbil)
+- [Còpies de seguretat](#-còpies-de-seguretat)
+- [Contribuir](#-contribuir)
+- [Full de ruta](#-full-de-ruta)
+- [Llicència](#-llicència)
+- [Contacte](#-contacte)
+
+---
+
 ## 🧩 Quin problema resol?
 
 En molts tallers i plantes petites o mitjanes, el manteniment es porta entre
@@ -97,30 +121,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
   <img src="Capturas/Almacen-movil.jpg" alt="Magatzem al mòbil" width="30%"/>
   <img src="Capturas/Historial-movil.jpg" alt="Historial al mòbil" width="30%"/>
 </p>
-
----
-
-## 📋 Índex
-
-- [Quin problema resol?](#-quin-problema-resol)
-- [Per a qui és?](#-per-a-qui-és)
-- [Per què MantPro?](#-per-què-mantpro-i-no-un-gmaocmms-comercial)
-- [Vídeo de demostració](#-vídeo-de-demostració)
-- [Captures de pantalla](#-captures-de-pantalla)
-- [Descàrregues](#-descàrregues)
-- [Característiques](#-característiques)
-- [Requisits](#-requisits)
-- [Instal·lació](#-installació)
-- [Ús](#-ús)
-- [Usuaris i accés](#-usuaris-i-accés)
-- [Maquinària](#-maquinària)
-- [Estoc del magatzem](#-estoc-del-magatzem)
-- [Sincronització PC-mòbil](#-sincronització-pc-mòbil)
-- [Còpies de seguretat](#-còpies-de-seguretat)
-- [Contribuir](#-contribuir)
-- [Full de ruta](#-full-de-ruta)
-- [Llicència](#-llicència)
-- [Contacte](#-contacte)
 
 ---
 

@@ -29,6 +29,30 @@
 
 ---
 
+## 📋 Aurkibidea
+
+- [Zer arazo konpontzen du?](#-zer-arazo-konpontzen-du)
+- [Norentzat da?](#-norentzat-da)
+- [Zergatik MantPro?](#-zergatik-mantpro-eta-ez-gmaocmms-komertzial-bat)
+- [Erakustaldiko bideoa](#-erakustaldiko-bideoa)
+- [Pantaila-argazkiak](#-pantaila-argazkiak)
+- [Deskargak](#-deskargak)
+- [Ezaugarriak](#-ezaugarriak)
+- [Betekizunak](#-betekizunak)
+- [Instalazioa](#-instalazioa)
+- [Erabilera](#-erabilera)
+- [Erabiltzaileak eta sarbidea](#-erabiltzaileak-eta-sarbidea)
+- [Makineria](#-makineria)
+- [Biltegiko stocka](#-biltegiko-stocka)
+- [PC-mugikor sinkronizazioa](#-pc-mugikor-sinkronizazioa)
+- [Babeskopiak](#-babeskopiak)
+- [Lagundu](#-lagundu)
+- [Bide-orria](#-bide-orria)
+- [Lizentzia](#-lizentzia)
+- [Harremana](#-harremana)
+
+---
+
 ## 🧩 Zer arazo konpontzen du?
 
 Tailer eta lantegi txiki eta ertain askotan, mantentzea paperen, partekatutako
@@ -98,30 +122,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
   <img src="Capturas/Almacen-movil.jpg" alt="Biltegia mugikorrean" width="30%"/>
   <img src="Capturas/Historial-movil.jpg" alt="Historia mugikorrean" width="30%"/>
 </p>
-
----
-
-## 📋 Aurkibidea
-
-- [Zer arazo konpontzen du?](#-zer-arazo-konpontzen-du)
-- [Norentzat da?](#-norentzat-da)
-- [Zergatik MantPro?](#-zergatik-mantpro-eta-ez-gmaocmms-komertzial-bat)
-- [Erakustaldiko bideoa](#-erakustaldiko-bideoa)
-- [Pantaila-argazkiak](#-pantaila-argazkiak)
-- [Deskargak](#-deskargak)
-- [Ezaugarriak](#-ezaugarriak)
-- [Betekizunak](#-betekizunak)
-- [Instalazioa](#-instalazioa)
-- [Erabilera](#-erabilera)
-- [Erabiltzaileak eta sarbidea](#-erabiltzaileak-eta-sarbidea)
-- [Makineria](#-makineria)
-- [Biltegiko stocka](#-biltegiko-stocka)
-- [PC-mugikor sinkronizazioa](#-pc-mugikor-sinkronizazioa)
-- [Babeskopiak](#-babeskopiak)
-- [Lagundu](#-lagundu)
-- [Bide-orria](#-bide-orria)
-- [Lizentzia](#-lizentzia)
-- [Harremana](#-harremana)
 
 ---
 

@@ -29,6 +29,30 @@
 
 ---
 
+## 📋 Table of Contents
+
+- [What problem does it solve?](#-what-problem-does-it-solve)
+- [Who is it for?](#-who-is-it-for)
+- [Why MantPro?](#-why-mantpro-and-not-a-commercial-cmms)
+- [Demo video](#-demo-video)
+- [Screenshots](#-screenshots)
+- [Downloads](#-downloads)
+- [Features](#-features)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Users and Access](#-users-and-access)
+- [Machinery](#-machinery)
+- [Warehouse Stock](#-warehouse-stock)
+- [PC-Mobile Sync](#-pc-mobile-sync)
+- [Backups](#-backups)
+- [Contributing](#-contributing)
+- [Roadmap](#-roadmap)
+- [License](#-license)
+- [Contact](#-contact)
+
+---
+
 ## 🧩 What problem does it solve?
 
 In many small and medium-sized workshops and plants, maintenance is tracked
@@ -94,30 +118,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
   <img src="Capturas/Almacen-movil.jpg" alt="Mobile warehouse" width="30%"/>
   <img src="Capturas/Historial-movil.jpg" alt="Mobile history" width="30%"/>
 </p>
-
----
-
-## 📋 Table of Contents
-
-- [What problem does it solve?](#-what-problem-does-it-solve)
-- [Who is it for?](#-who-is-it-for)
-- [Why MantPro?](#-why-mantpro-and-not-a-commercial-cmms)
-- [Demo video](#-demo-video)
-- [Screenshots](#-screenshots)
-- [Downloads](#-downloads)
-- [Features](#-features)
-- [Requirements](#-requirements)
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [Users and Access](#-users-and-access)
-- [Machinery](#-machinery)
-- [Warehouse Stock](#-warehouse-stock)
-- [PC-Mobile Sync](#-pc-mobile-sync)
-- [Backups](#-backups)
-- [Contributing](#-contributing)
-- [Roadmap](#-roadmap)
-- [License](#-license)
-- [Contact](#-contact)
 
 ---
 

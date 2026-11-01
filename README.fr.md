@@ -29,6 +29,30 @@
 
 ---
 
+## 📋 Sommaire
+
+- [Quel problème résout-elle ?](#-quel-problème-résout-elle-)
+- [Pour qui ?](#-pour-qui-)
+- [Pourquoi MantPro ?](#-pourquoi-mantpro-plutôt-quune-gmaocmms-commerciale-)
+- [Vidéo de démonstration](#-vidéo-de-démonstration)
+- [Captures d'écran](#-captures-décran)
+- [Téléchargements](#-téléchargements)
+- [Fonctionnalités](#-fonctionnalités)
+- [Prérequis](#-prérequis)
+- [Installation](#-installation)
+- [Utilisation](#-utilisation)
+- [Utilisateurs et accès](#-utilisateurs-et-accès)
+- [Machines](#-machines)
+- [Stock du magasin](#-stock-du-magasin)
+- [Synchronisation PC-mobile](#-synchronisation-pc-mobile)
+- [Sauvegardes](#-sauvegardes)
+- [Contribuer](#-contribuer)
+- [Feuille de route](#-feuille-de-route)
+- [Licence](#-licence)
+- [Contact](#-contact)
+
+---
+
 ## 🧩 Quel problème résout-elle ?
 
 Dans beaucoup d'ateliers et de petites et moyennes usines, la maintenance se
@@ -96,30 +120,6 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
   <img src="Capturas/Almacen-movil.jpg" alt="Magasin mobile" width="30%"/>
   <img src="Capturas/Historial-movil.jpg" alt="Historique mobile" width="30%"/>
 </p>
-
----
-
-## 📋 Sommaire
-
-- [Quel problème résout-elle ?](#-quel-problème-résout-elle-)
-- [Pour qui ?](#-pour-qui-)
-- [Pourquoi MantPro ?](#-pourquoi-mantpro-plutôt-quune-gmaocmms-commerciale-)
-- [Vidéo de démonstration](#-vidéo-de-démonstration)
-- [Captures d'écran](#-captures-décran)
-- [Téléchargements](#-téléchargements)
-- [Fonctionnalités](#-fonctionnalités)
-- [Prérequis](#-prérequis)
-- [Installation](#-installation)
-- [Utilisation](#-utilisation)
-- [Utilisateurs et accès](#-utilisateurs-et-accès)
-- [Machines](#-machines)
-- [Stock du magasin](#-stock-du-magasin)
-- [Synchronisation PC-mobile](#-synchronisation-pc-mobile)
-- [Sauvegardes](#-sauvegardes)
-- [Contribuer](#-contribuer)
-- [Feuille de route](#-feuille-de-route)
-- [Licence](#-licence)
-- [Contact](#-contact)
 
 ---
 
