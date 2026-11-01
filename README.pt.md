@@ -1007,7 +1007,7 @@ Contribuições são bem-vindas! Se você quiser melhorar o MantPro:
 Este projeto está sob a **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 Consulte o arquivo `LICENSE` para o texto completo.
 
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 ### O que isso significa na prática
 
@@ -1023,7 +1023,7 @@ Copyright (C) 2026 AnabasaSoft
 
 ```
 MantPro - Sistema de Manutenção Preventiva
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
 sob os termos da Licença Pública Geral Affero GNU, publicada pela Free

@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // MantPro - Sistema de Mantenimiento Preventivo
-// Copyright (C) 2026 AnabasaSoft <anabasasoft@gmail.com>
+// Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft) <anabasasoft@gmail.com>
+// https://github.com/AnabasaSoft/MantPro
 //
 // Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo
 // los términos de la Licencia Pública General Affero de GNU publicada por la

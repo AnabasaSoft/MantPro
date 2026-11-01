@@ -1006,7 +1006,7 @@ Se crea automáticamente en el primer arranque y se incluye en los backups
 Este proyecto está bajo la **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 Ver el archivo `LICENSE` para el texto completo.
 
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 ### Qué significa en la práctica
 
@@ -1022,7 +1022,7 @@ Copyright (C) 2026 AnabasaSoft
 
 ```
 MantPro - Sistema de Mantenimiento Preventivo
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo
 los términos de la Licencia Pública General Affero de GNU publicada por la

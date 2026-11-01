@@ -993,7 +993,7 @@ Contributions are welcome! If you want to improve MantPro:
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 See the `LICENSE` file for the full text.
 
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 ### What it means in practice
 
@@ -1009,7 +1009,7 @@ Copyright (C) 2026 AnabasaSoft
 
 ```
 MantPro - Preventive Maintenance System
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published

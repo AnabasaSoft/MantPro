@@ -1,7 +1,7 @@
 #
 # spec file for package mantpro
 #
-# Copyright (c) 2026 AnabasaSoft <anabasasoft@gmail.com>
+# Copyright (c) 2026 Daniel Serrano Armenta (AnabasaSoft) <anabasasoft@gmail.com>
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed

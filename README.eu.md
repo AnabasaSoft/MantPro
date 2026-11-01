@@ -1016,7 +1016,7 @@ Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
 Proiektu hau **GNU Affero General Public License v3.0 (AGPL-3.0)** lizentziapean dago.
 Ikusi `LICENSE` fitxategia testu osoa irakurtzeko.
 
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 ### Zer esan nahi du praktikan
 
@@ -1034,7 +1034,7 @@ Ohar ofiziala ingelesez dago (ikusi [README.md](README.md)); hau haren itzulpen 
 
 ```
 MantPro - Mantentze Prebentiboko Sistema
-Copyright (C) 2026 AnabasaSoft
+Copyright (C) 2026 Daniel Serrano Armenta (AnabasaSoft)
 
 Programa hau software librea da: birbanatu eta/edo aldatu dezakezu Free
 Software Foundation-ek argitaratutako GNUren Affero Lizentzia Publiko
