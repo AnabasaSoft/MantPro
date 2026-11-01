@@ -17,6 +17,7 @@ dependencies:
   path_provider: ^2.1.1   # Para guardar archivos temporalmente
   flutter_launcher_icons: ^0.13.1
   shared_preferences: ^2.2.2
+  flutter_secure_storage: ^10.3.4  # Token de sesión en el Keystore de Android, no en claro
   image_painter: ^0.7.0
   path: ^1.8.3
   url_launcher: ^6.3.2

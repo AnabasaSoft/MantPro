@@ -37,6 +37,13 @@ workshop Wi-Fi). Keep in mind:
   and the photos folder). Protect the computer and the backups.
 - On the first start the user `admin` / `admin` is created, and the program
   **forces you to change the password** on first login.
+- Repeated failed logins are blocked for a while (15 minutes from the phones,
+  one minute in the PC window), and photos sent from the phones are checked
+  before being saved.
+- If several people use the same computer, use **one system account for
+  MantPro** and let each person sign in with their own MantPro user: each
+  system account keeps its own separate data. To protect the data on disk,
+  use full-disk encryption (BitLocker on Windows, LUKS on Linux).
 
 An encryption layer (HTTPS and encrypted data at rest) is planned, and will be
 mandatory before offering a server reachable from outside the local network.
@@ -92,6 +99,14 @@ la oficina o del taller). Ten en cuenta que:
   seguridad.
 - En el primer arranque se crea el usuario `admin` / `admin`, y el programa
   **obliga a cambiar la contraseña** al entrar por primera vez.
+- Los intentos fallidos de inicio de sesión seguidos se bloquean un tiempo
+  (15 minutos desde los móviles, un minuto en la ventana del PC), y las fotos
+  que llegan de los móviles se comprueban antes de guardarlas.
+- Si varias personas usan el mismo ordenador, usad **una sola cuenta del
+  sistema para MantPro** y que cada uno entre con su usuario de MantPro: cada
+  cuenta del sistema guarda sus propios datos por separado. Para proteger los
+  datos del disco, usa el cifrado de disco completo (BitLocker en Windows,
+  LUKS en Linux).
 
 Está prevista una capa de cifrado (HTTPS y datos cifrados en disco), que será
 obligatoria antes de ofrecer un servidor accesible desde fuera de la red local.

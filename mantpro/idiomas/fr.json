@@ -802,5 +802,7 @@
   "lbl_qr_instalar_paso1": "1. Scannez le code avec l'appareil photo du mobile.",
   "lbl_qr_instalar_paso2": "2. Ouvrez le lien : la dernière version de {app} est téléchargée.",
   "lbl_qr_instalar_paso3": "3. Ouvrez le fichier téléchargé et installez-le (Android peut demander d'autoriser l'installation).",
-  "hdr_coleccion_n": "Collection {n}"
+  "hdr_coleccion_n": "Collection {n}",
+  "login_bloqueado_seg": "Trop de tentatives échouées. Patientez {seg} secondes.",
+  "msg_bd_integridad": "La sauvegarde a été enregistrée, mais la vérification d'intégrité a trouvé des erreurs dans :\n\n{detalle}\n\nConservez aussi une sauvegarde antérieure et vérifiez l'ordinateur (disque, coupures de courant)."
 }

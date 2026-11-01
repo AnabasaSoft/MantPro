@@ -200,4 +200,5 @@ const Map<String, String> traduccionesGl = {
     "msg_permiso_instalar_actualizacion": "Permite que a app instale aplicacións e volve atrás: a instalación comezará soa.",
     "msg_error_descarga_actualizacion": "Non se puido descargar a actualización. Comproba a conexión a internet.",
     "btn_abrir_github": "Abrir GitHub",
+    "login_bloqueado": "Demasiados intentos fallidos. Agarda {min} minutos e volve probar.",
 };

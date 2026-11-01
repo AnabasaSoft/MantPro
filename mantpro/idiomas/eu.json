@@ -802,5 +802,7 @@
   "lbl_qr_instalar_paso1": "1. Eskaneatu kodea mugikorraren kamerarekin.",
   "lbl_qr_instalar_paso2": "2. Ireki esteka: {app}(r)en azken bertsioa deskargatzen da.",
   "lbl_qr_instalar_paso3": "3. Ireki deskargatutako fitxategia eta instalatu (Android-ek instalazioa baimentzeko eska dezake).",
-  "hdr_coleccion_n": "Bilduma {n}"
+  "hdr_coleccion_n": "Bilduma {n}",
+  "login_bloqueado_seg": "Saiakera huts gehiegi. Itxaron {seg} segundo.",
+  "msg_bd_integridad": "Babeskopia gorde da, baina osotasun-egiaztapenak akatsak aurkitu ditu hemen:\n\n{detalle}\n\nGorde aurreko babeskopia bat ere eta berrikusi ordenagailua (diskoa, argi-etenak)."
 }

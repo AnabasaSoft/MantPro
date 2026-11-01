@@ -802,5 +802,7 @@
   "lbl_qr_instalar_paso1": "1. Scan the code with the phone's camera.",
   "lbl_qr_instalar_paso2": "2. Open the link: the latest version of {app} is downloaded.",
   "lbl_qr_instalar_paso3": "3. Open the downloaded file and install it (Android may ask you to allow the installation).",
-  "hdr_coleccion_n": "Collection {n}"
+  "hdr_coleccion_n": "Collection {n}",
+  "login_bloqueado_seg": "Too many failed attempts. Wait {seg} seconds.",
+  "msg_bd_integridad": "The backup has been saved, but the integrity check found errors in:\n\n{detalle}\n\nAlso keep an earlier backup and check the computer (disk, power cuts)."
 }

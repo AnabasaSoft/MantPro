@@ -216,4 +216,5 @@ const Map<String, String> traduccionesFr = {
   "msg_permiso_instalar_actualizacion": "Autorisez l'application à installer des applications et revenez en arrière : l'installation démarrera toute seule.",
   "msg_error_descarga_actualizacion": "Impossible de télécharger la mise à jour. Vérifiez la connexion Internet.",
   "btn_abrir_github": "Ouvrir GitHub",
+  "login_bloqueado": "Trop de tentatives échouées. Patientez {min} minutes et réessayez.",
 };

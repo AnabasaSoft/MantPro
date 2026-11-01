@@ -26,6 +26,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'modelos.dart';
 import 'i18n/strings.dart';
@@ -159,9 +160,34 @@ class AuthService {
   /// Un usuario puede tener varios roles a la vez (p.ej. técnico y almacén).
   static bool get puedeGestionarAlmacen => roles.contains('admin') || roles.contains('almacen');
 
+  // El token de sesión va en el almacenamiento seguro del sistema (Keystore
+  // de Android), no en SharedPreferences en claro, para que no se pueda leer
+  // copiando los datos de la app. El resto de la sesión (nombre, roles) no
+  // es secreto y sigue en SharedPreferences.
+  static const _almacenSeguro = FlutterSecureStorage();
+
+  /// Token guardado. Si viene de una versión anterior (en SharedPreferences),
+  /// lo pasa al almacenamiento seguro y lo borra de donde estaba.
+  static Future<String?> _leerToken(SharedPreferences prefs) async {
+    try {
+      final seguro = await _almacenSeguro.read(key: 'auth_token');
+      if (seguro != null && seguro.isNotEmpty) return seguro;
+      final antiguo = prefs.getString('auth_token');
+      if (antiguo != null && antiguo.isNotEmpty) {
+        await _almacenSeguro.write(key: 'auth_token', value: antiguo);
+        await prefs.remove('auth_token');
+      }
+      return antiguo;
+    } catch (_) {
+      // Si el almacén seguro falla (raro: p. ej. tras restaurar el móvil),
+      // se sigue con lo que haya, y el usuario vuelve a iniciar sesión.
+      return prefs.getString('auth_token');
+    }
+  }
+
   static Future<void> cargar() async {
     final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString('auth_token');
+    token = await _leerToken(prefs);
     nombre = prefs.getString('auth_nombre');
     login = prefs.getString('auth_login');
     rol = prefs.getString('auth_rol');
@@ -195,7 +221,7 @@ class AuthService {
             [rol ?? 'tecnico'];
         usuarioId = datos['usuario']['id'];
         await prefs.setInt('auth_id', usuarioId ?? 0);
-        await prefs.setString('auth_token', token!);
+        await _almacenSeguro.write(key: 'auth_token', value: token!);
         await prefs.setString('auth_nombre', nombre ?? '');
         await prefs.setString('auth_login', login ?? '');
         await prefs.setString('auth_rol', rol ?? 'tecnico');
@@ -203,6 +229,11 @@ class AuthService {
         sesionNotifier.value = true;
         return null;
       }
+      if (datos['error'] == 'bloqueado') {
+        return tt('login_bloqueado', 'Demasiados intentos fallidos. Espera {min} minutos y vuelve a probar.')
+            .replaceAll('{min}', '${datos['minutos'] ?? 15}');
+      }
+      if (datos['error'] == 'credenciales') return tt('login_error', 'Usuario o contraseña incorrectos.');
       return datos['message'] ?? tt('login_error', 'Usuario o contraseña incorrectos.');
     } catch (e) {
       return tt('login_sin_conexion',
@@ -219,6 +250,7 @@ class AuthService {
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+    try { await _almacenSeguro.delete(key: 'auth_token'); } catch (_) {}
     await prefs.remove('auth_nombre');
     await prefs.remove('auth_login');
     await prefs.remove('auth_rol');

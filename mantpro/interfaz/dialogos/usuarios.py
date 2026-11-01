@@ -35,7 +35,7 @@ from PyQt6.QtGui import QPixmap
 
 import os
 from datetime import datetime
-from ...nucleo import usuarios
+from ...nucleo import seguridad, usuarios
 
 try:
     from ...idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
@@ -149,12 +149,21 @@ class DialogoLogin(QDialog):
             self.aviso.setText(t("login_vacio", "Introduce usuario y contraseña."))
             return
 
+        # Tras varios fallos seguidos se bloquea ese usuario un minuto (ver
+        # nucleo/seguridad.py); lo que se intente desde la red va aparte.
+        clave = login.lower()
+        espera = seguridad.LOGIN_LOCAL.segundos_bloqueo(clave)
+        if espera:
+            self.aviso.setText(t("login_bloqueado_seg", "Demasiados intentos fallidos. Espera {seg} segundos.").format(seg=espera))
+            return
         usuario = usuarios.autenticar(login, password)
         if usuario is None:
+            seguridad.LOGIN_LOCAL.fallo(clave)
             self.aviso.setText(t("login_error", "Usuario o contraseña incorrectos."))
             self.campo_password.clear()
             self.campo_password.setFocus()
             return
+        seguridad.LOGIN_LOCAL.acierto(clave)
 
         if usuario["debe_cambiar"]:
             dlg = DialogoCambioPassword(self, usuario, obligatorio=True)

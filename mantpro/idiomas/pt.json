@@ -802,5 +802,7 @@
   "lbl_qr_instalar_paso1": "1. Escaneie o código com a câmera do celular.",
   "lbl_qr_instalar_paso2": "2. Abra o link: a última versão do {app} é baixada.",
   "lbl_qr_instalar_paso3": "3. Abra o arquivo baixado e instale-o (o Android pode pedir para permitir a instalação).",
-  "hdr_coleccion_n": "Coleção {n}"
+  "hdr_coleccion_n": "Coleção {n}",
+  "login_bloqueado_seg": "Muitas tentativas sem sucesso. Aguarde {seg} segundos.",
+  "msg_bd_integridad": "A cópia foi salva, mas a verificação de integridade encontrou erros em:\n\n{detalle}\n\nGuarde também uma cópia anterior e verifique o computador (disco, quedas de energia)."
 }

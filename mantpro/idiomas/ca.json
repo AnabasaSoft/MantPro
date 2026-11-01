@@ -802,5 +802,7 @@
   "lbl_qr_instalar_paso1": "1. Escaneja el codi amb la càmera del mòbil.",
   "lbl_qr_instalar_paso2": "2. Obre l'enllaç: es baixa l'última versió de {app}.",
   "lbl_qr_instalar_paso3": "3. Obre el fitxer baixat i instal·la'l (Android pot demanar que permetis la instal·lació).",
-  "hdr_coleccion_n": "Col·lecció {n}"
+  "hdr_coleccion_n": "Col·lecció {n}",
+  "login_bloqueado_seg": "Massa intents fallits. Espera {seg} segons.",
+  "msg_bd_integridad": "La còpia s'ha desat, però la comprovació d'integritat ha trobat errors a:\n\n{detalle}\n\nDesa també una còpia anterior i revisa l'equip (disc, talls de llum)."
 }

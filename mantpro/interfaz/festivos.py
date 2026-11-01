@@ -27,6 +27,7 @@ from datetime import datetime
 from PyQt6.QtCore import QDate
 
 from ..nucleo.rutas import DATA_DIR
+from ..nucleo.seguridad import escribir_atomico
 
 # ==========================================
 # DATOS GLOBALES: PROVINCIAS
@@ -132,7 +133,7 @@ class GestorFestivos:
         try:
             r = requests.get(self._url_api())
             if r.status_code == 200:
-                with open(self._archivo_cache(), 'w') as f: json.dump(r.json(), f)
+                escribir_atomico(self._archivo_cache(), json.dumps(r.json()))
                 return r.json()
         except: return []
         return []
@@ -159,7 +160,7 @@ class GestorFestivos:
                 r = requests.get("https://date.nager.at/api/v3/AvailableCountries")
                 if r.status_code == 200:
                     datos = r.json()
-                    with open(archivo, 'w') as f: json.dump(datos, f)
+                    escribir_atomico(archivo, json.dumps(datos))
             except:
                 datos = None
         if not datos:

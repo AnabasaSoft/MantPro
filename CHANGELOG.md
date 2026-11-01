@@ -6,6 +6,11 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Seguridad
+- **Límite de intentos de inicio de sesión**: desde los móviles, 5 fallos seguidos bloquean ese usuario 15 minutos y 20 fallos desde un mismo móvil lo bloquean igual; en la ventana del PC, 5 fallos bloquean un minuto. Las apps muestran cuánto hay que esperar.
+- **Fotos recibidas de los móviles comprobadas**: solo se guardan imágenes de verdad (formato y contenido), de 30 MB como mucho y con un nombre que no puede salirse de su carpeta; los envíos de más de 300 MB se rechazan.
+- **Token de sesión de las apps en el almacenamiento seguro de Android** (Keystore) en vez de en claro. Se pasa solo al actualizar, sin tener que volver a iniciar sesión.
+
 ### Novedades
 - **Colección de fotos en las exportaciones del historial**: el PDF muestra debajo de cada trabajo sus fotos en miniatura (6 por línea), el Excel las incrusta en columnas «Colección 1, 2…» y el CSV lista sus nombres de fichero.
 - **Herramientas → 📱 Instalar MantPro en móvil** y **📦 Instalar MantPro Stock en móvil**: un QR que, al escanearlo con la cámara del móvil, descarga la app de la última versión estable.
@@ -16,6 +21,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **Pestaña Registrar**: se quita el botón «Sincronizar App», que ya está en *Herramientas → 📲 Sincronizar App (QR)*.
 
 ### Correcciones
+- **Copias de seguridad que podían perder los últimos cambios**: con MantPro abierto, lo guardado más recientemente puede estar todavía en el fichero `-wal` de SQLite, y las copias solo guardaban el `.db`. Ahora se hace una copia consistente de cada base de datos, se comprueba su integridad (avisando si hay errores) y el ZIP se escribe en un temporal que solo se renombra al terminar, así que un corte a mitad no deja una copia rota.
 - **Pestaña Registrar**: en pantallas bajas o al sacar la ventana de maximizada, los recuadros de las fotos y los botones «Añadir fotos» / «Quitar» se dibujaban unos encima de otros y el botón «Guardar registro» quedaba cortado. Ahora, si el formulario no cabe, aparece una barra de desplazamiento.
 
 ## 3.10.2 — 2026-10-30

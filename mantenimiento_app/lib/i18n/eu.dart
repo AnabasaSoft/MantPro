@@ -199,4 +199,5 @@ const Map<String, String> traduccionesEu = {
     "msg_permiso_instalar_actualizacion": "Baimendu aplikazioari aplikazioak instalatzen eta itzuli atzera: instalazioa bere kabuz hasiko da.",
     "msg_error_descarga_actualizacion": "Ezin izan da eguneraketa deskargatu. Egiaztatu interneteko konexioa.",
     "btn_abrir_github": "Ireki GitHub",
+    "login_bloqueado": "Saiakera huts gehiegi. Itxaron {min} minutu eta saiatu berriro.",
 };

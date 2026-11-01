@@ -200,4 +200,5 @@ const Map<String, String> traduccionesCa = {
     "msg_permiso_instalar_actualizacion": "Permet que l'app instal·li aplicacions i torna enrere: la instal·lació començarà sola.",
     "msg_error_descarga_actualizacion": "No s'ha pogut baixar l'actualització. Comprova la connexió a internet.",
     "btn_abrir_github": "Obrir GitHub",
+    "login_bloqueado": "Massa intents fallits. Espera {min} minuts i torna-ho a provar.",
 };

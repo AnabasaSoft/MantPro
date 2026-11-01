@@ -30,7 +30,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import usuarios, almacen, maquinas
+from ..nucleo import usuarios, almacen, maquinas, seguridad
 from ..nucleo.basedatos import get_db_connection
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -70,6 +70,17 @@ class ServidorSincronizacion(QThread):
         self.carpeta_destino = carpeta_destino
         self.db_path = db_path
         self.app = Flask(__name__)
+        # Tamaño máximo de cada envío (un trabajo con su colección de fotos);
+        # lo que pase de ahí se rechaza antes de leerlo entero.
+        self.app.config['MAX_CONTENT_LENGTH'] = seguridad.TAMANO_MAXIMO_PETICION
+
+        @self.app.before_request
+        def _limitar_tamano():
+            # Antes de leer el envío: así no lo captura el «except» de cada
+            # ruta y el móvil recibe un 413 claro en vez de un error genérico.
+            if (request.content_length or 0) > seguridad.TAMANO_MAXIMO_PETICION:
+                return jsonify({"status": "error", "error": "demasiado_grande",
+                                "message": "El envío es demasiado grande."}), 413
         self.server_port = puerto or PUERTO_POR_DEFECTO
         usuarios.configurar_db(db_path)
 
@@ -138,10 +149,21 @@ class ServidorSincronizacion(QThread):
             dispositivo = (datos.get('dispositivo') or '')[:120]
             if not login_usuario or not password:
                 return jsonify({"status": "error", "message": "Faltan datos"}), 400
+            # Límite de intentos: por usuario y por IP (ver nucleo/seguridad.py).
+            clave_usuario, clave_ip = login_usuario.lower(), request.remote_addr or "?"
+            espera = max(seguridad.LOGIN_RED_USUARIO.segundos_bloqueo(clave_usuario),
+                         seguridad.LOGIN_RED_IP.segundos_bloqueo(clave_ip))
+            if espera:
+                return jsonify({"status": "error", "error": "bloqueado", "minutos": (espera + 59) // 60,
+                                "message": "Demasiados intentos fallidos. Espera unos minutos."}), 429
             usuario = usuarios.autenticar(login_usuario, password)
             if usuario is None:
+                seguridad.LOGIN_RED_USUARIO.fallo(clave_usuario)
+                seguridad.LOGIN_RED_IP.fallo(clave_ip)
                 return jsonify({"status": "error", "error": "credenciales",
                                 "message": "Usuario o contraseña incorrectos."}), 401
+            seguridad.LOGIN_RED_USUARIO.acierto(clave_usuario)
+            seguridad.LOGIN_RED_IP.acierto(clave_ip)
             token = usuarios.crear_token(usuario['id'], dispositivo)
             return jsonify({"status": "ok", "token": token, "usuario": {
                 "id": usuario['id'], "login": usuario['login'],
@@ -1196,16 +1218,31 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": str(e)}), 500
         # -------------------------------------------------------------------
 
+    def _guardar_foto_recibida(self, file, filename):
+        """Guarda una foto llegada del móvil, con un nombre ya saneado, y la
+        comprueba (extensión, tamaño y que sea de verdad una imagen; ver
+        nucleo/seguridad.py). Si no vale, la borra y devuelve None."""
+        # Solo letras, números, «_» y un punto: el nombre no puede salirse de
+        # la carpeta de fotos (sin «/», «\\» ni «..»).
+        base, extension = os.path.splitext(filename)
+        filename = re.sub(r'[^a-zA-Z0-9_]', '_', base) + re.sub(r'[^a-zA-Z0-9.]', '', extension.lower())
+        ruta = os.path.join(self.carpeta_destino, filename)
+        file.save(ruta)
+        if not seguridad.foto_valida(ruta):
+            try: os.remove(ruta)
+            except OSError: pass
+            print(f"Foto rechazada (no es una imagen válida o es demasiado grande): {filename}")
+            return None
+        return filename
+
     def _procesar_foto(self, req, key='foto'):
         if key in req.files:
             file = req.files[key]
             if file and file.filename != '':
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                safe_name = re.sub(r'[^a-zA-Z0-9.]', '_', file.filename)
-                filename = f"app_{timestamp}_{safe_name}"
-                ruta = os.path.join(self.carpeta_destino, filename)
-                file.save(ruta)
-                return filename, ruta
+                filename = self._guardar_foto_recibida(file, f"app_{timestamp}_{file.filename}")
+                if filename:
+                    return filename, os.path.join(self.carpeta_destino, filename)
         return "", ""
 
     def _procesar_galeria(self, req, key='fotos_extra'):
@@ -1216,10 +1253,9 @@ class ServidorSincronizacion(QThread):
         for i, file in enumerate(req.files.getlist(key)):
             if not file or file.filename == '':
                 continue
-            safe_name = re.sub(r'[^a-zA-Z0-9.]', '_', file.filename)
-            filename = f"app_{timestamp}_g{i}_{safe_name}"
-            file.save(os.path.join(self.carpeta_destino, filename))
-            nombres.append(filename)
+            filename = self._guardar_foto_recibida(file, f"app_{timestamp}_g{i}_{file.filename}")
+            if filename:
+                nombres.append(filename)
         return nombres
 
     def _descontar_materiales_trabajo(self, req, usuario, referencia):
