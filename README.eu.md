@@ -66,6 +66,18 @@ kalkulu-orri solteen menpe egon gabe.
   piezen stocka, abisu errepikakorrak...), ez GMAO/CMMS betekizunen zerrenda
   generiko batetik
 
+| | MantPro | Ohiko GMAO/CMMS komertziala |
+|---|---|---|
+| **Prezioa** | Doan (norberak ostatatua) | Erabiltzaileko hileko kuota |
+| **Erabiltzaileak, makinak eta erregistroak** | Mugarik gabe | Kontratatutako planaren arabera |
+| **Non dauden zure datuak** | Zure PCan edo zerbitzarian | Hornitzailearen hodeian |
+| **Konexiorik gabeko mugikorreko aplikazioa** | Lanaldi osoan | Askotan mugatua edo kontsultarako soilik |
+| **Ordezko piezen biltegia** | Barne | Askotan modulu bereizi gisa |
+| **Iturburu-kodea** | Irekia (AGPL-3.0) | Itxia |
+| **Hornitzailea desagertzen bada** | Erabiltzen jarraitzen duzu | Zerbitzurik gabe geratzen zara |
+
+*Hodeiko GMAO/CMMS komertzialen ohiko ereduarekin konparazioa; produktu bakoitza desberdina da.*
+
 ## 🎬 Erakustaldiko bideoa
 
 https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
@@ -106,8 +118,8 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Biltegiko stocka](#-biltegiko-stocka)
 - [PC-mugikor sinkronizazioa](#-pc-mugikor-sinkronizazioa)
 - [Babeskopiak](#-babeskopiak)
-- [Proiektuaren egitura](#-proiektuaren-egitura)
 - [Lagundu](#-lagundu)
+- [Bide-orria](#-bide-orria)
 - [Lizentzia](#-lizentzia)
 - [Harremana](#-harremana)
 
@@ -737,279 +749,51 @@ zerbitzaria sare lokaletik kanpo jartzen bada, trafikoak zifratuta joan behar du
 
 ## 💾 Babeskopiak
 
-MantPro-k bi babeskopia mota bereizten ditu, une desberdinetarako pentsatuak:
+MantPro-k **babeskopia automatikoa egiten du ixtean** (datu-baseak, eta
+argazkiak urteko ZIP inkrementaletan) eta **babeskopia osoa eskuz** egiteko
+aukera ematen du `Fitxategia > Babeskopia` aukeratik, eta `Fitxategia >
+Leheneratu` aukeratik leheneratzeko. `Tresnak` atalean, gainera, inongo
+erregistrok erabiltzen ez dituen argazkiak garbitu eta denbora jakin bat baino
+zaharragoak diren lanak ezabatu daitezke, beti aurretiko kopiarekin.
 
-### Babeskopia automatikoa (aplikazioa ixtean)
-
-Programa ixten den bakoitzean, atzeko planoan eta inolako esku-hartzerik gabe,
-babeskopia azkar bat egiten da, urteak igaro arren ez nabaritzeko pentsatua:
-
-- **Datu-baseak**: `mantenimiento.db` eta `almacen.db` osorik ZIP batean
-  paketatzen dira (`auto_backup_db_<data>.zip`) aldi bakoitzean, biraka eta
-  azken 3ak soilik gordez.
-- **Argazkiak**: argazkien historia osoa itxiera bakoitzean berriro konprimitu
-  beharrean, urteko ZIP inkrementalak mantentzen dira (`fotos_backup_<urtea>.zip`):
-  itxiera bakoitzak dagokion urteko ZIPari oraindik barruan ez zeuden argazkiak
-  baino ez dizkio gehitzen, aurreko urteetakoak ukitu edo berriro konprimitu
-  gabe. Horrela, ixteko denbora ez da hazten aplikazioa erabilitako denborarekin.
-
-Kopia hau egiten den bitartean, fokua mantentzen duen aurrerapen-barra duen
-leiho bat erakusten da, eta aplikazioaren benetako itxierak amaitu arte itxaroten du.
-
-### Eskuzko babeskopia (Fitxategia menua)
-
-`Fitxategia > Babeskopia` aukerak, betiko moduan, ZIP bakar bat sortzen du
-(`backup_completo_<data>.zip`) bi datu-baseekin eta argazki **guztiekin**
-batera eta konprimituta, zuk aukeratzen duzun kokapenean. `Fitxategia >
-Berrezarri` azpimenu gisa irekitzen da bi aukerarekin: bata, edozein ZIP
-eskuz aukeratzeko, eta bestea, kopia automatikoetatik berrezartzeko, zuzenean
-`backups_auto` karpeta irekitzen duena. Bi kasuetan, aukeratutako ZIPa
-babeskopia automatikoa bada, lehenik datu-basea berrezartzen da eta, hura
-berrezarrita, zein argazki behar diren kalkulatzen da eta dagozkien
-`fotos_backup_<urtea>.zip` fitxategietatik soilik ateratzen dira, denak
-irauli beharrean. Hiru eragiketek (babeskopiak eta bi berrezartzeek) beren
-aurrerapen-barra erakusten dute fokuarekin.
-
-### Argazki umezurtzen garbiketa
-
-`Tresnak` menuko argazki umezurtzak garbitzeko aukerak `fotos_recibidas`
-karpetako argazkiak ezabatzen ditu, jada inongo lanek, egitekok edo makinek
-erreferentziatzen ez badituzte. Aplikazioa ixtean eta eskuzko babeskopia baten
-aurretik ere `fotos_recibidas` isilean garbitzen da, baina Tresnak menuko aukera
-horrek **soilik** berrikusten ditu, gainera, `fotos_backup_<urtea>.zip`
-fitxategiak, eta berriro idazten ditu izan ditzaketen argazki umezurtzik gabe,
-mugagabeki ez arrastatzeko.
-
-### Lanak gordetzeko gehieneko denbora
-
-`Tresnak > Lanak gordetzeko gehieneko denbora…` aukerak (administratzaileak
-soilik) zenbaki bat eta unitate bat (urte, hilabete edo egun) eskatzen ditu,
-eta gaurtik atzera kontatuta data hori baino zaharragoak diren lan guztiak
-ezabatzen ditu historiatik. Ezabatu aurretik zenbat lan ezabatuko diren eta
-zein dataren artean erakusten du, eta berrespena eskatzen du.
-
-- Ezabatu aurretik bi datu-baseen kopia bat gordetzen da
-  `backups_auto/antes_borrado_trabajos_<data>.zip` fitxategian; babeskopia
-  automatikoaren txandakatzeak ez du ezabatzen.
-- Haien argazkiak ere ezabatzen dira (aurrekoa, ondorengoa eta bilduma),
-  beste erregistro batek erabiltzen dituenak izan ezik. Argazkiak ez daude
-  kopia horretan, baina babeskopia automatikoaren `fotos_backup_<urtea>.zip`
-  fitxategietan geratzen dira `Tresnak > 🧹 Garbitu Zabor-argazkiak` erabili arte.
-- Mugikorrek lan horiek historiatik kentzen dituzte hurrengo
-  sinkronizazioan.
-- Behin bakarrik egiten da: ez da bere kabuz errepikatzen.
-
----
-
-## 📁 Proiektuaren egitura
-
-```
-MantPro/
-├── main.py                      # Abiarazte-puntua (python main.py)
-├── mantpro/                     # Mahaigaineko aplikazioaren kodea
-│   ├── version.py               # Bertsioa (CIk tag-etik jartzen du)
-│   ├── nucleo/                  # Datuak eta logika, interfazerik gabe
-│   │   ├── usuarios.py          # Erabiltzaileak, pasahitzak, rolak eta saioak
-│   │   ├── almacen.py           # Biltegiko stocka: egitura, materialak eta mugimenduak
-│   │   ├── maquinas.py          # Makineriaren zuhaitza eta haren lanen historia
-│   │   ├── basedatos.py         # Lanen datu-basea
-│   │   └── importar.py          # Excel/CSV inportazioa
-│   ├── interfaz/                # PyQt6 leihoak
-│   │   ├── arranque.py          # Abiaraztea: instantzia bakarra eta saio-hasiera
-│   │   ├── app.py               # Mahaigaineko aplikazio nagusia
-│   │   ├── servidor.py          # Mugikorrekin sinkronizatzeko zerbitzaria
-│   │   ├── pestanas/            # Bat fitxa bakoitzeko: aginte-mahaia, egutegia, stocka...
-│   │   ├── acciones/            # Menuetako ekintzak: kopiak, esportatu, inportatu, erabiltzaileak
-│   │   ├── dialogos/            # Elkarrizketa-koadroak (saio-hasiera eta erabiltzaileen kudeaketa barne)
-│   │   └── widgets/             # Argazkiak eta grafikoak
-│   └── idiomas/                 # Mahaigaineko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
-├── recursos/                    # Ikonoak eta logotipoak
-├── herramientas/                # Proiektuaren scriptak (verificar_idiomas.py...)
-├── empaquetado/                 # Windows-erako instalatzailea (Inno Setup)
-├── requirements.txt             # Python mendekotasunak
-├── README.eu.md                 # Fitxategi hau
-├── fotos_recibidas/             # Irudien karpeta
-├── mantenimiento.db             # SQLite datu-basea (mantentze-lanak)
-├── almacen.db                   # SQLite datu-basea (biltegiko stocka, independentea)
-├── mantenimiento_app/           # Flutter mugikorreko aplikazioa (lanak)
-│   ├── lib/main.dart            # Mugikorreko kode nagusia
-│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Flutter mendekotasunak
-│   └── android/                 # Android konfigurazioa
-├── mantpro_stock_app/           # Flutter mugikorreko aplikazioa (biltegiko stocka)
-│   ├── lib/modelos.dart         # Datu-ereduak eta stockaren kolore-araua
-│   ├── lib/pantallas/           # Pantailak: biltegia, artikulua, bilaketa, gutxienekotik behera...
-│   ├── lib/i18n/                # Mugikorreko itzulpenak (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Flutter mendekotasunak
-│   └── android/                 # Android konfigurazioa
-├── backups/                     # Eskuzko babeskopia osoak (DB + argazkiak)
-├── backups_auto/                # Ixteko babeskopia automatikoak (DB biraka + argazkiak urteka)
-└── docs/                        # Dokumentazio gehigarria
-```
-
-> Datuak (datu-basea, argazkiak eta babeskopiak) ez daude nahitaez kodearen
-> ondoan: uneko karpetan `mantenimiento.db` ez badago, aplikazioak
-> `~/.local/share/MantPro` erabiltzen du Linuxen edo `%APPDATA%\MantPro` Windowsen.
-
-### Datu-basea
-
-Aplikazioak SQLite erabiltzen du, taula hauekin:
-
-- **`tareas`**: Egindako lanen erregistroa (data, deskribapena, etiketak,
-  argazkiak, **nork egin zuen** (`usuario_id` eta `usuario_nombre`) eta
-  **lotutako makina** (`maquina_id`), baldin badu)
-- **`maquinas`**: Makineriaren zuhaitza (izena, goiko makina, oharrak eta argazkia)
-- **`pendientes`**: Egiteke dauden zereginak (izenburua, xehetasunak, lehentasuna eta
-  **esleitutako teknikaria**: `asignado_a` eta `asignado_nombre`)
-- **`usuarios`**: Aplikazioa erabiltzen duten pertsonak (login-a, izena,
-  pasahitzaren hasha, rola eta aktibo dagoen)
-- **`sesiones`**: Estekatutako mugikorren tokenak, iraungitze-datarekin
-- **`avisos_recurrentes`**: Automatikoki errepikatzen diren mantentze-abisuak
-- **`dias_especiales`**: Jaiegunak, oporrak eta egutegian markatutako egunak
-- **`auditoria`**: Lan bakoitza nork editatzen edo ezabatzen duen, data,
-  ekintza eta xehetasunarekin
-- **`config`**: Aplikazioaren barne-konfigurazioa (logoa, probintzia, etab.)
-
-Pasahitzak **PBKDF2-SHA256** bidez gordetzen dira (200.000 iterazio eta
-erabiltzaile bakoitzeko salt-a), inoiz ez testu argian. Taula eta zutabe
-berriak bere kabuz sortzen dira abiaraztean, lehendik dauden datuak galdu gabe.
-
-> 🔐 `mantenimiento.db` fitxategiak pasahitzen hashak eta saio-tokenak ditu.
-> Arrazoiren batengatik dago `.gitignore`-n: ez igo inoiz biltegira.
-
-Biltegiko stocka bere datu-basean dago, **`almacen.db`**, lanen datu-basetik
-nahita bereizita:
-
-- **`estanterias`**: izena eta lurreko hutsunea duen
-- **`baldas`**: apalategi bakoitzeko apalak, behetik gora zenbatuta (`0`
-  apalak lurreko hutsunea adierazten du)
-- **`secciones`**: apal bakoitzaren barruko zatiketak
-- **`materiales`**: kodea, izena, deskribapena, unitatea, uneko stocka,
-  gutxieneko stocka, kokapena (atala) eta argazkia
-- **`movimientos`**: sarreren eta irteeren historia, data, kantitate,
-  erabiltzaile eta arrazoiarekin
-
-Lehen abiaraztean automatikoki sortzen da eta babeskopietan sartzen da
-(eskuzkoetan eta aplikazioa ixtean egiten diren automatikoetan),
-`mantenimiento.db`-rekin batera.
+Xehetasun guztiak: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
+(gaztelaniaz) · [docs/backups.md](docs/backups.md) (ingelesez).
 
 ---
 
 ## 🤝 Lagundu
 
-Ekarpenak ongi etorriak dira! MantPro hobetu nahi baduzu:
+Ekarpenak ongi etorriak dira! *Pull request* bat ireki aurretik, irakurri
+[CONTRIBUTING.md](CONTRIBUTING.md): aldaketak nola prestatu azaltzen du
+(hizkuntzak, probak, fitxategien goiburuak) eta onartu beharreko **ekarpen
+akordioa ([CLA](CLA.md))**.
 
-1. Egin proiektuaren **fork** bat
-2. Sortu **adar** bat zure funtzionalitaterako (`git checkout -b feature/AmazingFeature`)
-3. Egin zure aldaketen **commit**-a (`git commit -m 'Add some AmazingFeature'`)
-4. Egin **push** adarrera (`git push origin feature/AmazingFeature`)
-5. Ireki **Pull Request** bat
+Kodearen eta datu-basearen egitura
+[docs/desarrollo.md](docs/desarrollo.md) (gaztelaniaz) eta
+[docs/development.md](docs/development.md) (ingelesez) fitxategietan dago.
+Segurtasun-akatsetarako, ikus [SECURITY.md](SECURITY.md).
 
 ---
 
-## ✅ Eginda
+## 🗺️ Bide-orria
 
-- **Erabiltzaileen kudeaketa**: erabiltzaile eta pasahitzarekin saioa hastea
-  PCan eta mugikorrean, erabiltzaile bakoitzeko rol anitzak (administratzailea /
-  teknikaria / biltegia), erabiltzaileen alta eta baja logikoa, pasahitza
-  aldatzea eta berrezartzea.
-- **Lanen egiletza**: erregistro bakoitzak nork egin zuen gordetzen du.
-  Erabiltzaile-sistemaren aurreko erregistroak `Histórico` gisa markatuta daude.
-- **Saio iraunkorra mugikorrean**: teknikariak behin hasten du saioa eta
-  tokena gailuan gordeta geratzen da.
-- **API autentifikatua**: datuen endpoint guztiek tokena eskatzen dute; `401`
-  batek mugikorreko saioa ixten du eta saio-hasierara itzultzen da, bidaltzeko
-  dauden erregistro lokalak galdu gabe.
-- **Esleitutako egitekoak**: PCak lan bakoitza teknikari bati esleitzen dio eta
-  mugikorrak "Nireak soilik" iragazkia erabil dezake.
-- **Teknikariaren araberako iragazkia** historian eta PDF, CSV eta Excel
-  esportazioetan.
-- **Edizioen auditoria**: lan bat nork editatzen edo ezabatzen duen
-  erregistratzen da (ez bakarrik nork sortu zuen), "Aldaketen erregistroa"
-  ataletik kontsultatu eta teknikariaren/ekintzaren arabera iragazi daitekeena.
-- **Erregistro bakoitzeko baimenak**: teknikari batek bere lanak baino ezin ditu
-  editatu edo ezabatu; administratzaile batek edozein kudea dezake eta erregistro
-  baten edo batzuen egilea aldi berean berresleitu (hautapen anitza +
-  testuinguru-menua).
-- **Gai bisualak**: modu iluna (lehenetsia), argia edo Windows 98 estilo
-  klasikoa, "Itxura" menutik hautagarria eta saioen artean gogoratua.
-- **Babeskopia eskatu ahala, helmuga aukeratuz**: eskuzko babeskopia bat
-  sortzean non gorde aukera daiteke, beti `backups` karpeta lehenetsira joan
-  beharrean.
-- **Biltegiko stockaren kontrola**: apalategi, apal eta atalen egitura
-  konfiguragarria (administratzaileak soilik), materialen fitxa argazkiarekin,
-  sarrerak eta irteerak historiarekin (edozein erabiltzaile), kokapenen arteko
-  lekualdaketak historian erregistratuta, hautapen anitza testuinguru-menuarekin
-  multzoka mugitu edo ezabatzeko, eta stockik gabeko edo gutxienekotik beherako
-  materialentzako fitxa berezia. Bere datu-basearekin (`almacen.db`) eta
-  mugikorreko aplikazio independentearekin (`mantpro_stock_app`) stocka
-  telefonotik kontsultatu eta mugitzeko.
-- **Gailuen saioak**: erabiltzaile bakoitzari estekatutako mugikorrak
-  zerrendatzea, gailuaren benetako modeloarekin, eta saio jakin bat edo batzuk
-  baliogabetzea erabiltzaile osoa desaktibatu beharrik gabe.
-- **Makineriaren zerrenda**: makinen eta azpimakinen zuhaitza argazki
-  erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta lan bakoitzaren
-  (PC edo mugikorra) lotura egin den makinarekin, PDF, CSV eta Excel
-  esportazioetan barne.
-- **Babeskopia automatiko inkrementala**: aplikazioa ixteak ez du jada argazkien
-  historia osoa aldi bakoitzean berriro paketatzen; datu-baseak ZIP batean
-  biratzen dira eta argazkiak urteko ZIP inkrementaletan banatzen dira, fokua
-  duen aurrerapen-barrarekin bai ixtean bai eskuzko babeskopian eta
-  berrezartzean (ikusi [Babeskopiak](#-babeskopiak)).
-- **Lan bat egitekora itzultzea**: oker osatutako lan bat desegitea, bai PCko
-  historiatik bai mugikorrean erregistroa sakatuta mantenduz, lotutako makina
-  galtzeari buruzko abisuarekin (bazuen) eta jatorriko abisu errepikakorra
-  automatikoki berrezarriz (batetik bazetorren).
-- **Kopia automatikotik berrezartzea**: `Fitxategia > Berrezarri` azpimenu
-  gisa irekitzen da edozein eskuzko babeskopia aukeratzeko edo zuzenean
-  aplikazioa ixtean egindako kopia automatikoen karpetara joateko.
-- **Stockaren eguneroko gogorarazlea**: `mantpro_stock_app` aplikazioak
-  goizero 8:00etan abisatzen du biltegiko 5 materialen benetako kantitatea
-  egiaztatzeko (ausaz, egunero desberdinak) eta jakinarazpenetik bertatik
-  berehala zuzentzeko aukera ematen du.
-- **Aginte-panela KPI eta fidagarritasun-grafikoekin**: lantegi osoko batez
-  besteko MTBF eta MTTR txartelak, eta matxura gehien dituzten makinen
-  sailkapenaren eta hilabeteko matxuren grafikoak, `QPainter`-ekin eskuz
-  marraztuak, kanpoko grafiko-liburutegirik gabe.
-- **Gailu bakoitzeko saioaren ordezkapen automatikoa**: erabiltzaile batek
-  lehendik saio irekia zuen mugikor batetik berriro saioa hasten badu,
-  aurrekoa bere kabuz ezabatzen da, saioen zerrendan pilatu beharrean.
-- **Lan bakoitzeko argazki bilduma**: aurrekoaz eta ondorengoaz gain, nahi
-  adina argazki gehigarri lanetan eta egiteke dauden lanetan, PCan eta
-  mugikorrean, batetik bestera pasatzen den tamaina osoko ikustailearekin.
-- **Saltatzen ez diren abisu errepikakorrak**: atzeratutako abisu bat zain
-  (laranja) edo atzeratuta (gorria) geratzen da egin arte, eta hurrengo
-  zikloa benetan egin zen datatik kontatzen da.
-- **Biltegiko stocka esportatu** PDF, CSV edo Excel formatura, osorik, zonaka,
-  apalategika edo gutxienekotik beherako materialak soilik.
-- **Lanak gordetzeko gehieneko denbora**: lan zaharrak ezabatzea, berrespenarekin
-  eta aurretik segurtasun-kopia eginez.
-- **Excel/CSV-tik inportatzea**: makinak, biltegiko artikuluak, abisu
-  errepikakorrak eta erabiltzaileak, txantiloiarekin, zutabeen parekatzearekin,
-  errenkadaz errenkadako aurrebistarekin eta aurretiko segurtasun-kopiarekin.
-- **Laguntza integratua** (`Laguntza > 📖 Jarraibideak`) aurkibide eta
-  bilatzailearekin 7 hizkuntzetan, eta testuinguruko **F1**, fitxa aktiboaren
-  atalean irekitzen duena.
-- **Teknikarien estatistikak** Aginte-mahaian: lanak urteka eta hilabeteka,
-  matxurak, prebentiboak, geldialdi-orduak eta esleitutako lanak,
-  mota-iragazkiarekin eta PDF eta Excel esportazioarekin.
-- **Makina bakoitzeko ordezko piezak**: makina bakoitzak daramatzan biltegiko
-  artikuluak, haien stockarekin, «Hemen erabiltzen da» artikulu bakoitzean eta
-  konexiorik gabeko kontsulta MantPro eta MantPro Stock aplikazioetan.
-- **Makina bakoitzeko QR etiketak** eta MantPro-ko eskanerra, makinaren fitxa
-  konexiorik gabe irekitzen duena.
-- **Bikoiztuen abisua** makinak eta artikuluak altan ematean (kode bera edo
-  oso antzeko izena).
-- **Atzeko planoan konektatutako aplikazioak**, jakinarazpenarekin eta
-  «Gailuen saioak» ataleko linean egoera zehatzarekin.
-- **Mugikorraren lehen sinkronizazioa** aurrerapen-barrarekin eta deskarga
-  paraleloarekin.
-- **Biltegi osoaren mugimenduen historia**.
-- **Aplikazioak aplikaziotik bertatik eguneratu** (APKaren deskarga eta
-  Androiden instalatzailea) eta **ordenagailutik QR batekin instalatu**.
-- **Proba-bertsioak** (`-dev`, `-rc`) dagoeneko bat erabiltzen dutenei
-  bakarrik eskainita, eta **openSUSE (OBS)** paketea bertsio egonkor
-  bakoitzarekin automatikoki argitaratua.
+Datozenak, datarik gabe eta ordena itxirik gabe:
+
+- **Lan bakoitzean erabilitako ordezko piezak**, makina bakoitzeko materialaren kostuarekin
+- **Hornitzaileak, prezioak eta erosketa-eskaerak** gutxieneko stockaren azpitik dagoenetik abiatuta
+- **Kontrol-zerrendak** mantentze prebentiboetan eta azpizereginak lanetan
+- **Kontagailu bidezko prebentiboa** (erabilera-orduak, zikloak, km), dataren araberakoaz gain
+- **Lan egindako denbora eta sinadura** lan bat ixtean
+- **Makina bakoitzeko dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFan)
+- **Hainbat PC aldi berean** eta leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker)
+- **Komunikazio zifratuak** (HTTPS)
+- Hizkuntza gehiago eta iPhonerako aplikazioa
+
+Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
+Zerbait faltan botatzen duzu? Ireki
+[*issue*](https://github.com/AnabasaSoft/MantPro/issues) bat.
+
+---
 
 ## 📄 Lizentzia
 

@@ -62,6 +62,18 @@ without relying on scattered spreadsheets.
   needs (before/after photos, machine links, spare parts stock, recurring
   alerts...), not from a generic CMMS requirements list
 
+| | MantPro | Typical commercial CMMS |
+|---|---|---|
+| **Price** | Free (self-hosted) | Monthly fee per user |
+| **Users, machines and records** | Unlimited | Depending on the plan |
+| **Where your data lives** | On your PC or server | In the vendor's cloud |
+| **Offline mobile app** | The whole working day | Often limited or read-only |
+| **Spare parts warehouse** | Included | Often an extra module |
+| **Source code** | Open (AGPL-3.0) | Closed |
+| **If the vendor goes away** | You keep using it | You lose the service |
+
+*Comparison with the usual model of cloud-based commercial CMMS; every product is different.*
+
 ## 🎬 Demo video
 
 https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
@@ -102,8 +114,8 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Warehouse Stock](#-warehouse-stock)
 - [PC-Mobile Sync](#-pc-mobile-sync)
 - [Backups](#-backups)
-- [Project Structure](#-project-structure)
 - [Contributing](#-contributing)
+- [Roadmap](#-roadmap)
 - [License](#-license)
 - [Contact](#-contact)
 
@@ -721,272 +733,49 @@ tunnel with HTTPS).
 
 ## 💾 Backups
 
-MantPro distinguishes between two kinds of backup, meant for different moments:
+MantPro makes an **automatic backup when closing** (the databases, plus the
+photos in incremental ZIP files per year) and lets you make a **full manual
+backup** from `File > Backup` and restore it from `File > Restore`. `Tools`
+also lets you clean up photos no longer used by any record and delete jobs
+older than a given time, always with a prior backup.
 
-### Automatic backup (when closing the app)
-
-Every time the program is closed, a quick backup is made in the background
-with no user intervention, designed to stay unnoticeable even as the years go by:
-
-- **Databases**: `mantenimiento.db` and `almacen.db` are packed whole into a
-  ZIP (`auto_backup_db_<date>.zip`) every time, rotating and keeping only the
-  3 most recent.
-- **Photos**: instead of recompressing the whole photo history on every
-  close, incremental ZIPs are kept per year (`fotos_backup_<year>.zip`):
-  each close only adds to the matching year's ZIP the photos that were not
-  already in it, without touching or recompressing those from previous
-  years. This way, closing time does not grow with how long the application
-  has been in use.
-
-While this backup runs, a window with a progress bar holds the focus, and the
-application only actually closes once it has finished.
-
-### Manual backup (File menu)
-
-`File > Backup` still generates, as always, a single ZIP
-(`backup_completo_<date>.zip`) with both databases and **all** the photos
-together and compressed, in the location you choose. `File > Restore` opens
-as a submenu with two options: **"Restore..."**, to pick any ZIP by hand,
-and **"Restore from automatic backup..."**, which opens the `backups_auto`
-folder directly. In both cases, if the chosen ZIP is an automatic backup,
-the database is restored first and, with it restored, the photos that are
-needed are worked out and extracted only from the matching
-`fotos_backup_<year>.zip` files, instead of dumping them all. All three
-operations (backup and both restores) show their own progress bar with focus.
-
-### Cleaning up orphan photos
-
-`Tools > Clean up orphan photos` deletes the photos in `fotos_recibidas`
-that are no longer referenced by any job, pending task or machine. When the
-application closes and before a manual backup, `fotos_recibidas` is also
-cleaned silently, but **only** that option in the Tools menu also goes
-through the `fotos_backup_<year>.zip` files and rewrites them without any
-orphan photos they may contain, so they are not carried along forever.
-
-### Maximum job retention time
-
-`Tools > Maximum job retention time…` (administrators only) asks for a number
-and a unit (years, months or days) and deletes from the history every job
-older than that date, counting back from today. Before deleting it shows how
-many jobs will be removed and between which dates, and asks for confirmation.
-
-- A copy of both databases is saved first in
-  `backups_auto/antes_borrado_trabajos_<date>.zip`, which the automatic backup
-  rotation does not delete.
-- Their photos (before, after and collection) are deleted too, except those
-  still used by another record. Photos are not in that copy, but they remain
-  in the automatic backup's `fotos_backup_<year>.zip` files until
-  `Tools > 🧹 Clean Orphan Photos` is used.
-- Phones remove those jobs from their history on the next sync.
-- It is a one-off deletion: it does not repeat on its own.
-
----
-
-## 📁 Project Structure
-
-```
-MantPro/
-├── main.py                      # Entry point (python main.py)
-├── mantpro/                     # Desktop app code
-│   ├── version.py               # Version (CI sets it from the tag)
-│   ├── nucleo/                  # Data and logic, no UI
-│   │   ├── usuarios.py          # Users, passwords, roles and sessions
-│   │   ├── almacen.py           # Warehouse stock: structure, materials and movements
-│   │   ├── maquinas.py          # Machinery tree and its job history
-│   │   ├── basedatos.py         # Jobs database
-│   │   └── importar.py          # Excel/CSV import
-│   ├── interfaz/                # PyQt6 windows
-│   │   ├── arranque.py          # Startup: single instance and sign-in
-│   │   ├── app.py               # Main desktop application
-│   │   ├── servidor.py          # Sync server for the phones
-│   │   ├── pestanas/            # One per tab: dashboard, calendar, stock...
-│   │   ├── acciones/            # Menu actions: backups, export, import, users
-│   │   ├── dialogos/            # Dialogs (sign-in and user management included)
-│   │   └── widgets/             # Photos and charts
-│   └── idiomas/                 # Desktop translations (ES / EN / EU / CA / GL / PT / FR)
-├── recursos/                    # Icons and logos
-├── herramientas/                # Project scripts (verificar_idiomas.py...)
-├── empaquetado/                 # Windows installer (Inno Setup)
-├── requirements.txt             # Python dependencies
-├── README.md                    # This file
-├── fotos_recibidas/             # Image folder
-├── mantenimiento.db             # SQLite database (maintenance jobs)
-├── almacen.db                   # SQLite database (warehouse stock, separate)
-├── mantenimiento_app/           # Flutter mobile app (jobs)
-│   ├── lib/main.dart            # Main mobile code
-│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Flutter dependencies
-│   └── android/                 # Android configuration
-├── mantpro_stock_app/           # Flutter mobile app (warehouse stock)
-│   ├── lib/modelos.dart         # Data models and stock colour rule
-│   ├── lib/pantallas/           # Screens: warehouse, item, search, low stock...
-│   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Flutter dependencies
-│   └── android/                 # Android configuration
-├── backups/                     # Full manual backups (database + photos)
-├── backups_auto/                # Automatic backups on close (rotating database + photos per year)
-└── docs/                        # Additional documentation
-```
-
-> The data (database, photos and backups) does not necessarily live next to
-> the code: if there is no `mantenimiento.db` in the current folder, the
-> application uses `~/.local/share/MantPro` on Linux or `%APPDATA%\MantPro`
-> on Windows.
-
-### Database
-
-The application uses SQLite with the following tables:
-
-- **`tareas`**: Record of completed jobs (date, description, tags, photos,
-  **who did it** (`usuario_id` and `usuario_nombre`) and the **linked
-  machine** (`maquina_id`), if any)
-- **`maquinas`**: Machinery tree (name, parent machine, notes and photo)
-- **`pendientes`**: Pending tasks (title, details, priority and **assigned
-  technician**: `asignado_a` and `asignado_nombre`)
-- **`usuarios`**: People who use the application (login, name, password
-  hash, role and whether they are active)
-- **`sesiones`**: Tokens of the linked phones, with their expiry date
-- **`avisos_recurrentes`**: Maintenance alerts that repeat automatically
-- **`dias_especiales`**: Public holidays, vacations and days marked on the calendar
-- **`auditoria`**: History of who edits or deletes each job, with date,
-  action and details
-- **`config`**: Internal application settings (logo, province, etc.)
-
-Passwords are stored with **PBKDF2-SHA256** (200,000 iterations and a
-per-user salt), never in plain text. New tables and columns are created
-automatically at startup, without losing existing data.
-
-> 🔐 `mantenimiento.db` contains password hashes and session tokens.
-> It is in `.gitignore` for a reason: never push it to the repository.
-
-Warehouse stock lives in its own database, **`almacen.db`**, deliberately
-kept separate from the jobs database:
-
-- **`estanterias`**: name and whether it has floor space
-- **`baldas`**: shelves of each shelving unit, numbered from bottom to top
-  (shelf `0` represents the floor space)
-- **`secciones`**: subdivisions within each shelf
-- **`materiales`**: code, name, description, unit, current stock, minimum
-  stock, location (section) and photo
-- **`movimientos`**: history of stock in and out, with date, quantity, user
-  and reason
-
-It is created automatically on first launch and included in backups (manual
-and automatic on close) together with `mantenimiento.db`.
+Full details: [docs/backups.md](docs/backups.md) (en español:
+[docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)).
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you want to improve MantPro:
+Contributions are welcome! Before opening a pull request, read
+[CONTRIBUTING.md](CONTRIBUTING.md): it explains how to prepare your changes
+(languages, testing, file headers) and the **contributor agreement
+([CLA](CLA.md))** you need to accept.
 
-1. **Fork** the project
-2. Create a **branch** for your feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** to the branch (`git push origin feature/AmazingFeature`)
-5. Open a **Pull Request**
+The code and database structure is described in
+[docs/development.md](docs/development.md) (en español:
+[docs/desarrollo.md](docs/desarrollo.md)). For security issues, see
+[SECURITY.md](SECURITY.md).
 
 ---
 
-## ✅ Done
+## 🗺️ Roadmap
 
-- **User management**: username and password sign-in on PC and phone,
-  multiple roles per user (administrator / technician / warehouse), logical
-  adding and deactivation of users, password change and reset.
-- **Job authorship**: each record stores who carried it out. Records from
-  before the user system are marked as `Histórico` (legacy).
-- **Persistent session on the phone**: the technician signs in once and the
-  token is stored on the device.
-- **Authenticated API**: every data endpoint requires a token; a `401`
-  closes the session on the phone and returns to sign-in without losing the
-  local records waiting to be sent.
-- **Assigned pending tasks**: the PC assigns each job to a technician and the
-  phone can filter by "Only mine".
-- **Filter by technician** in the history and in PDF, CSV and Excel exports.
-- **Edit auditing**: who edits or deletes a job is recorded (not just who
-  created it), searchable and filterable by technician/action from
-  "Change log".
-- **Per-record permissions**: a technician can only edit or delete their own
-  jobs; an administrator can manage any of them and reassign the author of
-  one or several records at once (multiple selection + context menu).
-- **Visual themes**: dark mode (default), light mode or classic Windows
-  98 style, selectable from the "Appearance" menu and remembered between
-  sessions.
-- **On-demand backup with a choice of destination**: when making a manual
-  backup you can choose where to save it, instead of always using the
-  default `backups` folder.
-- **Warehouse stock control**: configurable structure of shelving units,
-  shelves and sections (administrators only), material records with photo,
-  stock in/out with history (any user), transfers between locations recorded
-  in the history, multiple selection with a context menu to move or delete in
-  bulk, and a dedicated tab for materials out of stock or below their
-  minimum. With its own database (`almacen.db`) and a standalone mobile app
-  (`mantpro_stock_app`) to check and move stock from the phone.
-- **Device sessions**: list the phones linked to each user, with their real
-  device model, and revoke one or several specific sessions without having
-  to deactivate the whole user.
-- **Machinery list**: tree of machines and sub-machines with an attached
-  photo, job counter per year and month, and a link from each job (PC or
-  phone) to the machine it was done on, included in PDF, CSV and Excel
-  exports.
-- **Incremental automatic backup**: closing the application no longer
-  repackages the whole photo history every time; the databases rotate in a
-  ZIP and the photos are split into incremental ZIPs per year, with a
-  progress bar holding focus both when closing and during manual backup and
-  restore (see [Backups](#-backups)).
-- **Revert a job to pending**: undo a job that was completed by mistake,
-  both from the PC history and by long-pressing the record on the phone,
-  with a warning about losing the linked machine if it had one and automatic
-  restoration of the originating recurring alert, if it came from one.
-- **Restore from automatic backup**: `File > Restore` opens as a submenu to
-  choose between any manual backup or going straight to the folder of
-  automatic backups made on close.
-- **Daily stock reminder**: the `mantpro_stock_app` app reminds you every
-  morning at 8:00 to check the real quantity of 5 warehouse materials (random,
-  different each day) and lets you correct it right away from the
-  notification itself.
-- **Dashboard with KPIs and reliability charts**: plant-wide average MTBF and
-  MTTR cards, and charts ranking the machines with the most breakdowns and
-  showing breakdowns per month, hand-drawn with `QPainter` without relying on
-  any external charting library.
-- **Automatic per-device session replacement**: if a user signs in again
-  from a phone on which they already had an open session, the previous one is
-  deleted on its own instead of piling up in the session list.
-- **Photo collection per job**: besides before and after, any number of extra
-  photos on jobs and pending jobs, on PC and phone, with a full-size viewer
-  that moves from one to the next.
-- **Recurring alerts that are not skipped**: a late alert stays pending
-  (orange) or overdue (red) until done, and the next cycle is counted from
-  the date it was actually done.
-- **Warehouse stock export** to PDF, CSV or Excel, complete, by zone, by
-  shelving unit or only the materials below minimum.
-- **Maximum job retention time**: deletion of old jobs with confirmation and
-  a backup made beforehand.
-- **Import from Excel/CSV**: machines, warehouse items, recurring reminders and
-  users, with a template, column matching, row-by-row preview and a backup
-  made beforehand.
-- **Built-in help** (`Help > 📖 Instructions`) with an index and search in all
-  7 languages, and context-sensitive **F1** that opens it at the section of
-  the active tab.
-- **Statistics by technician** on the Dashboard: jobs by year and month,
-  breakdowns, preventive jobs, downtime hours and assigned pending jobs, with
-  a type filter and PDF and Excel export.
-- **Spare parts per machine**: warehouse items fitted to each machine, with
-  their stock, “Used in” on each item and offline viewing in MantPro and
-  MantPro Stock.
-- **QR labels per machine** and a scanner in MantPro that opens the machine's
-  page offline.
-- **Duplicate warning** when adding machines and items (same code or very
-  similar name).
-- **Apps connected in the background**, with a notification and an accurate
-  online status in “Device sessions”.
-- **First mobile sync** with a progress bar and parallel download.
-- **Movement history for the whole warehouse**.
-- **Update the apps from within the app** (APK download and Android installer)
-  and **install them from the PC with a QR code**.
-- **Test versions** (`-dev`, `-rc`) offered only to those already using one,
-  and an **openSUSE (OBS)** package published automatically with each stable
-  version.
+What's coming, without dates and in no fixed order:
+
+- **Spare parts used in each job**, with material cost per machine
+- **Suppliers, prices and purchase orders** based on low stock
+- **Checklists** for preventive maintenance and subtasks in jobs
+- **Meter-based preventive maintenance** (running hours, cycles, km), as well as date-based
+- **Time worked and sign-off** when closing a job
+- **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
+- **Several PCs at once** and a headless server (Raspberry Pi, NAS, Docker)
+- **Encrypted communications** (HTTPS)
+- More languages and an iPhone app
+
+The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
+something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).
+
+---
 
 ## 📄 License
 

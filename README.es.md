@@ -64,6 +64,18 @@ máquinas, intervenciones y stock sin depender de hojas de cálculo sueltas.
   stock de recambios, avisos recurrentes...), no de una lista de requisitos
   genérica de GMAO/CMMS
 
+| | MantPro | GMAO/CMMS comercial habitual |
+|---|---|---|
+| **Precio** | Gratis (autoalojado) | Cuota mensual por usuario |
+| **Usuarios, máquinas y registros** | Sin límite | Según el plan contratado |
+| **Dónde están tus datos** | En tu PC o servidor | En la nube del proveedor |
+| **App móvil sin conexión** | Toda la jornada | A menudo limitada o solo consulta |
+| **Almacén de repuestos** | Incluido | Muchas veces como módulo aparte |
+| **Código fuente** | Abierto (AGPL-3.0) | Cerrado |
+| **Si el proveedor desaparece** | Sigues usándolo | Te quedas sin servicio |
+
+*Comparación con el modelo habitual de los GMAO/CMMS comerciales en la nube; cada producto es distinto.*
+
 ## 🎬 Vídeo de demostración
 
 https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
@@ -104,8 +116,8 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Stock de Almacén](#-stock-de-almacén)
 - [Sincronización PC-Móvil](#-sincronización-pc-móvil)
 - [Copias de Seguridad](#-copias-de-seguridad)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
 - [Contribuir](#-contribuir)
+- [Hoja de ruta](#-hoja-de-ruta)
 - [Licencia](#-licencia)
 - [Contacto](#-contacto)
 
@@ -731,275 +743,49 @@ HTTPS).
 
 ## 💾 Copias de Seguridad
 
-MantPro distingue entre dos tipos de copia, pensados para momentos distintos:
+MantPro hace una **copia automática al cerrar** (las bases de datos, y las fotos
+en ZIP incrementales por año) y permite hacer una **copia completa a mano**
+desde `Archivo > Backup` y restaurarla desde `Archivo > Restaurar`.
+`Herramientas` incluye además limpiar las fotos que ya no usa ningún registro y
+borrar los trabajos más antiguos que un tiempo dado, siempre con copia previa.
 
-### Backup automático (al cerrar la app)
-
-Cada vez que se cierra el programa se hace, en segundo plano y sin necesidad de
-intervención, un backup rápido pensado para no notarse aunque pasen los años:
-
-- **Bases de datos**: `mantenimiento.db` y `almacen.db` se empaquetan enteras en
-  un ZIP (`auto_backup_db_<fecha>.zip`) cada vez, rotando y conservando solo los
-  3 más recientes.
-- **Fotos**: en vez de volver a comprimir todo el historial de fotos en cada
-  cierre, se mantienen unos ZIP incrementales por año (`fotos_backup_<año>.zip`):
-  cada cierre solo añade a su ZIP del año que corresponda las fotos que todavía
-  no estuvieran dentro, sin tocar ni recomprimir las de años anteriores. Así el
-  tiempo de cierre no crece con el tiempo de uso de la aplicación.
-
-Mientras se hace esta copia se muestra una ventana con una barra de progreso que
-retiene el foco, y el cierre real de la aplicación espera a que termine.
-
-### Backup manual (menú Archivo)
-
-`Archivo > Backup` sigue generando, como siempre, un único ZIP
-(`backup_completo_<fecha>.zip`) con las dos bases de datos y **todas** las fotos
-juntas y comprimidas, en la ubicación que elijas. `Archivo > Restaurar` se abre
-como submenú con dos opciones: **"Restaurar..."**, para elegir cualquier ZIP a
-mano, y **"Restaurar desde copia automática..."**, que abre directamente la
-carpeta `backups_auto`. En ambos casos, si el ZIP elegido es un backup
-automático, se restaura primero la base de datos y, con ella ya restaurada, se
-calcula qué fotos hacen falta y se extraen únicamente de los
-`fotos_backup_<año>.zip` correspondientes, en vez de volcarlas todas. Las tres
-operaciones (backup, y ambas restauraciones) muestran su propia barra de
-progreso con foco.
-
-### Limpieza de fotos huérfanas
-
-`Herramientas > Limpiar fotos huérfanas` borra las fotos de `fotos_recibidas`
-que ya no estén referenciadas por ningún trabajo, pendiente o máquina. Al cerrar
-la aplicación y antes de un backup manual también se limpia `fotos_recibidas`
-en silencio, pero **solo** esa opción del menú Herramientas revisa además los
-`fotos_backup_<año>.zip` y los reescribe sin las fotos huérfanas que pudieran
-contener, para no arrastrarlas indefinidamente.
-
-### Tiempo máximo de guardado de trabajos
-
-`Herramientas > Tiempo máximo de guardado de trabajos…` (solo administradores)
-pide un número y una unidad (años, meses o días) y borra del historial todos
-los trabajos anteriores a esa fecha, contando desde hoy. Antes de borrar
-muestra cuántos trabajos se van a eliminar y entre qué fechas, y pide
-confirmación.
-
-- Antes de borrar se guarda una copia de las dos bases de datos en
-  `backups_auto/antes_borrado_trabajos_<fecha>.zip`, que la rotación del
-  backup automático no elimina.
-- Se borran también sus fotos (antes, después y colección), salvo las que
-  siga usando otro registro. Las fotos no van en esa copia previa, pero siguen
-  en los `fotos_backup_<año>.zip` del backup automático hasta que se use
-  `Herramientas > 🧹 Limpiar Fotos Basura`.
-- Los móviles quitan esos trabajos de su historial en la siguiente
-  sincronización.
-- Es un borrado puntual: no se repite solo.
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-MantPro/
-├── main.py                      # Punto de arranque (python main.py)
-├── mantpro/                     # Código de la app de escritorio
-│   ├── version.py               # Versión (la pone CI desde el tag)
-│   ├── nucleo/                  # Datos y lógica, sin interfaz
-│   │   ├── usuarios.py          # Usuarios, contraseñas, roles y sesiones
-│   │   ├── almacen.py           # Stock de almacén: estructura, materiales y movimientos
-│   │   ├── maquinas.py          # Árbol de maquinaria y su histórico de trabajos
-│   │   ├── basedatos.py         # Base de datos de trabajos
-│   │   └── importar.py          # Importación desde Excel/CSV
-│   ├── interfaz/                # Ventanas PyQt6
-│   │   ├── arranque.py          # Arranque: instancia única y login
-│   │   ├── app.py               # Aplicación principal de escritorio
-│   │   ├── servidor.py          # Servidor de sincronización con los móviles
-│   │   ├── pestanas/            # Una por pestaña: dashboard, calendario, stock...
-│   │   ├── acciones/            # Acciones de los menús: copias, exportar, importar, usuarios
-│   │   ├── dialogos/            # Diálogos (incluidos login y gestión de usuarios)
-│   │   └── widgets/             # Fotos y gráficos
-│   └── idiomas/                 # Traducciones del escritorio (ES / EN / EU / CA / GL / PT / FR)
-├── recursos/                    # Iconos y logotipos
-├── herramientas/                # Scripts del proyecto (verificar_idiomas.py...)
-├── empaquetado/                 # Instalador de Windows (Inno Setup)
-├── requirements.txt             # Dependencias Python
-├── README.es.md                 # Este archivo
-├── fotos_recibidas/             # Carpeta de imágenes
-├── mantenimiento.db             # Base de datos SQLite (trabajos de mantenimiento)
-├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
-├── mantenimiento_app/           # Aplicación móvil Flutter (trabajos)
-│   ├── lib/main.dart            # Código principal móvil
-│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Dependencias Flutter
-│   └── android/                 # Configuración Android
-├── mantpro_stock_app/           # Aplicación móvil Flutter (stock de almacén)
-│   ├── lib/modelos.dart         # Modelos de datos y regla de color de stock
-│   ├── lib/pantallas/           # Pantallas: almacén, artículo, búsqueda, bajo mínimo...
-│   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Dependencias Flutter
-│   └── android/                 # Configuración Android
-├── backups/                     # Backups manuales completos (BD + fotos)
-├── backups_auto/                # Backups automáticos al cerrar (BD rotativa + fotos por año)
-└── docs/                        # Documentación adicional
-```
-
-> Los datos (base de datos, fotos y backups) no viven necesariamente junto al
-> código: si no existe `mantenimiento.db` en la carpeta actual, la aplicación usa
-> `~/.local/share/MantPro` en Linux o `%APPDATA%\MantPro` en Windows.
-
-### Base de Datos
-
-La aplicación utiliza SQLite con las siguientes tablas:
-
-- **`tareas`**: Registro de intervenciones realizadas (fecha, descripción, tags,
-  fotos, **quién lo realizó** (`usuario_id` y `usuario_nombre`) y la
-  **máquina vinculada** (`maquina_id`), si tiene una)
-- **`maquinas`**: Árbol de maquinaria (nombre, máquina superior, notas y foto)
-- **`pendientes`**: Tareas pendientes de realizar (título, detalles, prioridad y
-  **técnico asignado**: `asignado_a` y `asignado_nombre`)
-- **`usuarios`**: Personas que usan la aplicación (login, nombre, hash de la
-  contraseña, rol y si está activo)
-- **`sesiones`**: Tokens de los móviles vinculados, con su fecha de caducidad
-- **`avisos_recurrentes`**: Avisos de mantenimiento que se repiten automáticamente
-- **`dias_especiales`**: Festivos, vacaciones y días marcados en el calendario
-- **`auditoria`**: Historial de quién edita o borra cada trabajo, con fecha,
-  acción y detalle
-- **`config`**: Configuración interna de la aplicación (logo, provincia, etc.)
-
-Las contraseñas se guardan con **PBKDF2-SHA256** (200.000 iteraciones y salt por
-usuario), nunca en claro. Las tablas y columnas nuevas se crean solas al
-arrancar, sin perder los datos existentes.
-
-> 🔐 `mantenimiento.db` contiene hashes de contraseñas y tokens de sesión.
-> Está en `.gitignore` por algo: no la subas nunca al repositorio.
-
-El stock de almacén vive en su propia base de datos, **`almacen.db`**, separada
-a propósito de la de los trabajos:
-
-- **`estanterias`**: nombre y si tiene hueco en el suelo
-- **`baldas`**: baldas de cada estantería, numeradas de abajo a arriba (la
-  balda `0` representa el hueco de suelo)
-- **`secciones`**: subdivisiones dentro de cada balda
-- **`materiales`**: código, nombre, descripción, unidad, stock actual, stock
-  mínimo, ubicación (sección) y foto
-- **`movimientos`**: histórico de entradas y salidas, con fecha, cantidad,
-  usuario y motivo
-
-Se crea automáticamente en el primer arranque y se incluye en los backups
-(manuales y automáticos al cerrar la app) junto con `mantenimiento.db`.
+Detalle completo: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
+(in English: [docs/backups.md](docs/backups.md)).
 
 ---
 
 ## 🤝 Contribuir
 
-¡Las contribuciones son bienvenidas! Si quieres mejorar MantPro:
+¡Las contribuciones son bienvenidas! Antes de abrir un *pull request*, lee
+[CONTRIBUTING.md](CONTRIBUTING.md): explica cómo preparar los cambios (idiomas,
+pruebas, cabeceras de los ficheros) y el **acuerdo de contribución
+([CLA](CLA.md))** que hay que aceptar.
 
-1. **Fork** el proyecto
-2. Crea una **rama** para tu feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un **Pull Request**
+La estructura del código y de la base de datos está en
+[docs/desarrollo.md](docs/desarrollo.md) (in English:
+[docs/development.md](docs/development.md)). Para fallos de seguridad, mira
+[SECURITY.md](SECURITY.md).
 
 ---
 
-## ✅ Hecho
+## 🗺️ Hoja de ruta
 
-- **Gestión de usuarios**: login con usuario y contraseña en PC y móvil, roles
-  múltiples por usuario (administrador / técnico / almacén), alta y baja
-  lógica de usuarios, cambio y restablecimiento de contraseña.
-- **Autoría de los trabajos**: cada registro guarda quién lo realizó. Los
-  registros anteriores al sistema de usuarios quedan marcados como `Histórico`.
-- **Sesión persistente en el móvil**: el técnico inicia sesión una vez y el
-  token queda guardado en el dispositivo.
-- **API autenticada**: todos los endpoints de datos exigen token; un `401`
-  cierra la sesión del móvil y devuelve al login sin perder los registros
-  locales pendientes de enviar.
-- **Pendientes asignados**: el PC asigna cada trabajo a un técnico y el móvil
-  puede filtrar por "Solo míos".
-- **Filtro por técnico** en el histórico y en la exportación a PDF, CSV y Excel.
-- **Auditoría de ediciones**: se registra quién edita o borra un trabajo (no
-  solo quién lo creó), consultable y filtrable por técnico/acción desde
-  "Registro de cambios".
-- **Permisos por registro**: un técnico solo puede editar o borrar sus propios
-  trabajos; un administrador puede gestionar cualquiera y reasignar el autor
-  de uno o varios registros a la vez (selección múltiple + menú contextual).
-- **Temas visuales**: modo oscuro (por defecto), claro o clásico estilo
-  Windows 98, seleccionable desde el menú "Apariencia" y recordado entre
-  sesiones.
-- **Backup a demanda con selección de destino**: al generar una copia de
-  seguridad manual se puede elegir dónde guardarla, en vez de ir siempre a la
-  carpeta `backups` por defecto.
-- **Control de stock de almacén**: estructura configurable de estanterías,
-  baldas y secciones (solo administradores), ficha de materiales con foto,
-  entradas y salidas con historial (cualquier usuario), traslados entre
-  ubicaciones registrados en el historial, selección múltiple con menú
-  contextual para mover o eliminar en bloque, y una pestaña dedicada a los
-  materiales sin stock o por debajo de su mínimo. Con base de datos propia
-  (`almacen.db`) y app móvil independiente (`mantpro_stock_app`) para
-  consultar y mover stock desde el teléfono.
-- **Sesiones de dispositivos**: listar los móviles vinculados a cada usuario,
-  con su modelo real de dispositivo, y poder revocar una o varias sesiones
-  concretas sin tener que desactivar al usuario entero.
-- **Listado de maquinaria**: árbol de máquinas y submáquinas con foto adjunta,
-  contador de trabajos por año y mes, y vínculo de cada trabajo (PC o móvil) a
-  la máquina en la que se ha hecho, incluido en las exportaciones a PDF, CSV
-  y Excel.
-- **Backup automático incremental**: el cierre de la aplicación ya no reempaqueta
-  todo el historial de fotos cada vez; las bases de datos rotan en un ZIP y las
-  fotos se reparten en ZIP incrementales por año, con una barra de progreso con
-  foco tanto en el cierre como en el backup y la restauración manuales (ver
-  [Copias de Seguridad](#-copias-de-seguridad)).
-- **Revertir un trabajo a pendiente**: deshacer por error la finalización de un
-  trabajo, tanto desde el historial del PC como manteniendo pulsado el registro
-  en el móvil, con aviso de pérdida de la máquina vinculada si la tenía y
-  restauración automática del aviso recurrente de origen, si venía de uno.
-- **Restaurar desde copia automática**: `Archivo > Restaurar` se abre como
-  submenú para elegir entre un backup manual cualquiera o ir directo a la
-  carpeta de copias automáticas al cerrar la app.
-- **Recordatorio diario de stock**: la app `mantpro_stock_app` avisa cada
-  mañana a las 8:00 para comprobar la cantidad real de 5 materiales del
-  almacén (al azar, distintos cada día) y permite corregirla al momento desde
-  la propia notificación.
-- **Dashboard con KPIs y gráficos de fiabilidad**: tarjetas de MTBF y MTTR
-  medios de toda la planta, y gráficos de ranking de máquinas con más averías
-  y de averías por mes, dibujados a mano con `QPainter` sin depender de
-  ninguna librería de gráficos externa.
-- **Sustitución automática de sesión por dispositivo**: si un usuario vuelve a
-  iniciar sesión desde un móvil con el que ya tenía una sesión abierta, la
-  anterior se borra sola en vez de acumularse en el listado de sesiones.
-- **Colección de fotos por trabajo**: además de antes y después, cualquier
-  número de fotos extra en trabajos y pendientes, en PC y móvil, con visor a
-  tamaño completo que pasa de una a otra.
-- **Avisos recurrentes que no se saltan**: un aviso retrasado se queda
-  pendiente (naranja) o atrasado (rojo) hasta hacerse, y el siguiente ciclo se
-  cuenta desde la fecha real en que se hizo.
-- **Exportar el stock de almacén** a PDF, CSV o Excel, completo, por zona, por
-  estantería o solo los materiales bajo mínimo.
-- **Tiempo máximo de guardado de trabajos**: borrado de trabajos antiguos con
-  confirmación y copia de seguridad previa.
-- **Importar desde Excel/CSV**: máquinas, artículos del almacén, avisos
-  recurrentes y usuarios, con plantilla, emparejado de columnas, vista previa
-  fila a fila y copia de seguridad previa.
-- **Ayuda integrada** (`Ayuda > 📖 Instrucciones`) con índice y buscador en los
-  7 idiomas, y **F1** contextual que la abre en el apartado de la pestaña
-  activa.
-- **Estadísticas por técnico** en el Dashboard: trabajos por año y mes,
-  averías, preventivos, horas de parada y pendientes asignados, con filtro por
-  tipo y exportación a PDF y Excel.
-- **Repuestos por máquina**: artículos del almacén que lleva cada máquina, con
-  su stock, «Se usa en» en cada artículo y consulta sin conexión en MantPro y
-  MantPro Stock.
-- **Etiquetas QR por máquina** y escáner en MantPro que abre la ficha de la
-  máquina sin conexión.
-- **Aviso de repetidos** al dar de alta máquinas y artículos (mismo código o
-  nombre muy parecido).
-- **Apps conectadas en segundo plano**, con notificación y estado en línea
-  preciso en «Sesiones de dispositivos».
-- **Primera sincronización del móvil** con barra de progreso y descarga en
-  paralelo.
-- **Historial de movimientos de todo el almacén**.
-- **Actualizar las apps desde la propia app** (descarga del APK e instalador
-  de Android) e **instalarlas desde el PC con un QR**.
-- **Versiones de pruebas** (`-dev`, `-rc`) ofrecidas solo a quien ya usa una,
-  y paquete para **openSUSE (OBS)** publicado automáticamente con cada versión
-  estable.
+Lo que viene, sin fechas y sin un orden cerrado:
+
+- **Repuestos consumidos en cada trabajo**, con el coste de material por máquina
+- **Proveedores, precios y pedidos de compra** a partir del stock bajo mínimo
+- **Checklists** en los mantenimientos preventivos y subtareas en los trabajos
+- **Preventivo por contador** (horas de uso, ciclos, km), además de por fecha
+- **Tiempo trabajado y firma** al cerrar un trabajo
+- **Documentación técnica por máquina** (manuales, planos y esquemas en PDF)
+- **Varios PC a la vez** y servidor sin ventana (Raspberry Pi, NAS, Docker)
+- **Comunicaciones cifradas** (HTTPS)
+- Más idiomas y app para iPhone
+
+Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
+en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
+
+---
 
 ## 📄 Licencia
 

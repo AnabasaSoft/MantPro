@@ -64,6 +64,18 @@ machines, des interventions et du stock sans dépendre de tableurs dispersés.
   pièces, rappels récurrents...), pas d'une liste générique d'exigences de
   GMAO/CMMS
 
+| | MantPro | GMAO/CMMS commerciale typique |
+|---|---|---|
+| **Prix** | Gratuit (auto-hébergé) | Abonnement mensuel par utilisateur |
+| **Utilisateurs, machines et enregistrements** | Sans limite | Selon la formule choisie |
+| **Où sont vos données** | Sur votre PC ou serveur | Dans le cloud de l'éditeur |
+| **Application mobile hors ligne** | Toute la journée | Souvent limitée ou en consultation seule |
+| **Magasin de pièces de rechange** | Inclus | Souvent en module séparé |
+| **Code source** | Ouvert (AGPL-3.0) | Fermé |
+| **Si l'éditeur disparaît** | Vous continuez à l'utiliser | Vous perdez le service |
+
+*Comparaison avec le modèle habituel des GMAO/CMMS commerciales dans le cloud ; chaque produit est différent.*
+
 ## 🎬 Vidéo de démonstration
 
 https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
@@ -104,8 +116,8 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Stock du magasin](#-stock-du-magasin)
 - [Synchronisation PC-mobile](#-synchronisation-pc-mobile)
 - [Sauvegardes](#-sauvegardes)
-- [Structure du projet](#-structure-du-projet)
 - [Contribuer](#-contribuer)
+- [Feuille de route](#-feuille-de-route)
 - [Licence](#-licence)
 - [Contact](#-contact)
 
@@ -752,297 +764,50 @@ doit être chiffré (VPN ou tunnel HTTPS).
 
 ## 💾 Sauvegardes
 
-MantPro distingue deux types de sauvegarde, pensés pour des moments
-différents :
+MantPro fait une **sauvegarde automatique à la fermeture** (les bases de
+données, et les photos dans des ZIP incrémentaux par année) et permet de faire
+une **sauvegarde complète manuelle** depuis `Fichier > Sauvegarde` et de la
+restaurer depuis `Fichier > Restaurer`. `Outils` permet aussi de supprimer les
+photos qu'aucun enregistrement n'utilise plus et d'effacer les interventions
+plus anciennes qu'une durée donnée, toujours avec une sauvegarde préalable.
 
-### Sauvegarde automatique (à la fermeture de l'application)
-
-À chaque fermeture du programme, une sauvegarde rapide est faite en
-arrière-plan, sans intervention, conçue pour rester légère même au fil des
-années :
-
-- **Bases de données** : `mantenimiento.db` et `almacen.db` sont regroupées
-  entières dans un ZIP (`auto_backup_db_<date>.zip`) à chaque fois, en
-  rotation, en ne gardant que les 3 plus récents.
-- **Photos** : au lieu de compresser tout l'historique des photos à chaque
-  fermeture, des ZIP incrémentaux par année sont conservés
-  (`fotos_backup_<année>.zip`) : chaque fermeture n'ajoute au ZIP de l'année
-  correspondante que les photos qui n'y figuraient pas encore, sans toucher
-  ni recompresser celles des années précédentes. Ainsi, le temps de fermeture
-  n'augmente pas avec la durée d'utilisation de l'application.
-
-Pendant cette sauvegarde, une fenêtre avec une barre de progression garde le
-focus, et la fermeture réelle de l'application attend qu'elle soit terminée.
-
-### Sauvegarde manuelle (menu Fichier)
-
-`Fichier > 💾 Sauvegarde` génère toujours, comme avant, un seul ZIP
-(`backup_completo_<date>.zip`) avec les deux bases de données et **toutes**
-les photos ensemble et compressées, à l'endroit de votre choix.
-`Fichier > ♻️ Restaurer` ouvre un sous-menu avec deux options :
-**« Restaurer... »**, pour choisir manuellement n'importe quel ZIP, et
-**« Restaurer depuis une sauvegarde automatique... »**, qui ouvre directement
-le dossier `backups_auto`. Dans les deux cas, si le ZIP choisi est une
-sauvegarde automatique, la base de données est restaurée d'abord puis, une
-fois restaurée, on calcule quelles photos sont nécessaires et on ne les
-extrait que des `fotos_backup_<année>.zip` correspondants, au lieu de tout
-déverser. Les trois opérations (sauvegarde et les deux restaurations)
-affichent leur propre barre de progression avec focus.
-
-### Nettoyage des photos orphelines
-
-`Outils > 🧹 Nettoyer les photos inutiles` supprime les photos de
-`fotos_recibidas` qui ne sont plus référencées par aucune intervention, tâche
-en attente ou machine. À la fermeture de l'application et avant une
-sauvegarde manuelle, `fotos_recibidas` est aussi nettoyé en silence, mais
-**seule** cette option du menu Outils vérifie aussi les
-`fotos_backup_<année>.zip` et les réécrit sans les photos orphelines qu'ils
-pourraient contenir, pour ne pas les traîner indéfiniment.
-
-### Durée maximale de conservation des interventions
-
-`Outils > 🗑️ Durée maximale de conservation des interventions…`
-(administrateurs uniquement) demande un nombre et une unité (années, mois ou
-jours) et supprime de l'historique toutes les interventions antérieures à
-cette date, comptée à partir d'aujourd'hui. Avant de supprimer, elle indique
-combien d'interventions seront supprimées et entre quelles dates, et demande
-une confirmation.
-
-- Avant la suppression, une copie des deux bases de données est enregistrée
-  dans `backups_auto/antes_borrado_trabajos_<date>.zip`, que la rotation de la
-  sauvegarde automatique ne supprime pas.
-- Leurs photos sont aussi supprimées (avant, après et collection), sauf
-  celles encore utilisées par un autre enregistrement. Les photos n'entrent
-  pas dans cette copie préalable, mais restent dans les
-  `fotos_backup_<année>.zip` de la sauvegarde automatique jusqu'à ce qu'on
-  utilise `Outils > 🧹 Nettoyer les photos inutiles`.
-- Les mobiles retirent ces interventions de leur historique à la
-  synchronisation suivante.
-- C'est une suppression ponctuelle : elle ne se répète pas toute seule.
-
----
-
-## 📁 Structure du projet
-
-```
-MantPro/
-├── main.py                      # Point d'entrée (python main.py)
-├── mantpro/                     # Code de l'application de bureau
-│   ├── version.py               # Version (définie par la CI à partir du tag)
-│   ├── nucleo/                  # Données et logique, sans interface
-│   │   ├── usuarios.py          # Utilisateurs, mots de passe, rôles et sessions
-│   │   ├── almacen.py           # Stock du magasin : structure, articles et mouvements
-│   │   ├── maquinas.py          # Arborescence des machines et historique de leurs interventions
-│   │   ├── basedatos.py         # Base de données des interventions
-│   │   └── importar.py          # Import depuis Excel/CSV
-│   ├── interfaz/                # Fenêtres PyQt6
-│   │   ├── arranque.py          # Démarrage : instance unique et connexion
-│   │   ├── app.py               # Application de bureau principale
-│   │   ├── servidor.py          # Serveur de synchronisation avec les mobiles
-│   │   ├── pestanas/            # Un par onglet : tableau de bord, calendrier, stock...
-│   │   ├── acciones/            # Actions des menus : sauvegardes, export, import, utilisateurs
-│   │   ├── dialogos/            # Dialogues (connexion et gestion des utilisateurs incluses)
-│   │   └── widgets/             # Photos et graphiques
-│   └── idiomas/                 # Traductions du bureau (ES / EN / EU / CA / GL / PT / FR)
-├── recursos/                    # Icônes et logos
-├── herramientas/                # Scripts du projet (verificar_idiomas.py...)
-├── empaquetado/                 # Installateur Windows (Inno Setup)
-├── requirements.txt             # Dépendances Python
-├── README.fr.md                 # Ce fichier
-├── fotos_recibidas/             # Dossier des images
-├── mantenimiento.db             # Base de données SQLite (interventions de maintenance)
-├── almacen.db                   # Base de données SQLite (stock du magasin, indépendante)
-├── mantenimiento_app/           # Application mobile Flutter (interventions)
-│   ├── lib/main.dart            # Code principal du mobile
-│   ├── lib/i18n/                # Traductions du mobile (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Dépendances Flutter
-│   └── android/                 # Configuration Android
-├── mantpro_stock_app/           # Application mobile Flutter (stock du magasin)
-│   ├── lib/modelos.dart         # Modèles de données et règle de couleur du stock
-│   ├── lib/pantallas/           # Écrans : magasin, article, recherche, sous le minimum...
-│   ├── lib/i18n/                # Traductions du mobile (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Dépendances Flutter
-│   └── android/                 # Configuration Android
-├── backups/                     # Sauvegardes manuelles complètes (BD + photos)
-├── backups_auto/                # Sauvegardes automatiques à la fermeture (BD en rotation + photos par année)
-└── docs/                        # Documentation supplémentaire
-```
-
-> Les données (base de données, photos et sauvegardes) ne sont pas
-> forcément à côté du code : s'il n'existe pas de `mantenimiento.db` dans le
-> dossier courant, l'application utilise `~/.local/share/MantPro` sous Linux
-> ou `%APPDATA%\MantPro` sous Windows.
-
-### Base de données
-
-L'application utilise SQLite avec les tables suivantes :
-
-- **`tareas`** : registre des interventions réalisées (date, description,
-  tags, photos, **qui l'a réalisée** (`usuario_id` et `usuario_nombre`) et la
-  **machine associée** (`maquina_id`), le cas échéant)
-- **`maquinas`** : arborescence des machines (nom, machine parente, notes et
-  photo)
-- **`pendientes`** : tâches en attente (titre, détails, priorité et
-  **technicien assigné** : `asignado_a` et `asignado_nombre`)
-- **`usuarios`** : personnes qui utilisent l'application (identifiant, nom,
-  hash du mot de passe, rôle et si elle est active)
-- **`sesiones`** : jetons des mobiles associés, avec leur date d'expiration
-- **`avisos_recurrentes`** : rappels de maintenance qui se répètent
-  automatiquement
-- **`dias_especiales`** : fériés, congés et jours marqués dans le calendrier
-- **`auditoria`** : historique de qui modifie ou supprime chaque intervention,
-  avec date, action et détail
-- **`config`** : configuration interne de l'application (logo, province, etc.)
-
-Les mots de passe sont stockés avec **PBKDF2-SHA256** (200 000 itérations et
-un sel par utilisateur), jamais en clair. Les nouvelles tables et colonnes
-sont créées toutes seules au démarrage, sans perdre les données existantes.
-
-> 🔐 `mantenimiento.db` contient des hashs de mots de passe et des jetons de
-> session. Il est dans le `.gitignore` pour une raison : ne l'envoyez jamais
-> dans le dépôt.
-
-Le stock du magasin utilise sa propre base de données, **`almacen.db`**,
-volontairement séparée de celle des interventions :
-
-- **`estanterias`** : nom et présence d'un espace au sol
-- **`baldas`** : tablettes de chaque rayonnage, numérotées de bas en haut (la
-  tablette `0` représente l'espace au sol)
-- **`secciones`** : subdivisions de chaque tablette
-- **`materiales`** : code, nom, description, unité, stock actuel, stock
-  minimum, emplacement (section) et photo
-- **`movimientos`** : historique des entrées et sorties, avec date, quantité,
-  utilisateur et motif
-
-Elle est créée automatiquement au premier lancement et fait partie des
-sauvegardes (manuelles et automatiques à la fermeture) avec
-`mantenimiento.db`.
+Détails complets : [docs/backups.md](docs/backups.md) (en anglais) ·
+[docs/copias-de-seguridad.md](docs/copias-de-seguridad.md) (en espagnol).
 
 ---
 
 ## 🤝 Contribuer
 
-Les contributions sont les bienvenues ! Si vous voulez améliorer MantPro :
+Les contributions sont les bienvenues ! Avant d'ouvrir une *pull request*,
+lisez [CONTRIBUTING.md](CONTRIBUTING.md) : il explique comment préparer vos
+modifications (langues, tests, en-têtes des fichiers) et l'**accord de
+contribution ([CLA](CLA.md))** à accepter.
 
-1. Faites un **fork** du projet
-2. Créez une **branche** pour votre modification (`git checkout -b feature/MonAmelioration`)
-3. Faites un **commit** de vos modifications (`git commit -m 'Ajoute MonAmelioration'`)
-4. Faites un **push** de la branche (`git push origin feature/MonAmelioration`)
-5. Ouvrez une **Pull Request**
+La structure du code et de la base de données est décrite dans
+[docs/development.md](docs/development.md) (en anglais) et
+[docs/desarrollo.md](docs/desarrollo.md) (en espagnol). Pour les failles de
+sécurité, consultez [SECURITY.md](SECURITY.md).
 
 ---
 
-## ✅ Réalisé
+## 🗺️ Feuille de route
 
-- **Gestion des utilisateurs** : connexion par identifiant et mot de passe sur
-  le PC et le mobile, plusieurs rôles par utilisateur (administrateur /
-  technicien / magasin), création et désactivation logique des utilisateurs,
-  changement et réinitialisation du mot de passe.
-- **Auteur des interventions** : chaque enregistrement conserve qui l'a
-  réalisé. Les enregistrements antérieurs au système d'utilisateurs sont
-  marqués `Histórico`.
-- **Session persistante sur le mobile** : le technicien se connecte une fois
-  et le jeton reste enregistré sur l'appareil.
-- **API authentifiée** : tous les endpoints de données exigent un jeton ; un
-  `401` ferme la session mobile et revient à la connexion sans perdre les
-  enregistrements locaux en attente d'envoi.
-- **Tâches en attente assignées** : le PC assigne chaque intervention à un
-  technicien et le mobile peut filtrer par « Seulement les miens ».
-- **Filtre par technicien** dans l'historique et dans l'export PDF, CSV et
-  Excel.
-- **Audit des modifications** : on enregistre qui modifie ou supprime une
-  intervention (pas seulement qui l'a créée), consultable et filtrable par
-  technicien/action dans « Journal des modifications ».
-- **Droits par enregistrement** : un technicien ne peut modifier ou supprimer
-  que ses propres interventions ; un administrateur peut gérer n'importe
-  laquelle et réassigner l'auteur d'un ou plusieurs enregistrements à la fois
-  (sélection multiple + menu contextuel).
-- **Thèmes visuels** : mode sombre (par défaut), clair ou classique façon
-  Windows 98, au choix dans le menu « Apparence » et mémorisé d'une session à
-  l'autre.
-- **Sauvegarde à la demande avec choix de la destination** : en générant une
-  sauvegarde manuelle, on peut choisir où l'enregistrer, au lieu du dossier
-  `backups` par défaut.
-- **Gestion du stock du magasin** : structure configurable de rayonnages,
-  tablettes et sections (administrateurs uniquement), fiche article avec
-  photo, entrées et sorties avec historique (tout utilisateur), transferts
-  entre emplacements consignés dans l'historique, sélection multiple avec
-  menu contextuel pour déplacer ou supprimer en bloc et un onglet dédié aux
-  articles en rupture ou sous le minimum. Avec sa propre base de données
-  (`almacen.db`) et une application mobile indépendante
-  (`mantpro_stock_app`) pour consulter et mouvementer le stock depuis le
-  téléphone.
-- **Sessions des appareils** : lister les mobiles associés à chaque
-  utilisateur, avec le modèle réel de l'appareil, et pouvoir révoquer une ou
-  plusieurs sessions précises sans désactiver tout l'utilisateur.
-- **Liste des machines** : arborescence de machines et sous-machines avec
-  photo jointe, compteur d'interventions par année et par mois et association
-  de chaque intervention (PC ou mobile) à la machine concernée, incluse dans
-  les exports PDF, CSV et Excel.
-- **Sauvegarde automatique incrémentale** : la fermeture de l'application ne
-  recompresse plus tout l'historique des photos à chaque fois ; les bases de
-  données tournent dans un ZIP et les photos sont dans des ZIP incrémentaux
-  par année, avec une barre de progression avec focus aussi bien à la
-  fermeture que pour la sauvegarde et la restauration manuelles (voir
-  [Sauvegardes](#-sauvegardes)).
-- **Remettre une intervention en attente** : annuler une fin d'intervention
-  faite par erreur, depuis l'historique du PC comme par un appui long sur
-  l'enregistrement dans le mobile, avec avertissement de perte de la machine
-  associée le cas échéant, et restauration automatique du rappel récurrent
-  d'origine s'il en provient.
-- **Restaurer depuis une sauvegarde automatique** : `Fichier > ♻️ Restaurer`
-  ouvre un sous-menu pour choisir n'importe quelle sauvegarde manuelle ou
-  aller directement au dossier des sauvegardes automatiques faites à la
-  fermeture.
-- **Rappel quotidien du stock** : l'application `mantpro_stock_app` prévient
-  chaque matin à 8 h 00 de vérifier la quantité réelle de 5 articles du
-  magasin (au hasard, différents chaque jour) et permet de la corriger
-  immédiatement depuis la notification.
-- **Tableau de bord avec KPI et graphiques de fiabilité** : cartes du MTBF et
-  du MTTR moyens de toute l'usine et graphiques du classement des machines
-  avec le plus de pannes et des pannes par mois, dessinés à la main avec
-  `QPainter` sans aucune bibliothèque de graphiques externe.
-- **Remplacement automatique de la session par appareil** : si un
-  utilisateur se reconnecte depuis un mobile où il avait déjà une session
-  ouverte, l'ancienne est supprimée toute seule au lieu de s'accumuler dans la
-  liste des sessions.
-- **Collection de photos par intervention** : en plus de l'avant et de
-  l'après, autant de photos supplémentaires que voulu dans les interventions
-  et les tâches en attente, sur le PC et le mobile, avec une visionneuse en
-  taille réelle qui passe de l'une à l'autre.
-- **Rappels récurrents qui ne sont pas sautés** : un rappel en retard reste
-  en attente (orange) ou en retard (rouge) jusqu'à ce qu'il soit fait, et le
-  cycle suivant est calculé à partir de la date où il a réellement été fait.
-- **Exporter le stock du magasin** en PDF, CSV ou Excel, en entier, par zone,
-  par rayonnage ou seulement les articles sous le minimum.
-- **Durée maximale de conservation des interventions** : suppression des
-  anciennes interventions avec confirmation et sauvegarde préalable.
-- **Importer depuis Excel/CSV** : machines, articles du magasin, rappels
-  récurrents et utilisateurs, avec modèle, association des colonnes, aperçu
-  ligne par ligne et sauvegarde préalable.
-- **Aide intégrée** (`Aide > 📖 Instructions`) avec index et recherche dans les
-  7 langues, et **F1** contextuel qui l'ouvre à la rubrique de l'onglet actif.
-- **Statistiques par technicien** dans le tableau de bord : interventions par
-  année et par mois, pannes, préventifs, heures d'arrêt et tâches en attente
-  assignées, avec filtre par type et export PDF et Excel.
-- **Pièces de rechange par machine** : articles du magasin montés sur chaque
-  machine, avec leur stock, « Utilisé dans » sur chaque article et
-  consultation hors connexion dans MantPro et MantPro Stock.
-- **Étiquettes QR par machine** et scanner dans MantPro qui ouvre la fiche de
-  la machine hors connexion.
-- **Alerte de doublons** lors de l'ajout de machines et d'articles (même code
-  ou nom très similaire).
-- **Applications connectées en arrière-plan**, avec notification et état en
-  ligne précis dans « Sessions des appareils ».
-- **Première synchronisation mobile** avec barre de progression et
-  téléchargement en parallèle.
-- **Historique des mouvements de tout le magasin**.
-- **Mettre à jour les applications depuis l'application elle-même**
-  (téléchargement de l'APK et installateur d'Android) et **les installer
-  depuis le PC avec un QR code**.
-- **Versions de test** (`-dev`, `-rc`) proposées uniquement à ceux qui en
-  utilisent déjà une, et paquet **openSUSE (OBS)** publié automatiquement avec
-  chaque version stable.
+Ce qui arrive, sans dates et sans ordre figé :
+
+- **Pièces consommées dans chaque intervention**, avec le coût matière par machine
+- **Fournisseurs, prix et commandes d'achat** à partir du stock sous le minimum
+- **Check-lists** pour la maintenance préventive et sous-tâches dans les interventions
+- **Préventif au compteur** (heures de fonctionnement, cycles, km), en plus de la date
+- **Temps passé et signature** à la clôture d'une intervention
+- **Documentation technique par machine** (manuels, plans et schémas en PDF)
+- **Plusieurs PC en même temps** et serveur sans interface (Raspberry Pi, NAS, Docker)
+- **Communications chiffrées** (HTTPS)
+- Plus de langues et une application iPhone
+
+Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
+vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
+
+---
 
 ## 📄 Licence
 

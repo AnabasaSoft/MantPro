@@ -65,6 +65,18 @@ màquines, intervencions i estoc sense dependre de fulls de càlcul solts.
   de recanvis, avisos recurrents...), no d'una llista de requisits genèrica de
   GMAO/CMMS
 
+| | MantPro | GMAO/CMMS comercial habitual |
+|---|---|---|
+| **Preu** | Gratuït (autoallotjat) | Quota mensual per usuari |
+| **Usuaris, màquines i registres** | Sense límit | Segons el pla contractat |
+| **On són les teves dades** | Al teu PC o servidor | Al núvol del proveïdor |
+| **App mòbil sense connexió** | Tota la jornada | Sovint limitada o només consulta |
+| **Magatzem de recanvis** | Inclòs | Moltes vegades com a mòdul a part |
+| **Codi font** | Obert (AGPL-3.0) | Tancat |
+| **Si el proveïdor desapareix** | El continues fent servir | Et quedes sense servei |
+
+*Comparació amb el model habitual dels GMAO/CMMS comercials al núvol; cada producte és diferent.*
+
 ## 🎬 Vídeo de demostració
 
 https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
@@ -105,8 +117,8 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 - [Estoc del magatzem](#-estoc-del-magatzem)
 - [Sincronització PC-mòbil](#-sincronització-pc-mòbil)
 - [Còpies de seguretat](#-còpies-de-seguretat)
-- [Estructura del projecte](#-estructura-del-projecte)
 - [Contribuir](#-contribuir)
+- [Full de ruta](#-full-de-ruta)
 - [Llicència](#-llicència)
 - [Contacte](#-contacte)
 
@@ -731,276 +743,49 @@ túnel amb HTTPS).
 
 ## 💾 Còpies de seguretat
 
-MantPro distingeix entre dos tipus de còpia, pensats per a moments diferents:
+MantPro fa una **còpia automàtica en tancar** (les bases de dades, i les fotos
+en ZIP incrementals per any) i permet fer una **còpia completa a mà** des
+d'`Arxiu > Backup` i restaurar-la des d'`Arxiu > Restaurar`. `Eines` inclou
+a més netejar les fotos que ja no fa servir cap registre i esborrar els
+treballs més antics que un temps donat, sempre amb còpia prèvia.
 
-### Còpia automàtica (en tancar l'aplicació)
-
-Cada vegada que es tanca el programa es fa, en segon pla i sense necessitat
-d'intervenció, una còpia ràpida pensada perquè no es noti encara que passin els
-anys:
-
-- **Bases de dades**: `mantenimiento.db` i `almacen.db` s'empaqueten senceres en
-  un ZIP (`auto_backup_db_<data>.zip`) cada vegada, de manera rotativa, i es
-  conserven només les 3 més recents.
-- **Fotos**: en lloc de tornar a comprimir tot l'historial de fotos a cada
-  tancament, es mantenen uns ZIP incrementals per any (`fotos_backup_<any>.zip`):
-  cada tancament només afegeix al ZIP de l'any corresponent les fotos que encara
-  no hi eren, sense tocar ni tornar a comprimir les d'anys anteriors. Així el
-  temps de tancament no creix amb el temps d'ús de l'aplicació.
-
-Mentre es fa aquesta còpia es mostra una finestra amb una barra de progrés que
-reté el focus, i el tancament real de l'aplicació espera que acabi.
-
-### Còpia manual (menú Arxiu)
-
-`Arxiu > Còpia de seguretat` continua generant, com sempre, un únic ZIP
-(`backup_completo_<data>.zip`) amb les dues bases de dades i **totes** les fotos
-juntes i comprimides, a la ubicació que triïs. `Arxiu > Restaurar` s'obre com
-un submenú amb dues opcions: **"Restaurar..."**, per triar qualsevol ZIP a mà, i
-**"Restaurar des d'una còpia automàtica..."**, que obre directament la carpeta
-`backups_auto`. En tots dos casos, si el ZIP triat és una còpia automàtica, es
-restaura primer la base de dades i, amb ella ja restaurada, es calcula quines
-fotos calen i s'extreuen únicament dels `fotos_backup_<any>.zip` corresponents,
-en lloc de bolcar-les totes. Les tres operacions (còpia i totes dues
-restauracions) mostren la seva pròpia barra de progrés amb focus.
-
-### Neteja de fotos òrfenes
-
-`Eines > 🧹 Netejar Fotos Escombraries` esborra les fotos de `fotos_recibidas` que ja
-no estan referenciades per cap treball, pendent o màquina. En tancar
-l'aplicació i abans d'una còpia manual també es neteja `fotos_recibidas` en
-silenci, però **només** aquesta opció del menú Eines revisa a més els
-`fotos_backup_<any>.zip` i els reescriu sense les fotos òrfenes que poguessin
-contenir, per no arrossegar-les indefinidament.
-
-### Temps màxim de conservació de treballs
-
-`Eines > 🗑️ Temps màxim de conservació de treballs…` (només administradors)
-demana un nombre i una unitat (anys, mesos o dies) i esborra de l'historial
-tots els treballs anteriors a aquesta data, comptant des d'avui. Abans
-d'esborrar mostra quants treballs s'eliminaran i entre quines dates, i demana
-confirmació.
-
-- Abans d'esborrar es desa una còpia de les dues bases de dades a
-  `backups_auto/antes_borrado_trabajos_<data>.zip`, que la rotació de la còpia
-  automàtica no elimina.
-- També s'esborren les seves fotos (abans, després i col·lecció), excepte les
-  que encara faci servir un altre registre. Les fotos no van en aquesta còpia
-  prèvia, però continuen als `fotos_backup_<any>.zip` de la còpia automàtica
-  fins que es fa servir `Eines > 🧹 Netejar Fotos Escombraries`.
-- Els mòbils treuen aquests treballs del seu historial a la sincronització
-  següent.
-- És un esborrat puntual: no es repeteix sol.
-
----
-
-## 📁 Estructura del projecte
-
-```
-MantPro/
-├── main.py                      # Punt d'arrencada (python main.py)
-├── mantpro/                     # Codi de l'aplicació d'escriptori
-│   ├── version.py               # Versió (la posa CI des del tag)
-│   ├── nucleo/                  # Dades i lògica, sense interfície
-│   │   ├── usuarios.py          # Usuaris, contrasenyes, rols i sessions
-│   │   ├── almacen.py           # Estoc del magatzem: estructura, materials i moviments
-│   │   ├── maquinas.py          # Arbre de maquinària i el seu historial de treballs
-│   │   ├── basedatos.py         # Base de dades de treballs
-│   │   └── importar.py          # Importació des d'Excel/CSV
-│   ├── interfaz/                # Finestres PyQt6
-│   │   ├── arranque.py          # Arrencada: instància única i inici de sessió
-│   │   ├── app.py               # Aplicació principal d'escriptori
-│   │   ├── servidor.py          # Servidor de sincronització amb els mòbils
-│   │   ├── pestanas/            # Una per pestanya: tauler, calendari, estoc...
-│   │   ├── acciones/            # Accions dels menús: còpies, exportar, importar, usuaris
-│   │   ├── dialogos/            # Diàlegs (inclosos inici de sessió i gestió d'usuaris)
-│   │   └── widgets/             # Fotos i gràfics
-│   └── idiomas/                 # Traduccions de l'escriptori (ES / EN / EU / CA / GL / PT / FR)
-├── recursos/                    # Icones i logotips
-├── herramientas/                # Scripts del projecte (verificar_idiomas.py...)
-├── empaquetado/                 # Instal·lador de Windows (Inno Setup)
-├── requirements.txt             # Dependències de Python
-├── README.ca.md                 # Aquest fitxer
-├── fotos_recibidas/             # Carpeta d'imatges
-├── mantenimiento.db             # Base de dades SQLite (treballs de manteniment)
-├── almacen.db                   # Base de dades SQLite (estoc del magatzem, independent)
-├── mantenimiento_app/           # Aplicació mòbil Flutter (treballs)
-│   ├── lib/main.dart            # Codi principal del mòbil
-│   ├── lib/i18n/                # Traduccions del mòbil (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Dependències de Flutter
-│   └── android/                 # Configuració d'Android
-├── mantpro_stock_app/           # Aplicació mòbil Flutter (estoc del magatzem)
-│   ├── lib/modelos.dart         # Models de dades i regla de color de l'estoc
-│   ├── lib/pantallas/           # Pantalles: magatzem, article, cerca, per sota del mínim...
-│   ├── lib/i18n/                # Traduccions del mòbil (ES / EN / EU / CA / GL / PT / FR)
-│   ├── pubspec.yaml             # Dependències de Flutter
-│   └── android/                 # Configuració d'Android
-├── backups/                     # Còpies manuals completes (BD + fotos)
-├── backups_auto/                # Còpies automàtiques en tancar (BD rotativa + fotos per any)
-└── docs/                        # Documentació addicional
-```
-
-> Les dades (base de dades, fotos i còpies) no viuen necessàriament al costat
-> del codi: si no existeix `mantenimiento.db` a la carpeta actual, l'aplicació
-> fa servir `~/.local/share/MantPro` a Linux o `%APPDATA%\MantPro` a Windows.
-
-### Base de dades
-
-L'aplicació fa servir SQLite amb les taules següents:
-
-- **`tareas`**: registre de les intervencions fetes (data, descripció,
-  etiquetes, fotos, **qui la va fer** (`usuario_id` i `usuario_nombre`) i la
-  **màquina vinculada** (`maquina_id`), si en té)
-- **`maquinas`**: arbre de maquinària (nom, màquina superior, notes i foto)
-- **`pendientes`**: tasques pendents de fer (títol, detalls, prioritat i
-  **tècnic assignat**: `asignado_a` i `asignado_nombre`)
-- **`usuarios`**: persones que fan servir l'aplicació (usuari, nom, hash de la
-  contrasenya, rol i si està actiu)
-- **`sesiones`**: testimonis dels mòbils vinculats, amb la seva data de
-  caducitat
-- **`avisos_recurrentes`**: avisos de manteniment que es repeteixen
-  automàticament
-- **`dias_especiales`**: festius, vacances i dies marcats al calendari
-- **`auditoria`**: historial de qui edita o esborra cada treball, amb data,
-  acció i detall
-- **`config`**: configuració interna de l'aplicació (logotip, província, etc.)
-
-Les contrasenyes es desen amb **PBKDF2-SHA256** (200.000 iteracions i salt per
-usuari), mai en clar. Les taules i columnes noves es creen soles en arrencar,
-sense perdre les dades existents.
-
-> 🔐 `mantenimiento.db` conté hashes de contrasenyes i testimonis de sessió.
-> És a `.gitignore` per alguna cosa: no la pugis mai al repositori.
-
-L'estoc del magatzem viu a la seva pròpia base de dades, **`almacen.db`**,
-separada expressament de la dels treballs:
-
-- **`estanterias`**: nom i si té espai a terra
-- **`baldas`**: prestatges de cada prestatgeria, numerats de baix a dalt (el
-  prestatge `0` representa l'espai a terra)
-- **`secciones`**: subdivisions dins de cada prestatge
-- **`materiales`**: codi, nom, descripció, unitat, estoc actual, estoc mínim,
-  ubicació (secció) i foto
-- **`movimientos`**: històric d'entrades i sortides, amb data, quantitat,
-  usuari i motiu
-
-Es crea automàticament en el primer arrencament i s'inclou a les còpies de
-seguretat (manuals i automàtiques en tancar l'aplicació) juntament amb
-`mantenimiento.db`.
+Detall complet: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
+(en castellà) · [docs/backups.md](docs/backups.md) (en anglès).
 
 ---
 
 ## 🤝 Contribuir
 
-Les contribucions són benvingudes! Si vols millorar MantPro:
+Les contribucions són benvingudes! Abans d'obrir un *pull request*, llegeix
+[CONTRIBUTING.md](CONTRIBUTING.md): explica com preparar els canvis (idiomes,
+proves, capçaleres dels fitxers) i l'**acord de contribució ([CLA](CLA.md))**
+que cal acceptar.
 
-1. Fes un **fork** del projecte
-2. Crea una **branca** per al teu canvi (`git checkout -b feature/LaMevaMillora`)
-3. Fes **commit** dels canvis (`git commit -m 'Afegeix LaMevaMillora'`)
-4. Fes **push** de la branca (`git push origin feature/LaMevaMillora`)
-5. Obre un **Pull Request**
+L'estructura del codi i de la base de dades és a
+[docs/desarrollo.md](docs/desarrollo.md) (en castellà) i
+[docs/development.md](docs/development.md) (en anglès). Per a errors de
+seguretat, mira [SECURITY.md](SECURITY.md).
 
 ---
 
-## ✅ Fet
+## 🗺️ Full de ruta
 
-- **Gestió d'usuaris**: inici de sessió amb usuari i contrasenya al PC i al
-  mòbil, diversos rols per usuari (administrador / tècnic / magatzem), alta i
-  baixa lògica d'usuaris, canvi i restabliment de contrasenya.
-- **Autoria dels treballs**: cada registre desa qui el va fer. Els registres
-  anteriors al sistema d'usuaris queden marcats com a `Histórico`.
-- **Sessió persistent al mòbil**: el tècnic inicia sessió una vegada i el
-  testimoni queda desat al dispositiu.
-- **API autenticada**: tots els punts d'accés de dades exigeixen testimoni; un
-  `401` tanca la sessió del mòbil i torna a l'inici de sessió sense perdre els
-  registres locals pendents d'enviar.
-- **Pendents assignats**: el PC assigna cada treball a un tècnic i el mòbil pot
-  filtrar per "Només els meus".
-- **Filtre per tècnic** a l'historial i a l'exportació a PDF, CSV i Excel.
-- **Auditoria d'edicions**: es registra qui edita o esborra un treball (no
-  només qui el va crear), consultable i filtrable per tècnic/acció des de
-  "Registre de canvis".
-- **Permisos per registre**: un tècnic només pot editar o esborrar els seus
-  propis treballs; un administrador en pot gestionar qualsevol i reassignar
-  l'autor d'un o diversos registres alhora (selecció múltiple + menú
-  contextual).
-- **Temes visuals**: mode fosc (per defecte), clar o clàssic a l'estil Windows
-  98, seleccionable des del menú "Aparença" i recordat entre sessions.
-- **Còpia a demanda amb selecció de destinació**: en generar una còpia de
-  seguretat manual es pot triar on desar-la, en lloc d'anar sempre a la
-  carpeta `backups` per defecte.
-- **Control de l'estoc del magatzem**: estructura configurable de
-  prestatgeries, prestatges i seccions (només administradors), fitxa de
-  materials amb foto, entrades i sortides amb historial (qualsevol usuari),
-  trasllats entre ubicacions registrats a l'historial, selecció múltiple amb
-  menú contextual per moure o eliminar en bloc, i una pestanya dedicada als
-  materials sense estoc o per sota del mínim. Amb base de dades pròpia
-  (`almacen.db`) i aplicació mòbil independent (`mantpro_stock_app`) per
-  consultar i moure l'estoc des del telèfon.
-- **Sessions de dispositius**: llistar els mòbils vinculats a cada usuari, amb
-  el seu model real de dispositiu, i poder revocar una o diverses sessions
-  concretes sense haver de desactivar l'usuari sencer.
-- **Llistat de maquinària**: arbre de màquines i submàquines amb foto adjunta,
-  comptador de treballs per any i mes, i vincle de cada treball (PC o mòbil) a
-  la màquina en què s'ha fet, inclòs a les exportacions a PDF, CSV i Excel.
-- **Còpia automàtica incremental**: el tancament de l'aplicació ja no torna a
-  empaquetar tot l'historial de fotos cada vegada; les bases de dades roten en
-  un ZIP i les fotos es reparteixen en ZIP incrementals per any, amb una barra
-  de progrés amb focus tant en el tancament com en la còpia i la restauració
-  manuals (vegeu [Còpies de seguretat](#-còpies-de-seguretat)).
-- **Revertir un treball a pendent**: desfer per error la finalització d'un
-  treball, tant des de l'historial del PC com mantenint premut el registre al
-  mòbil, amb avís de pèrdua de la màquina vinculada si en tenia i restauració
-  automàtica de l'avís recurrent d'origen, si en venia d'un.
-- **Restaurar des d'una còpia automàtica**: `Arxiu > Restaurar` s'obre com un
-  submenú per triar entre qualsevol còpia manual o anar directament a la
-  carpeta de còpies automàtiques en tancar l'aplicació.
-- **Recordatori diari d'estoc**: l'aplicació `mantpro_stock_app` avisa cada
-  matí a les 8:00 per comprovar la quantitat real de 5 materials del magatzem
-  (a l'atzar, diferents cada dia) i permet corregir-la al moment des de la
-  mateixa notificació.
-- **Tauler amb KPI i gràfics de fiabilitat**: targetes de MTBF i MTTR mitjans
-  de tota la planta, i gràfics de rànquing de les màquines amb més avaries i
-  d'avaries per mes, dibuixats a mà amb `QPainter` sense dependre de cap
-  biblioteca de gràfics externa.
-- **Substitució automàtica de la sessió per dispositiu**: si un usuari torna a
-  iniciar sessió des d'un mòbil amb què ja tenia una sessió oberta, l'anterior
-  s'esborra sola en lloc d'acumular-se al llistat de sessions.
-- **Col·lecció de fotos per treball**: a més d'abans i després, qualsevol
-  nombre de fotos extra en treballs i pendents, al PC i al mòbil, amb un visor
-  a mida completa que passa de l'una a l'altra.
-- **Avisos recurrents que no se salten**: un avís endarrerit queda pendent
-  (taronja) o endarrerit (vermell) fins que es fa, i el cicle següent es compta
-  des de la data real en què es va fer.
-- **Exportar l'estoc del magatzem** a PDF, CSV o Excel, complet, per zona, per
-  prestatgeria o només els materials per sota del mínim.
-- **Temps màxim de conservació de treballs**: esborrat de treballs antics amb
-  confirmació i còpia de seguretat prèvia.
-- **Importar des d'Excel/CSV**: màquines, articles del magatzem, avisos
-  recurrents i usuaris, amb plantilla, aparellament de columnes,
-  previsualització fila a fila i còpia de seguretat prèvia.
-- **Ajuda integrada** (`Ajuda > 📖 Instruccions`) amb índex i cercador en els 7
-  idiomes, i **F1** contextual que l'obre a l'apartat de la pestanya activa.
-- **Estadístiques per tècnic** al Dashboard: treballs per any i mes, avaries,
-  preventius, hores d'aturada i pendents assignats, amb filtre per tipus i
-  exportació a PDF i Excel.
-- **Recanvis per màquina**: articles del magatzem que porta cada màquina, amb
-  el seu estoc, «S'utilitza a» a cada article i consulta sense connexió a
-  MantPro i MantPro Stock.
-- **Etiquetes QR per màquina** i escàner a MantPro que obre la fitxa de la
-  màquina sense connexió.
-- **Avís de repetits** en donar d'alta màquines i articles (mateix codi o nom
-  molt semblant).
-- **Apps connectades en segon pla**, amb notificació i estat en línia precís a
-  «Sessions de dispositius».
-- **Primera sincronització del mòbil** amb barra de progrés i baixada en
-  paral·lel.
-- **Historial de moviments de tot el magatzem**.
-- **Actualitzar les apps des de la mateixa app** (baixada de l'APK i
-  instal·lador d'Android) i **instal·lar-les des del PC amb un QR**.
-- **Versions de proves** (`-dev`, `-rc`) ofertes només a qui ja en fa servir
-  una, i paquet per a **openSUSE (OBS)** publicat automàticament amb cada
-  versió estable.
+El que ve, sense dates i sense un ordre tancat:
+
+- **Recanvis consumits a cada treball**, amb el cost de material per màquina
+- **Proveïdors, preus i comandes de compra** a partir de l'estoc per sota del mínim
+- **Llistes de comprovació** als manteniments preventius i subtasques als treballs
+- **Preventiu per comptador** (hores d'ús, cicles, km), a més de per data
+- **Temps treballat i signatura** en tancar un treball
+- **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
+- **Diversos PC alhora** i servidor sense finestra (Raspberry Pi, NAS, Docker)
+- **Comunicacions xifrades** (HTTPS)
+- Més idiomes i app per a iPhone
+
+Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
+faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
+
+---
 
 ## 📄 Llicència
 
