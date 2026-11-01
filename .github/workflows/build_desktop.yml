@@ -146,7 +146,9 @@ jobs:
         Name=MantPro
         Exec=mantpro
         Icon=mantpro
+        Comment=Maintenance management (CMMS/GMAO)
         Categories=Utility;
+        Keywords=CMMS;GMAO;maintenance;mantenimiento;maintenance préventive;stock;almacén;
         Terminal=false
         EOF
 

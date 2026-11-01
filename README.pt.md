@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>CMMS gratuito e de código aberto para gerenciar a manutenção preventiva e corretiva da sua planta, oficina ou frota, pelo PC e pelo Android.</strong>
+  <strong>GMAO/CMMS gratuito e de código aberto para gerenciar a manutenção preventiva e corretiva da sua planta, oficina ou frota, pelo PC e pelo Android.</strong>
 </p>
 
 <p align="center">
@@ -49,7 +49,7 @@ TI: técnicos de manutenção, responsáveis de planta, oficinas, pequenas e mé
 indústrias e encarregados de almoxarifado que precisam de um controle real de
 máquinas, intervenções e estoque sem depender de planilhas soltas.
 
-## 🆚 Por que o MantPro e não um CMMS comercial?
+## 🆚 Por que o MantPro e não um GMAO/CMMS comercial?
 
 - **Código aberto e grátis**: código aberto sob AGPL-3.0, sem limite de
   técnicos, máquinas ou registros
@@ -62,7 +62,7 @@ máquinas, intervenções e estoque sem depender de planilhas soltas.
 - **Feito a partir da própria manutenção**: as funções surgiram de
   necessidades reais de oficina (fotos de antes/depois, vínculo com a máquina,
   estoque de peças, avisos recorrentes...), não de uma lista genérica de
-  requisitos de CMMS
+  requisitos de GMAO/CMMS
 
 ## 🎬 Vídeo de demonstração
 
@@ -91,7 +91,7 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 - [Que problema ele resolve?](#-que-problema-ele-resolve)
 - [Para quem é?](#-para-quem-é)
-- [Por que o MantPro?](#-por-que-o-mantpro-e-não-um-cmms-comercial)
+- [Por que o MantPro?](#-por-que-o-mantpro-e-não-um-gmaocmms-comercial)
 - [Vídeo de demonstração](#-vídeo-de-demonstração)
 - [Capturas de tela](#-capturas-de-tela)
 - [Downloads](#-downloads)

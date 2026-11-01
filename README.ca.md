@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>CMMS gratuït i de codi obert per gestionar el manteniment preventiu i correctiu de la teva planta, taller o flota, des del PC i Android.</strong>
+  <strong>GMAO/CMMS gratuït i de codi obert per gestionar el manteniment preventiu i correctiu de la teva planta, taller o flota, des del PC i Android.</strong>
 </p>
 
 <p align="center">
@@ -49,7 +49,7 @@ d'informàtica: tècnics de manteniment, responsables de planta, tallers, pimes
 industrials i encarregats de magatzem que necessiten un control real de
 màquines, intervencions i estoc sense dependre de fulls de càlcul solts.
 
-## 🆚 Per què MantPro i no un CMMS comercial?
+## 🆚 Per què MantPro i no un GMAO/CMMS comercial?
 
 - **Codi obert i gratuït**: codi obert sota AGPL-3.0, sense límit de tècnics,
   màquines o registres
@@ -63,7 +63,7 @@ màquines, intervencions i estoc sense dependre de fulls de càlcul solts.
 - **Fet des del mateix manteniment**: les funcions han anat sortint de
   necessitats reals de taller (fotos d'abans/després, vincle a màquina, estoc
   de recanvis, avisos recurrents...), no d'una llista de requisits genèrica de
-  CMMS
+  GMAO/CMMS
 
 ## 🎬 Vídeo de demostració
 
@@ -92,7 +92,7 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 - [Quin problema resol?](#-quin-problema-resol)
 - [Per a qui és?](#-per-a-qui-és)
-- [Per què MantPro?](#-per-què-mantpro-i-no-un-cmms-comercial)
+- [Per què MantPro?](#-per-què-mantpro-i-no-un-gmaocmms-comercial)
 - [Vídeo de demostració](#-vídeo-de-demostració)
 - [Captures de pantalla](#-captures-de-pantalla)
 - [Descàrregues](#-descàrregues)

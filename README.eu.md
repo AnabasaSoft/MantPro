@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>CMMS doakoa eta kode irekikoa, zure lantegiko, tailerreko edo flotako mantentze prebentiboa eta zuzentzailea kudeatzeko, PCtik eta Androidetik.</strong>
+  <strong>GMAO/CMMS doakoa eta kode irekikoa, zure lantegiko, tailerreko edo flotako mantentze prebentiboa eta zuzentzailea kudeatzeko, PCtik eta Androidetik.</strong>
 </p>
 
 <p align="center">
@@ -50,7 +50,7 @@ teknikariak, lantegiko arduradunak, tailerrak, industria-ETEak eta biltegiko
 arduradunak, makinen, lanen eta stockaren benetako kontrola behar dutenak
 kalkulu-orri solteen menpe egon gabe.
 
-## 🆚 Zergatik MantPro eta ez CMMS komertzial bat?
+## 🆚 Zergatik MantPro eta ez GMAO/CMMS komertzial bat?
 
 - **Kode irekia eta doakoa**: AGPL-3.0 lizentziapeko kode irekia, teknikari,
   makina edo erregistro kopuruaren mugarik gabe
@@ -63,7 +63,7 @@ kalkulu-orri solteen menpe egon gabe.
   sinkronizatzen du
 - **Mantentzetik bertatik egina**: funtzioak tailerreko benetako beharretatik
   sortu dira (aurreko/ondorengo argazkiak, makinarekiko lotura, ordezko
-  piezen stocka, abisu errepikakorrak...), ez CMMS betekizunen zerrenda
+  piezen stocka, abisu errepikakorrak...), ez GMAO/CMMS betekizunen zerrenda
   generiko batetik
 
 ## 🎬 Erakustaldiko bideoa
@@ -93,7 +93,7 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 - [Zer arazo konpontzen du?](#-zer-arazo-konpontzen-du)
 - [Norentzat da?](#-norentzat-da)
-- [Zergatik MantPro?](#-zergatik-mantpro-eta-ez-cmms-komertzial-bat)
+- [Zergatik MantPro?](#-zergatik-mantpro-eta-ez-gmaocmms-komertzial-bat)
 - [Erakustaldiko bideoa](#-erakustaldiko-bideoa)
 - [Pantaila-argazkiak](#-pantaila-argazkiak)
 - [Deskargak](#-deskargak)

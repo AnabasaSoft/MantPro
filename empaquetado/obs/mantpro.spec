@@ -108,7 +108,7 @@ Exec=%{name}
 Icon=%{name}
 Terminal=false
 Categories=Office;ProjectManagement;
-Keywords=CMMS;maintenance;mantenimiento;stock;almacén;
+Keywords=CMMS;GMAO;maintenance;mantenimiento;maintenance préventive;stock;almacén;
 StartupWMClass=MantPro
 EOF
 desktop-file-validate %{buildroot}%{_datadir}/applications/%{name}.desktop

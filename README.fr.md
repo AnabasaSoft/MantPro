@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>GMAO libre et gratuite pour gérer la maintenance préventive et corrective de votre usine, atelier ou flotte, depuis le PC et Android.</strong>
+  <strong>GMAO/CMMS libre et gratuite pour gérer la maintenance préventive et corrective de votre usine, atelier ou flotte, depuis le PC et Android.</strong>
 </p>
 
 <p align="center">
@@ -49,7 +49,7 @@ les services informatiques : techniciens de maintenance, responsables d'usine,
 ateliers, PME industrielles et magasiniers qui ont besoin d'un vrai suivi des
 machines, des interventions et du stock sans dépendre de tableurs dispersés.
 
-## 🆚 Pourquoi MantPro plutôt qu'une GMAO commerciale ?
+## 🆚 Pourquoi MantPro plutôt qu'une GMAO/CMMS commerciale ?
 
 - **Libre et gratuite** : code ouvert sous AGPL-3.0, sans limite de
   techniciens, de machines ni d'enregistrements
@@ -62,7 +62,7 @@ machines, des interventions et du stock sans dépendre de tableurs dispersés.
 - **Conçue depuis la maintenance elle-même** : les fonctions sont nées de
   besoins réels d'atelier (photos avant/après, lien avec la machine, stock de
   pièces, rappels récurrents...), pas d'une liste générique d'exigences de
-  GMAO
+  GMAO/CMMS
 
 ## 🎬 Vidéo de démonstration
 
@@ -91,7 +91,7 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 - [Quel problème résout-elle ?](#-quel-problème-résout-elle-)
 - [Pour qui ?](#-pour-qui-)
-- [Pourquoi MantPro ?](#-pourquoi-mantpro-plutôt-quune-gmao-commerciale-)
+- [Pourquoi MantPro ?](#-pourquoi-mantpro-plutôt-quune-gmaocmms-commerciale-)
 - [Vidéo de démonstration](#-vidéo-de-démonstration)
 - [Captures d'écran](#-captures-décran)
 - [Téléchargements](#-téléchargements)
