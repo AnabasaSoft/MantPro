@@ -37,7 +37,7 @@ from .. import idiomas
 from ..idiomas import t
 from .comun import tt
 from ..nucleo import usuarios
-from ..nucleo.fotos import _RE_GALERIA
+from ..nucleo.fotos import _RE_GALERIA, fotos_galeria
 from ..nucleo.rutas import DATA_DIR
 from ..version import APP_VERSION, REPO_NAME, REPO_OWNER
 
@@ -104,6 +104,26 @@ class ChequeadorActualizaciones(QThread):
 class GeneradorPDFThread(QThread):
     resultado = pyqtSignal(bool, str)
 
+    def _miniatura_pdf(self, nombre):
+        """Foto de la colección reducida (máx. 600 px, JPEG) para el PDF, así
+        un trabajo con muchas fotos no dispara el tamaño del fichero. None si
+        no existe o no se puede leer."""
+        ruta = os.path.join(self.carpeta_fotos, nombre)
+        if not os.path.exists(ruta):
+            return None
+        try:
+            from io import BytesIO
+            from PIL import Image as ImagenPIL, ImageOps
+            with ImagenPIL.open(ruta) as original:
+                foto = ImageOps.exif_transpose(original).convert("RGB")
+                foto.thumbnail((600, 600))
+                buffer = BytesIO(); foto.save(buffer, "JPEG", quality=80); buffer.seek(0)
+                ancho, alto = foto.size
+            escala = min(2.6 * cm / ancho, 2.2 * cm / alto)
+            return PDFImage(buffer, width=ancho * escala, height=alto * escala)
+        except Exception:
+            return None
+
     def __init__(self, lista_trabajos, carpeta_fotos, mapa_maquinas=None):
         super().__init__()
         # Recibe una lista de diccionarios: [{"archivo": ruta, "titulo": tit,
@@ -143,6 +163,7 @@ class GeneradorPDFThread(QThread):
                 def cab(texto):
                     return Paragraph(texto, style_header)
 
+                filas_coleccion = []
                 data_tabla = [[cab(t("hdr_fecha")), cab(t("hdr_descripcion")), cab(tt("hdr_maquina", "Máquina")),
                                cab(tt("hdr_realizado_por", "Realizado por")),
                                cab(t("hdr_foto_antes")), cab(t("hdr_foto_despues"))]]
@@ -191,6 +212,18 @@ class GeneradorPDFThread(QThread):
                     p_desc = Paragraph(desc_visual.replace("\n", "<br/>"), style_cell)
                     data_tabla.append([Paragraph(fecha_formateada, style_cell), p_desc, Paragraph(maquina_nombre, style_cell), Paragraph(autor, style_cell), img_obj, img_obj_d])
 
+                    # Colección de fotos: una fila debajo del trabajo, a todo el
+                    # ancho, con las fotos en miniatura (6 por línea).
+                    miniaturas = [m for m in (self._miniatura_pdf(n) for n in fotos_galeria(desc)) if m]
+                    if miniaturas:
+                        lineas = [miniaturas[i:i + 6] for i in range(0, len(miniaturas), 6)]
+                        lineas[-1] += [""] * (6 - len(lineas[-1]))
+                        rejilla = Table(lineas, colWidths=[2.75 * cm] * 6)
+                        rejilla.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                                     ('LEFTPADDING', (0, 0), (-1, -1), 1), ('RIGHTPADDING', (0, 0), (-1, -1), 1)]))
+                        filas_coleccion.append(len(data_tabla))
+                        data_tabla.append([[Paragraph(f"<b>{tt('lbl_coleccion_fotos', 'Colección de fotos')}</b> ({len(miniaturas)})", style_cell), rejilla], "", "", "", "", ""])
+
                 ancho_foto = 3.0 * cm
                 tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.5*cm, 2.4*cm, 2.6*cm, ancho_foto, ancho_foto])
                 tabla_pdf.setStyle(TableStyle([
@@ -207,7 +240,8 @@ class GeneradorPDFThread(QThread):
                     ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP')
-                ]))
+                ] + [estilo for fila in filas_coleccion for estilo in (
+                    ('SPAN', (0, fila), (-1, fila)), ('BACKGROUND', (0, fila), (-1, fila), colors.HexColor("#f7f3e6")))]))
 
                 elements.append(tabla_pdf)
 

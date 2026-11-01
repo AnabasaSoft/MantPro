@@ -801,5 +801,6 @@
   "title_instalar_app_movil": "Instal·lar {app} al mòbil",
   "lbl_qr_instalar_paso1": "1. Escaneja el codi amb la càmera del mòbil.",
   "lbl_qr_instalar_paso2": "2. Obre l'enllaç: es baixa l'última versió de {app}.",
-  "lbl_qr_instalar_paso3": "3. Obre el fitxer baixat i instal·la'l (Android pot demanar que permetis la instal·lació)."
+  "lbl_qr_instalar_paso3": "3. Obre el fitxer baixat i instal·la'l (Android pot demanar que permetis la instal·lació).",
+  "hdr_coleccion_n": "Col·lecció {n}"
 }

@@ -801,5 +801,6 @@
   "title_instalar_app_movil": "Install {app} on the phone",
   "lbl_qr_instalar_paso1": "1. Scan the code with the phone's camera.",
   "lbl_qr_instalar_paso2": "2. Open the link: the latest version of {app} is downloaded.",
-  "lbl_qr_instalar_paso3": "3. Open the downloaded file and install it (Android may ask you to allow the installation)."
+  "lbl_qr_instalar_paso3": "3. Open the downloaded file and install it (Android may ask you to allow the installation).",
+  "hdr_coleccion_n": "Collection {n}"
 }

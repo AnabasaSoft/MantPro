@@ -801,5 +801,6 @@
   "title_instalar_app_movil": "Instalar {app} no móbil",
   "lbl_qr_instalar_paso1": "1. Escanea o código coa cámara do móbil.",
   "lbl_qr_instalar_paso2": "2. Abre a ligazón: descárgase a última versión de {app}.",
-  "lbl_qr_instalar_paso3": "3. Abre o ficheiro descargado e instálao (Android pode pedir permitir a instalación)."
+  "lbl_qr_instalar_paso3": "3. Abre o ficheiro descargado e instálao (Android pode pedir permitir a instalación).",
+  "hdr_coleccion_n": "Colección {n}"
 }

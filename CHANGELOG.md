@@ -7,6 +7,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Novedades
+- **Colección de fotos en las exportaciones del historial**: el PDF muestra debajo de cada trabajo sus fotos en miniatura (6 por línea), el Excel las incrusta en columnas «Colección 1, 2…» y el CSV lista sus nombres de fichero.
 - **Herramientas → 📱 Instalar MantPro en móvil** y **📦 Instalar MantPro Stock en móvil**: un QR que, al escanearlo con la cámara del móvil, descarga la app de la última versión estable.
 
 ### Mejoras

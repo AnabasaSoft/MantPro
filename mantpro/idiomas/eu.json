@@ -801,5 +801,6 @@
   "title_instalar_app_movil": "Instalatu {app} mugikorrean",
   "lbl_qr_instalar_paso1": "1. Eskaneatu kodea mugikorraren kamerarekin.",
   "lbl_qr_instalar_paso2": "2. Ireki esteka: {app}(r)en azken bertsioa deskargatzen da.",
-  "lbl_qr_instalar_paso3": "3. Ireki deskargatutako fitxategia eta instalatu (Android-ek instalazioa baimentzeko eska dezake)."
+  "lbl_qr_instalar_paso3": "3. Ireki deskargatutako fitxategia eta instalatu (Android-ek instalazioa baimentzeko eska dezake).",
+  "hdr_coleccion_n": "Bilduma {n}"
 }
