@@ -751,6 +751,11 @@ desde `Archivo > Backup` y restaurarla desde `Archivo > Restaurar`.
 `Herramientas` incluye además limpiar las fotos que ya no usa ningún registro y
 borrar los trabajos más antiguos que un tiempo dado, siempre con copia previa.
 
+🔒 Con `Archivo > Contraseña de las copias…` las copias se guardan **cifradas**
+(AES-256 con una clave sacada de la contraseña): una copia que sale del equipo
+(USB, NAS, nube) no se puede abrir sin ella. Si olvidas la contraseña, las
+copias cifradas no se pueden recuperar.
+
 Detalle completo: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
 (in English: [docs/backups.md](docs/backups.md)).
 

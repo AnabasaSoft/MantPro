@@ -759,6 +759,11 @@ Leheneratu` aukeratik leheneratzeko. `Tresnak` atalean, gainera, inongo
 erregistrok erabiltzen ez dituen argazkiak garbitu eta denbora jakin bat baino
 zaharragoak diren lanak ezabatu daitezke, beti aurretiko kopiarekin.
 
+🔒 `Fitxategia > Babeskopien pasahitza…` erabiliz, babeskopiak **zifratuta**
+gordetzen dira (AES-256, pasahitzetik ateratako gako batekin): ordenagailutik
+ateratzen den babeskopia bat (USB, NAS, hodeia) ezin da hura gabe ireki.
+Pasahitza ahazten baduzu, zifratutako babeskopiak ezin dira berreskuratu.
+
 Xehetasun guztiak: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
 (gaztelaniaz) · [docs/backups.md](docs/backups.md) (ingelesez).
 

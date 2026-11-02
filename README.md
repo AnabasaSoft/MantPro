@@ -741,6 +741,11 @@ backup** from `File > Backup` and restore it from `File > Restore`. `Tools`
 also lets you clean up photos no longer used by any record and delete jobs
 older than a given time, always with a prior backup.
 
+🔒 With `File > Backup password…` backups are **encrypted** (AES-256 with a
+password-derived key), so a backup that leaves the computer (USB drive, NAS,
+cloud) cannot be opened without it. If you forget the password, encrypted
+backups cannot be recovered.
+
 Full details: [docs/backups.md](docs/backups.md) (en español:
 [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)).
 

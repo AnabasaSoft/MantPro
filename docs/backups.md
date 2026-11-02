@@ -36,6 +36,54 @@ needed are worked out and extracted only from the matching
 `fotos_backup_<year>.zip` files, instead of dumping them all. All three
 operations (backup and both restores) show their own progress bar with focus.
 
+## Password-encrypted backups
+
+`File > 🔒 Backup password…` (administrators only) makes every backup (manual,
+automatic on closing, and the ones made before deleting or importing) be saved
+encrypted. They are still regular ZIP files, but each file inside is encrypted
+separately and gets `.mpc` added to its name (`mantenimiento.db.mpc`,
+`fotos/…jpg.mpc`). That way the yearly photo ZIPs can keep growing little by
+little, and an old MantPro version that cannot decrypt restores nothing over
+the good data.
+
+- **Encryption**: AES-256-GCM, which also detects any change or damage in the
+  backup (a tampered backup is not restored). Data is compressed before being
+  encrypted.
+- **Key**: derived from the password with scrypt (n=2¹⁷, r=8, p=1) and a random
+  salt. The standard ZIP AES encryption (WinZip AES) is not used because it
+  derives the key with PBKDF2-SHA1 and only 1000 iterations, which is easy to
+  brute-force. That is why encrypted backups can only be opened with MantPro,
+  not with 7-Zip.
+- **On the computer** the derived key (never the password) is kept in
+  `clave_copias.json`, in the data folder, so the automatic backup on closing
+  is encrypted without asking. That file is not included in the backups. What
+  is protected are the backups that leave the computer (USB, NAS, cloud); for
+  the computer itself, use full-disk encryption.
+- **Restoring**: on the same computer the password is not asked for. On another
+  computer (or with a backup made with an earlier password) it is; if that
+  computer had no backup password yet, it takes the one from the restored
+  backup.
+- **Changing or removing the password**: with the "Also apply it to the
+  backups already in MantPro's backup folders" box, the backups in `backups`
+  and `backups_auto` are rewritten with the new password (or unencrypted),
+  keeping their dates. Backups saved anywhere else keep their old password.
+- **If the password is forgotten**, encrypted backups cannot be recovered.
+
+Format of each encrypted file:
+
+```
+"MPC1" (4) | salt (16) | check (8) | nonce (12) | data (zlib + AES-256-GCM) | tag (16)
+```
+
+The check is the first 8 bytes of HMAC-SHA256(key, "MantPro copia cifrada"),
+used to know whether the password is right without decrypting anything; the
+original file name is authenticated data. The code is in
+`mantpro/nucleo/cifrado_copias.py`.
+
+When restoring, the databases are decrypted and checked
+(`PRAGMA integrity_check`) before anything is touched, and written with
+SQLite's backup API, which respects open connections and the `-wal` file.
+
 ## Cleaning up orphan photos
 
 `Tools > Clean up orphan photos` deletes the photos in `fotos_recibidas`

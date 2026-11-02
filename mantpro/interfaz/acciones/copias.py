@@ -24,17 +24,20 @@ import os
 import re
 import zipfile
 from datetime import datetime
-from PyQt6.QtWidgets import QVBoxLayout, QLabel, QMessageBox, QDialog, QFileDialog, QProgressBar
+from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QMessageBox, QDialog, QFileDialog, QProgressBar,
+                             QInputDialog, QLineEdit, QApplication)
 from PyQt6.QtCore import Qt
 
 from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import DialogoTiempoGuardado
-from ..hilos import BackupManualThread, RestoreManualThread
+from ..dialogos.sistema import DialogoContrasenaCopias
+from ..hilos import BackupManualThread, RestoreManualThread, RecifrarCopiasThread
 from ...nucleo import usuarios, almacen
 from ...nucleo.fotos import fotos_galeria
 from ...nucleo.seguridad import anadir_bd_a_zip
+from ...nucleo import cifrado_copias
 
 class AccionesCopias:
     """Copias de seguridad, restauración, limpieza de fotos y borrado de trabajos antiguos.
@@ -74,7 +77,10 @@ class AccionesCopias:
         def _terminado(exito, mensaje, ruta):
             dlg.accept()
             if exito:
-                QMessageBox.information(self, t("title_backup_completo"), t("msg_backup_guardado").format(archivo=os.path.basename(ruta)))
+                texto = t("msg_backup_guardado").format(archivo=os.path.basename(ruta))
+                if cifrado_copias.clave_actual():
+                    texto += "\n\n🔒 " + tt("msg_backup_cifrada", "La copia está cifrada con la contraseña de las copias.")
+                QMessageBox.information(self, t("title_backup_completo"), texto)
                 if mensaje:   # la copia se ha hecho, pero alguna base de datos está dañada
                     QMessageBox.warning(self, t("title_backup_completo"), tt(
                         "msg_bd_integridad", "La copia se ha guardado, pero la comprobación de integridad ha encontrado errores en:\n\n{detalle}\n\nGuarda también una copia anterior y revisa el equipo (disco, cortes de luz).").format(detalle=mensaje))
@@ -87,6 +93,61 @@ class AccionesCopias:
         self.hilo_backup_manual.start()
 
         dlg.exec()
+
+    def configurar_contrasena_copias(self):
+        """Archivo > Contraseña de las copias: poner, cambiar o quitar la
+        contraseña y, si se pide, rehacer con ella las copias que ya hay."""
+        if not usuarios.es_admin(): return
+        anterior = cifrado_copias.clave_actual()
+        dlg = DialogoContrasenaCopias(self, activada=anterior is not None)
+        if not dlg.exec() or not dlg.accion: return
+        titulo = tt("title_contrasena_copias", "Contraseña de las copias de seguridad")
+        if dlg.accion == "quitar":
+            nueva = None
+        else:
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            try:
+                nueva = cifrado_copias.Clave.desde_contrasena(dlg.contrasena)
+            finally:
+                QApplication.restoreOverrideCursor()
+        cifrado_copias.guardar_clave(nueva)
+        usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar",
+            "Contraseña de las copias de seguridad " + ("quitada" if nueva is None else "puesta o cambiada"))
+        hecho = (tt("msg_contrasena_copias_quitada", "Las copias nuevas se guardarán sin cifrar.") if nueva is None
+                 else tt("msg_contrasena_copias_puesta", "Las copias nuevas se guardarán cifradas con esta contraseña."))
+        if not dlg.aplicar_existentes:
+            QMessageBox.information(self, titulo, hecho)
+            return
+
+        espera = QDialog(self)
+        espera.setWindowTitle(titulo)
+        espera.setFixedSize(420, 110)
+        espera.setWindowModality(Qt.WindowModality.ApplicationModal)
+        espera.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
+        l = QVBoxLayout(espera)
+        l.addWidget(QLabel(tt("lbl_recifrando_copias", "Actualizando las copias que ya hay...")))
+        barra = QProgressBar(); barra.setRange(0, 0)
+        l.addWidget(barra)
+
+        def _progreso(actual, total):
+            if total:
+                barra.setRange(0, total); barra.setValue(actual)
+
+        def _terminado(exito, mensaje):
+            espera.accept()
+            if exito:
+                QMessageBox.information(self, titulo, hecho + "\n\n" + tt("msg_copias_recifradas",
+                    "Copias actualizadas: {n}. Las copias guardadas fuera de las carpetas de MantPro "
+                    "(USB, NAS…) siguen como estaban.").format(n=mensaje))
+            else:
+                QMessageBox.critical(self, titulo, mensaje)
+
+        conocidas = {anterior.sal: anterior} if anterior else {}
+        self.hilo_recifrar = RecifrarCopiasThread([self.carpeta_backups, self.carpeta_backups_auto], conocidas, nueva)
+        self.hilo_recifrar.progreso.connect(_progreso)
+        self.hilo_recifrar.resultado.connect(_terminado)
+        self.hilo_recifrar.start()
+        espera.exec()
 
     def _confirmar_restaurar(self):
         msg = QMessageBox(self)
@@ -117,10 +178,56 @@ class AccionesCopias:
         if not archivo_zip: return
         self._ejecutar_restauracion(archivo_zip)
 
+    def _claves_para_restaurar(self, zips):
+        """Claves para descifrar esos ZIP ({sal: Clave}). La de este equipo
+        no hace falta pedirla; para el resto se pide la contraseña (una copia
+        de otro equipo, o hecha antes de cambiarla). Devuelve (claves, nuevas)
+        o None si se cancela."""
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            sales = cifrado_copias.sales_de(zips)
+        finally:
+            QApplication.restoreOverrideCursor()
+        claves, nuevas = {}, {}
+        actual = cifrado_copias.clave_actual()
+        if actual and actual.sal in sales:
+            claves[actual.sal] = actual
+        faltan = {s: c for s, c in sales.items() if s not in claves}
+        texto = tt("msg_pedir_contrasena_copia", "Esta copia está cifrada. Escribe su contraseña:")
+        while faltan:
+            contrasena, ok = QInputDialog.getText(self, tt("title_copia_cifrada", "Copia cifrada"), texto,
+                                                  QLineEdit.EchoMode.Password)
+            if not ok:
+                return None
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            try:
+                abiertas = cifrado_copias.probar_contrasena(contrasena, faltan)
+            finally:
+                QApplication.restoreOverrideCursor()
+            if not abiertas:
+                texto = tt("msg_contrasena_copia_mal", "La contraseña no es correcta. Vuelve a escribirla:")
+                continue
+            claves.update(abiertas); nuevas.update(abiertas)
+            for sal in abiertas:
+                del faltan[sal]
+            texto = tt("msg_contrasena_copia_otra",
+                       "Una parte de la copia se cifró con otra contraseña (por ejemplo, una anterior). Escríbela:")
+        return claves, nuevas
+
     def _ejecutar_restauracion(self, archivo_zip):
         # Restaurar en DATA_DIR o carpeta local según donde estemos
         restore_path = os.path.dirname(self.db.db_name)
         es_auto_backup = os.path.basename(archivo_zip).startswith("auto_backup_db_")
+
+        zips = [archivo_zip]
+        if es_auto_backup:
+            carpeta = os.path.dirname(archivo_zip)
+            zips += [os.path.join(carpeta, f) for f in os.listdir(carpeta)
+                     if f.startswith("fotos_backup_") and f.endswith(".zip")]
+        resultado_claves = self._claves_para_restaurar(zips)
+        if resultado_claves is None:
+            return
+        claves, nuevas = resultado_claves
 
         dlg = QDialog(self)
         dlg.setWindowTitle(t("title_restaurar_copia"))
@@ -141,11 +248,21 @@ class AccionesCopias:
         def _terminado(exito, mensaje):
             dlg.accept()
             if exito:
-                QMessageBox.information(self, t("title_restauracion"), t("msg_sistema_restaurado")); self.refresh_all()
+                texto = t("msg_sistema_restaurado")
+                # Equipo nuevo sin contraseña de copias: se queda con la de la
+                # copia restaurada, para que las siguientes salgan igual de cifradas
+                if nuevas and cifrado_copias.clave_actual() is None:
+                    cifrado_copias.guardar_clave(next(iter(nuevas.values())))
+                    texto += "\n\n🔒 " + tt("msg_contrasena_copias_adoptada",
+                        "Las copias nuevas de este equipo también se cifrarán con esa contraseña.")
+                QMessageBox.information(self, t("title_restauracion"), texto); self.refresh_all()
+                if mensaje:   # BD restaurada, pero alguna foto no se ha podido sacar
+                    QMessageBox.warning(self, t("title_restauracion"), tt("msg_fotos_no_restauradas",
+                        "No se han podido restaurar algunas fotos (copia dañada o con otra contraseña):\n\n{detalle}").format(detalle=mensaje))
             else:
                 QMessageBox.critical(self, t("title_error_restauracion"), t("msg_zip_corrupto").format(error=mensaje))
 
-        self.hilo_restore = RestoreManualThread(archivo_zip, restore_path, self.carpeta_fotos, es_auto_backup, self._fotos_en_uso)
+        self.hilo_restore = RestoreManualThread(archivo_zip, restore_path, self.carpeta_fotos, es_auto_backup, self._fotos_en_uso, claves)
         self.hilo_restore.progreso.connect(_actualizar_progreso)
         self.hilo_restore.resultado.connect(_terminado)
         self.hilo_restore.start()
@@ -190,9 +307,10 @@ class AccionesCopias:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         ruta_copia = os.path.join(self.carpeta_backups_auto, f"{prefijo}_{ts}.zip")
         temporal = ruta_copia + ".tmp"
+        clave = cifrado_copias.clave_actual()
         with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for ruta in (self.db.db_name, getattr(self.db, "db_almacen_name", None)):
-                anadir_bd_a_zip(zipf, ruta)   # copia consistente (incluye el -wal)
+                anadir_bd_a_zip(zipf, ruta, clave)   # copia consistente (incluye el -wal)
         os.replace(temporal, ruta_copia)
         return ruta_copia
 
@@ -282,7 +400,8 @@ class AccionesCopias:
                         ruta_zip = os.path.join(self.carpeta_backups_auto, f)
                         try:
                             with zipfile.ZipFile(ruta_zip, 'r') as zf:
-                                huerfanas = [n for n in zf.namelist() if n not in fotos_en_uso]
+                                huerfanas = [n for n in zf.namelist()
+                                             if cifrado_copias.nombre_real(n) not in fotos_en_uso]
                             if huerfanas: zips_con_huerfanas[ruta_zip] = huerfanas
                         except Exception:
                             pass
@@ -311,10 +430,13 @@ class AccionesCopias:
                     huerfanas_set = set(huerfanas)
                     ruta_tmp = ruta_zip + ".tmp"
                     with zipfile.ZipFile(ruta_zip, 'r') as origen, \
-                         zipfile.ZipFile(ruta_tmp, 'w', zipfile.ZIP_DEFLATED) as nuevo:
-                        for n in origen.namelist():
-                            if n not in huerfanas_set:
-                                nuevo.writestr(n, origen.read(n))
+                         zipfile.ZipFile(ruta_tmp, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as nuevo:
+                        for info in origen.infolist():
+                            if info.filename not in huerfanas_set:
+                                # Tal cual (las cifradas siguen cifradas, sin comprimirlas otra vez)
+                                copia = zipfile.ZipInfo(info.filename, info.date_time)
+                                copia.compress_type = info.compress_type
+                                nuevo.writestr(copia, origen.read(info))
                     os.replace(ruta_tmp, ruta_zip)
                 except Exception:
                     pass

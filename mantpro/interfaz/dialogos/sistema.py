@@ -18,13 +18,13 @@
 # Deberías haber recibido una copia de la Licencia Pública General Affero de
 # GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
-"""Diálogos del sistema: QR, días especiales, país/región y puerto."""
+"""Diálogos del sistema: QR, días especiales, país/región, puerto y contraseña de las copias."""
 
 import qrcode
 from io import BytesIO
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QDateEdit, QListWidget,
                              QMessageBox, QDialog, QDialogButtonBox, QListWidgetItem, QComboBox,
-                             QSpinBox)
+                             QSpinBox, QFormLayout, QLineEdit, QCheckBox)
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QPixmap, QImage
 
@@ -249,3 +249,73 @@ class DialogoPuertoServidor(QDialog):
         self.accept()
 
     def puerto(self): return self.spin.value()
+
+
+class DialogoContrasenaCopias(QDialog):
+    """Archivo > Contraseña de las copias: poner, cambiar o quitar la
+    contraseña con la que se cifran las copias de seguridad. Al aceptar deja
+    en self.accion "fijar" (con self.contrasena) o "quitar", y en
+    self.aplicar_existentes si hay que rehacer las copias que ya existen."""
+    LONGITUD_MINIMA = 8
+
+    def __init__(self, parent=None, activada=False):
+        super().__init__(parent)
+        self.accion = None
+        self.contrasena = ""
+        self.setWindowTitle(tt("title_contrasena_copias", "Contraseña de las copias de seguridad"))
+        self.setModal(True)
+        self.setMinimumWidth(460)
+        l = QVBoxLayout(self)
+
+        estado = QLabel("🔒 " + tt("lbl_copias_cifradas", "Las copias de seguridad se guardan cifradas.") if activada
+                        else "🔓 " + tt("lbl_copias_sin_cifrar", "Las copias de seguridad se guardan sin cifrar."))
+        estado.setStyleSheet("font-weight: bold;")
+        l.addWidget(estado)
+        info = QLabel(tt("lbl_info_contrasena_copias",
+            "Con contraseña, las copias (la manual, la automática al cerrar y las previas a borrar o importar) "
+            "se guardan cifradas: si alguien se lleva el USB o entra en el NAS o la nube donde las guardas, "
+            "no puede abrirlas. En este equipo se restauran sin pedirla; en otro equipo, sí.\n\n"
+            "Si la olvidas, no hay forma de recuperar las copias cifradas: apúntala en un sitio seguro."))
+        info.setWordWrap(True)
+        l.addWidget(info)
+
+        formulario = QFormLayout()
+        self.nueva = QLineEdit(); self.nueva.setEchoMode(QLineEdit.EchoMode.Password)
+        self.repetir = QLineEdit(); self.repetir.setEchoMode(QLineEdit.EchoMode.Password)
+        formulario.addRow(t("password_nueva") + ":", self.nueva)
+        formulario.addRow(t("password_repetir") + ":", self.repetir)
+        l.addLayout(formulario)
+
+        self.chk_existentes = QCheckBox(tt("chk_aplicar_copias_existentes",
+            "Aplicar también a las copias que ya hay en las carpetas de copias de MantPro"))
+        self.chk_existentes.setChecked(True)
+        l.addWidget(self.chk_existentes)
+
+        caja = QDialogButtonBox()
+        caja.addButton(tt("btn_guardar", "Guardar"),
+                       QDialogButtonBox.ButtonRole.AcceptRole).clicked.connect(self._fijar)
+        if activada:
+            caja.addButton(tt("btn_quitar_contrasena", "Quitar contraseña"),
+                           QDialogButtonBox.ButtonRole.DestructiveRole).clicked.connect(self._quitar)
+        caja.addButton(t("btn_cancelar"), QDialogButtonBox.ButtonRole.RejectRole).clicked.connect(self.reject)
+        l.addWidget(caja)
+
+    @property
+    def aplicar_existentes(self):
+        return self.chk_existentes.isChecked()
+
+    def _fijar(self):
+        if len(self.nueva.text()) < self.LONGITUD_MINIMA:
+            QMessageBox.warning(self, self.windowTitle(), tt("msg_contrasena_copias_corta",
+                "La contraseña tiene que tener al menos {n} caracteres.").format(n=self.LONGITUD_MINIMA))
+            return
+        if self.nueva.text() != self.repetir.text():
+            QMessageBox.warning(self, self.windowTitle(), t("password_no_coincide"))
+            return
+        self.accion = "fijar"
+        self.contrasena = self.nueva.text()
+        self.accept()
+
+    def _quitar(self):
+        self.accion = "quitar"
+        self.accept()

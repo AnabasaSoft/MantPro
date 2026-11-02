@@ -146,16 +146,21 @@ def copia_consistente_sqlite(origen, destino):
     return resultado
 
 
-def anadir_bd_a_zip(zipf, ruta_bd):
+def anadir_bd_a_zip(zipf, ruta_bd, clave=None):
     """Añade al ZIP abierto [zipf] una copia consistente de [ruta_bd], con
-    su mismo nombre. Devuelve el resultado de la comprobación de integridad
-    ("ok" si está bien) o None si la base de datos no existe."""
+    su mismo nombre (cifrada si se da [clave], ver cifrado_copias). Devuelve
+    el resultado de la comprobación de integridad ("ok" si está bien) o None
+    si la base de datos no existe."""
     if not ruta_bd or not os.path.exists(ruta_bd):
         return None
     fd, temporal = tempfile.mkstemp(suffix=".db"); os.close(fd)
     try:
         integridad = copia_consistente_sqlite(ruta_bd, temporal)
-        zipf.write(temporal, arcname=os.path.basename(ruta_bd))
+        if clave is None:
+            zipf.write(temporal, arcname=os.path.basename(ruta_bd))
+        else:
+            from .cifrado_copias import escribir_entrada
+            escribir_entrada(zipf, temporal, os.path.basename(ruta_bd), clave)
     finally:
         try: os.remove(temporal)
         except OSError: pass

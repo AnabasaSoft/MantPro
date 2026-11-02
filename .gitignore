@@ -73,3 +73,6 @@ ROADMAP.md
 # Certificado TLS y clave privada del servidor (los genera MantPro)
 servidor_cert.pem
 servidor_clave.pem
+
+# Clave de las copias de seguridad cifradas (la genera MantPro)
+clave_copias.json

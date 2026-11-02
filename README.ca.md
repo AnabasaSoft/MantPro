@@ -751,6 +751,11 @@ d'`Arxiu > Backup` i restaurar-la des d'`Arxiu > Restaurar`. `Eines` inclou
 a més netejar les fotos que ja no fa servir cap registre i esborrar els
 treballs més antics que un temps donat, sempre amb còpia prèvia.
 
+🔒 Amb `Arxiu > Contrasenya de les còpies…` les còpies es desen **xifrades**
+(AES-256 amb una clau obtinguda de la contrasenya): una còpia que surt de
+l'equip (USB, NAS, núvol) no es pot obrir sense ella. Si oblides la
+contrasenya, les còpies xifrades no es poden recuperar.
+
 Detall complet: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
 (en castellà) · [docs/backups.md](docs/backups.md) (en anglès).
 

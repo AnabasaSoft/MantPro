@@ -746,6 +746,11 @@ dende `Ficheiro > Backup` e restaurala dende `Ficheiro > Restaurar`.
 `Ferramentas` inclúe ademais limpar as fotos que xa non usa ningún rexistro e
 borrar os traballos máis antigos que un tempo dado, sempre con copia previa.
 
+🔒 Con `Ficheiro > Contrasinal das copias…` as copias gárdanse **cifradas**
+(AES-256 cunha chave obtida do contrasinal): unha copia que sae do equipo
+(USB, NAS, nube) non se pode abrir sen el. Se esqueces o contrasinal, as
+copias cifradas non se poden recuperar.
+
 Detalle completo: [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md)
 (en castelán) · [docs/backups.md](docs/backups.md) (en inglés).
 

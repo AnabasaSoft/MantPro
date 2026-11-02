@@ -754,6 +754,11 @@ manual** em `Arquivo > Backup` e restaurá-la em `Arquivo > Restaurar`.
 excluir os serviços mais antigos que um tempo definido, sempre com cópia
 prévia.
 
+🔒 Com `Arquivo > Senha das cópias…` as cópias são salvas **criptografadas**
+(AES-256 com uma chave derivada da senha): uma cópia que sai do computador
+(pendrive, NAS, nuvem) não pode ser aberta sem ela. Se você esquecer a senha,
+as cópias criptografadas não poderão ser recuperadas.
+
 Detalhes completos: [docs/backups.md](docs/backups.md) (em inglês) ·
 [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md) (em espanhol).
 

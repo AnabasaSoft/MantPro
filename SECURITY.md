@@ -36,7 +36,9 @@ workshop Wi-Fi). Keep in mind:
   over unencrypted HTTP on the configured port, for apps from earlier
   versions. Do not expose the sync ports to the internet.
 - **Data is stored unencrypted** on the PC (`mantenimiento.db`, `almacen.db`
-  and the photos folder). Protect the computer and the backups.
+  and the photos folder). Protect the computer. **Backups can be encrypted**
+  with a password (`File > Backup password…`, AES-256-GCM with a scrypt-derived
+  key); without one they are plain ZIP files.
 - On the first start the user `admin` / `admin` is created, and the program
   **forces you to change the password** on first login.
 - Repeated failed logins are blocked for a while (15 minutes from the phones,
@@ -98,8 +100,10 @@ la oficina o del taller). Ten en cuenta que:
   apps de versiones anteriores. No expongas los puertos de sincronización a
   internet.
 - **Los datos se guardan sin cifrar** en el PC (`mantenimiento.db`,
-  `almacen.db` y la carpeta de fotos). Protege el equipo y las copias de
-  seguridad.
+  `almacen.db` y la carpeta de fotos). Protege el equipo. **Las copias de
+  seguridad se pueden cifrar** con contraseña (`Archivo > Contraseña de las
+  copias…`, AES-256-GCM con la clave sacada con scrypt); sin ella son ZIP
+  normales.
 - En el primer arranque se crea el usuario `admin` / `admin`, y el programa
   **obliga a cambiar la contraseña** al entrar por primera vez.
 - Los intentos fallidos de inicio de sesión seguidos se bloquean un tiempo

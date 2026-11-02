@@ -36,6 +36,53 @@ calcula qué fotos hacen falta y se extraen únicamente de los
 operaciones (backup, y ambas restauraciones) muestran su propia barra de
 progreso con foco.
 
+## Copias cifradas con contraseña
+
+`Archivo > 🔒 Contraseña de las copias…` (solo administradores) hace que todas
+las copias (la manual, la automática al cerrar y las previas a borrar o
+importar) se guarden cifradas. Siguen siendo ZIP normales, pero cada fichero de
+dentro va cifrado por separado y con `.mpc` añadido al nombre
+(`mantenimiento.db.mpc`, `fotos/…jpg.mpc`); así los ZIP de fotos por año pueden
+seguir creciendo poco a poco, y una versión antigua de MantPro que no sepa
+descifrar no restaura nada encima de los datos buenos.
+
+- **Cifrado**: AES-256-GCM, que además detecta cualquier cambio o daño en la
+  copia (si se ha tocado, no se restaura). Los datos se comprimen antes de
+  cifrar.
+- **Clave**: sale de la contraseña con scrypt (n=2¹⁷, r=8, p=1) y una sal
+  aleatoria. No se usa el cifrado AES estándar de los ZIP (WinZip AES) porque
+  saca la clave con PBKDF2-SHA1 de solo 1000 vueltas, que se rompe por fuerza
+  bruta con facilidad. Por eso las copias cifradas solo se abren con MantPro,
+  no con 7-Zip.
+- **En el equipo** se guarda la clave derivada (nunca la contraseña) en
+  `clave_copias.json`, en la carpeta de datos, para que la copia automática al
+  cerrar se cifre sin preguntar. Ese fichero no va dentro de las copias. Lo que
+  se protege son las copias que salen del equipo (USB, NAS, nube); para el
+  propio equipo, usa el cifrado de disco completo.
+- **Restaurar**: en el mismo equipo no se pide la contraseña. En otro equipo (o
+  con una copia hecha con una contraseña anterior) se pide; si ese equipo aún no
+  tenía contraseña de copias, se queda con la de la copia restaurada.
+- **Cambiar o quitar la contraseña**: con la casilla «Aplicar también a las
+  copias que ya hay», se rehacen con la nueva (o sin cifrar) las copias de las
+  carpetas `backups` y `backups_auto`, manteniendo sus fechas. Las copias que
+  hayas guardado en otros sitios siguen con la contraseña que tenían.
+- **Si se olvida la contraseña**, las copias cifradas no se pueden recuperar.
+
+Formato de cada fichero cifrado:
+
+```
+"MPC1" (4) | sal (16) | comprobación (8) | nonce (12) | datos (zlib + AES-256-GCM) | etiqueta (16)
+```
+
+La comprobación son los 8 primeros bytes de HMAC-SHA256(clave, "MantPro copia
+cifrada"), para saber si la contraseña es buena sin descifrar nada; el nombre
+original del fichero va como dato autenticado. El código está en
+`mantpro/nucleo/cifrado_copias.py`.
+
+Al restaurar, las bases de datos se descifran y se comprueban
+(`PRAGMA integrity_check`) antes de tocar nada, y se escriben con la API de
+copia de SQLite, que respeta las conexiones abiertas y el fichero `-wal`.
+
 ## Limpieza de fotos huérfanas
 
 `Herramientas > Limpiar fotos huérfanas` borra las fotos de `fotos_recibidas`

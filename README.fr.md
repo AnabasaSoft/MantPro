@@ -773,6 +773,12 @@ restaurer depuis `Fichier > Restaurer`. `Outils` permet aussi de supprimer les
 photos qu'aucun enregistrement n'utilise plus et d'effacer les interventions
 plus anciennes qu'une durée donnée, toujours avec une sauvegarde préalable.
 
+🔒 Avec `Fichier > Mot de passe des sauvegardes…`, les sauvegardes sont
+**chiffrées** (AES-256 avec une clé dérivée du mot de passe) : une sauvegarde
+qui quitte l'ordinateur (clé USB, NAS, cloud) ne peut pas être ouverte sans
+lui. Si vous oubliez le mot de passe, les sauvegardes chiffrées sont
+irrécupérables.
+
 Détails complets : [docs/backups.md](docs/backups.md) (en anglais) ·
 [docs/copias-de-seguridad.md](docs/copias-de-seguridad.md) (en espagnol).
 

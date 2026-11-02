@@ -372,6 +372,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             menu_restaurar = fm.addMenu(t("menu_restaurar"))
             menu_restaurar.addAction(QAction(tt("menu_restaurar_manual", "Restaurar..."), self, triggered=self.restaurar_backup))
             menu_restaurar.addAction(QAction(tt("menu_restaurar_auto", "Restaurar desde copia automática..."), self, triggered=self.restaurar_backup_auto))
+            fm.addAction(QAction(tt("menu_contrasena_copias", "🔒 Contraseña de las copias…"), self, triggered=self.configurar_contrasena_copias))
             fm.addSeparator()
             fm.addAction(QAction(t("menu_importar"), self, triggered=self.importar_datos))
             fm.addSeparator()

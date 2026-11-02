@@ -41,6 +41,7 @@ from ..nucleo import usuarios
 from ..nucleo.fotos import _RE_GALERIA, fotos_galeria
 from ..nucleo.rutas import DATA_DIR
 from ..nucleo.seguridad import anadir_bd_a_zip
+from ..nucleo import cifrado_copias
 from ..version import APP_VERSION, REPO_NAME, REPO_OWNER
 
 # ==========================================
@@ -341,6 +342,8 @@ class BackupThread(QThread):
 
     def run(self):
         try:
+            # Con contraseña de copias, todo lo nuevo se guarda cifrado
+            clave = cifrado_copias.clave_actual()
             os.makedirs(self.carpeta_backups_auto, exist_ok=True)
             origen_archivos = os.listdir(self.carpeta_fotos) if os.path.exists(self.carpeta_fotos) else []
 
@@ -352,7 +355,7 @@ class BackupThread(QThread):
                     zips_existentes[anio] = os.path.join(self.carpeta_backups_auto, f)
                     try:
                         with zipfile.ZipFile(zips_existentes[anio], 'r') as zf:
-                            ya_respaldadas.update(zf.namelist())
+                            ya_respaldadas.update(cifrado_copias.nombre_real(n) for n in zf.namelist())
                     except Exception:
                         pass
 
@@ -371,11 +374,11 @@ class BackupThread(QThread):
             self.progreso.emit(0, total)
             for anio, nombres in pendientes_por_anio.items():
                 ruta_zip = zips_existentes.get(anio, os.path.join(self.carpeta_backups_auto, f"fotos_backup_{anio}.zip"))
-                with zipfile.ZipFile(ruta_zip, 'a', zipfile.ZIP_DEFLATED) as zipf:
-                    existentes_zip = set(zipf.namelist())
+                with zipfile.ZipFile(ruta_zip, 'a', zipfile.ZIP_DEFLATED, allowZip64=True) as zipf:
+                    existentes_zip = {cifrado_copias.nombre_real(n) for n in zipf.namelist()}
                     for nombre in nombres:
                         if nombre not in existentes_zip:
-                            zipf.write(os.path.join(self.carpeta_fotos, nombre), arcname=nombre)
+                            cifrado_copias.escribir_entrada(zipf, os.path.join(self.carpeta_fotos, nombre), nombre, clave)
                         copiadas += 1
                         self.progreso.emit(copiadas, total)
 
@@ -388,7 +391,7 @@ class BackupThread(QThread):
             temporal = ruta_zip + ".tmp"
             with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_STORED) as zipf:
                 for ruta_bd in (self.db_name, self.db_almacen_name):
-                    integridad = anadir_bd_a_zip(zipf, ruta_bd)
+                    integridad = anadir_bd_a_zip(zipf, ruta_bd, clave)
                     if integridad not in (None, "ok"):
                         print(f"Aviso: {os.path.basename(ruta_bd)} no pasa la comprobación de integridad: {integridad}")
             os.replace(temporal, ruta_zip)
@@ -437,15 +440,16 @@ class BackupManualThread(QThread):
             # con una copia consistente de cada base de datos.
             temporal = self.ruta_zip + ".tmp"
             dañadas = []
-            with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            clave = cifrado_copias.clave_actual()
+            with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zipf:
                 for ruta_bd in (self.db_name, self.db_almacen_name):
-                    integridad = anadir_bd_a_zip(zipf, ruta_bd)
+                    integridad = anadir_bd_a_zip(zipf, ruta_bd, clave)
                     if integridad not in (None, "ok"):
                         dañadas.append(f"{os.path.basename(ruta_bd)}: {integridad}")
                     hechos += 1; self.progreso.emit(hechos, total)
                 for ruta_archivo in archivos_fotos:
                     ruta_en_zip = os.path.relpath(ruta_archivo, os.path.dirname(self.carpeta_fotos))
-                    zipf.write(ruta_archivo, arcname=ruta_en_zip)
+                    cifrado_copias.escribir_entrada(zipf, ruta_archivo, ruta_en_zip.replace(os.sep, "/"), clave)
                     hechos += 1; self.progreso.emit(hechos, total)
             os.replace(temporal, self.ruta_zip)
 
@@ -463,8 +467,10 @@ class RestoreManualThread(QThread):
     progreso = pyqtSignal(int, int)
     resultado = pyqtSignal(bool, str)
 
-    def __init__(self, archivo_zip, restore_path, carpeta_fotos, es_auto_backup, obtener_fotos_necesarias=None):
+    def __init__(self, archivo_zip, restore_path, carpeta_fotos, es_auto_backup, obtener_fotos_necesarias=None, claves=None):
         super().__init__()
+        # Claves para descifrar ({sal: Clave}), ya comprobadas antes de empezar
+        self.claves = claves or {}
         self.archivo_zip = archivo_zip
         self.restore_path = restore_path
         self.carpeta_fotos = carpeta_fotos
@@ -479,9 +485,20 @@ class RestoreManualThread(QThread):
                 entradas = zipf.namelist()
                 total = len(entradas)
                 self.progreso.emit(0, total)
-                for i, nombre in enumerate(entradas, start=1):
-                    zipf.extract(nombre, path=self.restore_path)
-                    self.progreso.emit(i, total)
+                # Primero se descifra y comprueba todo lo que es base de datos
+                # antes de tocar nada: si la copia está dañada, no se restaura.
+                bases = [n for n in entradas
+                         if "/" not in n and cifrado_copias.nombre_real(n).endswith(".db")]
+                hechos = 0
+                for nombre in bases:
+                    cifrado_copias.restaurar_bd(
+                        zipf, nombre, os.path.join(self.restore_path, cifrado_copias.nombre_real(nombre)), self.claves)
+                    hechos += 1; self.progreso.emit(hechos, total)
+                for nombre in entradas:
+                    if nombre in bases:
+                        continue
+                    cifrado_copias.extraer_entrada(zipf, nombre, self.restore_path, self.claves)
+                    hechos += 1; self.progreso.emit(hechos, total)
 
             if self.es_auto_backup and self.obtener_fotos_necesarias:
                 fotos_necesarias = self.obtener_fotos_necesarias()
@@ -492,16 +509,64 @@ class RestoreManualThread(QThread):
                               if f.startswith("fotos_backup_") and f.endswith(".zip")]
                 total_f = len(zips_fotos)
                 self.progreso.emit(0, total_f)
+                fallidas = []
                 for i, f in enumerate(zips_fotos, start=1):
                     try:
                         with zipfile.ZipFile(os.path.join(carpeta_backups_auto, f), 'r') as zf:
                             for nombre in zf.namelist():
-                                if nombre in fotos_necesarias:
-                                    zf.extract(nombre, path=destino_fotos)
+                                if cifrado_copias.nombre_real(nombre) in fotos_necesarias:
+                                    try:
+                                        cifrado_copias.extraer_entrada(zf, nombre, destino_fotos, self.claves)
+                                    except (cifrado_copias.ErrorCifrado, cifrado_copias.ContrasenaNecesaria):
+                                        fallidas.append(cifrado_copias.nombre_real(nombre))
                     except Exception:
-                        pass
+                        fallidas.append(f)
                     self.progreso.emit(i, total_f)
+                if fallidas:
+                    # La base de datos ya está restaurada: se avisa de las fotos que faltan
+                    self.resultado.emit(True, "\n".join(fallidas[:20]) + ("\n…" if len(fallidas) > 20 else ""))
+                    return
 
             self.resultado.emit(True, "")
+        except cifrado_copias.ContrasenaNecesaria:
+            self.resultado.emit(False, tt("msg_falta_contrasena_copia", "La copia está cifrada y la contraseña no es la suya."))
+        except cifrado_copias.ErrorCifrado as ex:
+            self.resultado.emit(False, tt("msg_copia_danada", "La copia está dañada o se ha modificado ({detalle}).").format(detalle=ex))
+        except Exception as ex:
+            self.resultado.emit(False, str(ex))
+
+
+class RecifrarCopiasThread(QThread):
+    """Vuelve a guardar las copias que ya hay en las carpetas de copias con la
+    clave nueva (o sin cifrar, si se quita la contraseña)."""
+    progreso = pyqtSignal(int, int)
+    resultado = pyqtSignal(bool, str)   # (éxito, n.º de copias cambiadas / error)
+
+    def __init__(self, carpetas, conocidas, nueva):
+        super().__init__()
+        self.carpetas = carpetas
+        self.conocidas = conocidas
+        self.nueva = nueva
+
+    def run(self):
+        try:
+            zips = []
+            for carpeta in self.carpetas:
+                for ruta in cifrado_copias.zips_de_copias(carpeta):
+                    if ruta not in zips:
+                        zips.append(ruta)
+            total = cifrado_copias.entradas_de(zips)
+            hechos = [0]
+            self.progreso.emit(0, total)
+
+            def _paso():
+                hechos[0] += 1
+                self.progreso.emit(hechos[0], total)
+
+            cambiadas = 0
+            for ruta in zips:
+                if cifrado_copias.recifrar_zip(ruta, self.conocidas, self.nueva, _paso):
+                    cambiadas += 1
+            self.resultado.emit(True, str(cambiadas))
         except Exception as ex:
             self.resultado.emit(False, str(ex))
