@@ -27,7 +27,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
-        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography sqlcipher3-wheels keyring
+        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography sqlcipher3-wheels==0.5.7 keyring==25.7.0
+
+    # SQLCipher (cifrado de las bases de datos) y el llavero: si no se pudieran
+    # usar, MantPro arrancaría igual pero con la opción de cifrado desactivada,
+    # así que mejor que la compilación falle aquí.
+    - name: Comprobar SQLCipher y llavero
+      shell: bash
+      run: |
+        python -c "
+        from sqlcipher3 import dbapi2 as s
+        v = s.connect(':memory:').execute('PRAGMA cipher_version').fetchone()
+        assert v and v[0], 'SQLCipher sin cifrado'
+        print('SQLCipher', v[0])
+        import keyring.backends.Windows
+        print('keyring', keyring.__version__ if hasattr(keyring, '__version__') else 'ok')
+        "
 
     # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
     # nunca del valor que haya quedado escrito a mano en el código: así no
@@ -47,6 +62,15 @@ jobs:
     - name: Generar EXE
       run: |
         pyinstaller --noconsole --onefile --copy-metadata keyring --collect-submodules keyring.backends --hidden-import sqlcipher3.dbapi2 --name=MantPro_WIN --icon=recursos/icono.png --add-data "recursos;recursos" --add-data "mantpro/idiomas;mantpro/idiomas" main.py
+
+    - name: Comprobar que el ejecutable lleva SQLCipher y el llavero
+      shell: bash
+      run: |
+        python -m PyInstaller.utils.cliutils.archive_viewer -r -b dist/MantPro_WIN.exe > contenido.txt
+        for m in sqlcipher3.dbapi2 "sqlcipher3/_sqlite3" keyring.backends.Windows; do
+          grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
+        done
+        echo "El ejecutable lleva SQLCipher y keyring.backends.Windows"
 
     - name: Build Windows Installer (Inno Setup)
       shell: bash
@@ -105,7 +129,22 @@ jobs:
     - name: Instalar Dependencias Python
       run: |
         pip install pyinstaller
-        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography sqlcipher3-wheels keyring
+        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography sqlcipher3-wheels==0.5.7 keyring==25.7.0
+
+    # SQLCipher (cifrado de las bases de datos) y el llavero: si no se pudieran
+    # usar, MantPro arrancaría igual pero con la opción de cifrado desactivada,
+    # así que mejor que la compilación falle aquí.
+    - name: Comprobar SQLCipher y llavero
+      shell: bash
+      run: |
+        python -c "
+        from sqlcipher3 import dbapi2 as s
+        v = s.connect(':memory:').execute('PRAGMA cipher_version').fetchone()
+        assert v and v[0], 'SQLCipher sin cifrado'
+        print('SQLCipher', v[0])
+        import keyring.backends.SecretService
+        print('keyring', keyring.__version__ if hasattr(keyring, '__version__') else 'ok')
+        "
 
     # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
     # nunca del valor que haya quedado escrito a mano en el código: así no
@@ -125,6 +164,15 @@ jobs:
     - name: Generar Binario Linux
       run: |
         pyinstaller --noconfirm --onefile --windowed --copy-metadata keyring --collect-submodules keyring.backends --hidden-import sqlcipher3.dbapi2 --icon=recursos/icono.png --add-data "recursos/icono.png:recursos" --add-data "recursos/AnabasaSoft.png:recursos" --add-data "mantpro/idiomas:mantpro/idiomas" --name "MantPro_Linux" main.py
+
+    - name: Comprobar que el ejecutable lleva SQLCipher y el llavero
+      shell: bash
+      run: |
+        python -m PyInstaller.utils.cliutils.archive_viewer -r -b dist/MantPro_Linux > contenido.txt
+        for m in sqlcipher3.dbapi2 "sqlcipher3/_sqlite3" keyring.backends.SecretService; do
+          grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
+        done
+        echo "El ejecutable lleva SQLCipher y keyring.backends.SecretService"
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
     - name: Subir Binario Linux (Artefacto)
