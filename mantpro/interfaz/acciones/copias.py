@@ -32,12 +32,12 @@ from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import DialogoTiempoGuardado
-from ..dialogos.sistema import DialogoContrasenaCopias
+from ..dialogos.sistema import DialogoContrasenaCopias, DialogoCifradoBD, DialogoClaveRecuperacion
 from ..hilos import BackupManualThread, RestoreManualThread, RecifrarCopiasThread
 from ...nucleo import usuarios, almacen
 from ...nucleo.fotos import fotos_galeria
 from ...nucleo.seguridad import anadir_bd_a_zip
-from ...nucleo import cifrado_copias
+from ...nucleo import cifrado_copias, conexion_bd
 
 class AccionesCopias:
     """Copias de seguridad, restauración, limpieza de fotos y borrado de trabajos antiguos.
@@ -148,6 +148,50 @@ class AccionesCopias:
         self.hilo_recifrar.resultado.connect(_terminado)
         self.hilo_recifrar.start()
         espera.exec()
+
+    def configurar_cifrado_bd(self):
+        """Herramientas > Cifrado de las bases de datos: activarlo (crea la
+        clave, la guarda en el llavero y enseña la de recuperación), verla o
+        quitarlo. La conversión se hace al volver a abrir MantPro."""
+        if not usuarios.es_admin(): return
+        activo = conexion_bd.cifrado_activo()
+        dlg = DialogoCifradoBD(self, activo=activo, disponible=conexion_bd.HAY_SQLCIPHER,
+                               hay_llavero=conexion_bd.hay_llavero())
+        if not dlg.exec() or not dlg.accion: return
+        titulo = tt("title_cifrado_bd", "Cifrado de las bases de datos")
+        if dlg.accion == "ver_clave":
+            clave = conexion_bd._clave_hex
+            if clave:
+                DialogoClaveRecuperacion(conexion_bd.formato_recuperacion(clave), self, obligatorio=False).exec()
+            return
+        if dlg.accion == "cifrar":
+            clave = conexion_bd.nueva_clave()
+            donde = conexion_bd.guardar_clave(clave)
+            if conexion_bd.leer_clave_guardada() != clave:
+                QMessageBox.critical(self, titulo, tt("msg_clave_no_guardada",
+                    "No se ha podido guardar la clave; las bases de datos no se cifrarán."))
+                return
+            DialogoClaveRecuperacion(conexion_bd.formato_recuperacion(clave), self).exec()
+            detalle = "fichero clave_bd.json" if donde == "fichero" else "llavero"
+        else:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle(titulo)
+            msg.setText(tt("msg_confirmar_quitar_cifrado_bd",
+                "Las bases de datos se guardarán sin cifrar en este ordenador. ¿Continuar?"))
+            btn_si = msg.addButton(tt("btn_quitar_cifrado_bd", "Quitar el cifrado"), QMessageBox.ButtonRole.DestructiveRole)
+            msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
+            msg.exec()
+            if msg.clickedButton() != btn_si: return
+            detalle = ""
+        conexion_bd.programar_conversion(dlg.accion)
+        usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar",
+            ("Cifrado de las bases de datos activado (clave en " + detalle + ")") if dlg.accion == "cifrar"
+            else "Cifrado de las bases de datos quitado")
+        QMessageBox.information(self, titulo, tt("msg_reabrir_para_cifrar",
+            "MantPro se cerrará ahora (con su copia de seguridad de siempre). Al volver a abrirlo se hará el cambio, "
+            "que tarda unos segundos."))
+        self.close()
 
     def _confirmar_restaurar(self):
         msg = QMessageBox(self)

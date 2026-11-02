@@ -33,7 +33,7 @@ que va a pasar, incluidas las zonas, estanterías o baldas que se crearán.
 import csv
 import re
 import secrets
-import sqlite3
+from .conexion_bd import sqlite3, conectar, adjuntar
 import unicodedata
 from datetime import date, datetime, timedelta
 
@@ -475,9 +475,9 @@ def procesar_varias(hojas, modo="saltar", aplicar=False, usuario_id=None, usuari
     garantiza que cada fichero queda entero, pero no que los dos a la vez; para
     ese caso (casi imposible: un fallo de disco justo entre los dos) está la
     copia previa que hace la interfaz antes de importar."""
-    con = sqlite3.connect(usuarios.RUTA_DB, timeout=20, isolation_level=None)
+    con = conectar(usuarios.RUTA_DB, timeout=20, isolation_level=None)
     con.row_factory = sqlite3.Row
-    con.execute("ATTACH DATABASE ? AS alm", (almacen.RUTA_DB,))
+    adjuntar(con, almacen.RUTA_DB, "alm")
     con.execute("PRAGMA foreign_keys = ON")
     clases = {"maquinas": _ImportadorMaquinas, "articulos": _ImportadorArticulos,
               "avisos": _ImportadorAvisos, "usuarios": _ImportadorUsuarios}

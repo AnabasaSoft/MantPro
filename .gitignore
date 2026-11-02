@@ -76,3 +76,8 @@ servidor_clave.pem
 
 # Clave de las copias de seguridad cifradas (la genera MantPro)
 clave_copias.json
+
+# Clave de las bases de datos cifradas si no hay llavero, y conversión pendiente
+clave_bd.json
+conversion_bd_pendiente.json
+*.db.convirtiendo

@@ -731,6 +731,10 @@ HTTP on the configured port for apps from earlier versions; HTTPS uses the
 be open. If you ever expose the server outside the local network, do it through
 a VPN.
 
+The databases can also be stored **encrypted** (`Tools > Database encryption…`,
+SQLCipher): the key is kept in the system keyring and a recovery key is shown
+to write down. It is off by default and not available in the openSUSE package.
+
 ---
 
 ## 💾 Backups

@@ -741,6 +741,11 @@ el **puerto siguiente** (por ejemplo, 5000 y 5001), así que si hay un
 cortafuegos hay que abrir los dos. Si alguna vez expones el servidor fuera de
 la red local, hazlo a través de una VPN.
 
+Las bases de datos también se pueden guardar **cifradas** (`Herramientas >
+Cifrado de las bases de datos…`, SQLCipher): la clave va en el llavero del
+sistema y se muestra una clave de recuperación para apuntarla. Viene
+desactivado y no está disponible en el paquete de openSUSE.
+
 ---
 
 ## 💾 Copias de Seguridad

@@ -748,6 +748,11 @@ HTTPSk **hurrengo ataka** erabiltzen du (adibidez, 5000 eta 5001), beraz
 suhesia badago biak ireki behar dira. Zerbitzaria sare lokaletik kanpo jartzen
 baduzu inoiz, egin VPN baten bidez.
 
+Datu-baseak **zifratuta** ere gorde daitezke (`Tresnak > Datu-baseen
+zifratzea…`, SQLCipher): gakoa sistemaren gako-sortan gordetzen da eta
+berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator eta ez dago
+openSUSEko paketean.
+
 ---
 
 ## 💾 Babeskopiak

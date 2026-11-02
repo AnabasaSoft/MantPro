@@ -28,7 +28,6 @@ seguridad.py — Utilidades de seguridad y de escritura segura de ficheros:
 """
 
 import os
-import sqlite3
 import tempfile
 import threading
 import time
@@ -131,19 +130,13 @@ def escribir_atomico(ruta, contenido, modo="w", encoding="utf-8"):
 
 
 def copia_consistente_sqlite(origen, destino):
-    """Copia la base de datos [origen] en [destino] con la API de copia de
-    SQLite, que incluye lo que todavía está en el fichero -wal (copiar el
-    .db a mano lo perdería si hay conexiones abiertas). Devuelve el
+    """Copia la base de datos [origen] en [destino], sin cifrar y en un solo
+    fichero, de forma consistente: incluye lo que todavía está en el fichero
+    -wal (copiar el .db a mano lo perdería si hay conexiones abiertas) y sirve
+    también si la base de datos está cifrada (ver conexion_bd). Devuelve el
     resultado de comprobar la integridad de la copia: "ok" si está bien."""
-    fuente = sqlite3.connect(origen, timeout=20)
-    copia = sqlite3.connect(destino)
-    try:
-        fuente.backup(copia)
-        copia.execute("PRAGMA journal_mode=DELETE")   # copia de un solo fichero
-        resultado = copia.execute("PRAGMA integrity_check").fetchone()[0]
-    finally:
-        copia.close(); fuente.close()
-    return resultado
+    from .conexion_bd import copiar_sin_cifrar
+    return copiar_sin_cifrar(origen, destino)
 
 
 def anadir_bd_a_zip(zipf, ruta_bd, clave=None):

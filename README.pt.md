@@ -743,6 +743,11 @@ HTTPS usa a **porta seguinte** (por exemplo, 5000 e 5001), então, se houver um
 firewall, é preciso abrir as duas. Se algum dia expuser o servidor fora da rede
 local, faça isso por uma VPN.
 
+Os bancos de dados também podem ser salvos **criptografados** (`Ferramentas >
+Criptografia dos bancos de dados…`, SQLCipher): a chave fica no chaveiro do
+sistema e é mostrada uma chave de recuperação para você anotar. Vem desativado
+e não está disponível no pacote do openSUSE.
+
 ---
 
 ## 💾 Cópias de segurança

@@ -736,6 +736,11 @@ seguinte** (por exemplo, 5000 e 5001), así que se hai un cortalumes hai que
 abrir os dous. Se algunha vez expós o servidor fóra da rede local, faino a
 través dunha VPN.
 
+As bases de datos tamén se poden gardar **cifradas** (`Ferramentas > Cifrado
+das bases de datos…`, SQLCipher): a chave vai no chaveiro do sistema e
+móstrase unha chave de recuperación para apuntala. Vén desactivado e non está
+dispoñible no paquete de openSUSE.
+
 ---
 
 ## 💾 Copias de seguranza

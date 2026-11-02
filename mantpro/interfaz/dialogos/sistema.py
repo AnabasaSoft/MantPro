@@ -319,3 +319,102 @@ class DialogoContrasenaCopias(QDialog):
     def _quitar(self):
         self.accion = "quitar"
         self.accept()
+
+
+class DialogoClaveRecuperacion(QDialog):
+    """Muestra la clave de recuperación de las bases de datos cifradas para
+    apuntarla. Con «obligatorio», no deja seguir hasta marcar que se ha guardado."""
+
+    def __init__(self, clave_formateada, parent=None, obligatorio=True):
+        super().__init__(parent)
+        from PyQt6.QtWidgets import QApplication
+        self.setWindowTitle(tt("title_clave_recuperacion", "Clave de recuperación"))
+        self.setModal(True)
+        self.setMinimumWidth(560)
+        l = QVBoxLayout(self)
+        info = QLabel(tt("lbl_info_clave_recuperacion",
+            "Guarda esta clave en un sitio seguro y fuera de este ordenador (apuntada en papel, en un gestor de "
+            "contraseñas…). Si el llavero del sistema pierde la clave (sistema reinstalado, usuario nuevo…), "
+            "MantPro te la pedirá, y sin ella no se pueden abrir los datos."))
+        info.setWordWrap(True)
+        l.addWidget(info)
+        grupos = clave_formateada.split("-")
+        mitad = len(grupos) // 2
+        self.campo = QLabel("-".join(grupos[:mitad]) + "-\n" + "-".join(grupos[mitad:]))
+        self.campo.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.campo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.campo.setStyleSheet("font-family: monospace; font-size: 15px; font-weight: bold; padding: 8px;")
+        l.addWidget(self.campo)
+        fila = QHBoxLayout()
+        btn_copiar = QPushButton(tt("btn_copiar", "Copiar"))
+        btn_copiar.clicked.connect(lambda: QApplication.clipboard().setText(clave_formateada))
+        fila.addWidget(btn_copiar); fila.addStretch()
+        l.addLayout(fila)
+        caja = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        caja.accepted.connect(self.accept)
+        if obligatorio:
+            chk = QCheckBox(tt("chk_clave_guardada", "He guardado la clave de recuperación en un sitio seguro"))
+            l.addWidget(chk)
+            boton = caja.button(QDialogButtonBox.StandardButton.Ok)
+            boton.setEnabled(False)
+            chk.toggled.connect(boton.setEnabled)
+        l.addWidget(caja)
+
+    def reject(self):
+        # Mientras es obligatorio, no se puede cerrar sin marcar la casilla
+        if self.findChild(QCheckBox) is None:
+            super().reject()
+
+
+class DialogoCifradoBD(QDialog):
+    """Herramientas > Cifrado de las bases de datos: estado y acciones.
+    Al aceptar deja en self.accion "cifrar", "descifrar" o "ver_clave"."""
+
+    def __init__(self, parent=None, activo=False, disponible=True, hay_llavero=True):
+        super().__init__(parent)
+        self.accion = None
+        self.setWindowTitle(tt("title_cifrado_bd", "Cifrado de las bases de datos"))
+        self.setModal(True)
+        self.setMinimumWidth(500)
+        l = QVBoxLayout(self)
+        estado = QLabel("🔐 " + tt("lbl_bd_cifradas", "Las bases de datos están cifradas.") if activo
+                        else "🔓 " + tt("lbl_bd_sin_cifrar", "Las bases de datos no están cifradas."))
+        estado.setStyleSheet("font-weight: bold;")
+        l.addWidget(estado)
+        textos = [tt("lbl_info_cifrado_bd",
+            "Con el cifrado, mantenimiento.db y almacen.db se guardan cifradas (SQLCipher, AES-256): quien copie "
+            "los ficheros o se lleve el disco no puede leerlas. La clave se guarda en el llavero del sistema y "
+            "MantPro abre los datos solo, sin pedir nada. Las fotos no se cifran.\n\n"
+            "Las copias de seguridad llevan los datos sin cifrar, para poder restaurarlas en otro equipo: "
+            "protégelas con Archivo → Contraseña de las copias.\n\n"
+            "El cambio se hace al volver a abrir MantPro: al pulsar el botón, MantPro se cierra.")]
+        if not disponible:
+            textos.append("⚠️ " + tt("lbl_sin_sqlcipher",
+                "Esta instalación de MantPro no incluye SQLCipher, así que no puede cifrar las bases de datos. "
+                "Usa la versión de la página de descargas (Windows, AppImage, .deb, .rpm) o el cifrado de disco completo."))
+        elif not activo and not hay_llavero:
+            textos.append("⚠️ " + tt("lbl_sin_llavero",
+                "No se encuentra el llavero del sistema: la clave se guardaría en un fichero de la carpeta de datos, "
+                "que protege mucho menos (quien se lleve la carpeta entera puede abrir los datos)."))
+        for texto in textos:
+            for parrafo in texto.split("\n\n"):
+                lbl = QLabel(parrafo); lbl.setWordWrap(True)
+                lbl.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+                l.addWidget(lbl)
+
+        caja = QDialogButtonBox()
+        if activo:
+            if disponible:
+                caja.addButton(tt("btn_ver_clave_recuperacion", "Ver clave de recuperación"),
+                               QDialogButtonBox.ButtonRole.ActionRole).clicked.connect(lambda: self._elegir("ver_clave"))
+                caja.addButton(tt("btn_quitar_cifrado_bd", "Quitar el cifrado"),
+                               QDialogButtonBox.ButtonRole.DestructiveRole).clicked.connect(lambda: self._elegir("descifrar"))
+        elif disponible:
+            caja.addButton(tt("btn_cifrar_bd", "Cifrar las bases de datos"),
+                           QDialogButtonBox.ButtonRole.AcceptRole).clicked.connect(lambda: self._elegir("cifrar"))
+        caja.addButton(t("btn_cancelar"), QDialogButtonBox.ButtonRole.RejectRole).clicked.connect(self.reject)
+        l.addWidget(caja)
+
+    def _elegir(self, accion):
+        self.accion = accion
+        self.accept()

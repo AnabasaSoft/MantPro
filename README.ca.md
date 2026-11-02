@@ -741,6 +741,11 @@ el **port següent** (per exemple, 5000 i 5001), així que si hi ha un tallafoc
 cal obrir-los tots dos. Si mai exposes el servidor fora de la xarxa local,
 fes-ho a través d'una VPN.
 
+Les bases de dades també es poden desar **xifrades** (`Eines > Xifratge de
+les bases de dades…`, SQLCipher): la clau va al clauer del sistema i es mostra
+una clau de recuperació per apuntar-la. Ve desactivat i no està disponible al
+paquet d'openSUSE.
+
 ---
 
 ## 💾 Còpies de seguretat

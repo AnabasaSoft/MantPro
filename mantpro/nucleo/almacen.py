@@ -43,7 +43,7 @@ Uso desde la interfaz (mantpro/interfaz/app.py):
 """
 
 import re
-import sqlite3
+from .conexion_bd import sqlite3, conectar
 
 from . import nombres
 
@@ -60,7 +60,7 @@ def _conn():
     # timeout=20: igual que en main.py, para no dar "database is locked" cuando
     # el hilo del servidor Flask lee mientras el PC está escribiendo mucho
     # seguido (p. ej. al crear de golpe toda la estructura de un almacén).
-    con = sqlite3.connect(RUTA_DB, timeout=20)
+    con = conectar(RUTA_DB, timeout=20)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con

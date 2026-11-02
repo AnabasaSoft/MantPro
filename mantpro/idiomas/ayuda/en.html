@@ -102,6 +102,7 @@
 <li><b>📱 Install MantPro on phone</b> and <b>📦 Install MantPro Stock on phone:</b> show a QR code; scanning it with the phone's camera downloads the latest version of the app to install it.</li>
 <li><b>🔌 Sync port…:</b> change it only if another program uses the same port. The QR then has to be scanned again on the phones. MantPro uses that port and the next one (the latter for the encrypted connection): if there is a firewall, open both.</li>
 <li><b>👥 User management</b>, <b>🔐 Device sessions</b> (which phones are connected right now, and revoking their access) and <b>📋 Change log</b> (who edited or deleted each job).</li>
+<li><b>🔐 Database encryption…:</b> stores <code>mantenimiento.db</code> and <code>almacen.db</code> encrypted (SQLCipher), with the key in the system keyring: MantPro opens them by itself, but anyone who copies the files or takes the disk cannot read them. When it is turned on, a <b>recovery key</b> is shown that you must write down: MantPro asks for it if the keyring loses the key (system reinstalled, new user…). The change is made when MantPro is opened again.</li>
 <li><b>📅 Manage Days / Holidays</b> and <b>🌍 Country / Region (Holidays)</b>: special days in the calendar.</li>
 <li><b>🗑️ Maximum job retention time…:</b> deletes jobs older than the time you choose, after making a backup.</li>
 <li><b>🧹 Clean Orphan Photos:</b> deletes photos that no record uses any more.</li>

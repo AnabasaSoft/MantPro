@@ -51,6 +51,10 @@ Requires:       python3-requests
 # Traducciones de los botones estándar de Qt (Aceptar, Cancelar...) a los
 # idiomas de la app; sin ellas esos textos salen en inglés.
 Recommends:     qt6-translations
+# Para el cifrado de las bases de datos (la clave va en el llavero del sistema).
+# openSUSE no tiene el módulo de SQLCipher para Python: en este paquete la
+# opción aparece desactivada y se recomienda el cifrado de disco completo.
+Recommends:     python3-keyring
 BuildArch:      noarch
 
 %description

@@ -21,7 +21,6 @@
 """Arranque de la aplicación de escritorio: instancia única, login y ventana principal."""
 
 import sys
-import sqlite3
 import os
 import getpass
 import traceback
@@ -35,7 +34,7 @@ from ..idiomas import t
 from .app import MaintenanceApp
 from .comun import instalar_traductor_qt, resource_path, tt
 from .dialogos.usuarios import DialogoLogin
-from ..nucleo import usuarios
+from ..nucleo import usuarios, conexion_bd
 from ..nucleo.basedatos import reparar_base_datos
 from ..nucleo.rutas import DATA_DIR
 
@@ -102,6 +101,83 @@ def manejador_excepciones(exc_type, exc_value, exc_tb):
 sys.excepthook = manejador_excepciones
 
 
+def _idioma_del_sistema():
+    """Idioma del sistema, si MantPro lo tiene (para los avisos que salen antes
+    de poder leer el idioma guardado en la base de datos)."""
+    from PyQt6.QtCore import QLocale
+    codigo = QLocale.system().name()[:2]
+    return codigo if codigo in {c for c, _ in idiomas.IDIOMAS_DISPONIBLES} else "es"
+
+
+def preparar_bases_de_datos():
+    """Antes de abrir nada: aplica el cifrado o descifrado de las bases de
+    datos que haya pedido el administrador y, si están cifradas, consigue su
+    clave (del llavero o pidiendo la clave de recuperación). Devuelve False si
+    no se pueden abrir y hay que salir."""
+    from PyQt6.QtWidgets import QInputDialog, QLineEdit
+    titulo = tt("title_cifrado_bd", "Cifrado de las bases de datos")
+    accion = conexion_bd.conversion_pendiente()
+
+    def _clave_o_recuperacion():
+        """La clave de las bases de datos cifradas; si no está en el llavero,
+        la pide. None si se cancela."""
+        try:
+            conexion_bd.preparar()
+            return True
+        except conexion_bd.SinSQLCipher:
+            QMessageBox.critical(None, titulo, tt("msg_bd_sin_sqlcipher",
+                "Las bases de datos están cifradas y esta instalación de MantPro no incluye SQLCipher, "
+                "así que no puede abrirlas. Instala la versión de MantPro de la página de descargas."))
+            return False
+        except conexion_bd.ClaveNoDisponible:
+            pass
+        cifrada = next(r for r in conexion_bd.rutas_bd() if conexion_bd.esta_cifrada(r))
+        texto = tt("msg_pedir_clave_recuperacion",
+            "Las bases de datos están cifradas y su clave no está en el llavero del sistema "
+            "(por ejemplo, tras reinstalar el sistema o cambiar de usuario).\n\n"
+            "Escribe la clave de recuperación que se mostró al activar el cifrado:")
+        while True:
+            escrito, ok = QInputDialog.getText(None, titulo, texto, QLineEdit.EchoMode.Normal)
+            if not ok:
+                return False
+            clave = conexion_bd.leer_recuperacion(escrito)
+            if clave and conexion_bd.clave_abre(cifrada, clave):
+                conexion_bd.guardar_clave(clave)
+                conexion_bd.usar_clave(clave)
+                return True
+            texto = tt("msg_clave_recuperacion_mal",
+                "Esa clave no abre las bases de datos. Revisa que esté completa (64 letras y números) y vuelve a escribirla:")
+
+    if accion and not hay_otra_instancia():
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            if accion == "cifrar":
+                clave = conexion_bd.leer_clave_guardada()
+                if not clave:
+                    raise conexion_bd.ClaveNoDisponible()
+            else:
+                QApplication.restoreOverrideCursor()
+                if not _clave_o_recuperacion():
+                    return False
+                QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+                clave = conexion_bd._clave_hex
+            conexion_bd.convertir(accion, clave)
+            conexion_bd.cancelar_conversion()
+            if accion == "descifrar":
+                conexion_bd.usar_clave(None)
+                conexion_bd.borrar_clave_guardada()
+            QApplication.restoreOverrideCursor()
+            QMessageBox.information(None, titulo,
+                tt("msg_bd_cifradas", "Las bases de datos ya están cifradas.") if accion == "cifrar"
+                else tt("msg_bd_descifradas", "Las bases de datos ya no están cifradas."))
+        except Exception as e:
+            QApplication.restoreOverrideCursor()
+            conexion_bd.cancelar_conversion()
+            QMessageBox.critical(None, titulo, tt("msg_error_conversion_bd",
+                "No se han podido convertir las bases de datos; se quedan como estaban.\n\n{error}").format(error=e))
+    return _clave_o_recuperacion()
+
+
 def main():
     """Arranque de la aplicación de escritorio (lo llama main.py, en la raíz)."""
     global _ventana_principal
@@ -120,6 +196,11 @@ def main():
     if os.path.exists(ruta_icono):
         app_icon = QIcon(ruta_icono)
         app.setWindowIcon(app_icon)
+
+    # --- 1b. BASES DE DATOS CIFRADAS (antes de abrir ninguna) ---
+    idiomas.set_idioma(_idioma_del_sistema())
+    if not preparar_bases_de_datos():
+        sys.exit(1)
 
     # --- 2. REPARACIÓN DE BASE DE DATOS (CRÍTICO) ---
     # Esto es lo que faltaba. Sin esto, no se crea la columna 'raw_desc' y falla el sync.
@@ -148,7 +229,7 @@ def main():
     # copiar/pegar y los botones de los QMessageBox salgan en el idioma correcto
     # desde la primera pantalla, no solo tras abrir la ventana principal.
     try:
-        conn_idioma = sqlite3.connect(ruta_db)
+        conn_idioma = conexion_bd.conectar(ruta_db)
         fila_idioma = conn_idioma.execute(
             "SELECT valor FROM config WHERE clave = 'idioma'").fetchone()
         conn_idioma.close()

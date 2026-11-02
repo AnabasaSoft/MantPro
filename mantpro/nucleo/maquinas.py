@@ -32,7 +32,7 @@ Uso desde la interfaz (mantpro/interfaz/app.py):
     maquinas.inicializar()            # crea la tabla + migra la columna (idempotente)
 """
 
-import sqlite3
+from .conexion_bd import sqlite3, conectar
 from datetime import datetime
 
 from . import nombres
@@ -50,7 +50,7 @@ def _conn():
     # timeout=20: igual que en almacen.py/usuarios.py, para no dar "database
     # is locked" cuando el hilo del servidor Flask lee mientras el PC está
     # escribiendo mucho seguido en mantenimiento.db.
-    con = sqlite3.connect(RUTA_DB, timeout=20)
+    con = conectar(RUTA_DB, timeout=20)
     con.row_factory = sqlite3.Row
     return con
 

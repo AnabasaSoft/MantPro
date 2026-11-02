@@ -32,7 +32,7 @@ Uso desde la interfaz (mantpro/interfaz/app.py):
 El usuario autenticado se guarda en usuarios.SESION_ACTUAL (dict o None).
 """
 
-import sqlite3
+from .conexion_bd import sqlite3, conectar
 import hashlib
 import hmac
 import secrets
@@ -62,7 +62,7 @@ def _conn():
     # timeout=20: igual que en main.py, para no dar "database is locked" cuando
     # el hilo del servidor Flask comprueba la sesión de un móvil justo mientras
     # el PC está escribiendo mucho seguido (p. ej. al crear un almacén entero).
-    con = sqlite3.connect(RUTA_DB, timeout=20)
+    con = conectar(RUTA_DB, timeout=20)
     con.row_factory = sqlite3.Row
     return con
 

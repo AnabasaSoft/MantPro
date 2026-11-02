@@ -27,7 +27,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
-        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography
+        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography sqlcipher3-wheels keyring
 
     # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
     # nunca del valor que haya quedado escrito a mano en el código: así no
@@ -46,7 +46,7 @@ jobs:
 
     - name: Generar EXE
       run: |
-        pyinstaller --noconsole --onefile --name=MantPro_WIN --icon=recursos/icono.png --add-data "recursos;recursos" --add-data "mantpro/idiomas;mantpro/idiomas" main.py
+        pyinstaller --noconsole --onefile --copy-metadata keyring --collect-submodules keyring.backends --hidden-import sqlcipher3.dbapi2 --name=MantPro_WIN --icon=recursos/icono.png --add-data "recursos;recursos" --add-data "mantpro/idiomas;mantpro/idiomas" main.py
 
     - name: Build Windows Installer (Inno Setup)
       shell: bash
@@ -102,7 +102,7 @@ jobs:
     - name: Instalar Dependencias Python
       run: |
         pip install pyinstaller
-        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography
+        pip install PyQt6 reportlab requests flask qrcode xlsxwriter openpyxl pillow cryptography sqlcipher3-wheels keyring
 
     # La versión de la app sale siempre del tag de GitHub (v3.9.9 -> 3.9.9),
     # nunca del valor que haya quedado escrito a mano en el código: así no
@@ -121,7 +121,7 @@ jobs:
     # --- PASO 1: GENERAR BINARIO STANDALONE ---
     - name: Generar Binario Linux
       run: |
-        pyinstaller --noconfirm --onefile --windowed --icon=recursos/icono.png --add-data "recursos/icono.png:recursos" --add-data "recursos/AnabasaSoft.png:recursos" --add-data "mantpro/idiomas:mantpro/idiomas" --name "MantPro_Linux" main.py
+        pyinstaller --noconfirm --onefile --windowed --copy-metadata keyring --collect-submodules keyring.backends --hidden-import sqlcipher3.dbapi2 --icon=recursos/icono.png --add-data "recursos/icono.png:recursos" --add-data "recursos/AnabasaSoft.png:recursos" --add-data "mantpro/idiomas:mantpro/idiomas" --name "MantPro_Linux" main.py
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
     - name: Subir Binario Linux (Artefacto)

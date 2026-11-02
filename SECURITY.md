@@ -35,8 +35,11 @@ workshop Wi-Fi). Keep in mind:
   the one in the pairing QR code. During the transition the PC also answers
   over unencrypted HTTP on the configured port, for apps from earlier
   versions. Do not expose the sync ports to the internet.
-- **Data is stored unencrypted** on the PC (`mantenimiento.db`, `almacen.db`
-  and the photos folder). Protect the computer. **Backups can be encrypted**
+- **The databases can be encrypted** (`Tools > Database encryption…`,
+  SQLCipher/AES-256, key in the system keyring plus a recovery key). It is
+  off by default, and the openSUSE (OBS) package cannot use it because the
+  distribution has no SQLCipher module for Python. **Photos are not
+  encrypted.** Protect the computer. **Backups can be encrypted**
   with a password (`File > Backup password…`, AES-256-GCM with a scrypt-derived
   key); without one they are plain ZIP files.
 - On the first start the user `admin` / `admin` is created, and the program
@@ -49,7 +52,8 @@ workshop Wi-Fi). Keep in mind:
   system account keeps its own separate data. To protect the data on disk,
   use full-disk encryption (BitLocker on Windows, LUKS on Linux).
 
-Encrypting the data on disk is planned; meanwhile, use full-disk encryption.
+Full-disk encryption is still recommended: it also protects the photos and the
+temporary files.
 
 ### Verifying packages
 
@@ -99,8 +103,11 @@ la oficina o del taller). Ten en cuenta que:
   respondiendo también por HTTP sin cifrar en el puerto configurado, para las
   apps de versiones anteriores. No expongas los puertos de sincronización a
   internet.
-- **Los datos se guardan sin cifrar** en el PC (`mantenimiento.db`,
-  `almacen.db` y la carpeta de fotos). Protege el equipo. **Las copias de
+- **Las bases de datos se pueden cifrar** (`Herramientas > Cifrado de las
+  bases de datos…`, SQLCipher/AES-256, con la clave en el llavero del sistema y
+  una clave de recuperación). Viene desactivado, y el paquete de openSUSE (OBS)
+  no puede usarlo porque la distribución no tiene el módulo de SQLCipher para
+  Python. **Las fotos no se cifran.** Protege el equipo. **Las copias de
   seguridad se pueden cifrar** con contraseña (`Archivo > Contraseña de las
   copias…`, AES-256-GCM con la clave sacada con scrypt); sin ella son ZIP
   normales.
@@ -115,8 +122,8 @@ la oficina o del taller). Ten en cuenta que:
   datos del disco, usa el cifrado de disco completo (BitLocker en Windows,
   LUKS en Linux).
 
-Está previsto cifrar los datos en disco; mientras tanto, usa el cifrado de
-disco completo.
+Se sigue recomendando el cifrado de disco completo: protege también las fotos y
+los ficheros temporales.
 
 ### Verificar los paquetes
 

@@ -20,7 +20,7 @@
 
 """Acceso a la base de datos de trabajos (mantenimiento.db)."""
 
-import sqlite3
+from .conexion_bd import sqlite3, conectar
 import os
 import re
 
@@ -29,7 +29,7 @@ from .rutas import DATA_DIR
 
 # Función auxiliar para conectar de forma SEGURA
 def get_db_connection(db_path):
-    conn = sqlite3.connect(db_path, timeout=20) # 20 segundos de espera antes de dar error
+    conn = conectar(db_path, timeout=20) # 20 segundos de espera antes de dar error
     conn.row_factory = sqlite3.Row
     # ACTIVAR MODO WAL: Esto es vital para evitar lo que te ha pasado
     conn.execute("PRAGMA journal_mode=WAL;")
@@ -40,7 +40,7 @@ def get_db_connection(db_path):
 # --- FUNCIÓN PARA REPARAR LA BASE DE DATOS AUTOMÁTICAMENTE ---
 def reparar_base_datos(db_path):
     print(f"Verificando estructura de BD en: {db_path}")
-    conn = sqlite3.connect(db_path)
+    conn = conectar(db_path)
     c = conn.cursor()
 
     # 1. Intentar añadir columna 'raw_desc' si falta
@@ -86,7 +86,7 @@ class GestorBaseDatos:
         # timeout=20: igual que en almacen.py/usuarios.py/maquinas.py, para no
         # dar "database is locked" cuando el hilo del servidor Flask lee
         # mientras el PC está escribiendo mucho seguido en mantenimiento.db.
-        return sqlite3.connect(self.db_name, timeout=20)
+        return conectar(self.db_name, timeout=20)
 
     def inicializar_tablas(self):
         try:

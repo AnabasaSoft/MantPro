@@ -74,6 +74,19 @@ Las contraseñas se guardan con **PBKDF2-SHA256** (200.000 iteraciones y salt po
 usuario), nunca en claro. Las tablas y columnas nuevas se crean solas al
 arrancar, sin perder los datos existentes.
 
+**Conexiones**: todo el código abre las bases de datos con
+`conexion_bd.conectar()` y usa el `sqlite3` que exporta `mantpro/nucleo/conexion_bd.py`
+(nunca `import sqlite3` ni `sqlite3.connect` directamente), porque las bases de
+datos pueden estar cifradas con **SQLCipher** (*Herramientas → Cifrado de las
+bases de datos*). La clave (256 bits aleatorios, la misma para las dos bases
+de datos) va en el llavero del sistema con `keyring` y se pasa en bruto
+(`PRAGMA key = "x'…'"`); para adjuntar una base de datos se usa
+`conexion_bd.adjuntar()`. El cifrado y el descifrado se hacen al arrancar,
+antes de abrir ninguna conexión. Las copias de seguridad llevan las bases de
+datos sin cifrar (`copiar_sin_cifrar`) y, al restaurar, `restaurar_desde_plano`
+las vuelve a cifrar si hace falta. Si no está instalado `sqlcipher3`, se usa el
+`sqlite3` de Python y la opción aparece desactivada.
+
 > 🔐 `mantenimiento.db` contiene hashes de contraseñas y tokens de sesión.
 > Está en `.gitignore` por algo: no la subas nunca al repositorio.
 

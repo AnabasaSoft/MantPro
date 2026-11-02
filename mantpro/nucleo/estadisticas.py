@@ -23,7 +23,7 @@
 Se calculan a partir del historial (tabla tareas, que guarda quién hizo cada
 trabajo) y de los pendientes asignados. Sin Qt: solo lee la base de datos."""
 
-import sqlite3
+from .conexion_bd import sqlite3, conectar
 
 from . import usuarios
 
@@ -40,7 +40,7 @@ def es_preventivo(tags):
 
 def anios_disponibles(ruta_db):
     """Años con algún trabajo en el historial, del más reciente al más antiguo."""
-    con = sqlite3.connect(ruta_db)
+    con = conectar(ruta_db)
     filas = con.execute("SELECT DISTINCT substr(fecha, 1, 4) FROM tareas WHERE fecha GLOB '[0-9][0-9][0-9][0-9]*' ORDER BY 1 DESC").fetchall()
     con.close()
     return [int(f[0]) for f in filas]
@@ -55,7 +55,7 @@ def por_tecnico(ruta_db, anio=None, tipo=None):
     tipo: None (todos), "preventivos" (solo mantenimiento preventivo) o
     "trabajos" (averías y demás trabajos). Con "preventivos" no se cuentan
     los pendientes, que son trabajos por hacer y no preventivos."""
-    con = sqlite3.connect(ruta_db)
+    con = conectar(ruta_db)
     sql = "SELECT COALESCE(NULLIF(TRIM(usuario_nombre), ''), ?), fecha, tags, horas_paro FROM tareas"
     parametros = [usuarios.ETIQUETA_HISTORICO]
     if anio:

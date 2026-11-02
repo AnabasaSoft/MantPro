@@ -75,6 +75,18 @@ Passwords are stored with **PBKDF2-SHA256** (200,000 iterations and a
 per-user salt), never in plain text. New tables and columns are created
 automatically at startup, without losing existing data.
 
+**Connections**: all code opens the databases with `conexion_bd.conectar()`
+and uses the `sqlite3` exported by `mantpro/nucleo/conexion_bd.py` (never
+`import sqlite3` or `sqlite3.connect` directly), because the databases may be
+encrypted with **SQLCipher** (*Tools → Database encryption*). The key (256
+random bits, the same for both databases) is kept in the system keyring with
+`keyring` and passed raw (`PRAGMA key = "x'…'"`); to attach a database use
+`conexion_bd.adjuntar()`. Encrypting and decrypting happen at startup, before
+any connection is opened. Backups contain the databases unencrypted
+(`copiar_sin_cifrar`) and, when restoring, `restaurar_desde_plano` encrypts
+them again if needed. If `sqlcipher3` is not installed, Python's `sqlite3` is
+used and the option is disabled.
+
 > 🔐 `mantenimiento.db` contains password hashes and session tokens.
 > It is in `.gitignore` for a reason: never push it to the repository.
 

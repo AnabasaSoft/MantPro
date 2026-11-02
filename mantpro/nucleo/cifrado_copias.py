@@ -53,7 +53,6 @@ import hmac
 import json
 import os
 import shutil
-import sqlite3
 import tempfile
 import zipfile
 import zlib
@@ -64,6 +63,7 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from .rutas import DATA_DIR
 from .seguridad import escribir_atomico
+from . import conexion_bd
 
 MAGIA = b"MPC1"
 EXTENSION = ".mpc"
@@ -296,18 +296,17 @@ def restaurar_bd(zipf, nombre, ruta_bd, claves):
     try:
         with open(temporal, "wb") as destino:
             leer_entrada(zipf, nombre, destino, claves)
-        fuente = sqlite3.connect(temporal)
+        fuente = conexion_bd.conectar_plano(temporal)
         try:
             resultado = fuente.execute("PRAGMA integrity_check").fetchone()[0]
-            if resultado != "ok":
-                raise ErrorCifrado(f"{nombre_real(nombre)}: {resultado}")
-            destino_bd = sqlite3.connect(ruta_bd, timeout=20)
-            try:
-                fuente.backup(destino_bd)
-            finally:
-                destino_bd.close()
+        except conexion_bd.sqlite3.DatabaseError as ex:
+            resultado = str(ex)   # no es una base de datos (p. ej. copia cifrada con SQLCipher)
         finally:
             fuente.close()
+        if resultado != "ok":
+            raise ErrorCifrado(f"{nombre_real(nombre)}: {resultado}")
+        # Si la base de datos de destino está cifrada, sigue cifrada
+        conexion_bd.restaurar_desde_plano(temporal, ruta_bd)
     finally:
         try: os.remove(temporal)
         except OSError: pass
