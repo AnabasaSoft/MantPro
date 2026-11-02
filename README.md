@@ -251,7 +251,7 @@ Applies to both `mantenimiento_app` (jobs) and `mantpro_stock_app` (stock):
 
 - **Flutter**: 3.0 or later
 - **Dart SDK**: 2.17 or later
-- **Android**: API Level 21+ (Android 5.0+)
+- **Android**: API Level 24+ (Android 7.0+)
 
 ---
 

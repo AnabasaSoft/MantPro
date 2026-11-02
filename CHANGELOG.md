@@ -25,6 +25,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **Pestaña Registrar**: se quita el botón «Sincronizar App», que ya está en *Herramientas → 📲 Sincronizar App (QR)*.
 
 ### Correcciones
+- **Las versiones de pruebas se publican solas como *pre-release*** en GitHub. Antes había que marcarlas a mano: si se olvidaba, a quien usa la versión estable se le ofrecía la de pruebas y el QR de *Instalar en móvil* descargaba la de pruebas.
 - **Restaurar una copia con MantPro abierto**: la base de datos se sobrescribía como fichero y podía mezclarse con el `-wal` que seguía en la carpeta. Ahora se comprueba la copia antes de tocar nada (si está dañada no se restaura) y se escribe con la API de copia de SQLite. Las fotos que no se puedan sacar de una copia automática se avisan en vez de saltarse en silencio.
 - **Copias de seguridad que podían perder los últimos cambios**: con MantPro abierto, lo guardado más recientemente puede estar todavía en el fichero `-wal` de SQLite, y las copias solo guardaban el `.db`. Ahora se hace una copia consistente de cada base de datos, se comprueba su integridad (avisando si hay errores) y el ZIP se escribe en un temporal que solo se renombra al terminar, así que un corte a mitad no deja una copia rota.
 - **Pestaña Registrar**: en pantallas bajas o al sacar la ventana de maximizada, los recuadros de las fotos y los botones «Añadir fotos» / «Quitar» se dibujaban unos encima de otros y el botón «Guardar registro» quedaba cortado. Ahora, si el formulario no cabe, aparece una barra de desplazamiento.

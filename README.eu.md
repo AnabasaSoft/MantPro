@@ -256,7 +256,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
 - **Flutter**: 3.0 edo berriagoa
 - **Dart SDK**: 2.17 edo berriagoa
-- **Android**: API Level 21+ (Android 5.0+)
+- **Android**: API Level 24+ (Android 7.0+)
 
 ---
 

@@ -255,7 +255,7 @@ Valable aussi bien pour `mantenimiento_app` (interventions) que pour `mantpro_st
 
 - **Flutter** : 3.0 ou supérieur
 - **Dart SDK** : 2.17 ou supérieur
-- **Android** : API Level 21+ (Android 5.0+)
+- **Android** : API Level 24+ (Android 7.0+)
 
 ---
 

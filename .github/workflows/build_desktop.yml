@@ -63,6 +63,9 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
+        # Las versiones de pruebas (v3.10.3-dev, -rc.1…) se publican como pre-release:
+        # así no se ofrecen a quien usa la estable ni salen en releases/latest (QR de instalar).
+        prerelease: ${{ contains(github.ref_name, '-') }}
         files: |
           dist/MantPro_WIN.exe
           Output/MantPro_Setup_v*.exe
@@ -214,6 +217,9 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
+        # Las versiones de pruebas (v3.10.3-dev, -rc.1…) se publican como pre-release:
+        # así no se ofrecen a quien usa la estable ni salen en releases/latest (QR de instalar).
+        prerelease: ${{ contains(github.ref_name, '-') }}
         files: |
           dist/MantPro_Linux
           MantPro-Linux-x86_64.AppImage
