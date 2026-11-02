@@ -73,16 +73,18 @@
 <li>Selecting it shows its reliability indicators (breakdowns, MTBF and MTTR).</li>
 <li><b>🏷️ QR labels</b> creates a PDF of labels (24 per A4 sheet, 70 × 37 mm) to stick on the machines. Scanning them with the MantPro app opens that machine's page.</li>
 <li><b>🔩 Spare parts:</b> below the tree you see the warehouse items fitted to the selected machine, how many it has, how many are in stock (in red if below the minimum) and where they are. Add them with <b>➕ Add spare part</b>; double-click to go to the item in Stock. On the phone they appear in the machine's page, and in Warehouse stock each item shows which machines use it; you can also link it to its machines when creating or editing it.</li>
+<li><b>💶 Spare parts cost:</b> how much has been spent on spare parts for each machine, including its sub-machines, by year: the most expensive at the top and, when you select one, which items were used, how many and their cost. It can be exported to Excel. The machine's spare parts are listed first when noting the parts used in a job, both on the PC and on the phone.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Warehouse stock</h2>
 <p>The warehouse is organised into <b>zones → shelving units → shelves → sections</b> (sections are optional). Only an administrator can change that structure, with <b>⚙️ Configure warehouse</b>.</p>
 <ul>
-<li><b>➕ Add material:</b> code, name, description, unit, minimum stock, location and photo.</li>
+<li><b>➕ Add material:</b> code, name, description, unit, minimum stock, location, photo and unit price (administrators only).</li>
 <li><b>📥 Stock in / 📤 Stock out:</b> records stock movements with an optional reason. A manual stock out cannot leave the stock negative.</li>
 <li>To <b>move</b> items to another place, select them and use the right mouse button.</li>
 <li>When you select an item, its movement history appears below. <b>📜 History</b> shows every movement in the warehouse in order.</li>
 <li><b>📄 Export</b> outputs the stock, all of it or one zone or shelving unit, to PDF, CSV or Excel.</li>
+<li><b>💶 Prices:</b> each item can have a <b>unit price</b>, used for the cost of the spare parts used in jobs. <b>Only an administrator can set or change it</b> (also from MantPro Stock). The currency is chosen in <i>⚙️ Configure warehouse</i>. A job's cost is saved with the price at that moment: if the price changes later, what has already been done does not change.</li>
 </ul>
 <p>Stock is shown in <b>red</b> when it is below the minimum and in <b>green</b> when it is above it.</p>
 

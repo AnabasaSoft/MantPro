@@ -73,16 +73,18 @@
 <li>En la sélectionnant, ses indicateurs de fiabilité s'affichent (pannes, MTBF et MTTR).</li>
 <li><b>🏷️ Étiquettes QR</b> génère un PDF d'étiquettes (24 par feuille A4, de 70 × 37 mm) à coller sur les machines. En les scannant avec l'application MantPro, la fiche de la machine s'ouvre.</li>
 <li><b>🔩 Pièces de rechange :</b> sous l'arborescence, vous voyez les articles du magasin montés sur la machine sélectionnée, combien elle en porte, combien il y en a en stock (en rouge si sous le minimum) et où ils se trouvent. Ajoutez-les avec <b>➕ Ajouter une pièce</b> ; un double-clic ouvre l'article dans Stock. Sur le mobile, elles apparaissent dans la fiche de la machine, et dans Stock du magasin chaque article indique les machines qui l'utilisent ; vous pouvez aussi l'associer à ses machines en le créant ou en le modifiant.</li>
+<li><b>💶 Coût des pièces :</b> combien a été dépensé en pièces pour chaque machine, sous-machines comprises, par année : les plus coûteuses en haut et, en en choisissant une, quels articles ont été utilisés, combien et pour quel montant. Exportable vers Excel. Les pièces de la machine apparaissent en premier quand on note celles utilisées dans une intervention, sur le PC comme sur le mobile.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Stock du magasin</h2>
 <p>Le magasin est organisé en <b>zones → rayonnages → tablettes → sections</b> (les sections sont facultatives). Seul un administrateur peut changer cette structure, avec <b>⚙️ Configurer le magasin</b>.</p>
 <ul>
-<li><b>➕ Ajouter un article :</b> code, nom, description, unité, stock minimum, emplacement et photo.</li>
+<li><b>➕ Ajouter un article :</b> code, nom, description, unité, stock minimum, emplacement, photo et prix unitaire (administrateurs uniquement).</li>
 <li><b>📥 Entrée / 📤 Sortie :</b> enregistre des mouvements de stock avec un motif facultatif. Une sortie manuelle ne peut pas rendre le stock négatif.</li>
 <li>Pour <b>déplacer</b> des articles, sélectionnez-les et utilisez le bouton droit.</li>
 <li>Quand vous sélectionnez un article, son historique de mouvements s'affiche en dessous. <b>📜 Historique</b> montre tous les mouvements du magasin à la suite.</li>
 <li><b>📄 Exporter</b> sort le stock, complet ou d'une zone ou d'un rayonnage, en PDF, CSV ou Excel.</li>
+<li><b>💶 Prix :</b> chaque article peut avoir un <b>prix unitaire</b>, utilisé pour le coût des pièces utilisées dans les interventions. <b>Seul un administrateur peut le définir ou le modifier</b> (aussi depuis MantPro Stock). La devise se choisit dans <i>⚙️ Configurer le magasin</i>. Le coût d'une intervention est enregistré avec le prix du moment : si le prix change ensuite, ce qui a déjà été fait ne change pas.</li>
 </ul>
 <p>Le stock apparaît en <b>rouge</b> s'il est sous le minimum et en <b>vert</b> s'il est au-dessus.</p>
 

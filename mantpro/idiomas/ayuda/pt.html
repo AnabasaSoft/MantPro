@@ -73,16 +73,18 @@
 <li>Ao selecioná-la são exibidos seus indicadores de confiabilidade (falhas, MTBF e MTTR).</li>
 <li><b>🏷️ Etiquetas QR</b> gera um PDF de etiquetas (24 por folha A4, de 70 × 37 mm) para colar nas máquinas. Ao escaneá-las com o aplicativo MantPro, abre-se a ficha daquela máquina.</li>
 <li><b>🔩 Peças de reposição:</b> abaixo da árvore você vê os itens do almoxarifado montados na máquina selecionada, quantos ela leva, quantos há em estoque (em vermelho se abaixo do mínimo) e onde estão. Adicione-os com <b>➕ Adicionar peça</b>; com clique duplo você vai ao item no Estoque. No celular aparecem na ficha da máquina, e no Estoque do almoxarifado cada item mostra em quais máquinas é usado; você também pode associá-lo às máquinas ao criá-lo ou editá-lo.</li>
+<li><b>💶 Custo de peças:</b> quanto foi gasto em peças em cada máquina, incluindo as submáquinas, por ano: as que mais custam no topo e, ao escolher uma, quais itens foram usados, quantos e por quanto. Pode ser exportado para Excel. As peças da máquina aparecem primeiro ao anotar as usadas em um serviço, tanto no PC quanto no celular.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Estoque do almoxarifado</h2>
 <p>O almoxarifado é organizado em <b>zonas → estantes → prateleiras → seções</b> (as seções são opcionais). Só um administrador pode alterar essa estrutura, com <b>⚙️ Configurar almoxarifado</b>.</p>
 <ul>
-<li><b>➕ Adicionar material:</b> código, nome, descrição, unidade, estoque mínimo, localização e foto.</li>
+<li><b>➕ Adicionar material:</b> código, nome, descrição, unidade, estoque mínimo, localização, foto e preço unitário (somente administradores).</li>
 <li><b>📥 Entrada / 📤 Saída:</b> registra movimentações de estoque com um motivo opcional. Uma saída manual não pode deixar o estoque negativo.</li>
 <li>Para <b>mover</b> itens de lugar, selecione-os e use o botão direito.</li>
 <li>Ao selecionar um item, abaixo aparece o histórico de movimentações dele. <b>📜 Histórico</b> mostra todas as movimentações do almoxarifado em sequência.</li>
 <li><b>📄 Exportar</b> gera o estoque, inteiro ou de uma zona ou estante, em PDF, CSV ou Excel.</li>
+<li><b>💶 Preços:</b> cada item pode ter <b>preço unitário</b>, usado para o custo das peças usadas nos serviços. <b>Só um administrador pode definir ou alterar o preço</b> (também pelo MantPro Stock). A moeda é escolhida em <i>⚙️ Configurar almoxarifado</i>. O custo de um serviço é salvo com o preço daquele momento: se o preço mudar depois, o que já foi feito não muda.</li>
 </ul>
 <p>O estoque aparece em <b>vermelho</b> se estiver abaixo do mínimo e em <b>verde</b> se estiver acima.</p>
 

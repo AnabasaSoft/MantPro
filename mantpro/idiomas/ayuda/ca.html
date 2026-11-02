@@ -73,16 +73,18 @@
 <li>En seleccionar-la es mostren els seus indicadors de fiabilitat (avaries, MTBF i MTTR).</li>
 <li><b>🏷️ Etiquetes QR</b> genera un PDF d'etiquetes (24 per full A4, de 70 × 37 mm) per enganxar a les màquines. En escanejar-les amb l'app MantPro s'obre la fitxa d'aquella màquina.</li>
 <li><b>🔩 Recanvis:</b> a sota de l'arbre hi veus els articles del magatzem que porta la màquina seleccionada, quants en porta, quants n'hi ha en estoc (en vermell si és per sota del mínim) i on són. Afegeix-los amb <b>➕ Afegir recanvi</b>; amb doble clic vas a l'article a Estoc. Al mòbil apareixen a la fitxa de la màquina, i a Estoc de magatzem cada article diu en quines màquines s'utilitza; també el pots associar a les seves màquines en crear-lo o editar-lo.</li>
+<li><b>💶 Cost de recanvis:</b> quant s'ha gastat en recanvis a cada màquina, sumant-hi les submàquines, per any: a dalt les que costen més i, en triar-ne una, quins articles s'han fet servir, quants i per quant. S'exporta a Excel. Els recanvis de la màquina surten primer en apuntar els utilitzats en un treball, tant al PC com al mòbil.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Estoc de magatzem</h2>
 <p>El magatzem s'organitza en <b>zones → prestatgeries → prestatges → seccions</b> (les seccions són opcionals). Només un administrador pot canviar aquesta estructura, amb <b>⚙️ Configurar magatzem</b>.</p>
 <ul>
-<li><b>➕ Afegir material:</b> codi, nom, descripció, unitat, estoc mínim, ubicació i foto.</li>
+<li><b>➕ Afegir material:</b> codi, nom, descripció, unitat, estoc mínim, ubicació, foto i preu unitari (només administradors).</li>
 <li><b>📥 Entrada / 📤 Sortida:</b> registra moviments d'estoc amb un motiu opcional. Una sortida manual no pot deixar l'estoc en negatiu.</li>
 <li>Per <b>moure</b> articles de lloc, selecciona'ls i fes servir el botó dret.</li>
 <li>En seleccionar un article, a sota veus el seu historial de moviments. <b>📜 Historial</b> mostra tots els moviments del magatzem seguits.</li>
 <li><b>📄 Exportar</b> treu l'estoc, sencer o d'una zona o prestatgeria, a PDF, CSV o Excel.</li>
+<li><b>💶 Preus:</b> cada article pot tenir <b>preu unitari</b>, que es fa servir per al cost dels recanvis utilitzats en els treballs. <b>Només un administrador el pot posar o canviar</b> (també des de MantPro Stock). La moneda es tria a <i>⚙️ Configura el magatzem</i>. El cost d'un treball es desa amb el preu d'aquell moment: si el preu canvia després, el que ja s'ha fet no canvia.</li>
 </ul>
 <p>L'estoc es veu en <b>vermell</b> si està per sota del mínim i en <b>verd</b> si està per sobre.</p>
 
