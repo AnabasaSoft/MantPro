@@ -83,6 +83,7 @@ _CAMPOS = {
     "Última vez completado": "aud_f_ultima", "Puerto de sincronización": "aud_f_puerto",
     "País (festivos)": "aud_f_pais", "Región (festivos)": "aud_f_region",
     "Región superior (festivos)": "aud_f_region_superior", "Idioma": "aud_f_idioma",
+    "Precio unitario": "aud_f_precio", "Moneda": "aud_f_moneda",
 }
 
 

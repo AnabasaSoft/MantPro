@@ -39,7 +39,8 @@ from ...nucleo import usuarios
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria, quitar_marcas_foto
 
 class EditDialog(QDialog):
-    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, horas_paro=None):
+    def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, horas_paro=None,
+                 repuestos=None):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
@@ -141,6 +142,13 @@ class EditDialog(QDialog):
         self.chk_averia.toggled.connect(self.spin_horas_paro.setEnabled)
         fila_horas_paro.addWidget(self.spin_horas_paro)
         l.addLayout(fila_horas_paro)
+
+        # Repuestos usados: al cambiarlos se ajusta el stock por la diferencia
+        from ..widgets.repuestos import RepuestosUsadosWidget
+        self.repuestos = RepuestosUsadosWidget(self, repuestos or [])
+        self.repuestos.set_maquina(self.combo_maquina.currentData())
+        self.combo_maquina.currentIndexChanged.connect(lambda _i: self.repuestos.set_maquina(self.combo_maquina.currentData()))
+        l.addWidget(self.repuestos)
 
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -328,6 +336,9 @@ class CompleteDialog(QDialog):
         l.addWidget(QLabel(t("lbl_otros_tags"))); self.tag = QLineEdit(); self.tag.setPlaceholderText(t("ph_ejemplo_tags")); l.addWidget(self.tag)
         self.galeria = GaleriaFotosWidget(self.carpeta_fotos, self, fotos_galeria(detalles))
         l.addWidget(self.galeria)
+        from ..widgets.repuestos import RepuestosUsadosWidget
+        self.repuestos = RepuestosUsadosWidget(self)
+        l.addWidget(self.repuestos)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
     def click_foto(self, e):
         if self.foto_filename:

@@ -151,4 +151,7 @@ const Map<String, String> traduccionesEu = {
     "msg_error_descarga_actualizacion": "Ezin izan da eguneraketa deskargatu. Egiaztatu interneteko konexioa.",
     "btn_abrir_github": "Ireki GitHub",
     "login_bloqueado": "Saiakera huts gehiegi. Itxaron {min} minutu eta saiatu berriro.",
+    // --- Precio de los artículos ---
+    "lbl_precio_unitario": "Unitateko prezioa",
+    "ph_precio": "prezio gabe",
 };

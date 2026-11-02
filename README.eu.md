@@ -184,6 +184,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **📖 Laguntza integratua**: `Laguntza > 📖 Jarraibideak` aukerak eskuliburu osoa irekitzen du ataletan (lehen urratsak, erabiltzaileak, fitxa bakoitza, menuak, mugikorreko aplikazioak eta ohiko arazoak), aurkibide eta bilatzailearekin, 7 hizkuntzetan. **F1** sakatuta, zauden fitxaren atalean irekitzen da zuzenean
 - **👥 Teknikarien estatistikak**: Aginte-mahaiko botoia, teknikari bakoitzaren lanak urteka eta hilabeteka, matxurak, prebentiboak, geldialdi-orduak eta une honetan esleituta dituen lanak erakusten dituena, barra-grafikoarekin; motaren arabera iragazten da (guztiak, lanak eta matxurak edo mantentze prebentiboa) eta PDFra (logoarekin) eta Excelera esportatzen da
 - **🔩 Makina bakoitzeko ordezko piezak**: makina bakoitzak biltegiko zein artikulu daramatzan eta zenbat, haien stockarekin eta kokapenarekin, eta artikulu bakoitza zein makinatan erabiltzen den (ikus [Makineria](#-makineria))
+- **💶 Erabilitako ordezko piezak eta haien kostua**: lan bat erregistratzean, osatzean edo editatzean erabilitako ordezko piezak idazten dira (makinarenak lehenengo proposatzen dira); stocketik ateratzen dira eta lanarekin batera gordetzen dira momentu horretako prezioarekin, beraz kostua ez da aldatzen prezioa gero aldatzen bada ere. Zuzentzean stocka doitzen da. Artikulu bakoitzak unitateko prezioa izan dezake (txanpona konfiguragarria). `Makinak > 💶 Ordezko piezen kostua` atalak makina bakoitzeko kostua erakusten du, azpimakinak barne, urteka eta Excelera esportagarria; historian, PDFan, Excelen eta CSVan agertzen dira
 - **🏷️ Makina bakoitzeko QR etiketak**: makinetan itsasteko etiketen PDFa; MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen da
 - **🔍 Bikoiztuen abisua**: makina bat sortzean edo izena aldatzean, edo artikulu bat sortzean edo editatzean, kode bera edo izen bera edo oso antzekoa duen beste bat badagoen abisatzen du (adib. «Finoen erauzgailua» / «Finoen erauzketa»), zenbakia bakarrik aldatzen denean abisatu gabe («Lora 1» / «Lora 2»)
 - **📲 Aplikazioak QR batekin instalatu**: `Tresnak > 📱 Instalatu MantPro mugikorrean` eta `📦 Instalatu MantPro Stock mugikorrean` aukerek QR bat erakusten dute; mugikorraren kamerarekin eskaneatzean aplikazioaren azken bertsio egonkorra deskargatzen da
@@ -206,7 +207,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **☑️ Egiaztapen-zerrendak**: zerrenda duten abisuek eta lanek hura betetzeko eskatzen dute osatzean (ondo / gaizki / ez dagokio eta irakurketak), konexiorik gabe ere; historiak betetako zerrenda erakusten du
 - **🔌 Konexiorik gabeko modua**: Lan egin konexiorik gabe eta sinkronizatu ahal duzunean
 - **⏰ Eguneroko gogorarazleak**: Jakinarazpen automatikoa 8:00etan (ordu lokala) osatu gabeko lanak badaude
-- **🧰 Erabilitako materiala**: Gehitu lanari erabili duzun biltegiko materiala, izenaren edo kodearen arabera bilatuz; gordetzean stocketik automatikoki kentzen da (ikusi [Lan batean erabilitako materiala](#-biltegiko-stocka))
+- **🧰 Erabilitako materiala**: Gehitu lanari erabili duzun biltegiko materiala, izenaren edo kodearen arabera bilatuz; gordetzean stocketik automatikoki kentzen da (ikusi [Lan batean erabilitako materiala](#-biltegiko-stocka)). Abisu bat osatzean ere ordezko piezak idatz daitezke, makinarenak lehenengo agertzen dira, eta historiako lan bat zuzentzean stocka doitzen da
 - **🏭 Makina lotu**: Aukeratu goitibeherako zerrenda batean lana zein makinatan edo azpimakinatan egin den, bai erregistro berri bat sortzean, bai historian dagoeneko sinkronizatutako bat editatzean
 - **🔄 Atzeko planoan konektatuta**: aplikazioa irekita dagoen bitartean, atzeko planoan egon arren, ordenagailuarekin sinkronizatzen jarraitzen du eta jakinarazpen bat erakusten du («Ordenagailura konektatuta» / «Ordenagailuarekin konexiorik gabe») «Itxi» botoiarekin. Guztiz ixtean bateria gastatzeari uzten dio
 - **📶 Lehen sinkronizazioa aurrerapenarekin**: aurrerapen-barra datuak eta argazkiak deskargatzean, paraleloan deskargatuta azkarrago izan dadin
@@ -820,7 +821,7 @@ Segurtasun-akatsetarako, ikus [SECURITY.md](SECURITY.md).
 
 Datozenak, datarik gabe eta ordena itxirik gabe:
 
-- **Lan bakoitzean erabilitako ordezko piezak**, makina bakoitzeko materialaren kostuarekin
+- **Esku-lanaren kostua** (teknikari bakoitzaren orduko prezioa) materialarenari gehitzeko
 - **Hornitzaileak, prezioak eta erosketa-eskaerak** gutxienekotik beherako stocketik abiatuta
 - **Kontagailu bidezko prebentiboa** (erabilera-orduak, zikloak, km), dataz gain
 - **Lan egindako denbora eta sinadura** lana ixtean (mugikorrean ere)
@@ -832,7 +833,7 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
 - Hizkuntza gehiago (italiera, alemana…) eta iPhonerako aplikazioa
 
-Berriki egina: egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
+Berriki egina: lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

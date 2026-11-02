@@ -111,6 +111,8 @@ class Articulo {
   // en el servidor) puede no reflejarla todavía, así que la pantalla debe
   // enseñar esta en su lugar.
   final String? fotoLocal;
+  /// Precio unitario (para el coste de los repuestos en los trabajos), o null.
+  final double? precio;
 
   Articulo({
     required this.id,
@@ -125,6 +127,7 @@ class Articulo {
     required this.ubicacion,
     this.baldaIdPendiente,
     this.fotoLocal,
+    this.precio,
   });
 
   bool get bajoMinimo => stockActual <= 0 || stockActual < stockMinimo;
@@ -140,6 +143,7 @@ class Articulo {
         seccionId: j['seccion_id'],
         foto: (j['foto'] as String?)?.isEmpty == true ? null : j['foto'],
         ubicacion: j['ubicacion'] ?? '',
+        precio: (j['precio'] as num?)?.toDouble(),
       );
 
   /// Copia con la cantidad actual ajustada en [delta]. Se usa para reflejar en
@@ -157,6 +161,7 @@ class Articulo {
         ubicacion: ubicacion,
         baldaIdPendiente: baldaIdPendiente,
         fotoLocal: fotoLocal,
+        precio: precio,
       );
 }
 

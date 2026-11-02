@@ -140,4 +140,7 @@ const Map<String, String> traduccionesPt = {
   "msg_error_descarga_actualizacion": "Não foi possível baixar a atualização. Verifique a conexão com a internet.",
   "btn_abrir_github": "Abrir GitHub",
   "login_bloqueado": "Muitas tentativas sem sucesso. Aguarde {min} minutos e tente de novo.",
+    // --- Precio de los artículos ---
+    "lbl_precio_unitario": "Preço unitário",
+    "ph_precio": "sem preço",
 };

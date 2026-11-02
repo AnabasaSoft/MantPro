@@ -59,7 +59,9 @@ class PestanaMaquinas:
         b_contraer = QPushButton(tt("btn_contraer_todo", "⬆️ Contraer todo"))
         b_qr = QPushButton(tt("btn_etiquetas_qr", "🏷️ Etiquetas QR")); b_qr.clicked.connect(self._maquinas_etiquetas_qr)
         b_qr.setToolTip(tt("tt_etiquetas_qr", "PDF con etiquetas QR para pegar en las máquinas: al escanearlas con MantPro se abre su ficha."))
-        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_qr]: h_tools.addWidget(b)
+        b_coste = QPushButton(tt("btn_coste_repuestos", "💶 Coste de repuestos")); b_coste.clicked.connect(self._maquinas_coste_repuestos)
+        b_coste.setToolTip(tt("tt_coste_repuestos", "Repuestos usados en los trabajos de cada máquina y su coste, por año."))
+        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_qr, b_coste]: h_tools.addWidget(b)
         h_tools.addStretch()
         l.addLayout(h_tools)
 
@@ -576,6 +578,11 @@ class PestanaMaquinas:
             maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
             self.refrescar_arbol_maquinas()
             self._maquina_mostrar_foto_seleccionada()
+
+    def _maquinas_coste_repuestos(self):
+        from ..dialogos.costes import DialogoCosteRepuestos
+        id_maquina, _nombre = self._maquina_seleccionada()
+        DialogoCosteRepuestos(self, self.db, id_maquina).exec()
 
     def _maquinas_etiquetas_qr(self):
         """PDF con etiquetas QR (70 × 37 mm, 24 por folio A4) de la máquina

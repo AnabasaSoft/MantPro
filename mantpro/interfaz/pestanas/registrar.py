@@ -34,6 +34,8 @@ from ..comun import (_crear_checks_etiquetas, _estilo_zona_arrastre, _poblar_com
                      _tags_desde_checks, tt)
 from ..widgets.fotos import DialogoSelectorFoto, GaleriaFotosWidget, LabelArrastrable, VisorFoto
 from ...nucleo.fotos import con_fotos_galeria
+from ...nucleo import consumos, usuarios
+from ..widgets.repuestos import RepuestosUsadosWidget
 
 class PestanaRegistrar:
     """Pestaña «Registrar»: alta directa de trabajos.
@@ -89,6 +91,10 @@ class PestanaRegistrar:
         fila_horas_paro_entry.addWidget(self.spin_horas_paro_entry)
         l.addLayout(fila_horas_paro_entry)
 
+        self.repuestos_entry = RepuestosUsadosWidget(self)
+        self.combo_maquina_entry.currentIndexChanged.connect(
+            lambda _i: self.repuestos_entry.set_maquina(self.combo_maquina_entry.currentData()))
+        l.addWidget(self.repuestos_entry)
         b_save = QPushButton(t("btn_guardar_registro")); b_save.setMinimumHeight(45); b_save.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white;"); b_save.clicked.connect(self.save_entry); l.addWidget(b_save); l.addStretch()
         # Dentro de una zona con desplazamiento: en pantallas bajas (o al sacar
         # la ventana de maximizada) el formulario no cabe y, sin ella, Qt lo
@@ -154,7 +160,12 @@ class PestanaRegistrar:
         if manuales: lista_tags.append(manuales)
         maquina_id = self.combo_maquina_entry.currentData()
         horas_paro = self.spin_horas_paro_entry.value() if self.chk_averia.isChecked() else None
-        if self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, horas_paro=horas_paro):
+        tarea_id = self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, horas_paro=horas_paro)
+        if tarea_id:
+            # Repuestos usados: salen del stock y quedan con el trabajo y su precio
+            consumos.registrar_consumo(tarea_id, self.repuestos_entry.items(), usuarios.id_actual(),
+                                       usuarios.nombre_actual(), r, d)
+            self.repuestos_entry.vaciar()
             self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)

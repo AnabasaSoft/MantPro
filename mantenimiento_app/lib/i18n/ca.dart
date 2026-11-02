@@ -221,4 +221,9 @@ const Map<String, String> traduccionesCa = {
     "btn_chk_guardar": "Desa la llista",
     "btn_chk_todo_bien_corto": "La resta bé",
     "title_rellenar_checklist": "Omple la llista de comprovació",
+    // --- Repuestos usados ---
+    "lbl_repuesto_de_maquina": "recanvi de la màquina",
+    "btn_con_repuestos": "Amb recanvis",
+    "lbl_repuestos_usados_q": "Has fet servir recanvis?",
+    "btn_sin_repuestos": "Sense recanvis",
 };

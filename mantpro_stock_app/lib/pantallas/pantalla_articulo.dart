@@ -62,6 +62,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
   final _descripcion = TextEditingController();
   final _unidad = TextEditingController();
   final _stockMinimo = TextEditingController(text: '0');
+  final _precio = TextEditingController();
   final _stockInicial = TextEditingController(text: '0');
 
   int? _estanteriaSel;
@@ -89,6 +90,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
     _descripcion.dispose();
     _unidad.dispose();
     _stockMinimo.dispose();
+    _precio.dispose();
     _stockInicial.dispose();
     super.dispose();
   }
@@ -147,6 +149,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
     _descripcion.text = m.descripcion;
     _unidad.text = m.unidad;
     _stockMinimo.text = formatearCantidad(m.stockMinimo);
+    _precio.text = m.precio == null ? '' : formatearCantidad(m.precio!);
     // Un artículo dado de alta o movido sin conexión todavía no tiene sección
     // en el PC: lo que se guardó es la balda (ver StockApi._conPendientes).
     if (m.seccionId != null) {
@@ -235,6 +238,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
         stockInicial: double.tryParse(_stockInicial.text.replaceAll(',', '.')) ?? 0,
         foto: _fotoNueva,
         borrarFoto: _borrarFoto,
+        precio: double.tryParse(_precio.text.trim().replaceAll(',', '.')),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(sincronizado
@@ -447,6 +451,8 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               color: colorStock(m.stockActual, m.stockMinimo)),
           _filaDato(tt('lbl_cantidad_minima', 'Cantidad mínima'),
               '${formatearCantidad(m.stockMinimo)} ${m.unidad}'.trim()),
+          if (m.precio != null)
+            _filaDato(tt('lbl_precio_unitario', 'Precio unitario'), formatearCantidad(m.precio!)),
           _filaDato(tt('lbl_ubicacion', 'Ubicación'),
               m.ubicacion.isEmpty ? tt('lbl_sin_ubicacion', 'Sin ubicación') : m.ubicacion),
           if (_usadoEn.isNotEmpty) ...[
@@ -644,6 +650,13 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               ),
             ),
           ]),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _precio,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(labelText: tt('lbl_precio_unitario', 'Precio unitario'),
+                hintText: tt('ph_precio', 'sin precio'), border: const OutlineInputBorder()),
+          ),
           if (widget.materialId == null) ...[
             const SizedBox(height: 12),
             TextFormField(

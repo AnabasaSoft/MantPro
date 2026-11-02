@@ -33,7 +33,7 @@ from ...idiomas import t
 from ... import idiomas
 from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, maquinas
+from ...nucleo import almacen, maquinas, consumos
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -127,6 +127,14 @@ class DialogoConfigurarAlmacen(QDialog):
         btn_eliminar_zona = QPushButton(tt("btn_eliminar_zona", "🗑️ Eliminar zona")); btn_eliminar_zona.clicked.connect(self.eliminar_zona)
         hz.addWidget(btn_nueva_zona); hz.addWidget(btn_renombrar_zona); hz.addWidget(btn_eliminar_zona)
         l.addLayout(hz)
+
+        # Moneda de los precios de los artículos y del coste de los repuestos
+        hm = QHBoxLayout()
+        hm.addWidget(QLabel(tt("lbl_moneda", "Moneda de los precios") + ":"))
+        self.campo_moneda = QLineEdit(consumos.moneda()); self.campo_moneda.setMaximumWidth(80)
+        self.campo_moneda.editingFinished.connect(lambda: consumos.fijar_moneda(self.campo_moneda.text()))
+        hm.addWidget(self.campo_moneda); hm.addStretch()
+        l.addLayout(hm)
 
         self.arbol = QTreeWidget(); self.arbol.setHeaderHidden(True)
         self.arbol.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -538,6 +546,11 @@ class DialogoEditarMaterial(QDialog):
         self.spin_minimo = QDoubleSpinBox(); self.spin_minimo.setRange(0, 999999); self.spin_minimo.setDecimals(2)
         self.spin_minimo.setValue(material.get("stock_minimo") or 0 if material else 0)
         v2.addWidget(self.spin_minimo); h_um.addLayout(v2)
+        # Precio unitario (para el coste de los repuestos usados en los trabajos)
+        v3 = QVBoxLayout(); v3.addWidget(QLabel(tt("lbl_precio_unitario", "Precio unitario") + f" ({consumos.moneda()})"))
+        self.campo_precio = QLineEdit("" if not material or material.get("precio") is None else f"{material['precio']:g}".replace(".", ","))
+        self.campo_precio.setPlaceholderText(tt("ph_precio", "sin precio"))
+        v3.addWidget(self.campo_precio); h_um.addLayout(v3)
         l.addLayout(h_um)
 
         if self.es_nuevo:
@@ -770,6 +783,7 @@ class DialogoEditarMaterial(QDialog):
             "descripcion": self.campo_desc.toPlainText().strip(),
             "unidad": self.campo_unidad.text().strip(),
             "stock_minimo": self.spin_minimo.value(),
+            "precio": consumos.numero(self.campo_precio.text()),
             "stock_inicial": self.spin_inicial.value() if self.es_nuevo else 0,
             "seccion_id": _seccion_destino(self.combo_seccion.currentData(), self.combo_balda.currentData()),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,

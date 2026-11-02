@@ -182,6 +182,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📖 Ajuda integrada**: `Ajuda > 📖 Instruccions` obre un manual complet per apartats (primers passos, usuaris, cada pestanya, menús, apps del mòbil i problemes freqüents), amb índex i cercador, en els 7 idiomes. Amb **F1** s'obre directament a l'apartat de la pestanya on ets
 - **👥 Estadístiques per tècnic**: botó al Dashboard amb els treballs de cada tècnic per any i mes, avaries, preventius, hores d'aturada i pendents assignats ara mateix, amb gràfic de barres; filtrable per tipus (tots, treballs i avaries o manteniment preventiu) i exportable a PDF (amb logotip) i Excel
 - **🔩 Recanvis per màquina**: quins articles del magatzem porta cada màquina i quants, amb el seu estoc i ubicació, i a quines màquines s'utilitza cada article (vegeu [Maquinària](#-maquinària))
+- **💶 Recanvis utilitzats i el seu cost**: en registrar, completar o editar un treball s'hi apunten els recanvis utilitzats (es proposen primer els de la màquina); surten de l'estoc i queden desats amb el treball i el preu d'aquell moment, així que el cost no canvia encara que després canviï el preu. En corregir-los s'ajusta l'estoc. Cada article pot tenir preu unitari (moneda configurable). `Màquines > 💶 Cost de recanvis` mostra el cost per màquina, amb les submàquines, per any i exportable a Excel; l'historial, el PDF, l'Excel i el CSV els inclouen
 - **🏷️ Etiquetes QR per màquina**: PDF d'etiquetes per enganxar a les màquines; en escanejar-les amb l'app MantPro s'obre la fitxa de la màquina
 - **🔍 Avís de repetits**: en crear o reanomenar una màquina, o en crear o editar un article, avisa si ja n'hi ha un altre amb el mateix codi o un nom igual o molt semblant (per exemple «Extractor de fins» / «Extracció de fins»), sense avisar quan només canvia el número («Lora 1» / «Lora 2»)
 - **📲 Instal·lar les apps amb un QR**: `Eines > 📱 Instal·lar MantPro al mòbil` i `📦 Instal·lar MantPro Stock al mòbil` mostren un QR que, en escanejar-lo amb la càmera del mòbil, baixa l'última versió estable de l'app
@@ -204,7 +205,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **☑️ Llistes de comprovació**: els avisos i pendents amb llista demanen omplir-la en completar-los (bé / malament / no s'aplica i lectures), també sense connexió; l'historial mostra la llista omplerta
 - **🔌 Mode fora de línia**: treballa sense connexió i sincronitza quan puguis
 - **⏰ Recordatoris diaris**: notificació automàtica a les 8:00 (hora local) si hi ha treballs pendents sense completar
-- **🧰 Material utilitzat**: afegeix al treball el material del magatzem que has fet servir, cercant-lo pel nom o el codi; es descompta sol de l'estoc en desar (vegeu [Material utilitzat en un treball](#-estoc-del-magatzem))
+- **🧰 Material utilitzat**: afegeix al treball el material del magatzem que has fet servir, cercant-lo pel nom o el codi; es descompta sol de l'estoc en desar (vegeu [Material utilitzat en un treball](#-estoc-del-magatzem)). En completar un avís també s'hi poden apuntar recanvis, surten primer els de la màquina, i en corregir un treball de l'historial s'ajusta l'estoc
 - **🏭 Vincular màquina**: tria en un desplegable la màquina o submàquina en què s'ha fet el treball, tant en crear un registre nou com en editar-ne un de ja sincronitzat de l'historial
 - **🔄 Connectada en segon pla**: mentre l'app és oberta, encara que sigui en segon pla, continua sincronitzant amb el PC i mostra una notificació («Connectat al PC» / «Sense connexió amb el PC») amb un botó «Tancar». En tancar-la del tot deixa de gastar bateria
 - **📶 Primera sincronització amb progrés**: barra de progrés en baixar les dades i les fotos, amb baixada en paral·lel perquè sigui més ràpida
@@ -811,7 +812,7 @@ seguretat, mira [SECURITY.md](SECURITY.md).
 
 El que ve, sense dates i sense un ordre tancat:
 
-- **Recanvis consumits en cada treball**, amb el cost de material per màquina
+- **Cost de mà d'obra** (preu per hora de cada tècnic) per sumar al de material
 - **Proveïdors, preus i comandes de compra** a partir de l'estoc sota mínim
 - **Preventiu per comptador** (hores d'ús, cicles, km), a més de per data
 - **Temps treballat i signatura** en tancar un treball (també al mòbil)
@@ -823,7 +824,7 @@ El que ve, sense dates i sense un ordre tancat:
 - **Diversos centres o plantes** amb dades i indicadors per centre
 - Més idiomes (italià, alemany…) i app per a iPhone
 
-Fet fa poc: llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
+Fet fa poc: recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

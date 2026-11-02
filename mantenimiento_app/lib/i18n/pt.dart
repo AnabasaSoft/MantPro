@@ -237,4 +237,9 @@ const Map<String, String> traduccionesPt = {
     "btn_chk_guardar": "Salvar checklist",
     "btn_chk_todo_bien_corto": "Restante OK",
     "title_rellenar_checklist": "Preencher checklist",
+    // --- Repuestos usados ---
+    "lbl_repuesto_de_maquina": "peça da máquina",
+    "btn_con_repuestos": "Com peças",
+    "lbl_repuestos_usados_q": "Você usou peças?",
+    "btn_sin_repuestos": "Sem peças",
 };

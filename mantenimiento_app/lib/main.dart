@@ -1640,7 +1640,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
             }).toList();
             await cachearFotosHistorial(urlUsar, nuevosH);
             final prefs = await SharedPreferences.getInstance();
@@ -1835,7 +1835,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2370,7 +2370,7 @@ class _TabAvisosState extends State<TabAvisos> {
     setState(() => _cargando = true);
 
     List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2384,7 +2384,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2417,8 +2417,29 @@ class _TabAvisosState extends State<TabAvisos> {
     // plantilla está guardada en el móvil y lo rellenado va en la cola.
     final lista = await rellenarChecklistSiHay(context, a.checklistId, a.titulo);
     if (lista == null || !mounted) return;
-    if (lista.isEmpty && await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_confirmar")), content: Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"), style: const TextStyle(color: Colors.white)))])) != true) return;
-    setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista)})); await _guardarColas(); _sincronizar();
+    // Repuestos usados (opcional): sin lista, con un botón más en la
+    // confirmación; con lista, se pregunta al guardarla.
+    bool conRepuestos = false;
+    if (lista.isEmpty) {
+      final r = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_confirmar")), content: Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, 'no'), child: Text(t("btn_no"))),
+        if (_urlPC != null) TextButton.icon(icon: const Icon(Icons.build, size: 16), onPressed: () => Navigator.pop(ctx, 'repuestos'), label: Text(t("btn_con_repuestos"))),
+        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, 'si'), child: Text(t("btn_si"), style: const TextStyle(color: Colors.white)))]));
+      if (r == null || r == 'no') return;
+      conRepuestos = r == 'repuestos';
+    } else if (_urlPC != null) {
+      conRepuestos = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_repuestos_usados_q")), actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_sin_repuestos"))),
+        ElevatedButton.icon(icon: const Icon(Icons.build, size: 16), onPressed: () => Navigator.pop(ctx, true), label: Text(t("btn_anadir_material")))])) == true;
+    }
+    List<Map<String, dynamic>> materiales = [];
+    if (conRepuestos && mounted) {
+      final elegidos = await pedirRepuestosUsados(context, _urlPC!);
+      if (elegidos == null) return;   // cancelado: el aviso sigue como estaba
+      materiales = elegidos;
+    }
+    setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
+        if (materiales.isNotEmpty) 'materiales': json.encode(materiales)})); await _guardarColas(); _sincronizar();
   }
   Future<void> _descompletar(AvisoPC a) async {
     if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_deshecho")))); return; }
@@ -2506,7 +2527,9 @@ class _TabHistorialState extends State<TabHistorial> {
   Future<void> _guardarCola() async { final p = await SharedPreferences.getInstance(); await p.setString('historial_cola_ediciones', json.encode(_colaEdiciones)); }
   void _aplicarCambiosVisuales() {
     for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) { _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues, maquinaId: e.containsKey('maquinaId') ? e['maquinaId'] : _registros[i].maquinaId,
-        serverFotosExtra: e.containsKey('fotosExtraMantener') ? listaTextos(e['fotosExtraMantener']) : _registros[i].serverFotosExtra, fotosExtra: listaTextos(e['fotosExtra'])); } }
+        serverFotosExtra: e.containsKey('fotosExtraMantener') ? listaTextos(e['fotosExtraMantener']) : _registros[i].serverFotosExtra, fotosExtra: listaTextos(e['fotosExtra']),
+        checklist: _registros[i].checklist,
+        materiales: e.containsKey('materiales') ? List<Map<String, dynamic>>.from((e['materiales'] as List).map((x) => Map<String, dynamic>.from(x))) : _registros[i].materiales); } }
   }
   Future<void> _sincronizarEdiciones() async {
     if (_urlPC == null || _colaEdiciones.isEmpty) return;
@@ -2520,6 +2543,7 @@ class _TabHistorialState extends State<TabHistorial> {
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
+        if (e.containsKey('materiales')) req.fields['materiales'] = json.encode(e['materiales']);
         for (final fp in listaTextos(e['fotosExtra'])) { if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await req.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); ok.add(e); } else if (res.statusCode == 200) ok.add(e);
@@ -2570,7 +2594,8 @@ class _TabHistorialState extends State<TabHistorial> {
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null)).toList();
+    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null,
+        materiales: (i['materiales'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList())).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
       if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
@@ -2709,9 +2734,13 @@ class _TabHistorialState extends State<TabHistorial> {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(urlPC: _urlPC, serverImageName: r.serverImageName, serverImageNameDespues: r.serverImageNameDespues, registroExistente: Registro(id: r.id, titulo: "", detalles: r.imagePath??r.detalles, tags: r.tags, imagePath: lp, imagePathDespues: lpD, maquinaId: maquinaIdInicial,
         // Si ya había una edición sin enviar, su colección es la vigente.
         serverFotosExtra: ep.containsKey('fotosExtraMantener') ? listaTextos(ep['fotosExtraMantener']) : r.serverFotosExtra,
-        fotosExtra: listaTextos(ep['fotosExtra'])), esHistorial: true, onSave: (re) async {
+        fotosExtra: listaTextos(ep['fotosExtra']),
+        materiales: ep.containsKey('materiales') ? List<Map<String, dynamic>>.from((ep['materiales'] as List).map((e) => Map<String, dynamic>.from(e))) : r.materiales),
+        esHistorial: true, onSave: (re) async {
       Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
-          'fotosExtra': re.fotosExtra, 'fotosExtraMantener': re.serverFotosExtra};
+          'fotosExtra': re.fotosExtra, 'fotosExtraMantener': re.serverFotosExtra,
+          // Repuestos usados: el PC ajusta el stock por la diferencia
+          'materiales': re.materiales};
       int i = _colaEdiciones.indexWhere((e) => e['id'] == r.id.toString()); if (i != -1) _colaEdiciones[i] = ne; else _colaEdiciones.add(ne);
       await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_guardado"))));
     })));
@@ -2829,6 +2858,14 @@ class _TabHistorialState extends State<TabHistorial> {
                   Flexible(child: Text(r.maquinaNombre!, style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
                 ])),
               filaChecklistHistorial(context, r.checklist, r.detalles.split('\n').first),
+              if (r.materiales.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 3), child: Row(children: [
+                const Icon(Icons.build, size: 14, color: Colors.blueGrey),
+                const SizedBox(width: 4),
+                Flexible(child: Text(r.materiales.map((m) {
+                  final c = ((m['cantidad'] ?? 0) as num).toDouble();
+                  return "${c == c.roundToDouble() ? c.toInt() : c} ${m['unidad'] ?? ''} ${m['nombre']}".replaceAll('  ', ' ');
+                }).join(' · '), style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
+              ])),
             ]), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r), onLongPress: p ? null : () => _revertirAPendiente(r)));
           })))
       ]),
@@ -3110,7 +3147,7 @@ class _FormScreenState extends State<FormScreen> {
   bool get _muestraPrioridad => widget.esCrearPendiente || widget.pendientePC != null;
   Future<void> _anadirMaterial() async {
     if (widget.urlPC == null) return;
-    final resultado = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => _DialogoSeleccionarMaterial(urlPC: widget.urlPC!));
+    final resultado = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => _DialogoSeleccionarMaterial(urlPC: widget.urlPC!, maquinaId: _maquinaId));
     if (resultado != null) setState(() => _materiales.add(resultado));
   }
   Future<void> _save(bool end) async {
@@ -3243,12 +3280,43 @@ class _FormScreenState extends State<FormScreen> {
     ])));
   }
 }
+/// Lista de repuestos usados al completar un aviso (sin conexión también: el
+/// selector usa la copia del almacén guardada en el móvil). Devuelve la
+/// lista, o null si se cancela.
+Future<List<Map<String, dynamic>>?> pedirRepuestosUsados(BuildContext context, String urlPC) async {
+  final elegidos = <Map<String, dynamic>>[];
+  return showDialog<List<Map<String, dynamic>>>(context: context, barrierDismissible: false, builder: (ctx) => StatefulBuilder(
+    builder: (ctx, setSt) => AlertDialog(
+      title: Text(t("lbl_materiales_usados")),
+      content: SizedBox(width: double.maxFinite, child: Column(mainAxisSize: MainAxisSize.min, children: [
+        if (elegidos.isEmpty) Text(t("msg_sin_materiales"), style: const TextStyle(color: Colors.grey)),
+        for (var i = 0; i < elegidos.length; i++) ListTile(dense: true, contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.build, size: 18),
+          title: Text(elegidos[i]['nombre']?.toString() ?? ''),
+          subtitle: Text('${elegidos[i]['cantidad']} ${elegidos[i]['unidad'] ?? ''}'.trim()),
+          trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setSt(() => elegidos.removeAt(i)))),
+        Align(alignment: Alignment.centerLeft, child: TextButton.icon(icon: const Icon(Icons.add), label: Text(t("btn_anadir_material")), onPressed: () async {
+          final r = await showDialog<Map<String, dynamic>>(context: ctx, builder: (_) => _DialogoSeleccionarMaterial(urlPC: urlPC));
+          if (r != null) setSt(() => elegidos.add(r));
+        })),
+      ])),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text(t("btn_cancelar"))),
+        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, elegidos),
+            child: Text(t("btn_si"), style: const TextStyle(color: Colors.white))),
+      ],
+    ),
+  ));
+}
+
 /// Diálogo para buscar un material del almacén y fijar la cantidad usada.
 /// Devuelve un mapa {material_id, nombre, unidad, cantidad} al cerrarse, o
 /// null si se cancela.
 class _DialogoSeleccionarMaterial extends StatefulWidget {
   final String urlPC;
-  const _DialogoSeleccionarMaterial({required this.urlPC});
+  /// Máquina del trabajo: sus repuestos salen primero (🔩), con su cantidad montada.
+  final int? maquinaId;
+  const _DialogoSeleccionarMaterial({required this.urlPC, this.maquinaId});
   @override
   State<_DialogoSeleccionarMaterial> createState() => _DialogoSeleccionarMaterialState();
 }
@@ -3261,6 +3329,15 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
   final _cantidadCtrl = TextEditingController(text: '1');
   bool _buscando = false;
   bool _sinConexion = false;
+  Map<int, double> _montados = {};   // material_id -> cantidad montada en la máquina
+
+  /// Los repuestos de la máquina del trabajo, primero.
+  void _ordenarMontadosPrimero() {
+    if (_montados.isEmpty) return;
+    final primero = _resultados.where((m) => _montados.containsKey(m['id'])).toList();
+    final resto = _resultados.where((m) => !_montados.containsKey(m['id'])).toList();
+    _resultados = [...primero, ...resto];
+  }
 
   /// Filtra localmente la caché de materiales cuando no hay conexión con el
   /// PC, igual que hace el servidor (nombre, código o descripción).
@@ -3299,11 +3376,21 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
       _resultados = _filtrarCache(q);
       _sinConexion = true;
     }
+    _ordenarMontadosPrimero();
     if (mounted) setState(() => _buscando = false);
   }
 
   @override
-  void initState() { super.initState(); _buscar(''); }
+  void initState() {
+    super.initState();
+    if (widget.maquinaId != null) {
+      RepuestosCache.deMaquina(widget.maquinaId!).then((lista) {
+        _montados = {for (final r in lista) if (r['material_id'] is int) r['material_id'] as int: ((r['cantidad'] ?? 1) as num).toDouble()};
+        if (mounted) setState(_ordenarMontadosPrimero);
+      });
+    }
+    _buscar('');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3354,11 +3441,16 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
                       itemCount: _resultados.length,
                       itemBuilder: (_, i) {
                         final m = _resultados[i];
+                        final montado = _montados[m['id']];
                         return ListTile(
-                          leading: const Icon(Icons.inventory_2_outlined),
+                          leading: Icon(montado != null ? Icons.build : Icons.inventory_2_outlined, color: montado != null ? Colors.blueGrey : null),
                           title: Text(m['nombre']?.toString() ?? ''),
-                          subtitle: Text('${m['stock_actual']} ${m['unidad'] ?? ''}'.trim()),
-                          onTap: () => setState(() => _seleccionado = m),
+                          subtitle: Text('${m['stock_actual']} ${m['unidad'] ?? ''}'.trim() +
+                              (montado != null ? ' · ${t("lbl_repuesto_de_maquina")}' : '')),
+                          onTap: () => setState(() {
+                            _seleccionado = m;
+                            if (montado != null) _cantidadCtrl.text = montado == montado.roundToDouble() ? montado.toInt().toString() : montado.toString();
+                          }),
                         );
                       },
                     )),
@@ -3495,7 +3587,7 @@ class SincronizadorGlobal {
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
     List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -3514,6 +3606,7 @@ class SincronizadorGlobal {
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
+        if (e.containsKey('materiales')) req.fields['materiales'] = json.encode(e['materiales']);
         for (final fp in listaTextos(e['fotosExtra'])) { if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await req.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); hok.add(e); } else if (res.statusCode == 200) hok.add(e);
@@ -3539,7 +3632,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         nuevosH = dH.map((i) => <String, dynamic>{
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
         }).toList();
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');

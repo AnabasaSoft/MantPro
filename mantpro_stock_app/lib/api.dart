@@ -485,6 +485,7 @@ class StockApi {
         // fotoLocal, que la pantalla muestra con prioridad si existe.
         foto: borraFoto ? null : a.foto,
         ubicacion: a.ubicacion,
+        precio: e.containsKey('precio') ? double.tryParse('${e['precio']}'.replaceAll(',', '.')) : a.precio,
         fotoLocal: borraFoto ? null : (e['fotoPath'] as String?),
       );
     }
@@ -514,6 +515,7 @@ class StockApi {
         seccionId: seccionId,
         foto: null,
         ubicacion: '',
+        precio: double.tryParse('${n['precio'] ?? ''}'.replaceAll(',', '.')),
         // Si no se eligió sección se guardó la balda: como sin conexión no
         // existe todavía ninguna sección (ni implícita) donde colgarlo, el
         // árbol lo tiene que ubicar por balda en vez de por sección.
@@ -711,6 +713,7 @@ class StockApi {
     double stockInicial = 0,
     File? foto,
     bool borrarFoto = false,
+    double? precio,
   }) async {
     final esNuevo = id == null;
     // Los artículos dados de alta sin conexión tienen un id temporal negativo
@@ -724,6 +727,8 @@ class StockApi {
       'descripcion': descripcion,
       'unidad': unidad,
       'stock_minimo': stockMinimo.toString(),
+      // Siempre se manda (vacío = sin precio): el PC solo lo toca si llega
+      'precio': precio?.toString() ?? '',
       // Si no se ha elegido sección todavía se manda la balda (o el hueco de
       // suelo) y el servidor resuelve o crea una sección por defecto: así no
       // hace falta tener secciones creadas de antemano para dar de alta.

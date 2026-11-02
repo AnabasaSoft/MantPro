@@ -182,6 +182,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **📖 Aide intégrée** : `Aide > 📖 Instructions` ouvre un manuel complet par rubriques (premiers pas, utilisateurs, chaque onglet, menus, applications mobiles et problèmes fréquents), avec index et recherche, dans les 7 langues. Avec **F1**, il s'ouvre directement à la rubrique de l'onglet où vous êtes
 - **👥 Statistiques par technicien** : bouton du tableau de bord affichant les interventions de chaque technicien par année et par mois, les pannes, les préventifs, les heures d'arrêt et les tâches en attente qui lui sont assignées en ce moment, avec un graphique en barres ; filtrable par type (toutes, interventions et pannes ou maintenance préventive) et exportable en PDF (avec logo) et Excel
 - **🔩 Pièces de rechange par machine** : quels articles du magasin chaque machine porte et en quelle quantité, avec leur stock et leur emplacement, et dans quelles machines chaque article est utilisé (voir [Machines](#-machines))
+- **💶 Pièces utilisées et leur coût** : en enregistrant, en clôturant ou en modifiant une intervention, on note les pièces utilisées (celles de la machine sont proposées en premier) ; elles sortent du stock et sont enregistrées avec l'intervention et le prix du moment, donc le coût ne change pas si le prix change ensuite. Les corriger ajuste le stock. Chaque article peut avoir un prix unitaire (devise configurable). `Machines > 💶 Coût des pièces` affiche le coût par machine, sous-machines comprises, par année et exportable vers Excel ; l'historique, le PDF, l'Excel et le CSV les incluent
 - **🏷️ Étiquettes QR par machine** : PDF d'étiquettes à coller sur les machines ; en les scannant avec l'application MantPro, la fiche de la machine s'ouvre
 - **🔍 Alerte de doublons** : lors de la création ou du renommage d'une machine, ou de la création ou modification d'un article, avertit s'il en existe déjà un autre avec le même code ou un nom identique ou très similaire (par exemple « Extracteur de fines » / « Extraction de fines »), sans avertir quand seul le numéro change (« Lora 1 » / « Lora 2 »)
 - **📲 Installer les applications avec un QR code** : `Outils > 📱 Installer MantPro sur le mobile` et `📦 Installer MantPro Stock sur le mobile` affichent un QR code qui, scanné avec l'appareil photo du mobile, télécharge la dernière version stable de l'application
@@ -204,7 +205,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **☑️ Listes de contrôle** : les rappels et interventions avec une liste demandent de la remplir à leur clôture (bon / pas bon / sans objet et relevés), même hors connexion ; l'historique affiche la liste remplie
 - **🔌 Mode hors ligne** : travaillez sans connexion et synchronisez quand vous pouvez
 - **⏰ Rappels quotidiens** : notification automatique à 8 h 00 (heure locale) s'il reste des interventions en attente non terminées
-- **🧰 Articles utilisés** : ajoutez à l'intervention les articles du magasin que vous avez utilisés, en les recherchant par nom ou code ; ils sont déduits du stock automatiquement à l'enregistrement (voir [Articles utilisés dans une intervention](#-stock-du-magasin))
+- **🧰 Articles utilisés** : ajoutez à l'intervention les articles du magasin que vous avez utilisés, en les recherchant par nom ou code ; ils sont déduits du stock automatiquement à l'enregistrement (voir [Articles utilisés dans une intervention](#-stock-du-magasin)). À la clôture d'un rappel, on peut aussi noter des pièces ; celles de la machine apparaissent en premier, et corriger une intervention de l'historique ajuste le stock
 - **🏭 Associer une machine** : choisissez dans une liste la machine ou sous-machine sur laquelle l'intervention a été faite, aussi bien en créant un enregistrement qu'en modifiant un enregistrement déjà synchronisé de l'historique
 - **🔄 Connectée en arrière-plan** : tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser avec le PC et affiche une notification (« Connecté au PC » / « Pas de connexion avec le PC ») avec un bouton « Fermer ». Une fois complètement fermée, elle ne consomme plus de batterie
 - **📶 Première synchronisation avec progression** : barre de progression pendant le téléchargement des données et des photos, téléchargées en parallèle pour aller plus vite
@@ -836,7 +837,7 @@ sécurité, consultez [SECURITY.md](SECURITY.md).
 
 Ce qui arrive, sans dates et sans ordre figé :
 
-- **Pièces de rechange consommées à chaque intervention**, avec le coût matière par machine
+- **Coût de main-d'œuvre** (taux horaire de chaque technicien) à ajouter au coût matière
 - **Fournisseurs, prix et bons de commande** à partir du stock sous le minimum
 - **Préventif par compteur** (heures de marche, cycles, km), en plus de par date
 - **Temps passé et signature** à la clôture d'une intervention (aussi sur le mobile)
@@ -848,7 +849,7 @@ Ce qui arrive, sans dates et sans ordre figé :
 - **Plusieurs sites ou usines** avec données et indicateurs par site
 - Plus de langues (italien, allemand…) et application iPhone
 
-Fait récemment : listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
+Fait récemment : pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

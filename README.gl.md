@@ -181,6 +181,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📖 Axuda integrada**: `Axuda > 📖 Instrucións` abre un manual completo por apartados (primeiros pasos, usuarios, cada lapela, menús, apps do móbil e problemas frecuentes), con índice e buscador, nos 7 idiomas. Con **F1** ábrese directamente no apartado da lapela na que esteas
 - **👥 Estatísticas por técnico**: botón no Dashboard cos traballos de cada técnico por ano e mes, avarías, preventivos, horas de parada e pendentes asignados agora mesmo, con gráfico de barras; filtrable por tipo (todos, traballos e avarías ou mantemento preventivo) e exportable a PDF (con logotipo) e Excel
 - **🔩 Recambios por máquina**: que artigos do almacén leva cada máquina e cantos, co seu stock e localización, e en que máquinas se usa cada artigo (ver [Maquinaria](#-maquinaria))
+- **💶 Recambios usados e o seu custo**: ao rexistrar, completar ou editar un traballo apúntanse os recambios usados (propóñense primeiro os da máquina); saen do stock e quedan gardados co traballo e o prezo dese momento, así que o custo non cambia aínda que despois cambie o prezo. Ao corrixilos axústase o stock. Cada artigo pode ter prezo unitario (moeda configurable). `Máquinas > 💶 Custo de recambios` mostra o custo por máquina, coas súas submáquinas, por ano e exportable a Excel; o historial, o PDF, o Excel e o CSV inclúenos
 - **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para pegar nas máquinas; ao escanealas coa app MantPro ábrese a ficha da máquina
 - **🔍 Aviso de repetidos**: ao crear ou renomear unha máquina, ou ao crear ou editar un artigo, avisa se xa hai outro co mesmo código ou un nome igual ou moi parecido (por exemplo «Extractor de finos» / «Extracción de finos»), sen avisar cando só cambia o número («Lora 1» / «Lora 2»)
 - **📲 Instalar as apps cun QR**: `Ferramentas > 📱 Instalar MantPro no móbil` e `📦 Instalar MantPro Stock no móbil` mostran un QR que, ao escanealo coa cámara do móbil, descarga a última versión estable da app
@@ -203,7 +204,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **☑️ Listas de comprobación**: os avisos e pendentes con lista piden enchela ao completalos (ben / mal / non aplica e lecturas), tamén sen conexión; o historial mostra a lista enchida
 - **🔌 Modo sen conexión**: traballa sen conexión e sincroniza cando poidas
 - **⏰ Lembretes diarios**: notificación automática ás 8:00 (hora local) se hai traballos pendentes sen completar
-- **🧰 Material usado**: engade ao traballo o material do almacén que empregaches, buscándoo polo nome ou o código; descóntase só do stock ao gardar (ver [Material usado nun traballo](#-stock-do-almacén))
+- **🧰 Material usado**: engade ao traballo o material do almacén que empregaches, buscándoo polo nome ou o código; descóntase só do stock ao gardar (ver [Material usado nun traballo](#-stock-do-almacén)). Ao completar un aviso tamén se poden apuntar recambios, saen primeiro os da máquina, e ao corrixir un traballo do historial axústase o stock
 - **🏭 Vincular máquina**: escolle nun despregable a máquina ou submáquina na que se fixo o traballo, tanto ao crear un rexistro novo como ao editar un xa sincronizado do historial
 - **🔄 Conectada en segundo plano**: mentres a app está aberta, aínda que sexa en segundo plano, segue sincronizando co PC e mostra unha notificación («Conectado ao PC» / «Sen conexión co PC») cun botón «Pechar». Ao pechala de todo deixa de gastar batería
 - **📶 Primeira sincronización con progreso**: barra de progreso ao descargar os datos e as fotos, con descarga en paralelo para que sexa máis rápida
@@ -805,7 +806,7 @@ seguranza, mira [SECURITY.md](SECURITY.md).
 
 O que vén, sen datas e sen unha orde pechada:
 
-- **Recambios consumidos en cada traballo**, co custo de material por máquina
+- **Custo de man de obra** (prezo por hora de cada técnico) para sumar ao de material
 - **Provedores, prezos e pedidos de compra** a partir do stock baixo mínimo
 - **Preventivo por contador** (horas de uso, ciclos, km), ademais de por data
 - **Tempo traballado e sinatura** ao pechar un traballo (tamén no móbil)
@@ -817,7 +818,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano, alemán…) e app para iPhone
 
-Feito hai pouco: listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

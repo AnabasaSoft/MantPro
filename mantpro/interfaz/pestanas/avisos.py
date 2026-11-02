@@ -31,7 +31,7 @@ from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import AvisoEditDialog
-from ...nucleo import usuarios, checklists
+from ...nucleo import usuarios, checklists, consumos
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.basedatos import get_db_connection
 
@@ -282,6 +282,9 @@ class PestanaAvisos:
                 with get_db_connection(self.db.db_name) as conn:
                     c = conn.cursor()
                     if fecha_actual:
+                        for (tid_borrar,) in c.execute("SELECT id FROM tareas WHERE fecha=? AND descripcion=?",
+                                                       (fecha_actual, desc_historial)).fetchall():
+                            consumos.olvidar_trabajo(tid_borrar)
                         c.execute("DELETE FROM checklist_resultados WHERE tarea_id IN "
                                   "(SELECT id FROM tareas WHERE fecha=? AND descripcion=?)", (fecha_actual, desc_historial))
                         c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_actual, desc_historial))

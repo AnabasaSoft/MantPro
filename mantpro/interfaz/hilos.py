@@ -41,9 +41,9 @@ from ..nucleo import usuarios
 from ..nucleo.fotos import _RE_GALERIA, fotos_galeria
 from ..nucleo.rutas import DATA_DIR
 from ..nucleo.seguridad import anadir_bd_a_zip
-from ..nucleo import cifrado_copias, checklists
+from ..nucleo import cifrado_copias, checklists, consumos
 from xml.sax.saxutils import escape
-from .dialogos.checklists import linea_export
+from .dialogos.checklists import linea_export, texto_repuestos_export
 from ..version import APP_VERSION, REPO_NAME, REPO_OWNER
 
 # ==========================================
@@ -170,6 +170,8 @@ class GeneradorPDFThread(QThread):
 
                 filas_coleccion = []
                 listas = checklists.resultados_de([f[5] for f in trabajo["datos"] if len(f) > 5])
+                usados = consumos.materiales_de_trabajos([f[5] for f in trabajo["datos"] if len(f) > 5])
+                moneda = consumos.moneda()
                 data_tabla = [[cab(t("hdr_fecha")), cab(t("hdr_descripcion")), cab(tt("hdr_maquina", "Máquina")),
                                cab(tt("hdr_realizado_por", "Realizado por")),
                                cab(t("hdr_foto_antes")), cab(t("hdr_foto_despues"))]]
@@ -217,6 +219,14 @@ class GeneradorPDFThread(QThread):
                         filas_coleccion.append(len(data_tabla))
                         data_tabla.append([Paragraph(f"<b>{escape(tt('lbl_checklist', 'Lista de comprobación'))}: {escape(lista['plantilla'])}</b><br/>"
                                                      + "<br/>".join(lineas_chk), style_cell), "", "", "", "", ""])
+
+                    # Repuestos usados: otra fila a todo el ancho, con su coste
+                    mats = usados.get(fila_pdf[5]) if len(fila_pdf) > 5 else None
+                    if mats:
+                        filas_coleccion.append(len(data_tabla))
+                        data_tabla.append([Paragraph(f"<b>{escape(tt('lbl_repuestos_usados', '🔩 Repuestos usados').replace('🔩', '').strip())}</b><br/>"
+                                                     + escape(texto_repuestos_export(mats, moneda)).replace("\n", "<br/>"), style_cell),
+                                           "", "", "", "", ""])
 
                     miniaturas = [m for m in (self._miniatura_pdf(n) for n in fotos_galeria(desc)) if m]
                     if miniaturas:

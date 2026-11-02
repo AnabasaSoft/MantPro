@@ -853,11 +853,12 @@ def _foto_material(material_id):
         return {}
     return {"codigo": m.get("codigo") or "", "nombre": m.get("nombre") or "", "descripcion": m.get("descripcion") or "",
             "unidad": m.get("unidad") or "", "minimo": m.get("stock_minimo"),
-            "ubicacion": obtener_ubicacion_texto(m.get("seccion_id")) or "", "foto": "Sí" if m.get("foto") else "No"}
+            "ubicacion": obtener_ubicacion_texto(m.get("seccion_id")) or "", "foto": "Sí" if m.get("foto") else "No",
+            "precio": "" if m.get("precio") is None else f"{m['precio']:g}"}
 
 
 _ETIQ_MATERIAL = {"codigo": "Código", "nombre": "Nombre", "descripcion": "Descripción", "unidad": "Unidad",
-                  "minimo": "Stock mínimo", "ubicacion": "Ubicación", "foto": "Foto"}
+                  "minimo": "Stock mínimo", "ubicacion": "Ubicación", "foto": "Foto", "precio": "Precio unitario"}
 
 
 def _objeto_material(foto):
@@ -878,9 +879,11 @@ _fijar_maquinas_sin_registro = fijar_maquinas_de_material
 
 
 def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
-                   stock_inicial=0, usuario_id=None, usuario_nombre=None):
+                   stock_inicial=0, usuario_id=None, usuario_nombre=None, precio=None):
     material_id = _crear_material_sin_registro(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
                                                stock_inicial, usuario_id, usuario_nombre)
+    if precio is not None:
+        _fijar_precio(material_id, precio)
     despues = _foto_material(material_id)
     _usuarios.auditar("almacen", "crear", _objeto_material(despues),
                       detalle=f"Stock inicial: {stock_inicial}" if stock_inicial else "",
@@ -889,10 +892,14 @@ def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id
 
 
 def actualizar_material(material_id, codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
-                        usuario_id=None, usuario_nombre=None):
+                        usuario_id=None, usuario_nombre=None, precio=None, cambiar_precio=False):
+    """[precio] solo se cambia con cambiar_precio=True (quien no sabe del precio,
+    como las versiones antiguas de MantPro Stock, no lo borra)."""
     antes = _foto_material(material_id)
     resultado = _actualizar_material_sin_registro(material_id, codigo, nombre, descripcion, unidad, stock_minimo,
                                                   seccion_id, foto, usuario_id, usuario_nombre)
+    if cambiar_precio:
+        _fijar_precio(material_id, precio)
     despues = _foto_material(material_id)
     _usuarios.auditar("almacen", "editar", _objeto_material(despues),
                       cambios=_usuarios.diferencias(antes, despues, _ETIQ_MATERIAL))
@@ -976,3 +983,11 @@ _envolver_estructura("crear_estanteria", "crear", lambda nombre, num_baldas, *a:
 _envolver_estructura("editar_estanteria", "editar", lambda eid, nombre, num_baldas, *a: f"Estantería «{nombre}» ({num_baldas} baldas)")
 _envolver_estructura("renombrar_estanteria", "editar", lambda eid, nombre, *a: f"Estantería «{_nombre_estanteria(eid)}» → «{nombre}»")
 _envolver_estructura("eliminar_estanteria", "borrar", lambda eid, *a: f"Estantería «{_nombre_estanteria(eid)}»")
+
+
+
+def _fijar_precio(material_id, precio):
+    con = _conn()
+    con.execute("UPDATE materiales SET precio=? WHERE id=?", (precio, material_id))
+    con.commit()
+    con.close()

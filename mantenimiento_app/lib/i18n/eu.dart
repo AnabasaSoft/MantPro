@@ -220,4 +220,9 @@ const Map<String, String> traduccionesEu = {
     "btn_chk_guardar": "Gorde zerrenda",
     "btn_chk_todo_bien_corto": "Gainerakoak ondo",
     "title_rellenar_checklist": "Bete egiaztapen-zerrenda",
+    // --- Repuestos usados ---
+    "lbl_repuesto_de_maquina": "makinaren ordezko pieza",
+    "btn_con_repuestos": "Piezekin",
+    "lbl_repuestos_usados_q": "Ordezko piezarik erabili duzu?",
+    "btn_sin_repuestos": "Piezarik gabe",
 };

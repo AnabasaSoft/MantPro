@@ -78,6 +78,9 @@ class GestorBaseDatos:
         self.db_almacen_name = os.path.join(DATA_DIR, "almacen.db")
         almacen.configurar_db(self.db_almacen_name)
         almacen.inicializar()
+        # Repuestos consumidos en cada trabajo y precio de los artículos
+        from . import consumos
+        consumos.inicializar()
         # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
         maquinas.configurar_db(self.db_name)
         maquinas.inicializar()
@@ -225,6 +228,8 @@ class GestorBaseDatos:
             c.execute('DELETE FROM tareas WHERE id=?', (i,))
             c.execute('DELETE FROM checklist_resultados WHERE tarea_id=?', (i,))
             conn.commit(); conn.close()
+            from . import consumos
+            consumos.olvidar_trabajo(i)   # fuera de los costes (el stock no cambia)
             usuarios.registrar_auditoria(None, i, "borrar", detalle, "trabajos",
                                          objeto=(fila[1].split("\n")[0][:120] if fila else ""))
             return True

@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -287,9 +287,10 @@ class ServidorSincronizacion(QThread):
                     cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, maquina_id) VALUES (?,?,?,?,?,?,?,?)',
                                    (fecha_final, desc_final, tags, raw_desc, filename,
                                     usuario['id'], usuario['nombre'], maquina_id))
+                    nueva_tarea = cursor.lastrowid
                     conn.commit()
 
-                self._descontar_materiales_trabajo(request, usuario, titulo)
+                self._descontar_materiales_trabajo(request, usuario, titulo, nueva_tarea, fecha_final)
 
                 # Emitimos la señal pasando el título correcto para la notificación
                 self.registro_recibido.emit(titulo, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
@@ -451,13 +452,14 @@ class ServidorSincronizacion(QThread):
                     c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
                               (fecha_final, desc_final, tags, raw_desc, filename,
                                usuario['id'], usuario['nombre']))
+                    nueva_tarea = c.lastrowid
                     # Lista de comprobación rellenada en el móvil (JSON)
                     lista = checklists.normalizar_items(request.form.get('checklist', ''))
                     if lista:
                         checklists.guardar_resultado(c.lastrowid, lista, request.form.get('checklist_plantilla', ''), con=conn)
                     conn.commit()
 
-                self._descontar_materiales_trabajo(request, usuario, titulo)
+                self._descontar_materiales_trabajo(request, usuario, titulo, nueva_tarea, fecha_final)
                 lista = checklists.normalizar_items(request.form.get('checklist', ''))
                 usuarios.auditar("pendientes", "completar", titulo, detalle="Pasa al historial" + (
                     f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
@@ -642,6 +644,7 @@ class ServidorSincronizacion(QThread):
                 filas = filas[:limit]
                 nombres_maquinas = {m["id"]: m["nombre"] for m in maquinas.listar_maquinas()}
                 listas = checklists.resultados_de([r[0] for r in filas])
+                usados = consumos.materiales_de_trabajos([r[0] for r in filas])
                 # Procesamos para extraer nombre de foto si existe
                 resultados = []
                 for r in filas:
@@ -671,7 +674,9 @@ class ServidorSincronizacion(QThread):
                         "usuario": r[4] if len(r) > 4 else "",
                         "maquina_id": maquina_id,
                         "maquina_nombre": nombres_maquinas.get(maquina_id, "") if maquina_id else "",
-                        "checklist": listas.get(r[0])
+                        "checklist": listas.get(r[0]),
+                        "materiales": [{"material_id": m["material_id"], "codigo": m["codigo"], "nombre": m["nombre"],
+                                        "unidad": m["unidad"], "cantidad": m["cantidad"]} for m in usados.get(r[0], [])]
                     })
                 conn.close()
                 return jsonify({"items": resultados, "has_more": hay_mas, "page": page})
@@ -873,9 +878,11 @@ class ServidorSincronizacion(QThread):
                               (fecha_final, desc_historial, tags_historial,
                                usuario_aviso['id'], usuario_aviso['nombre']))
                     tarea_id = c.lastrowid
+                    tarea_nueva = True
                 else:
                     print("La tarea ya existe en el historial. Saltando insert.")
                     tarea_id = existe[0]
+                    tarea_nueva = False   # reintento: los repuestos ya se descontaron
 
                 # Lista de comprobación rellenada en el móvil (JSON)
                 lista = checklists.normalizar_items(request.form.get('checklist', ''))
@@ -886,6 +893,9 @@ class ServidorSincronizacion(QThread):
                 conn.close()
                 print("✅ BD CERRADA Y COMMIT REALIZADO")
 
+                if tarea_nueva:
+                    self._descontar_materiales_trabajo(request, g.usuario_mantpro, f"Mantenimiento Preventivo: {titulo}",
+                                                       tarea_id, fecha_final)
                 usuarios.auditar("avisos", "completar", titulo, detalle=f"Completado el {fecha_final}" + (
                     f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
                     + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
@@ -995,6 +1005,16 @@ class ServidorSincronizacion(QThread):
                 else:
                     c.execute("UPDATE tareas SET descripcion=?, tags=? WHERE id=?", (desc_final, tags, id_t))
                 conn.commit()
+                # Repuestos usados corregidos en el móvil: el stock se ajusta por la diferencia
+                if 'materiales' in request.form:
+                    try:
+                        nuevos = json.loads(request.form.get('materiales') or '[]')
+                    except (ValueError, TypeError):
+                        nuevos = None
+                    if isinstance(nuevos, list) and consumos.corregir_consumo(
+                            int(id_t), nuevos, g.usuario_mantpro['id'], g.usuario_mantpro['nombre'],
+                            (desc_final or "").split("\n")[0]):
+                        self.stock_actualizado.emit()
                 despues = foto_tarea(self._lector, id_t)
                 usuarios.auditar("trabajos", "editar", (despues.get("descripcion") or "").split("\n")[0],
                                  cambios=usuarios.diferencias(antes_auditoria, despues, ETIQ_TAREA), objeto_id=int(id_t))
@@ -1075,6 +1095,8 @@ class ServidorSincronizacion(QThread):
                     # La descripción debe coincidir con la que generamos automáticamente
                     desc = f"Mantenimiento Preventivo: {titulo}"
                     if ult_fecha:
+                        for (tid_borrar,) in c.execute("SELECT id FROM tareas WHERE descripcion=? AND fecha=?", (desc, ult_fecha)).fetchall():
+                            consumos.olvidar_trabajo(tid_borrar)
                         c.execute("DELETE FROM checklist_resultados WHERE tarea_id IN "
                                   "(SELECT id FROM tareas WHERE descripcion=? AND fecha=?)", (desc, ult_fecha))
                         c.execute("DELETE FROM tareas WHERE descripcion=? AND fecha=?", (desc, ult_fecha))
@@ -1163,6 +1185,7 @@ class ServidorSincronizacion(QThread):
                 detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
                 c.execute("DELETE FROM tareas WHERE id=?", (id_t,))
                 c.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (id_t,))
+                consumos.olvidar_trabajo(int(id_t))
                 conn.commit(); conn.close()
                 usuarios.registrar_auditoria(usuario['id'], id_t, "revertir", detalle_auditoria)
 
@@ -1245,7 +1268,7 @@ class ServidorSincronizacion(QThread):
                     datos.get('codigo', ''), nombre, datos.get('descripcion', ''),
                     datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
                     seccion_id, filename or None, float(datos.get('stock_inicial') or 0),
-                    usuario['id'], usuario['nombre'])
+                    usuario['id'], usuario['nombre'], precio=consumos.numero(datos.get('precio')))
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "id": material_id, "foto": filename or None})
             except Exception as e:
@@ -1281,7 +1304,9 @@ class ServidorSincronizacion(QThread):
                 almacen.actualizar_material(
                     material_id, datos.get('codigo', ''), nombre, datos.get('descripcion', ''),
                     datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
-                    seccion_id, foto_final, usuario['id'], usuario['nombre'])
+                    seccion_id, foto_final, usuario['id'], usuario['nombre'],
+                    # Solo si la app manda el precio (las versiones anteriores no lo conocen)
+                    precio=consumos.numero(datos.get('precio')), cambiar_precio='precio' in datos)
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "foto": foto_final})
             except Exception as e:
@@ -1370,12 +1395,12 @@ class ServidorSincronizacion(QThread):
                 nombres.append(filename)
         return nombres
 
-    def _descontar_materiales_trabajo(self, req, usuario, referencia):
+    def _descontar_materiales_trabajo(self, req, usuario, referencia, tarea_id=None, fecha=None):
         """Lee el campo 'materiales' (JSON: [{"material_id":.., "cantidad":..}, ...])
-        del formulario de un trabajo y descuenta cada cantidad del almacén. El
-        material ya se ha usado en la realidad, así que el descuento se aplica
-        aunque deje el stock en negativo: eso es lo que dispara el aviso de
-        "bajo mínimo" en la app para que se verifique y se reponga."""
+        del formulario de un trabajo, lo descuenta del almacén y lo guarda con el
+        trabajo [tarea_id] y su precio (ver nucleo/consumos.py). El material ya
+        se ha usado en la realidad, así que el descuento se aplica aunque deje el
+        stock en negativo: eso dispara el aviso de bajo mínimo."""
         materiales_raw = req.form.get('materiales')
         if not materiales_raw:
             return
@@ -1383,21 +1408,7 @@ class ServidorSincronizacion(QThread):
             materiales = json.loads(materiales_raw)
         except (ValueError, TypeError):
             return
-        hubo_algo = False
-        for item in materiales:
-            try:
-                material_id = int(item.get('material_id'))
-                cantidad = float(item.get('cantidad') or 0)
-            except (TypeError, ValueError):
-                continue
-            if cantidad <= 0:
-                continue
-            ok, _ = almacen.registrar_movimiento(
-                material_id, "salida", cantidad, usuario['id'], usuario['nombre'],
-                motivo=f"{almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO}{referencia}", permitir_negativo=True)
-            if ok:
-                hubo_algo = True
-        if hubo_algo:
+        if consumos.registrar_consumo(tarea_id, materiales, usuario['id'], usuario['nombre'], referencia, fecha):
             self.stock_actualizado.emit()
 
     def obtener_ip_local(self):

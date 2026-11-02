@@ -151,4 +151,7 @@ const Map<String, String> traduccionesEs = {
     "msg_error_descarga_actualizacion": "No se pudo descargar la actualización. Comprueba la conexión a internet.",
     "btn_abrir_github": "Abrir GitHub",
     "login_bloqueado": "Demasiados intentos fallidos. Espera {min} minutos y vuelve a probar.",
+    // --- Precio de los artículos ---
+    "lbl_precio_unitario": "Precio unitario",
+    "ph_precio": "sin precio",
 };

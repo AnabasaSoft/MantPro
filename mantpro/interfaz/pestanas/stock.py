@@ -500,7 +500,7 @@ class PestanaStock:
             foto_guardada = self._guardar_foto_material(d["ruta_foto_seleccionada"])
             nuevo_id = almacen.crear_material(d["codigo"], d["nombre"], d["descripcion"], d["unidad"], d["stock_minimo"],
                                                d["seccion_id"], foto_guardada, d["stock_inicial"],
-                                               usuarios.id_actual(), usuarios.nombre_actual())
+                                               usuarios.id_actual(), usuarios.nombre_actual(), precio=d["precio"])
             almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
             self.refresh_stock()
 
@@ -521,7 +521,8 @@ class PestanaStock:
                 foto_final = self._guardar_foto_material(d["ruta_foto_seleccionada"])
             almacen.actualizar_material(material_id, d["codigo"], d["nombre"], d["descripcion"], d["unidad"],
                                          d["stock_minimo"], d["seccion_id"], foto_final,
-                                         usuarios.id_actual(), usuarios.nombre_actual())
+                                         usuarios.id_actual(), usuarios.nombre_actual(),
+                                         precio=d["precio"], cambiar_precio=True)
             almacen.fijar_maquinas_de_material(material_id, d["repuestos"])
             self.refresh_stock()
 

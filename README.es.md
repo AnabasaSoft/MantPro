@@ -182,6 +182,7 @@ versiones estables. Los cambios de cada versión están en
 - **📖 Ayuda integrada**: `Ayuda > 📖 Instrucciones` abre un manual completo por apartados (primeros pasos, usuarios, cada pestaña, menús, apps del móvil y problemas frecuentes), con índice y buscador, en los 7 idiomas. Con **F1** se abre directamente en el apartado de la pestaña en la que estás
 - **👥 Estadísticas por Técnico**: botón en el Dashboard con los trabajos de cada técnico por año y mes, averías, preventivos, horas de parada y pendientes asignados ahora mismo, con gráfico de barras; filtrable por tipo (todos, trabajos y averías o mantenimiento preventivo) y exportable a PDF (con logo) y Excel
 - **🔩 Repuestos por Máquina**: qué artículos del almacén lleva cada máquina y cuántos, con su stock y ubicación, y en qué máquinas se usa cada artículo (ver [Maquinaria](#-maquinaria))
+- **💶 Repuestos Usados y su Coste**: al registrar, completar o editar un trabajo se apuntan los repuestos usados (se proponen primero los de la máquina); salen del stock y quedan guardados con el trabajo y el precio de ese momento, así que el coste no cambia aunque luego cambie el precio. Al corregirlos se ajusta el stock. Cada artículo puede tener precio unitario (moneda configurable). `Máquinas > 💶 Coste de repuestos` muestra el coste por máquina, con sus submáquinas, por año y exportable a Excel; el historial, el PDF, el Excel y el CSV los incluyen
 - **🏷️ Etiquetas QR por Máquina**: PDF de etiquetas para pegar en las máquinas; al escanearlas con la app MantPro se abre la ficha de la máquina
 - **🔍 Aviso de Repetidos**: al crear o renombrar una máquina, o al crear o editar un artículo, avisa si ya hay otro con el mismo código o un nombre igual o muy parecido (por ejemplo «Extractor de finos» / «Extracción de finos»), sin avisar cuando solo cambia el número («Lora 1» / «Lora 2»)
 - **📲 Instalar las Apps con un QR**: `Herramientas > 📱 Instalar MantPro en móvil` y `📦 Instalar MantPro Stock en móvil` muestran un QR que, al escanearlo con la cámara del móvil, descarga la última versión estable de la app
@@ -204,7 +205,7 @@ versiones estables. Los cambios de cada versión están en
 - **☑️ Listas de comprobación**: los avisos y pendientes con lista piden rellenarla al completarlos (bien / mal / no aplica y lecturas), también sin conexión; el historial muestra la lista rellenada
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
-- **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén))
+- **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén)). Al completar un aviso también se pueden apuntar repuestos, salen primero los de la máquina, y al corregir un trabajo del historial se ajusta el stock
 - **🏭 Vincular Máquina**: Selecciona en un desplegable la máquina o submáquina en la que se ha hecho el trabajo, tanto al crear un registro nuevo como al editar uno ya sincronizado del historial
 - **🔄 Conectada en Segundo Plano**: mientras la app está abierta, aunque sea en segundo plano, sigue sincronizando con el PC y muestra una notificación («Conectado al PC» / «Sin conexión con el PC») con un botón «Cerrar». Al cerrarla del todo deja de gastar batería
 - **📶 Primera Sincronización con Progreso**: barra de progreso al descargar los datos y las fotos, con descarga en paralelo para que sea más rápida
@@ -812,7 +813,7 @@ La estructura del código y de la base de datos está en
 
 Lo que viene, sin fechas y sin un orden cerrado:
 
-- **Repuestos consumidos en cada trabajo**, con el coste de material por máquina
+- **Coste de mano de obra** (precio por hora de cada técnico) para sumar al de material
 - **Proveedores, precios y pedidos de compra** a partir del stock bajo mínimo
 - **Preventivo por contador** (horas de uso, ciclos, km), además de por fecha
 - **Tiempo trabajado y firma** al cerrar un trabajo (también en el móvil)
@@ -824,7 +825,7 @@ Lo que viene, sin fechas y sin un orden cerrado:
 - **Varios centros o plantas** con datos e indicadores por centro
 - Más idiomas (italiano, alemán…) y app para iPhone
 
-Recién hecho: listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
+Recién hecho: repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
 
 Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
 en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

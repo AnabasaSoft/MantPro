@@ -179,6 +179,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📖 Built-in Help**: `Help > 📖 Instructions` opens a full manual by section (getting started, users, each tab, menus, mobile apps and common problems), with an index and search box, in all 7 languages. **F1** opens it directly at the section of the tab you are on
 - **👥 Statistics by Technician**: button on the Dashboard showing each technician's jobs by year and month, breakdowns, preventive jobs, downtime hours and pending jobs assigned right now, with a bar chart; can be filtered by type (all, work orders and breakdowns, or preventive maintenance) and exported to PDF (with logo) and Excel
 - **🔩 Spare Parts per Machine**: which warehouse items each machine has fitted and how many, with their stock and location, and which machines use each item (see [Machinery](#-machinery))
+- **💶 Spare Parts Used and Cost**: when logging, completing or editing a job you note the spare parts used (the machine's own parts are offered first); they come out of stock and are saved with the job and the price at that moment, so the cost does not change if the price changes later. Correcting them adjusts the stock. Each item can have a unit price (configurable currency). `Machines > 💶 Spare parts cost` shows the cost per machine, including sub-machines, by year, exportable to Excel; the history, PDF, Excel and CSV include them
 - **🏷️ QR Labels per Machine**: PDF of labels to stick on the machines; scanning them with the MantPro app opens the machine's page
 - **🔍 Duplicate Warning**: when creating or renaming a machine, or creating or editing an item, it warns if there is already another one with the same code or the same or a very similar name (e.g. “Fines extractor” / “Fines extraction”), without warning when only the number changes (“Lora 1” / “Lora 2”)
 - **📲 Install the Apps with a QR Code**: `Tools > 📱 Install MantPro on phone` and `📦 Install MantPro Stock on phone` show a QR code that, when scanned with the phone's camera, downloads the latest stable version of the app
@@ -201,7 +202,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **☑️ Checklists**: reminders and pending jobs with a checklist ask to fill it in when completed (OK / not OK / N/A and readings), also offline; the history shows the filled-in checklist
 - **🔌 Offline Mode**: Work without a connection and sync when you are able to
 - **⏰ Daily Reminders**: Automatic notification at 8:00 AM (local time) if there are pending jobs not yet completed
-- **🧰 Materials Used**: Add the warehouse materials you used to the job, searching by name or code; they are deducted from stock automatically when saving (see [Materials used in a job](#-warehouse-stock))
+- **🧰 Materials Used**: Add the warehouse materials you used to the job, searching by name or code; they are deducted from stock automatically when saving (see [Materials used in a job](#-warehouse-stock)). On completing a reminder you can also note spare parts, the machine's own parts are listed first, and correcting a job in the history adjusts the stock
 - **🏭 Link Machine**: Choose from a drop-down list the machine or sub-machine the job was done on, both when creating a new record and when editing one already synced in the history
 - **🔄 Connected in the Background**: while the app is open, even in the background, it keeps syncing with the PC and shows a notification (“Connected to the PC” / “No connection to the PC”) with a “Close” button. Once fully closed it stops using battery
 - **📶 First Sync with Progress**: progress bar while downloading the data and photos, downloaded in parallel so it is faster
@@ -800,7 +801,7 @@ The code and database structure is described in
 
 What's coming, without dates and in no fixed order:
 
-- **Spare parts used in each job**, with the material cost per machine
+- **Labour cost** (hourly rate per technician) to add to the material cost
 - **Suppliers, prices and purchase orders** based on low stock
 - **Meter-based preventive maintenance** (running hours, cycles, km), as well as date-based
 - **Time worked and sign-off** when closing a job (also on the phone)
@@ -812,7 +813,7 @@ What's coming, without dates and in no fixed order:
 - **Several sites or plants** with separate data and KPIs per site
 - More languages (Italian, German…) and an iPhone app
 
-Recently done: checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
+Recently done: spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

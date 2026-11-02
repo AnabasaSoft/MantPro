@@ -222,4 +222,9 @@ const Map<String, String> traduccionesEn = {
     "btn_chk_guardar": "Save checklist",
     "btn_chk_todo_bien_corto": "Rest OK",
     "title_rellenar_checklist": "Fill in checklist",
+    // --- Repuestos usados ---
+    "lbl_repuesto_de_maquina": "machine spare part",
+    "btn_con_repuestos": "With parts",
+    "lbl_repuestos_usados_q": "Did you use any spare parts?",
+    "btn_sin_repuestos": "No parts",
 };

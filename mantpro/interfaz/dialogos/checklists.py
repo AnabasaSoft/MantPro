@@ -518,3 +518,18 @@ class DialogoPlantillasChecklist(QDialog):
     def reject(self):
         if self._preguntar_guardar():
             super().reject()
+
+
+
+def texto_repuestos_export(mats, moneda):
+    """Repuestos usados en una celda (CSV y Excel) o en el PDF."""
+    if not mats:
+        return "-"
+    from ...nucleo import consumos
+    lineas = [f"• {m['cantidad']:g} {m.get('unidad') or ''} {m['nombre']}".replace("  ", " ") +
+              (f" — {consumos.formato_importe(m['importe'], moneda)}" if m.get("importe") is not None else "")
+              for m in mats]
+    importe, sin_precio = consumos.coste(mats)
+    lineas.append(f"{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" +
+                  (f" ({tt('lbl_sin_precio_algunos', '(hay artículos sin precio)').strip('()')})" if sin_precio else ""))
+    return "\n".join(lineas)

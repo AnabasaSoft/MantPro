@@ -181,6 +181,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **📖 Ajuda integrada**: `Ajuda > 📖 Instruções` abre um manual completo por tópicos (primeiros passos, usuários, cada aba, menus, aplicativos do celular e problemas comuns), com índice e busca, nos 7 idiomas. Com **F1** ele abre direto no tópico da aba em que você está
 - **👥 Estatísticas por técnico**: botão no Painel com os serviços de cada técnico por ano e mês, falhas, preventivos, horas de parada e pendentes atribuídos agora, com gráfico de barras; filtrável por tipo (todos, serviços e falhas ou manutenção preventiva) e exportável para PDF (com logo) e Excel
 - **🔩 Peças de reposição por máquina**: quais itens do almoxarifado cada máquina leva e quantos, com seu estoque e localização, e em quais máquinas cada item é usado (veja [Máquinas](#-máquinas))
+- **💶 Peças usadas e seu custo**: ao registrar, concluir ou editar um serviço, anotam-se as peças usadas (as da máquina aparecem primeiro); elas saem do estoque e ficam salvas com o serviço e o preço daquele momento, então o custo não muda mesmo que o preço mude depois. Ao corrigi-las, o estoque é ajustado. Cada item pode ter preço unitário (moeda configurável). `Máquinas > 💶 Custo de peças` mostra o custo por máquina, incluindo as submáquinas, por ano e exportável para Excel; o histórico, o PDF, o Excel e o CSV as incluem
 - **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para colar nas máquinas; ao escaneá-las com o aplicativo MantPro abre-se a ficha da máquina
 - **🔍 Aviso de duplicados**: ao criar ou renomear uma máquina, ou ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome igual ou muito parecido (por exemplo «Extrator de finos» / «Extração de finos»), sem avisar quando só muda o número («Lora 1» / «Lora 2»)
 - **📲 Instalar os aplicativos com um QR**: `Ferramentas > 📱 Instalar MantPro no celular` e `📦 Instalar MantPro Stock no celular` mostram um QR que, ao ser escaneado com a câmera do celular, baixa a última versão estável do aplicativo
@@ -203,7 +204,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **☑️ Checklists**: os avisos e serviços pendentes com checklist pedem para preenchê-lo ao concluí-los (OK / com problema / não se aplica e leituras), também sem conexão; o histórico mostra o checklist preenchido
 - **🔌 Modo offline**: trabalhe sem conexão e sincronize quando puder
 - **⏰ Lembretes diários**: notificação automática às 8:00 (horário local) se houver serviços pendentes não concluídos
-- **🧰 Material usado**: adicione ao serviço o material do almoxarifado que você usou, buscando pelo nome ou código; ele é descontado do estoque automaticamente ao salvar (veja [Material usado em um serviço](#-estoque-do-almoxarifado))
+- **🧰 Material usado**: adicione ao serviço o material do almoxarifado que você usou, buscando pelo nome ou código; ele é descontado do estoque automaticamente ao salvar (veja [Material usado em um serviço](#-estoque-do-almoxarifado)). Ao concluir um aviso também é possível anotar peças, as da máquina aparecem primeiro, e ao corrigir um serviço do histórico o estoque é ajustado
 - **🏭 Vincular máquina**: escolha em uma lista a máquina ou submáquina em que o serviço foi feito, tanto ao criar um registro novo quanto ao editar um já sincronizado do histórico
 - **🔄 Conectado em segundo plano**: enquanto o aplicativo está aberto, mesmo em segundo plano, ele continua sincronizando com o PC e mostra uma notificação («Conectado ao PC» / «Sem conexão com o PC») com um botão «Fechar». Ao fechá-lo totalmente, ele para de gastar bateria
 - **📶 Primeira sincronização com progresso**: barra de progresso ao baixar os dados e as fotos, com download em paralelo para ser mais rápido
@@ -814,7 +815,7 @@ segurança, veja o [SECURITY.md](SECURITY.md).
 
 O que vem por aí, sem datas e sem uma ordem fechada:
 
-- **Peças de reposição usadas em cada serviço**, com o custo de material por máquina
+- **Custo de mão de obra** (preço por hora de cada técnico) para somar ao de material
 - **Fornecedores, preços e pedidos de compra** a partir do estoque abaixo do mínimo
 - **Preventiva por contador** (horas de uso, ciclos, km), além de por data
 - **Tempo trabalhado e assinatura** ao fechar um serviço (também no celular)
@@ -826,7 +827,7 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Várias unidades ou plantas** com dados e indicadores por unidade
 - Mais idiomas (italiano, alemão…) e aplicativo para iPhone
 
-Feito recentemente: checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
+Feito recentemente: peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
