@@ -134,7 +134,7 @@ class PestanaStock:
 
     def init_stock_alertas_tab(self):
         l = QVBoxLayout()
-        l.addWidget(QLabel(tt("lbl_stock_bajo_minimo", "Materiales sin stock o por debajo del mínimo establecido")))
+        l.addWidget(QLabel(tt("lbl_stock_bajo_minimo_2", "Materiales sin stock o por debajo del mínimo (en rojo), y los que están justo en el mínimo")))
         self.tabla_stock_alertas = QTableWidget(0, 6)
         self.tabla_stock_alertas.setHorizontalHeaderLabels([
             tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_ubicacion", "UBICACIÓN"),
@@ -180,7 +180,8 @@ class PestanaStock:
 
     def refresh_stock_alertas(self):
         if not hasattr(self, "tabla_stock_alertas"): return
-        materiales = almacen.materiales_bajo_minimo()
+        # También los que están justo en el mínimo (sin color: ni rojo ni verde)
+        materiales = almacen.materiales_bajo_minimo(incluir_en_minimo=True)
         header = self.tabla_stock_alertas.horizontalHeader()
         # Al pulsar una cabecera para ordenar, Qt guarda esa columna y sentido en
         # el propio header; los recuperamos para que el orden elegido por el
@@ -206,7 +207,9 @@ class PestanaStock:
         if hasattr(self, "tabs") and hasattr(self, "tab_stock_alertas"):
             idx = self.tabs.indexOf(self.tab_stock_alertas)
             if idx >= 0:
-                sufijo = f" ({len(materiales)})" if materiales else ""
+                # El número cuenta solo los que están por debajo (los que son alerta)
+                n_bajo = sum(almacen.esta_bajo_minimo(m) for m in materiales)
+                sufijo = f" ({n_bajo})" if n_bajo else ""
                 self.tabs.setTabText(idx, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo") + sufijo)
 
     def stock_alerta_ir_a_material(self):
@@ -360,12 +363,11 @@ class PestanaStock:
     # ------------------------------------------------------- exportar stock
     @staticmethod
     def _bajo_minimo(m):
-        # Mismo criterio que almacen.materiales_bajo_minimo()
-        return m["stock_actual"] <= 0 or m["stock_actual"] < m["stock_minimo"]
+        return almacen.esta_bajo_minimo(m)
 
     def stock_exportar(self, solo_bajo_minimo=False):
         zona_actual = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
-        dlg = DialogoExportarStock(self, zona_actual)
+        dlg = DialogoExportarStock(self, zona_actual, opcion_en_minimo=solo_bajo_minimo)
         if solo_bajo_minimo:
             dlg.setWindowTitle(tt("title_exportar_bajo_minimo", "Exportar stock bajo mínimo"))
         if not dlg.exec(): return
@@ -373,7 +375,8 @@ class PestanaStock:
 
         materiales = almacen.listar_materiales(None, zona_id, est_id)
         if solo_bajo_minimo:
-            materiales = [m for m in materiales if self._bajo_minimo(m)]
+            con_minimo = dlg.incluir_en_minimo()
+            materiales = [m for m in materiales if self._bajo_minimo(m) or (con_minimo and almacen.esta_en_minimo(m))]
         if not materiales:
             QMessageBox.information(self, tt("aviso", "Aviso"),
                 tt("msg_stock_sin_materiales", "No hay materiales que exportar con ese filtro.")); return

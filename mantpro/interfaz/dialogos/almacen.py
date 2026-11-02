@@ -919,9 +919,10 @@ class DialogoHistorialAlmacen(QDialog):
 class DialogoExportarStock(QDialog):
     """Elige formato (PDF/CSV/Excel) y alcance (todo, una zona o una estantería)
     para exportar el stock de almacén."""
-    def __init__(self, parent=None, zona_inicial=None):
+    def __init__(self, parent=None, zona_inicial=None, opcion_en_minimo=False):
         super().__init__(parent)
         self.setWindowTitle(tt("title_exportar_stock", "Exportar stock de almacén"))
+        self.chk_en_minimo = None
         l = QVBoxLayout()
 
         g_formato = QGroupBox(tt("lbl_formato", "Formato"))
@@ -945,12 +946,20 @@ class DialogoExportarStock(QDialog):
         f.addRow(tt("lbl_estanteria", "Estantería") + ":", self.combo_estanteria)
         l.addWidget(g_alcance)
         self._cargar_estanterias()
+        if opcion_en_minimo:
+            # Exportar el stock bajo mínimo: con o sin los que están justo en el mínimo
+            self.chk_en_minimo = QCheckBox(tt("chk_incluir_en_minimo", "Incluir los artículos que están justo en el mínimo"))
+            self.chk_en_minimo.setChecked(True)
+            l.addWidget(self.chk_en_minimo)
 
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(tt("btn_exportar", "Exportar"))
         b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
         l.addWidget(b); self.setLayout(l)
+
+    def incluir_en_minimo(self):
+        return self.chk_en_minimo is not None and self.chk_en_minimo.isChecked()
 
     def _cargar_estanterias(self):
         self.combo_estanteria.clear()

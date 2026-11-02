@@ -1016,5 +1016,7 @@
   "btn_anadir_repuesto_usado": "➕ Ajouter une pièce",
   "btn_quitar": "➖ Retirer",
   "aud_f_precio": "Prix unitaire",
-  "aud_f_moneda": "Devise"
+  "aud_f_moneda": "Devise",
+  "lbl_stock_bajo_minimo_2": "Articles en rupture ou sous le minimum (en rouge), et ceux qui sont pile au minimum",
+  "chk_incluir_en_minimo": "Inclure les articles qui sont pile au minimum"
 }

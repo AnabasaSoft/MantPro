@@ -1016,5 +1016,7 @@
   "btn_anadir_repuesto_usado": "➕ Añadir repuesto",
   "btn_quitar": "➖ Quitar",
   "aud_f_precio": "Precio unitario",
-  "aud_f_moneda": "Moneda"
+  "aud_f_moneda": "Moneda",
+  "lbl_stock_bajo_minimo_2": "Materiales sin stock o por debajo del mínimo (en rojo), y los que están justo en el mínimo",
+  "chk_incluir_en_minimo": "Incluir los artículos que están justo en el mínimo"
 }

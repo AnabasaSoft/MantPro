@@ -1016,5 +1016,7 @@
   "btn_anadir_repuesto_usado": "➕ Add spare part",
   "btn_quitar": "➖ Remove",
   "aud_f_precio": "Unit price",
-  "aud_f_moneda": "Currency"
+  "aud_f_moneda": "Currency",
+  "lbl_stock_bajo_minimo_2": "Items out of stock or below the minimum (in red), and those right at the minimum",
+  "chk_incluir_en_minimo": "Include items that are right at the minimum"
 }

@@ -1016,5 +1016,7 @@
   "btn_anadir_repuesto_usado": "➕ Gehitu ordezko pieza",
   "btn_quitar": "➖ Kendu",
   "aud_f_precio": "Unitateko prezioa",
-  "aud_f_moneda": "Txanpona"
+  "aud_f_moneda": "Txanpona",
+  "lbl_stock_bajo_minimo_2": "Stockik gabeko materialak edo gutxienekoaren azpitik daudenak (gorriz), eta gutxienekoan bertan daudenak",
+  "chk_incluir_en_minimo": "Sartu gutxienekoan bertan dauden artikuluak"
 }

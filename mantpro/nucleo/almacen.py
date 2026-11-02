@@ -766,11 +766,24 @@ def listar_materiales(filtro_texto=None, zona_id=None, estanteria_id=None):
     return [dict(f) for f in filas]
 
 
-def materiales_bajo_minimo():
-    """Materiales sin stock (aunque no tengan mínimo configurado) o por debajo de su mínimo."""
+def esta_bajo_minimo(m):
+    """Sin stock (aunque no tenga mínimo) o por debajo de su mínimo."""
+    return m["stock_actual"] <= 0 or m["stock_actual"] < m["stock_minimo"]
+
+
+def esta_en_minimo(m):
+    """Justo en su mínimo (con un mínimo configurado y algo de stock)."""
+    return m["stock_minimo"] > 0 and m["stock_actual"] == m["stock_minimo"]
+
+
+def materiales_bajo_minimo(incluir_en_minimo=False):
+    """Materiales sin stock (aunque no tengan mínimo configurado) o por debajo
+    de su mínimo; con [incluir_en_minimo], también los que están justo en él."""
     con = _conn()
-    filas = con.execute(
-        "SELECT * FROM materiales WHERE stock_actual <= 0 OR stock_actual < stock_minimo ORDER BY nombre").fetchall()
+    condicion = "stock_actual <= 0 OR stock_actual < stock_minimo"
+    if incluir_en_minimo:
+        condicion += " OR (stock_minimo > 0 AND stock_actual = stock_minimo)"
+    filas = con.execute(f"SELECT * FROM materiales WHERE {condicion} ORDER BY nombre").fetchall()
     con.close()
     return [dict(f) for f in filas]
 

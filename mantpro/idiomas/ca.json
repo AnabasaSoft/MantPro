@@ -1016,5 +1016,7 @@
   "btn_anadir_repuesto_usado": "➕ Afegeix recanvi",
   "btn_quitar": "➖ Treu",
   "aud_f_precio": "Preu unitari",
-  "aud_f_moneda": "Moneda"
+  "aud_f_moneda": "Moneda",
+  "lbl_stock_bajo_minimo_2": "Materials sense estoc o per sota del mínim (en vermell), i els que estan just al mínim",
+  "chk_incluir_en_minimo": "Inclou els articles que estan just al mínim"
 }
