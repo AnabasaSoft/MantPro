@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
@@ -129,10 +129,11 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) orritik deskarga ditzakezu:
 
-- **Windows**: Windowserako `.exe` exekutagarria
+- **Windows**: instalatzailea (`MantPro_Setup_v….exe`) edo `.exe` exekutagarri soila
 - **Linux**:
   - Linuxeko bitar exekutagarria
   - AppImage eramangarria
+  - `.deb` (Debian, Ubuntu…) eta `.rpm` (Fedora, openSUSE…) paketeak, GPGrekin sinatuta
   - **AUR**en ere eskuragarri (Arch User Repository)
   - [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro)-n ere eskuragarri (openSUSE Build Service), openSUSE Tumbleweed eta Slowroll-erako
 - **Android**: `.apk` fitxategiak zuzenean instalatzeko
@@ -235,7 +236,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
 ### Mahaigaineko aplikazioa
 
-- **Python**: 3.8 edo berriagoa
+- **Python**: 3.10 edo berriagoa
 - **Sistema eragilea**: Windows edo Linux
 - **Python mendekotasunak**:
   - PyQt6
@@ -765,8 +766,7 @@ baduzu inoiz, egin VPN baten bidez.
 
 Datu-baseak **zifratuta** ere gorde daitezke (`Tresnak > Datu-baseen
 zifratzea…`, SQLCipher): gakoa sistemaren gako-sortan gordetzen da eta
-berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator eta ez dago
-openSUSEko paketean.
+berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator.
 
 ---
 

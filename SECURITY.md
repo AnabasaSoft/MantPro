@@ -37,9 +37,7 @@ workshop Wi-Fi). Keep in mind:
   versions. Do not expose the sync ports to the internet.
 - **The databases can be encrypted** (`Tools > Database encryption…`,
   SQLCipher/AES-256, key in the system keyring plus a recovery key). It is
-  off by default, and the openSUSE (OBS) package cannot use it because the
-  distribution has no SQLCipher module for Python. **Photos are not
-  encrypted.** Protect the computer. **Backups can be encrypted**
+  off by default. **Photos are not encrypted.** Protect the computer. **Backups can be encrypted**
   with a password (`File > Backup password…`, AES-256-GCM with a scrypt-derived
   key); without one they are plain ZIP files.
 - On the first start the user `admin` / `admin` is created, and the program
@@ -105,9 +103,7 @@ la oficina o del taller). Ten en cuenta que:
   internet.
 - **Las bases de datos se pueden cifrar** (`Herramientas > Cifrado de las
   bases de datos…`, SQLCipher/AES-256, con la clave en el llavero del sistema y
-  una clave de recuperación). Viene desactivado, y el paquete de openSUSE (OBS)
-  no puede usarlo porque la distribución no tiene el módulo de SQLCipher para
-  Python. **Las fotos no se cifran.** Protege el equipo. **Las copias de
+  una clave de recuperación). Viene desactivado. **Las fotos no se cifran.** Protege el equipo. **Las copias de
   seguridad se pueden cifrar** con contraseña (`Archivo > Contraseña de las
   copias…`, AES-256-GCM con la clave sacada con scrypt); sin ella son ZIP
   normales.

@@ -6,6 +6,11 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Correcciones
+- **Paquete de openSUSE (OBS) con cifrado de las bases de datos**: openSUSE no tiene el módulo de SQLCipher para Python, así que el paquete no podía abrir unas bases de datos cifradas con la versión de GitHub (avisaba de que «esta instalación no incluye SQLCipher»). Ahora el paquete compila ese módulo desde su código fuente, como el que llevan los binarios de GitHub, y el cifrado funciona igual. El paquete pasa de `noarch` a `x86_64` y depende de `python3-keyring`.
+
+## 3.10.3 — 2026-11-02
+
 ### Seguridad
 - **Sincronización cifrada (HTTPS)** entre el PC y los móviles. El PC crea su propio certificado y su huella va en el QR de vinculación: las apps solo se conectan a *ese* PC, así que nadie en la WiFi puede leer el tráfico ni hacerse pasar por él. Los móviles ya vinculados pasan solos a HTTPS al actualizar la app, sin volver a escanear. HTTPS usa el puerto siguiente al configurado (p. ej. 5001); el PC sigue atendiendo por HTTP en el configurado para las apps de versiones anteriores.
 - **Bases de datos cifradas** (*Herramientas → 🔐 Cifrado de las bases de datos…*, solo administradores, desactivado por defecto): `mantenimiento.db` y `almacen.db` se guardan cifradas con SQLCipher (AES-256), así que quien copie los ficheros o se lleve el disco no puede leerlas. La clave se guarda en el llavero del sistema (Administrador de credenciales de Windows, KWallet / GNOME Keyring) y MantPro abre los datos solo; al activarlo se muestra una **clave de recuperación** para apuntar, que MantPro pide si el llavero pierde la clave. El cambio (y el de quitarlo) se hace al volver a abrir MantPro, comprobando las bases de datos antes de sustituirlas. Las copias de seguridad siguen llevando los datos sin cifrar (para poder restaurarlas en otro equipo): para protegerlas está la contraseña de las copias. No disponible en el paquete de openSUSE (no tiene el módulo de SQLCipher para Python). Dependencias nuevas: `sqlcipher3-wheels` y `keyring`.
@@ -25,6 +30,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **Pestaña Registrar**: se quita el botón «Sincronizar App», que ya está en *Herramientas → 📲 Sincronizar App (QR)*.
 
 ### Correcciones
+- **La 3.10.2 de Windows y Linux no arrancaba** («No module named 'mantpro.interfaz.dialogos.estadisticas'»): una línea de las estadísticas por técnico solo era válida desde Python 3.12, y al empaquetar con Python 3.10 PyInstaller dejaba fuera ese módulo sin avisar. El paquete de openSUSE no estaba afectado. La compilación de CI comprueba ahora que todo el código vale para Python 3.10 y que el ejecutable lleva todos los módulos de MantPro, SQLCipher y el llavero; si falta algo, no se publica.
 - **Las versiones de pruebas se publican solas como *pre-release*** en GitHub. Antes había que marcarlas a mano: si se olvidaba, a quien usa la versión estable se le ofrecía la de pruebas y el QR de *Instalar en móvil* descargaba la de pruebas.
 - **Restaurar una copia con MantPro abierto**: la base de datos se sobrescribía como fichero y podía mezclarse con el `-wal` que seguía en la carpeta. Ahora se comprueba la copia antes de tocar nada (si está dañada no se restaura) y se escribe con la API de copia de SQLite. Las fotos que no se puedan sacar de una copia automática se avisan en vez de saltarse en silencio.
 - **Copias de seguridad que podían perder los últimos cambios**: con MantPro abierto, lo guardado más recientemente puede estar todavía en el fichero `-wal` de SQLite, y las copias solo guardaban el `.db`. Ahora se hace una copia consistente de cada base de datos, se comprueba su integridad (avisando si hay errores) y el ZIP se escribe en un temporal que solo se renombra al terminar, así que un corte a mitad no deja una copia rota.

@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
@@ -128,10 +128,11 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 Pots descarregar les versions precompilades des de [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
-- **Windows**: executable `.exe` per a Windows
+- **Windows**: instal·lador (`MantPro_Setup_v….exe`) o executable `.exe` solt
 - **Linux**:
   - Binari executable de Linux
   - AppImage portable
+  - Paquets `.deb` (Debian, Ubuntu…) i `.rpm` (Fedora, openSUSE…), signats amb GPG
   - També disponible a **AUR** (Arch User Repository)
   - També disponible a [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) per a openSUSE Tumbleweed i Slowroll
 - **Android**: fitxers `.apk` per a instal·lació directa
@@ -234,7 +235,7 @@ treballs.
 
 ### Aplicació d'escriptori
 
-- **Python**: 3.8 o superior
+- **Python**: 3.10 o superior
 - **Sistema operatiu**: Windows o Linux
 - **Dependències de Python**:
   - PyQt6
@@ -758,8 +759,7 @@ fes-ho a través d'una VPN.
 
 Les bases de dades també es poden desar **xifrades** (`Eines > Xifratge de
 les bases de dades…`, SQLCipher): la clau va al clauer del sistema i es mostra
-una clau de recuperació per apuntar-la. Ve desactivat i no està disponible al
-paquet d'openSUSE.
+una clau de recuperació per apuntar-la. Ve desactivat.
 
 ---
 

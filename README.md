@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
@@ -125,10 +125,11 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 You can download the prebuilt versions from [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
-- **Windows**: `.exe` executable for Windows
+- **Windows**: installer (`MantPro_Setup_v….exe`) or standalone `.exe` executable
 - **Linux**:
   - Linux executable binary
   - Portable AppImage
+  - `.deb` (Debian, Ubuntu…) and `.rpm` (Fedora, openSUSE…) packages, signed with GPG
   - Also available on the **AUR** (Arch User Repository)
   - Also available on [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) for openSUSE Tumbleweed and Slowroll
 - **Android**: `.apk` files for direct installation
@@ -230,7 +231,7 @@ from your phone without needing the jobs app.
 
 ### Desktop Application
 
-- **Python**: 3.8 or later
+- **Python**: 3.10 or later
 - **Operating System**: Windows or Linux
 - **Python dependencies**:
   - PyQt6
@@ -748,7 +749,7 @@ a VPN.
 
 The databases can also be stored **encrypted** (`Tools > Database encryption…`,
 SQLCipher): the key is kept in the system keyring and a recovery key is shown
-to write down. It is off by default and not available in the openSUSE package.
+to write down. It is off by default.
 
 ---
 

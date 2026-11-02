@@ -16,15 +16,27 @@
 # del tag v<Version> de GitHub (servicio download_files, ver _service).
 #
 
+# Módulo de Python de SQLCipher (cifrado de las bases de datos). openSUSE tiene
+# la biblioteca de SQLCipher pero no su módulo de Python, así que se compila
+# aquí desde su código fuente (trae SQLCipher dentro y usa el OpenSSL del
+# sistema). Es la misma librería que llevan los binarios de GitHub.
+%define sqlcipher3_version 0.6.4
+
 Name:           mantpro
 Version:        3.10.0
 Release:        0
 Summary:        Maintenance management (CMMS) for workshops and plants, with Android sync
-License:        AGPL-3.0-or-later
+# MantPro: AGPL; sqlcipher3 (módulo): Zlib; SQLCipher: BSD-3-Clause
+License:        AGPL-3.0-or-later AND Zlib AND BSD-3-Clause
 URL:            https://github.com/AnabasaSoft/MantPro
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source1:        https://files.pythonhosted.org/packages/source/s/sqlcipher3/sqlcipher3-%{sqlcipher3_version}.tar.gz
 BuildRequires:  desktop-file-utils
 BuildRequires:  fdupes
+BuildRequires:  gcc
+BuildRequires:  pkgconfig(libcrypto)
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3
 # Las dependencias de ejecución también como BuildRequires: así OBS comprueba
@@ -32,6 +44,7 @@ BuildRequires:  python3
 BuildRequires:  python3-Flask
 BuildRequires:  python3-Pillow
 BuildRequires:  python3-cryptography
+BuildRequires:  python3-keyring
 BuildRequires:  python3-PyQt6
 BuildRequires:  python3-XlsxWriter
 BuildRequires:  python3-openpyxl
@@ -42,6 +55,9 @@ Requires:       python3
 Requires:       python3-Flask
 Requires:       python3-Pillow
 Requires:       python3-cryptography
+Requires:       python3-keyring
+# El módulo de SQLCipher va compilado para esta versión de Python
+Requires:       python(abi) = %{python3_version}
 Requires:       python3-PyQt6
 Requires:       python3-XlsxWriter
 Requires:       python3-openpyxl
@@ -51,11 +67,6 @@ Requires:       python3-requests
 # Traducciones de los botones estándar de Qt (Aceptar, Cancelar...) a los
 # idiomas de la app; sin ellas esos textos salen en inglés.
 Recommends:     qt6-translations
-# Para el cifrado de las bases de datos (la clave va en el llavero del sistema).
-# openSUSE no tiene el módulo de SQLCipher para Python: en este paquete la
-# opción aparece desactivada y se recomienda el cifrado de disco completo.
-Recommends:     python3-keyring
-BuildArch:      noarch
 
 %description
 MantPro is a free CMMS for preventive and corrective maintenance of plants,
@@ -72,24 +83,35 @@ Available in Spanish, English, Basque, Catalan, Galician, Portuguese and
 French.
 
 %prep
-%autosetup -n MantPro-%{version}
+%autosetup -n MantPro-%{version} -a1
 # La versión que se muestra en "Acerca de" sale del paquete, igual que en
 # los binarios de GitHub (build_desktop.yml).
 sed -i 's/^APP_VERSION = ".*"/APP_VERSION = "%{version}"/' mantpro/version.py
 # Se actualiza con zypper: "Buscar actualizaciones" lo indica en vez de mirar GitHub.
 sed -i 's/^GESTOR_PAQUETES = .*/GESTOR_PAQUETES = "zypper"/' mantpro/version.py
+# Licencia del módulo de SQLCipher, junto a la de MantPro
+cp sqlcipher3-%{sqlcipher3_version}/LICENSE LICENSE.sqlcipher3
 
 %build
-# Nada que compilar: aplicación Python pura.
+# La app es Python puro; solo se compila el módulo de SQLCipher.
+cd sqlcipher3-%{sqlcipher3_version}
+export CFLAGS="%{optflags}"
+python3 setup.py build --build-lib=../_sqlcipher3
 
 %install
 install -d %{buildroot}%{_datadir}/%{name}
 cp -a main.py mantpro recursos %{buildroot}%{_datadir}/%{name}/
 %py3_compile %{buildroot}%{_datadir}/%{name}
 
+# Módulo de SQLCipher: compilado, así que en %%{_libdir} y no en /usr/share
+install -d %{buildroot}%{_libdir}/%{name}
+cp -a _sqlcipher3/sqlcipher3 %{buildroot}%{_libdir}/%{name}/
+%py3_compile %{buildroot}%{_libdir}/%{name}
+
 install -d %{buildroot}%{_bindir}
 cat > %{buildroot}%{_bindir}/%{name} << 'EOF'
 #!/bin/sh
+export PYTHONPATH="%{_libdir}/%{name}${PYTHONPATH:+:$PYTHONPATH}"
 exec /usr/bin/python3 %{_datadir}/%{name}/main.py "$@"
 EOF
 chmod 0755 %{buildroot}%{_bindir}/%{name}
@@ -131,13 +153,19 @@ cd "$HOME"
 python3 - << 'EOF'
 import importlib, pkgutil, sys
 sys.path.insert(0, "%{buildroot}%{_datadir}/%{name}")
-for m in ("flask", "openpyxl", "PIL", "cryptography", "PyQt6.QtWidgets", "PyQt6.QtNetwork", "qrcode",
+sys.path.insert(0, "%{buildroot}%{_libdir}/%{name}")
+for m in ("flask", "openpyxl", "PIL", "cryptography", "keyring", "PyQt6.QtWidgets", "PyQt6.QtNetwork", "qrcode",
           "reportlab", "requests", "xlsxwriter"):
     importlib.import_module(m)
 import mantpro
 modulos = [m.name for m in pkgutil.walk_packages(mantpro.__path__, "mantpro.")]
 for m in modulos:
     importlib.import_module(m)
+# SQLCipher de verdad (cifra) y que la app lo usa
+from sqlcipher3 import dbapi2
+assert dbapi2.connect(":memory:").execute("PRAGMA cipher_version").fetchone()[0]
+from mantpro.nucleo import conexion_bd
+assert conexion_bd.HAY_SQLCIPHER
 from mantpro.version import APP_VERSION
 assert APP_VERSION == "%{version}", APP_VERSION
 from mantpro.version import GESTOR_PAQUETES
@@ -146,10 +174,11 @@ print("OK:", len(modulos), "módulos")
 EOF
 
 %files
-%license LICENSE
+%license LICENSE LICENSE.sqlcipher3
 %doc README.md README.es.md
 %{_bindir}/%{name}
 %{_datadir}/%{name}
+%{_libdir}/%{name}
 %{_datadir}/applications/%{name}.desktop
 %{_datadir}/pixmaps/%{name}.png
 

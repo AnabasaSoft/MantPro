@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
@@ -127,10 +127,11 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 Puedes descargar las versiones precompiladas desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
-- **Windows**: Ejecutable `.exe` para Windows
+- **Windows**: instalador (`MantPro_Setup_v….exe`) o ejecutable `.exe` suelto
 - **Linux**: 
   - Binario ejecutable de Linux
   - AppImage portable
+  - Paquetes `.deb` (Debian, Ubuntu…) y `.rpm` (Fedora, openSUSE…), firmados con GPG
   - También disponible en **AUR** (Arch User Repository)
   - También disponible en [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) para openSUSE Tumbleweed y Slowroll
 - **Android**: Archivos `.apk` para instalación directa
@@ -233,7 +234,7 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 
 ### Aplicación de Escritorio
 
-- **Python**: 3.8 o superior
+- **Python**: 3.10 o superior
 - **Sistema Operativo**: Windows o Linux
 - **Dependencias Python**:
   - PyQt6
@@ -759,7 +760,7 @@ la red local, hazlo a través de una VPN.
 Las bases de datos también se pueden guardar **cifradas** (`Herramientas >
 Cifrado de las bases de datos…`, SQLCipher): la clave va en el llavero del
 sistema y se muestra una clave de recuperación para apuntarla. Viene
-desactivado y no está disponible en el paquete de openSUSE.
+desactivado.
 
 ---
 

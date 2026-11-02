@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
@@ -127,10 +127,11 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 
 Você pode baixar as versões pré-compiladas em [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
-- **Windows**: executável `.exe` para Windows
+- **Windows**: instalador (`MantPro_Setup_v….exe`) ou executável `.exe` avulso
 - **Linux**:
   - Binário executável para Linux
   - AppImage portátil
+  - Pacotes `.deb` (Debian, Ubuntu…) e `.rpm` (Fedora, openSUSE…), assinados com GPG
   - Também disponível no **AUR** (Arch User Repository)
   - Também disponível no [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) para openSUSE Tumbleweed e Slowroll
 - **Android**: arquivos `.apk` para instalação direta
@@ -233,7 +234,7 @@ serviços.
 
 ### Aplicativo para desktop
 
-- **Python**: 3.8 ou superior
+- **Python**: 3.10 ou superior
 - **Sistema operacional**: Windows ou Linux
 - **Dependências do Python**:
   - PyQt6
@@ -760,8 +761,7 @@ local, faça isso por uma VPN.
 
 Os bancos de dados também podem ser salvos **criptografados** (`Ferramentas >
 Criptografia dos bancos de dados…`, SQLCipher): a chave fica no chaveiro do
-sistema e é mostrada uma chave de recuperação para você anotar. Vem desativado
-e não está disponível no pacote do openSUSE.
+sistema e é mostrada uma chave de recuperação para você anotar. Vem desativado.
 
 ---
 
