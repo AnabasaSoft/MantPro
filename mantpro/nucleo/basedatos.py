@@ -24,7 +24,7 @@ from .conexion_bd import sqlite3, conectar
 import os
 import re
 
-from . import usuarios, almacen, maquinas
+from . import usuarios, almacen, maquinas, checklists
 from .rutas import DATA_DIR
 
 # Función auxiliar para conectar de forma SEGURA
@@ -81,6 +81,10 @@ class GestorBaseDatos:
         # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
         maquinas.configurar_db(self.db_name)
         maquinas.inicializar()
+        # Listas de comprobación (plantillas, su asignación a avisos y
+        # pendientes, y lo rellenado en cada trabajo)
+        checklists.configurar_db(self.db_name)
+        checklists.inicializar()
 
     def conectar(self):
         # timeout=20: igual que en almacen.py/usuarios.py/maquinas.py, para no
@@ -139,7 +143,8 @@ class GestorBaseDatos:
             conn = self.conectar(); c = conn.cursor()
             c.execute('INSERT INTO avisos_recurrentes (titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, asignado_a, asignado_nombre, especialidad_id) VALUES (?,?,?,?,?,?,?,?)',
                       (titulo, fecha_inicio, frecuencia, duracion, "", asignado_a, asignado_nombre, especialidad_id))
-            conn.commit(); conn.close(); return True
+            nuevo_id = c.lastrowid
+            conn.commit(); conn.close(); return nuevo_id
         except Exception as e: return False
 
     def actualizar_aviso(self, id_aviso, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None):
@@ -189,7 +194,8 @@ class GestorBaseDatos:
             conn = self.conectar(); c = conn.cursor()
             c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id,horas_paro) VALUES (?,?,?,?,?,?,?)',
                       (f, d, t, usuario_id, usuario_nombre, maquina_id, horas_paro))
-            conn.commit(); conn.close(); return True
+            nuevo_id = c.lastrowid
+            conn.commit(); conn.close(); return nuevo_id   # id del trabajo (cierto, como antes)
         except Exception as e:
             print(f"Error agregar_tarea: {e}"); return False
     def obtener_todas_cronologico(self, filtro_usuario=None):
@@ -217,6 +223,7 @@ class GestorBaseDatos:
                 desc_corta = fila[1][:80].split("\n")[0]
                 detalle = f"Registro del {fila[0]}: {desc_corta} (autor original: {fila[2] or 'Histórico'})"
             c.execute('DELETE FROM tareas WHERE id=?', (i,))
+            c.execute('DELETE FROM checklist_resultados WHERE tarea_id=?', (i,))
             conn.commit(); conn.close()
             usuarios.registrar_auditoria(usuarios.id_actual(), i, "borrar", detalle)
             return True
@@ -269,7 +276,8 @@ class GestorBaseDatos:
             conn = self.conectar(); c = conn.cursor()
             c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad,especialidad_id) VALUES (?,?,?,?,?,?)',
                       (t, d, asignado_a, asignado_nombre, prioridad, especialidad_id))
-            conn.commit(); conn.close(); return True
+            nuevo_id = c.lastrowid
+            conn.commit(); conn.close(); return nuevo_id
         except Exception as e:
             print(f"Error agregar_pendiente: {e}"); return False
     def obtener_pendientes(self):

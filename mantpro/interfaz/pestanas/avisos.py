@@ -31,7 +31,8 @@ from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import AvisoEditDialog
-from ...nucleo import usuarios
+from ...nucleo import usuarios, checklists
+from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.basedatos import get_db_connection
 
 class PestanaAvisos:
@@ -73,7 +74,9 @@ class PestanaAvisos:
         f.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":"), 2, 0); f.addWidget(self.in_av_asignar, 2, 1, 1, 3)
         self.in_av_especialidad = QComboBox(); self._llenar_combo_especialidades(self.in_av_especialidad)
         f.addWidget(QLabel(tt("usuarios_col_especialidad", "Especialidad") + ":"), 3, 0); f.addWidget(self.in_av_especialidad, 3, 1, 1, 3)
-        b = QPushButton(t("btn_anadir_aviso")); b.clicked.connect(self.add_aviso); f.addWidget(b, 4, 0, 1, 4); g.setLayout(f); l.addWidget(g)
+        self.in_av_checklist = QComboBox(); llenar_combo_plantillas(self.in_av_checklist)
+        f.addWidget(QLabel(tt("lbl_checklist", "Lista de comprobación") + ":"), 4, 0); f.addWidget(self.in_av_checklist, 4, 1, 1, 3)
+        b = QPushButton(t("btn_anadir_aviso")); b.clicked.connect(self.add_aviso); f.addWidget(b, 5, 0, 1, 4); g.setLayout(f); l.addWidget(g)
         self.grupo_crear_aviso = g
         bl = QHBoxLayout()
         self.btn_editar_aviso = QPushButton(t("btn_editar_seleccionado"), clicked=self.edit_aviso); bl.addWidget(self.btn_editar_aviso)
@@ -85,7 +88,11 @@ class PestanaAvisos:
         tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentText(); dur = self.in_av_dur.value()
         uid = self.in_av_asignar.currentData(); nombre = self.in_av_asignar.currentText() if uid is not None else None
         especialidad_id = self.in_av_especialidad.currentData()
-        if tit and self.db.agregar_aviso(tit, i, f, dur, uid, nombre, especialidad_id): self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
+        nuevo_id = self.db.agregar_aviso(tit, i, f, dur, uid, nombre, especialidad_id) if tit else None
+        if nuevo_id:
+            if self.in_av_checklist.currentData():
+                checklists.asignar("aviso", nuevo_id, self.in_av_checklist.currentData())
+            self.in_av_t.clear(); self.refresh_avisos(); self.update_calendar_list()
 
     def edit_aviso(self):
         if not usuarios.es_admin(): return
@@ -94,10 +101,13 @@ class PestanaAvisos:
         id_aviso = self.table_avisos.item(r, 1).data(Qt.ItemDataRole.UserRole)
         avisos = self.db.obtener_avisos(); datos = next((a for a in avisos if a[0] == id_aviso), None)
         if datos:
-            dlg = AvisoEditDialog(self, datos[1], datos[2], datos[3], datos[4], datos[6], datos[8])
+            dlg = AvisoEditDialog(self, datos[1], datos[2], datos[3], datos[4], datos[6], datos[8],
+                                  checklist_id=checklists.checklist_de("aviso", id_aviso))
             if dlg.exec():
                 new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad = dlg.get_data()
-                self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad); self.refresh_avisos(); self.update_calendar_list()
+                self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad)
+                checklists.asignar("aviso", id_aviso, dlg.checklist_id())
+                self.refresh_avisos(); self.update_calendar_list()
 
     def _avisos_visibles(self):
         """Igual que en el móvil: el admin ve todos los avisos; cada
@@ -120,6 +130,11 @@ class PestanaAvisos:
         if hasattr(self, 'grupo_crear_aviso'): self.grupo_crear_aviso.setEnabled(es_admin)
         if hasattr(self, 'btn_editar_aviso'): self.btn_editar_aviso.setEnabled(es_admin)
         if hasattr(self, 'btn_borrar_aviso'): self.btn_borrar_aviso.setEnabled(es_admin)
+
+        con_lista = checklists.checklists_de("aviso")
+        plantillas = {p["id"]: p["nombre"] for p in checklists.listar_plantillas()}
+        if hasattr(self, 'in_av_checklist'):
+            llenar_combo_plantillas(self.in_av_checklist, self.in_av_checklist.currentData())
 
         filas_calculadas = []
         for (aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre, especialidad_id) in avisos:
@@ -216,8 +231,11 @@ class PestanaAvisos:
             self.table_avisos.setCellWidget(r, 0, cw)
 
             # Rellenar fila
-            item_t = QTableWidgetItem(tit)
+            item_t = QTableWidgetItem(("☑️ " if aid in con_lista else "") + tit)
             item_t.setData(Qt.ItemDataRole.UserRole, aid)
+            if aid in con_lista:
+                plantilla = plantillas.get(con_lista[aid])
+                if plantilla: item_t.setToolTip("☑️ " + plantilla)
 
             self.table_avisos.setItem(r, 1, item_t)
             self.table_avisos.setItem(r, 2, QTableWidgetItem(freq))
@@ -236,13 +254,21 @@ class PestanaAvisos:
         desc_historial = f"Mantenimiento Preventivo: {titulo}"
 
         if estado:
+            # Con lista de comprobación: se rellena antes de completarlo; si
+            # se cancela, el aviso queda como estaba.
+            lista = rellenar_para(self, checklists.checklist_de("aviso", id_aviso), titulo)
+            if lista is None:
+                self.refresh_avisos()
+                return
             # MARCADO -> se completa con la fecha real de HOY (no la fecha que
             # tocaba): así el siguiente ciclo se cuenta a partir de cuándo se
             # ha hecho el trabajo de verdad, no de cuándo estaba programado.
             hoy = QDate.currentDate().toString("yyyy-MM-dd")
             self.db.marcar_aviso_completado(id_aviso, hoy, True)
             tags = "Preventivo, Aviso Recurrente"
-            self.db.agregar_tarea(hoy, desc_historial, tags)
+            tarea_id = self.db.agregar_tarea(hoy, desc_historial, tags)
+            if tarea_id and lista[0]:
+                checklists.guardar_resultado(tarea_id, lista[0], lista[1])
             self.statusBar().showMessage(t("msg_guardado_historial").format(titulo=titulo), 3000)
         else:
             # DESMARCADO -> averiguamos qué fecha tenía registrada para borrar
@@ -256,6 +282,8 @@ class PestanaAvisos:
                 with get_db_connection(self.db.db_name) as conn:
                     c = conn.cursor()
                     if fecha_actual:
+                        c.execute("DELETE FROM checklist_resultados WHERE tarea_id IN "
+                                  "(SELECT id FROM tareas WHERE fecha=? AND descripcion=?)", (fecha_actual, desc_historial))
                         c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_actual, desc_historial))
                     c.execute("SELECT MAX(fecha) FROM tareas WHERE descripcion=?", (desc_historial,))
                     prev_fecha = c.fetchone()[0]

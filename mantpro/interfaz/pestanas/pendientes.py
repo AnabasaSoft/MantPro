@@ -33,7 +33,8 @@ from ...idiomas import t
 from ..comun import traducir_prioridad, tt
 from ..dialogos.trabajos import CompleteDialog, DialogoEditarPendiente
 from ..widgets.fotos import GaleriaFotosWidget
-from ...nucleo import usuarios
+from ...nucleo import usuarios, checklists
+from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria
 
 class PestanaPendientes:
@@ -77,6 +78,12 @@ class PestanaPendientes:
         self._llenar_combo_prioridad(self.combo_prioridad_todo)
         fila_prioridad_todo.addWidget(self.combo_prioridad_todo, 1)
         f.addLayout(fila_prioridad_todo)
+        fila_checklist_todo = QHBoxLayout()
+        fila_checklist_todo.addWidget(QLabel(tt("lbl_checklist", "Lista de comprobación") + ":"))
+        self.combo_checklist_todo = QComboBox()
+        llenar_combo_plantillas(self.combo_checklist_todo)
+        fila_checklist_todo.addWidget(self.combo_checklist_todo, 1)
+        f.addLayout(fila_checklist_todo)
         self.galeria_todo = GaleriaFotosWidget(self.carpeta_fotos, self)
         f.addWidget(self.galeria_todo)
         f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
@@ -95,7 +102,11 @@ class PestanaPendientes:
         nombre = self.combo_asignar.currentText() if uid is not None else None
         prioridad = self.combo_prioridad_todo.currentData()
         especialidad_id = self.combo_especialidad_todo.currentData()
-        if tit and self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id):
+        nuevo_id = self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id) if tit else None
+        if nuevo_id:
+            if self.combo_checklist_todo.currentData():
+                checklists.asignar("pendiente", nuevo_id, self.combo_checklist_todo.currentData())
+            self.combo_checklist_todo.setCurrentIndex(0)
             self.in_todo_t.clear(); self.in_todo_d.clear(); self.galeria_todo.set_nombres([]); self.combo_prioridad_todo.setCurrentIndex(1); self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
                 self.servidor.pendiente_actualizado.emit()
@@ -267,6 +278,10 @@ class PestanaPendientes:
         ps = sorted(ps, key=lambda p: orden_prioridad.get(p[5], 2))
 
         iconos_prioridad = {"Crítica": "🔴", "Alta": "🟠", "Media": "⬜", "Baja": "🟢"}
+        con_lista = checklists.checklists_de("pendiente")
+        plantillas = {p["id"]: p["nombre"] for p in checklists.listar_plantillas()}
+        if hasattr(self, 'combo_checklist_todo'):
+            llenar_combo_plantillas(self.combo_checklist_todo, self.combo_checklist_todo.currentData())
         for i, tit, d, asig_id, asig_nombre, prioridad, especialidad_id in ps:
             # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
             d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
@@ -287,6 +302,8 @@ class PestanaPendientes:
 
             if asig_nombre:
                 texto_visual += f"\n   👤 {asig_nombre}"
+            if plantillas.get(con_lista.get(i)):
+                texto_visual += f"\n   ☑️ {plantillas[con_lista[i]]}"
 
             it = QListWidgetItem(texto_visual)
 
@@ -338,6 +355,11 @@ class PestanaPendientes:
 
         if dialogo.exec():
             fecha, tags, foto_nueva, fotos_coleccion = dialogo.get_data()
+            # Con lista de comprobación: se rellena antes de pasarlo al
+            # historial; si se cancela, el pendiente sigue como estaba.
+            lista = rellenar_para(self, checklists.checklist_de("pendiente", id_pendiente), titulo)
+            if lista is None:
+                return
 
             # --- MEJORA: LIMPIEZA INTELIGENTE ---
             detalles_limpios = detalles_originales
@@ -354,7 +376,10 @@ class PestanaPendientes:
             desc_final = con_fotos_galeria(desc_final, fotos_coleccion)
 
             # Guardar en Historial y borrar de Pendientes
-            if self.db.agregar_tarea(fecha, desc_final, tags):
+            tarea_id = self.db.agregar_tarea(fecha, desc_final, tags)
+            if tarea_id:
+                if lista[0]:
+                    checklists.guardar_resultado(tarea_id, lista[0], lista[1])
                 self.db.borrar_pendiente(id_pendiente)
                 self.refresh_todos()
                 self.refresh_all()
@@ -397,7 +422,8 @@ class PestanaPendientes:
 
         # Abrimos el diálogo con el texto LIMPIO
         dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual, asignado_actual_id, especialidad_actual_id,
-                                     fotos_coleccion=fotos_galeria(detalles_raw))
+                                     fotos_coleccion=fotos_galeria(detalles_raw),
+                                     checklist_id=checklists.checklist_de("pendiente", pid))
 
         if dlg.exec():
             nuevo_t, nuevo_d, nueva_foto, nueva_prioridad, nuevo_asignado_id, nuevo_asignado_nombre, nueva_especialidad_id, fotos_coleccion = dlg.get_data()
@@ -435,6 +461,7 @@ class PestanaPendientes:
 
                 # Guardamos en BD (con la REF oculta de nuevo)
                 if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad, nueva_especialidad_id):
+                    checklists.asignar("pendiente", pid, dlg.checklist_id())
                     if usuarios.es_admin():
                         self.db.asignar_pendiente(pid, nuevo_asignado_id, nuevo_asignado_nombre)
                     self.refresh_todos()

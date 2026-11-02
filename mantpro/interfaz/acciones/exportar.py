@@ -36,7 +36,8 @@ from ..comun import tt
 from ..dialogos.trabajos import DialogoExportarPDF, DialogoFiltroTecnico
 from ..hilos import GeneradorPDFThread
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking, GraficoCircularTrabajos
-from ...nucleo import usuarios, maquinas
+from ...nucleo import usuarios, maquinas, checklists
+from ..dialogos.checklists import texto_export
 from ...nucleo.fotos import fotos_galeria
 from ...nucleo.rutas import DATA_DIR
 
@@ -58,10 +59,11 @@ class AccionesExportar:
         try:
             datos = self.db.obtener_todas_cronologico(filtro_usuario)
             mapa_maquinas = maquinas.mapa_rutas_completas()
+            listas = checklists.resultados_de([tarea[0] for tarea in datos])
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
-                writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después"), tt("lbl_coleccion_fotos", "Colección de fotos")])
+                writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después"), tt("lbl_coleccion_fotos", "Colección de fotos"), tt("lbl_checklist", "Lista de comprobación")])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD al formato corto del idioma activo
                     fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
@@ -82,7 +84,8 @@ class AccionesExportar:
                     autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
                     maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
                     coleccion = ", ".join(fotos_galeria(tarea[2])) or "-"
-                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues, coleccion])
+                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues, coleccion,
+                                     texto_export(listas.get(tarea[0]))])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -162,10 +165,18 @@ class AccionesExportar:
             mapa_maquinas = maquinas.mapa_rutas_completas()
             # Colección de fotos: una columna por foto a partir de la H
             # («Colección 1», «Colección 2»…), tantas como tenga el trabajo que más.
+            # Columna H: lista de comprobación (solo si algún trabajo la tiene);
+            # la colección de fotos va a continuación.
+            listas = checklists.resultados_de([tarea[0] for tarea in datos])
+            col_coleccion = 7
+            if listas:
+                worksheet.write(0, 7, tt("lbl_checklist", "Lista de comprobación"), bold)
+                worksheet.set_column(7, 7, 45)
+                col_coleccion = 8
             max_coleccion = max((len(fotos_galeria(tarea[2])) for tarea in datos), default=0)
             for k in range(max_coleccion):
-                worksheet.write(0, 7 + k, tt("hdr_coleccion_n", "Colección {n}").format(n=k + 1), bold)
-                worksheet.set_column(7 + k, 7 + k, 25)
+                worksheet.write(0, col_coleccion + k, tt("hdr_coleccion_n", "Colección {n}").format(n=k + 1), bold)
+                worksheet.set_column(col_coleccion + k, col_coleccion + k, 25)
             row = 1
             for tarea in datos:
                 # Convertir formato de fecha al formato corto del idioma activo
@@ -216,14 +227,16 @@ class AccionesExportar:
                     else: worksheet.write(row, 6, "No File", center)
                 else: worksheet.write(row, 6, "-", center)
 
+                if listas:
+                    worksheet.write(row, 7, texto_export(listas.get(tarea[0])), wrap)
                 for k, nombre_g in enumerate(fotos_galeria(tarea[2])):
                     ruta_g = os.path.join(self.carpeta_fotos, nombre_g)
                     opc = miniatura_excel(ruta_g) if os.path.exists(ruta_g) else None
                     if opc:
-                        try: worksheet.insert_image(row, 7 + k, nombre_g, opc)
-                        except Exception: worksheet.write(row, 7 + k, "Err Img", center)
+                        try: worksheet.insert_image(row, col_coleccion + k, nombre_g, opc)
+                        except Exception: worksheet.write(row, col_coleccion + k, "Err Img", center)
                     else:
-                        worksheet.write(row, 7 + k, "No File", center)
+                        worksheet.write(row, col_coleccion + k, "No File", center)
 
                 worksheet.set_row(row, 90) # Altura de fila fija
                 row += 1
@@ -274,7 +287,7 @@ class AccionesExportar:
             lista_trabajos = []
 
             if modo == "RANGO" and inicio and fin:
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, id FROM tareas "
                           "WHERE fecha BETWEEN ? AND ?" + cond_u + " ORDER BY fecha DESC, id DESC",
                           [inicio, fin] + param_u)
                 datos = c.fetchall()
@@ -286,7 +299,7 @@ class AccionesExportar:
                 lista_trabajos.append({"archivo": archivo, "titulo": titulo_pdf, "datos": datos, "rango": (inicio, fin)})
 
             elif modo == "TODO":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, id FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return
@@ -296,7 +309,7 @@ class AccionesExportar:
                 lista_trabajos.append({"archivo": archivo, "titulo": t("titulo_reporte_historico") + sufijo_u, "datos": datos, "rango": None})
 
             elif modo == "MESES":
-                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas "
+                c.execute("SELECT fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, id FROM tareas "
                           "WHERE 1=1" + cond_u + " ORDER BY fecha DESC, id DESC", param_u)
                 datos = c.fetchall()
                 if not datos: return

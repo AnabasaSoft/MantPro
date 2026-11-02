@@ -124,6 +124,14 @@ class AccionesUsuarios:
             return
         DialogoSesiones(self).exec()
 
+    def gestionar_checklists(self):
+        """Herramientas → Listas de comprobación (plantillas)."""
+        if not usuarios.es_admin(): return
+        from ..dialogos.checklists import DialogoPlantillasChecklist
+        DialogoPlantillasChecklist(self).exec()
+        # Los combos y los iconos ☑️ de avisos y pendientes
+        self.refresh_avisos(); self.refresh_todos()
+
     def cambiar_mi_password(self):
         if not usuarios.SESION_ACTUAL:
             return

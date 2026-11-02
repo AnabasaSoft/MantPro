@@ -415,6 +415,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
              (tt("menu_auditoria", "📋 Registro de cambios"), self.ver_auditoria, admin),
              (tt("menu_cifrado_bd", "🔐 Cifrado de las bases de datos…"), self.configurar_cifrado_bd, admin)],
             # Calendario
+            [(tt("menu_checklists", "☑️ Listas de comprobación…"), self.gestionar_checklists, admin)],
             [(t("menu_gestionar_dias"), self.gest_dias, admin),
              (t("menu_pais_region"), self.cambiar_pais_region, admin)],
             # Limpieza de datos

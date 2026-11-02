@@ -218,7 +218,7 @@ class EditDialog(QDialog):
 
 
 class DialogoEditarPendiente(QDialog):
-    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None, fotos_coleccion=None):
+    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None, fotos_coleccion=None, checklist_id=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_tarea_pendiente"))
         self.fotos_coleccion_iniciales = fotos_coleccion or []
@@ -252,6 +252,13 @@ class DialogoEditarPendiente(QDialog):
         self.combo_especialidad.setCurrentIndex(idx_esp if idx_esp >= 0 else 0)
         fila_especialidad.addWidget(self.combo_especialidad, 1)
         l.addLayout(fila_especialidad)
+        from .checklists import llenar_combo_plantillas
+        fila_checklist = QHBoxLayout()
+        fila_checklist.addWidget(QLabel(tt("lbl_checklist", "Lista de comprobación") + ":"))
+        self.combo_checklist = QComboBox()
+        llenar_combo_plantillas(self.combo_checklist, checklist_id)
+        fila_checklist.addWidget(self.combo_checklist, 1)
+        l.addLayout(fila_checklist)
         # Un técnico solo puede fijar la asignación/especialidad al CREAR un
         # trabajo; modificarlas en uno ya existente es cosa exclusiva de admin.
         if not usuarios.es_admin():
@@ -295,6 +302,9 @@ class DialogoEditarPendiente(QDialog):
         especialidad_id = self.combo_especialidad.currentData()
         return (self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada,
                 self.combo_prioridad.currentData(), uid, nombre, especialidad_id, self.galeria.nombres())
+
+    def checklist_id(self):
+        return self.combo_checklist.currentData()
 
 
 class CompleteDialog(QDialog):
@@ -342,9 +352,9 @@ class CompleteDialog(QDialog):
 
 
 class AvisoEditDialog(QDialog):
-    def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None):
+    def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None, checklist_id=None):
         super().__init__(parent)
-        self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 500)
+        self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 560)
         l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = _estilo_label_dialogo()
         l.addWidget(QLabel(t("lbl_titulo_aviso"), styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
         l.addWidget(QLabel(t("lbl_fecha_inicio"), styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
@@ -366,6 +376,11 @@ class AvisoEditDialog(QDialog):
         idx_e = self.combo_especialidad.findData(especialidad_id)
         self.combo_especialidad.setCurrentIndex(idx_e if idx_e >= 0 else 0)
         l.addWidget(self.combo_especialidad)
+        from .checklists import llenar_combo_plantillas
+        l.addWidget(QLabel(tt("lbl_checklist", "Lista de comprobación") + ":", styleSheet=lbl_style))
+        self.combo_checklist = QComboBox(); self.combo_checklist.setMinimumHeight(35)
+        llenar_combo_plantillas(self.combo_checklist, checklist_id)
+        l.addWidget(self.combo_checklist)
         l.addStretch()
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -376,6 +391,9 @@ class AvisoEditDialog(QDialog):
         nombre = self.combo_asignar.currentText() if uid is not None else None
         especialidad_id = self.combo_especialidad.currentData()
         return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentText(), self.dur.value(), uid, nombre, especialidad_id)
+
+    def checklist_id(self):
+        return self.combo_checklist.currentData()
 
 
 class DialogoExportarPDF(QDialog):

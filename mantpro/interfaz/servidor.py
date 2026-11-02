@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists
 from ..nucleo.basedatos import get_db_connection
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -346,11 +346,23 @@ class ServidorSincronizacion(QThread):
                 filas = c.fetchall()
                 conn.close()
                 especialidades_por_id = {e['id']: e['nombre'] for e in usuarios.listar_especialidades()}
+                con_lista = checklists.checklists_de("pendiente")
                 datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
                           "asignado_a": r[3], "asignado": r[4], "prioridad": r[5],
-                          "especialidad_id": r[6], "especialidad": especialidades_por_id.get(r[6])} for r in filas]
+                          "especialidad_id": r[6], "especialidad": especialidades_por_id.get(r[6]),
+                          "checklist_id": con_lista.get(r[0])} for r in filas]
                 return jsonify(datos)
             except Exception as e: return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/checklists', methods=['GET'])
+        @requiere_token
+        def api_checklists():
+            # Plantillas de listas de comprobación, para que el móvil las
+            # guarde y pueda rellenarlas sin conexión.
+            try:
+                return jsonify({"status": "ok", "plantillas": checklists.listar_plantillas()})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/especialidades', methods=['GET'])
         @requiere_token
@@ -421,6 +433,10 @@ class ServidorSincronizacion(QThread):
                     c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
                               (fecha_final, desc_final, tags, raw_desc, filename,
                                usuario['id'], usuario['nombre']))
+                    # Lista de comprobación rellenada en el móvil (JSON)
+                    lista = checklists.normalizar_items(request.form.get('checklist', ''))
+                    if lista:
+                        checklists.guardar_resultado(c.lastrowid, lista, request.form.get('checklist_plantilla', ''), con=conn)
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo)
@@ -593,6 +609,7 @@ class ServidorSincronizacion(QThread):
                 hay_mas = len(filas) > limit
                 filas = filas[:limit]
                 nombres_maquinas = {m["id"]: m["nombre"] for m in maquinas.listar_maquinas()}
+                listas = checklists.resultados_de([r[0] for r in filas])
                 # Procesamos para extraer nombre de foto si existe
                 resultados = []
                 for r in filas:
@@ -621,7 +638,8 @@ class ServidorSincronizacion(QThread):
                         "raw_desc": desc, # Necesario para editar
                         "usuario": r[4] if len(r) > 4 else "",
                         "maquina_id": maquina_id,
-                        "maquina_nombre": nombres_maquinas.get(maquina_id, "") if maquina_id else ""
+                        "maquina_nombre": nombres_maquinas.get(maquina_id, "") if maquina_id else "",
+                        "checklist": listas.get(r[0])
                     })
                 conn.close()
                 return jsonify({"items": resultados, "has_more": hay_mas, "page": page})
@@ -660,6 +678,7 @@ class ServidorSincronizacion(QThread):
                 conn.close()
 
                 lista_procesada = []
+                con_lista = checklists.checklists_de("aviso")
                 hoy = datetime.now().date()
 
                 for aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre, especialidad_id in raw_avisos:
@@ -753,7 +772,8 @@ class ServidorSincronizacion(QThread):
                         "duracion_dias": dur,
                         "ultima_completada": ult or "",
                         "asignado_a": asignado_a,
-                        "asignado": asignado_nombre or ""
+                        "asignado": asignado_nombre or "",
+                        "checklist_id": con_lista.get(aid)
                     })
 
                 return jsonify(lista_procesada)
@@ -820,8 +840,15 @@ class ServidorSincronizacion(QThread):
                     c.execute('INSERT INTO tareas (fecha, descripcion, tags, usuario_id, usuario_nombre) VALUES (?,?,?,?,?)',
                               (fecha_final, desc_historial, tags_historial,
                                usuario_aviso['id'], usuario_aviso['nombre']))
+                    tarea_id = c.lastrowid
                 else:
                     print("La tarea ya existe en el historial. Saltando insert.")
+                    tarea_id = existe[0]
+
+                # Lista de comprobación rellenada en el móvil (JSON)
+                lista = checklists.normalizar_items(request.form.get('checklist', ''))
+                if lista:
+                    checklists.guardar_resultado(tarea_id, lista, request.form.get('checklist_plantilla', ''), con=conn)
 
                 conn.commit()
                 conn.close()
@@ -1008,6 +1035,8 @@ class ServidorSincronizacion(QThread):
                     # La descripción debe coincidir con la que generamos automáticamente
                     desc = f"Mantenimiento Preventivo: {titulo}"
                     if ult_fecha:
+                        c.execute("DELETE FROM checklist_resultados WHERE tarea_id IN "
+                                  "(SELECT id FROM tareas WHERE descripcion=? AND fecha=?)", (desc, ult_fecha))
                         c.execute("DELETE FROM tareas WHERE descripcion=? AND fecha=?", (desc, ult_fecha))
 
                     # 3. Buscar cuál es la NUEVA última fecha real (la anterior a la borrada)
@@ -1071,9 +1100,17 @@ class ServidorSincronizacion(QThread):
                 titulo = lineas[0].strip()
                 detalles = "\n".join(lineas[1:]).strip()
 
+                lista_previa = checklists.resultado_de(id_t)
                 try:
                     c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre) VALUES (?,?,?,?)',
                               (titulo, detalles, uid_original, unombre_original or None))
+                    nuevo_pendiente = c.lastrowid
+                    # Vuelve con su lista de comprobación, si la plantilla sigue existiendo
+                    if lista_previa:
+                        plantilla = next((p for p in checklists.listar_plantillas()
+                                          if p["nombre"] == lista_previa["plantilla"]), None)
+                        if plantilla:
+                            c.execute("UPDATE pendientes SET checklist_id=? WHERE id=?", (plantilla["id"], nuevo_pendiente))
                     conn.commit()
                 except Exception as e:
                     conn.close()
@@ -1082,6 +1119,7 @@ class ServidorSincronizacion(QThread):
 
                 detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
                 c.execute("DELETE FROM tareas WHERE id=?", (id_t,))
+                c.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (id_t,))
                 conn.commit(); conn.close()
                 usuarios.registrar_auditoria(usuario['id'], id_t, "revertir", detalle_auditoria)
 

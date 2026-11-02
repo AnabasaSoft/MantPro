@@ -32,7 +32,8 @@ from PyQt6.QtGui import QIcon, QColor, QPixmap
 from ...idiomas import t
 from ..comun import _estilo_check_etiqueta, traducir_tags_bd, tt
 from ..dialogos.trabajos import EditDialog
-from ...nucleo import usuarios
+from ...nucleo import usuarios, checklists
+from ..dialogos.checklists import DialogoRellenarChecklist, resumen_texto
 
 class PestanaHistorial:
     """Pestañas «Historial» y «Buscador»: consulta, edición, borrado y reasignación de trabajos.
@@ -56,6 +57,7 @@ class PestanaHistorial:
 
     def fill_t(self, table, data):
         table.setRowCount(len(data))
+        listas = checklists.resultados_de([f[0] for f in data])
         pm_foto = QPixmap(16, 16); pm_foto.fill(QColor("#3daee9")); icon_foto = QIcon(pm_foto)
         pm_vacio = QPixmap(16, 16); pm_vacio.fill(Qt.GlobalColor.transparent); icon_vacio = QIcon(pm_vacio)
 
@@ -68,6 +70,11 @@ class PestanaHistorial:
             desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
 
             desc_visual = desc_limpia.replace("\n", "  ➜  ")
+            lista = listas.get(id_t)
+            if lista:
+                r_lista = checklists.recuento(lista["items"])
+                desc_visual = ("☑️❌ " if r_lista["mal"] else "☑️ ") + desc_visual
+                desc_limpia += f"\n\n☑️ {lista['plantilla']}: {resumen_texto(lista['items'])}"
 
             oscuro = self._tema_actual == "oscuro"
             tags_lower = tags.lower(); color_bg = None; color_fg = None
@@ -471,7 +478,9 @@ class PestanaHistorial:
         titulo = lineas[0].strip()
         detalles = "\n".join(lineas[1:]).strip()
 
-        if not self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None):
+        lista_previa = checklists.resultado_de(i)
+        nuevo_pendiente = self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None)
+        if not nuevo_pendiente:
             QMessageBox.critical(self, t("aviso"), tt("msg_error_revertir", "No se ha podido revertir el trabajo a pendiente."))
             return
 
@@ -479,15 +488,37 @@ class PestanaHistorial:
         try:
             conn = self.db.conectar(); c = conn.cursor()
             c.execute("DELETE FROM tareas WHERE id=?", (i,))
+            c.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (i,))
             conn.commit(); conn.close()
         except Exception as e:
             print(f"Error eliminando tarea al revertir: {e}")
+        # Si tenía lista de comprobación y su plantilla sigue existiendo, el
+        # pendiente vuelve con ella, para rellenarla de nuevo al completarlo.
+        if lista_previa:
+            plantilla = next((p for p in checklists.listar_plantillas() if p["nombre"] == lista_previa["plantilla"]), None)
+            if plantilla:
+                checklists.asignar("pendiente", nuevo_pendiente, plantilla["id"])
         usuarios.registrar_auditoria(usuarios.id_actual(), i, "revertir", detalle_auditoria)
         self.refresh_todos()
         self.refresh_all()
         if hasattr(self, 'servidor') and self.servidor:
             self.servidor.pendiente_actualizado.emit()
         self.statusBar().showMessage(tt("msg_revertido_pendiente", "Trabajo movido de nuevo a Pendientes."), 4000)
+
+    def ver_checklist(self, tarea_id):
+        """Muestra la lista rellenada de un trabajo; quien puede modificar el
+        registro puede también corregirla."""
+        lista = checklists.resultado_de(tarea_id)
+        if not lista:
+            return
+        fila = self.db.obtener_tarea_por_id(tarea_id)
+        titulo = (fila[2] if fila else "").split("\n")[0]
+        puede = self._puede_modificar(tarea_id)
+        dlg = DialogoRellenarChecklist(self, titulo, lista["items"], lista["plantilla"], solo_lectura=not puede)
+        if dlg.exec() and puede:
+            checklists.guardar_resultado(tarea_id, dlg.items(), lista["plantilla"])
+            usuarios.registrar_auditoria(usuarios.id_actual(), tarea_id, "editar", "Lista de comprobación corregida")
+            self.refresh_history()
 
     def _menu_contextual_historial(self, pos):
         """Menú con clic derecho sobre la tabla del historial."""
@@ -511,6 +542,10 @@ class PestanaHistorial:
             texto = tt("ctx_cambiar_autor", "👤 Cambiar autor") if n == 1 else \
                     tt("ctx_cambiar_autor_n", "👤 Cambiar autor ({n} registros)").format(n=n)
             menu.addAction(texto, lambda: self._reasignar_masivo(seleccion))
+
+        if n == 1 and checklists.resultado_de(tarea_id):
+            menu.addAction(tt("ctx_ver_checklist", "☑️ Ver lista de comprobación"),
+                           lambda: self.ver_checklist(tarea_id))
 
         if n == 1:
             act_revertir = menu.addAction(tt("ctx_revertir_pendiente", "↩️ Revertir a pendiente"),
