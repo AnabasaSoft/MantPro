@@ -116,6 +116,7 @@ const Map<String, String> traduccionesCa = {
     "msg_marcar_q": "Marcar '{titulo}'?",
     "lbl_desmarcar": "Desmarcar",
     "msg_volver_pendiente": "Tornar a pendent?",
+    "btn_cancelar": "Cancel·lar",
     "btn_cancelar_mayus": "CANCEL·LAR",
     "btn_desmarcar_mayus": "DESMARCAR",
     "lbl_conecta_pc_sync": "Connecta el PC per sincronitzar",

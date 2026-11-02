@@ -114,6 +114,7 @@ const Map<String, String> traduccionesEn = {
     "msg_marcar_q": "Mark '{titulo}' as done?",
     "lbl_desmarcar": "Uncheck",
     "msg_volver_pendiente": "Return to pending?",
+    "btn_cancelar": "Cancel",
     "btn_cancelar_mayus": "CANCEL",
     "btn_desmarcar_mayus": "UNCHECK",
     "lbl_conecta_pc_sync": "Connect PC to sync",

@@ -95,6 +95,7 @@ const Map<String, String> traduccionesEu = {
     "msg_marcar_q": "'{titulo}' eginda markatu?",
     "lbl_desmarcar": "Desmarkatu",
     "msg_volver_pendiente": "Egiteke daudenetara itzuli?",
+    "btn_cancelar": "Utzi",
     "btn_cancelar_mayus": "UTZI",
     "btn_desmarcar_mayus": "DESMARKATU",
     "lbl_conecta_pc_sync": "Konektatu PCa sinkronizatzeko",

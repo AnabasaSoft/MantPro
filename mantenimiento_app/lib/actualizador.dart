@@ -109,7 +109,8 @@ Future<void> descargarEInstalar(BuildContext context, Map<String, dynamic> datos
     if (!cancelado && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         duration: const Duration(seconds: 10),
-        content: Text(t('msg_error_descarga_actualizacion')),
+        // Con el motivo, para poder saber qué ha fallado
+        content: Text('${t('msg_error_descarga_actualizacion')}\n\n$e'),
         action: urlRelease.isEmpty ? null : SnackBarAction(
             label: t('btn_abrir_github'),
             onPressed: () => launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication)),

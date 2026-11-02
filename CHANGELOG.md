@@ -7,6 +7,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Correcciones
+- **MantPro (móvil)**: el botón para cancelar la descarga de una actualización salía como «btn_cancelar» (faltaba su traducción). Si la descarga o la instalación fallan, el aviso dice ahora el motivo.
 - **Paquete de openSUSE (OBS) con cifrado de las bases de datos**: openSUSE no tiene el módulo de SQLCipher para Python, así que el paquete no podía abrir unas bases de datos cifradas con la versión de GitHub (avisaba de que «esta instalación no incluye SQLCipher»). Ahora el paquete compila ese módulo desde su código fuente, como el que llevan los binarios de GitHub, y el cifrado funciona igual. El paquete pasa de `noarch` a `x86_64` y depende de `python3-keyring`.
 
 ## 3.10.3 — 2026-11-02
