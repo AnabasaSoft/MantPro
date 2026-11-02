@@ -109,8 +109,9 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 ### Application de bureau
 
 <p align="center">
-  <img src="Capturas/Dashboard.png" alt="Tableau de bord" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Gestion du magasin" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Tableau de bord" width="30%"/>
+  <img src="Capturas/Maquinas.png" alt="Machines et pièces de rechange" width="30%"/>
+  <img src="Capturas/Almacen.png" alt="Gestion du magasin" width="30%"/>
 </p>
 
 ### Application mobile

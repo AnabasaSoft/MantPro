@@ -111,8 +111,9 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 ### Mahaigaineko aplikazioa
 
 <p align="center">
-  <img src="Capturas/Dashboard.png" alt="Aginte-panela" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Biltegiaren kudeaketa" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Aginte-panela" width="30%"/>
+  <img src="Capturas/Maquinas.png" alt="Makinak eta ordezko piezak" width="30%"/>
+  <img src="Capturas/Almacen.png" alt="Biltegiaren kudeaketa" width="30%"/>
 </p>
 
 ### Mugikorreko aplikazioa

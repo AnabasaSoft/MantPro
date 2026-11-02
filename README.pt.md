@@ -109,8 +109,9 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 ### Aplicativo para desktop
 
 <p align="center">
-  <img src="Capturas/Dashboard.png" alt="Painel" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Gerenciamento do almoxarifado" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Painel" width="30%"/>
+  <img src="Capturas/Maquinas.png" alt="Máquinas e peças de reposição" width="30%"/>
+  <img src="Capturas/Almacen.png" alt="Gerenciamento do almoxarifado" width="30%"/>
 </p>
 
 ### Aplicativo para celular

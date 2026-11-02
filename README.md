@@ -107,8 +107,9 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 ### Desktop Application
 
 <p align="center">
-  <img src="Capturas/Dashboard.png" alt="Dashboard" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Warehouse management" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Dashboard" width="30%"/>
+  <img src="Capturas/Maquinas.png" alt="Machinery and spare parts" width="30%"/>
+  <img src="Capturas/Almacen.png" alt="Warehouse management" width="30%"/>
 </p>
 
 ### Mobile Application

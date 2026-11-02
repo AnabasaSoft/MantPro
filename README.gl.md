@@ -109,8 +109,9 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 ### Aplicación de escritorio
 
 <p align="center">
-  <img src="Capturas/Dashboard.png" alt="Panel" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Xestión do almacén" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Panel" width="30%"/>
+  <img src="Capturas/Maquinas.png" alt="Máquinas e recambios" width="30%"/>
+  <img src="Capturas/Almacen.png" alt="Xestión do almacén" width="30%"/>
 </p>
 
 ### Aplicación móbil

@@ -110,8 +110,9 @@ https://github.com/user-attachments/assets/11572710-e0ba-4f8b-b914-0a959006d4fb
 ### Aplicació d'escriptori
 
 <p align="center">
-  <img src="Capturas/Dashboard.png" alt="Tauler" width="45%"/>
-  <img src="Capturas/Almacen.png" alt="Gestió del magatzem" width="45%"/>
+  <img src="Capturas/Dashboard.png" alt="Tauler" width="30%"/>
+  <img src="Capturas/Maquinas.png" alt="Màquines i recanvis" width="30%"/>
+  <img src="Capturas/Almacen.png" alt="Gestió del magatzem" width="30%"/>
 </p>
 
 ### Aplicació mòbil
