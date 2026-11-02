@@ -153,6 +153,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🔒 Permisos por rexistro**: un técnico só pode editar ou borrar os seus propios traballos; un administrador pode xestionar calquera, incluída a reasignación do autor dun ou varios rexistros á vez
 - **📋 Auditoría de cambios**: rexistro de quen edita ou borra cada traballo (non só quen o creou), consultable e filtrable por técnico e por tipo de acción dende "Rexistro de cambios" (só administradores)
 - **🔐 Sesións de dispositivos**: lista os móbiles vinculados a cada usuario, co seu modelo real, e permite revogar unha ou varias sesións concretas sen desactivar o usuario enteiro (só administradores). Ao volver iniciar sesión dende o mesmo dispositivo, a sesión anterior substitúese automaticamente en vez de acumularse
+- **🛡️ Seguranza**: sincronización cos móbiles cifrada por HTTPS (o certificado do PC queda fixado polo QR), **bases de datos cifradas** opcionais (SQLCipher, coa chave no chaveiro do sistema) e **copias de seguranza cifradas con contrasinal**, intentos de inicio de sesión limitados contra a forza bruta, fotos recibidas dos móbiles comprobadas e copias consistentes con comprobación de integridade
 - **📊 Panel con KPI e gráficos**: tarxetas de avisos pendentes, tarefas por facer, rexistros do mes e MTBF/MTTR medios de toda a planta, ademais de gráficos das máquinas con máis avarías e de avarías por mes, debuxados sen depender de bibliotecas externas
 - **🎨 Temas visuais**: escolle entre modo escuro (por defecto), claro ou un estilo retro inspirado en Windows 98, dende o menú "Aparencia"
 - **📅 Calendario interactivo**: visualiza e xestiona as tarefas de mantemento con códigos de cor (festivos, vacacións, días con tarefas)
@@ -162,7 +163,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📱 Sincronización móbil**: servidor integrado (arranca automaticamente) para sincronizar coa aplicación móbil mediante QR
 - **🔍 Sistema de busca**: busca avanzada por datas, etiquetas e contido
 - **👤 Filtro por técnico**: filtra o historial e as exportacións (PDF, CSV e Excel) pola persoa que fixo o traballo
-- **📦 Copia e restauración**: copia manual completa (BD + fotos) escollendo onde gardala, copia automática incremental ao pechar a aplicación (ver [Copias de seguranza](#-copias-de-seguranza)), e restauración con barra de progreso, co submenú `Ficheiro > Restaurar` para escoller entre calquera copia manual ou ir directamente ás copias automáticas
+- **📦 Copia e restauración**: copia manual completa (BD + fotos) escollendo onde gardala, copia automática incremental ao pechar a aplicación (ver [Copias de seguranza](#-copias-de-seguranza)), e restauración con barra de progreso, co submenú `Ficheiro > Restaurar` para escoller entre calquera copia manual ou ir directamente ás copias automáticas. As copias pódense **cifrar con contrasinal** (`Ficheiro > 🔒 Contrasinal das copias…`)
 - **🏷️ Sistema de etiquetas**: clasificación con etiquetas (Urxente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tarefas pendentes**: xestión de traballos pendentes (crear, completar, editar, eliminar) e **asignación a un técnico concreto**
 - **🚦 Prioridade dos pendentes**: cada traballo pendente ten unha prioridade (Baixa, Media, Alta ou Crítica) para decidir cal atacar primeiro, coa súa cor na lista; tamén se lle poden achegar fotos á súa colección
@@ -184,7 +185,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 
 ### 📱 Aplicación móbil (Android)
 
-- **🔐 Acceso con usuario**: cada técnico inicia sesión unha vez e a sesión queda gardada no dispositivo
+- **🔐 Acceso con usuario**: cada técnico inicia sesión unha vez e a sesión queda gardada no dispositivo (o token gárdase no Keystore de Android, non en claro)
 - **📝 Rexistro rápido**: captura de intervencións sobre o terreo, asinadas automaticamente co seu usuario
 - **📷 Cámara integrada**: toma de fotos e edición con anotacións
 - **🖼️ Colección de fotos**: ademais das fotos de antes e despois, engade a un traballo ou pendente todas as fotos que queiras (cámara ou galería); ao tocar calquera foto vese a pantalla completa, pasando dunha a outra e ampliando con dous dedos
@@ -210,7 +211,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 Aplicación independente (`mantpro_stock_app`), pensada para consultar e mover
 o stock do almacén dende o móbil sen necesidade da aplicación de traballos.
 
-- **🔐 Acceso con usuario**: emprega o mesmo sistema de usuarios e sesión que a aplicación de traballos
+- **🔐 Acceso con usuario**: emprega o mesmo sistema de usuarios e sesión que a aplicación de traballos (o token gárdase no Keystore de Android, non en claro)
 - **🗂️ Navegación polo almacén**: árbore de andeis > baldas > seccións, igual que no PC
 - **🔎 Busca de materiais**: por nome, código, descrición ou localización
 - **➕➖ Entradas e saídas**: rexistra movementos de stock dende o móbil, con motivo opcional
@@ -241,6 +242,9 @@ o stock do almacén dende o móbil sen necesidade da aplicación de traballos.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring e sqlcipher3-wheels (opcionais: cifrado das bases de datos)
   - sqlite3 (incluído en Python)
 
 ### Aplicación móbil
@@ -524,6 +528,8 @@ sesión péchase soa se o administrador desactiva o usuario ou lle restablece o
 contrasinal; nese caso a aplicación volve á pantalla de acceso **sen perder os
 rexistros que aínda estean pendentes de subir**.
 
+O token de sesión gárdase no **Keystore de Android** (almacenamento seguro), non en claro. Tras **5 intentos fallidos** seguidos de inicio de sesión, ese usuario bloquéase 15 minutos (e un móbil, tras 20 intentos fallidos); a app mostra canto hai que agardar. Na xanela do PC, 5 fallos bloquean o inicio de sesión un minuto.
+
 ---
 
 ## 🏭 Maquinaria
@@ -686,6 +692,7 @@ Para que a sincronización funcione:
 
 - ✅ O PC e o móbil deben estar na **mesma rede WiFi**
 - ✅ O **cortalumes** debe permitir conexións no porto 5000 (ou o configurado)
+- ✅ Tamén debe permitir o **porto seguinte** (5001 por defecto), que usa a conexión cifrada (HTTPS)
 - ✅ Se empregas Windows, poida que teñas que crear unha excepción no cortalumes
 
 ### Solución de problemas
@@ -726,6 +733,14 @@ Para que a sincronización funcione:
 - Aplícanse as mesmas comprobacións que en MantPro (permiso de notificacións e exclusión da optimización da batería, ver arriba)
 - Se o almacén non ten ningún material dado de alta, non se amosa ningunha notificación: é o comportamento esperado
 - Volve avaliarse cada vez que a aplicación se sincroniza co PC (ao abrila e cada 25 segundos mentres está aberta)
+
+**MantPro pide unha chave de recuperación ao arrancar:**
+- As bases de datos están cifradas e o chaveiro do sistema xa non ten a súa chave (sistema reinstalado, outra conta de usuario…)
+- Escribe a chave de recuperación que se mostrou ao activar o cifrado; MantPro volve gardala no chaveiro
+- Se non a tes, as bases de datos non se poden abrir: saca `mantenimiento.db` e `almacen.db` do cartafol de datos, abre MantPro e restaura unha copia de seguranza
+
+**«Demasiados intentos fallidos» ao iniciar sesión:**
+- Tras varios contrasinais erróneos seguidos, o inicio de sesión bloquéase un tempo (15 minutos no móbil, un minuto no PC); agarda o que indica o aviso ou pídelle a un administrador que che restableza o contrasinal
 
 ### 🔒 Nota sobre seguranza
 

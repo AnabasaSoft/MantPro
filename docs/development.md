@@ -13,6 +13,15 @@ MantPro/
 │   │   ├── almacen.py           # Warehouse stock: structure, materials and movements
 │   │   ├── maquinas.py          # Machinery tree and its job history
 │   │   ├── basedatos.py         # Jobs database
+│   │   ├── conexion_bd.py       # Single entry to SQLite: encryption (SQLCipher) and keyring
+│   │   ├── seguridad.py         # Sign-in attempt limit, photos, atomic writes
+│   │   ├── certificado.py       # The server's own TLS certificate and its fingerprint
+│   │   ├── cifrado_copias.py    # Password-encrypted backups
+│   │   ├── estadisticas.py      # Statistics by technician
+│   │   ├── nombres.py           # Duplicate or very similar name warning
+│   │   ├── etiquetas.py         # QR labels for machines
+│   │   ├── fotos.py             # Job photos (collection)
+│   │   ├── rutas.py             # Data folder
 │   │   └── importar.py          # Excel/CSV import
 │   ├── interfaz/                # PyQt6 windows
 │   │   ├── arranque.py          # Startup: single instance and sign-in
@@ -31,8 +40,13 @@ MantPro/
 ├── fotos_recibidas/             # Image folder
 ├── mantenimiento.db             # SQLite database (maintenance jobs)
 ├── almacen.db                   # SQLite database (warehouse stock, separate)
+├── servidor_cert.pem / servidor_clave.pem  # Server TLS certificate (created by MantPro)
+├── clave_copias.json            # Key for encrypted backups (if enabled)
+├── clave_bd.json                # Encrypted-database key, only if there is no keyring
 ├── mantenimiento_app/           # Flutter mobile app (jobs)
 │   ├── lib/main.dart            # Main mobile code
+│   ├── lib/conexion_segura.dart # HTTPS with the PC's certificate pinned by its fingerprint
+│   ├── lib/actualizador.dart    # Downloads and installs the new version
 │   ├── lib/i18n/                # Mobile translations (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Flutter dependencies
 │   └── android/                 # Android configuration

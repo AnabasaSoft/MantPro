@@ -67,6 +67,10 @@ descifrar no restaura nada encima de los datos buenos.
   carpetas `backups` y `backups_auto`, manteniendo sus fechas. Las copias que
   hayas guardado en otros sitios siguen con la contraseña que tenían.
 - **Si se olvida la contraseña**, las copias cifradas no se pueden recuperar.
+- **Con las bases de datos cifradas** (*Herramientas → Cifrado de las bases de
+  datos*), las copias llevan igualmente las bases de datos **sin cifrar**, para
+  poder restaurarlas en otro equipo sin su clave; protégelas con esta
+  contraseña. Al restaurar sobre una base de datos cifrada, sigue cifrada.
 
 Formato de cada fichero cifrado:
 

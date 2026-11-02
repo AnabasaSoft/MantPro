@@ -153,6 +153,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🔒 Permissões por registro**: um técnico só pode editar ou excluir seus próprios serviços; um administrador pode gerenciar qualquer um, inclusive reatribuir o autor de um ou vários registros de uma vez
 - **📋 Auditoria de alterações**: registro de quem edita ou exclui cada serviço (não só de quem o criou), consultável e filtrável por técnico e por tipo de ação em "Registro de alterações" (somente administradores)
 - **🔐 Sessões de dispositivos**: lista os celulares vinculados a cada usuário, com o modelo real, e permite revogar uma ou várias sessões específicas sem desativar o usuário inteiro (somente administradores). Ao entrar de novo pelo mesmo dispositivo, a sessão anterior é substituída automaticamente em vez de se acumular
+- **🛡️ Segurança**: sincronização com os celulares criptografada por HTTPS (o certificado do PC fica fixado pelo QR), **bancos de dados criptografados** opcionais (SQLCipher, com a chave no chaveiro do sistema) e **cópias de segurança criptografadas com senha**, tentativas de login limitadas contra força bruta, fotos recebidas dos celulares verificadas e cópias consistentes com verificação de integridade
 - **📊 Painel com KPIs e gráficos**: cartões de avisos pendentes, tarefas a fazer, registros do mês e MTBF/MTTR médios de toda a planta, além de gráficos das máquinas com mais falhas e de falhas por mês, desenhados sem depender de bibliotecas externas
 - **🎨 Temas visuais**: escolha entre modo escuro (padrão), claro ou um estilo retrô inspirado no Windows 98, no menu "Aparência"
 - **📅 Calendário interativo**: visualize e gerencie as tarefas de manutenção com códigos de cores (feriados, férias, dias com tarefas)
@@ -162,7 +163,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **📱 Sincronização com o celular**: servidor integrado (inicia automaticamente) para sincronizar com o aplicativo do celular via QR
 - **🔍 Sistema de busca**: busca avançada por datas, tags e conteúdo
 - **👤 Filtro por técnico**: filtre o histórico e as exportações (PDF, CSV e Excel) pela pessoa que fez o serviço
-- **📦 Backup e restauração**: cópia manual completa (BD + fotos) escolhendo onde salvá-la, backup automático incremental ao fechar o aplicativo (veja [Cópias de segurança](#-cópias-de-segurança)) e restauração com barra de progresso, com o submenu `Arquivo > ♻️ Restaurar` para escolher entre qualquer backup manual ou ir direto às cópias automáticas
+- **📦 Backup e restauração**: cópia manual completa (BD + fotos) escolhendo onde salvá-la, backup automático incremental ao fechar o aplicativo (veja [Cópias de segurança](#-cópias-de-segurança)) e restauração com barra de progresso, com o submenu `Arquivo > ♻️ Restaurar` para escolher entre qualquer backup manual ou ir direto às cópias automáticas. As cópias podem ser **criptografadas com senha** (`Arquivo > 🔒 Senha das cópias…`)
 - **🏷️ Sistema de tags**: classificação com etiquetas (Urgente, Elétrico, Mecânico, Preventivo)
 - **🔨 Tarefas pendentes**: gerenciamento de serviços pendentes (criar, concluir, editar, excluir) e **atribuição a um técnico específico**
 - **🚦 Prioridade dos pendentes**: cada serviço pendente tem uma prioridade (Baixa, Média, Alta ou Crítica) para decidir qual atacar primeiro, com sua cor na lista; também é possível anexar fotos à coleção dele
@@ -184,7 +185,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 
 ### 📱 Aplicativo para celular (Android)
 
-- **🔐 Acesso com usuário**: cada técnico entra uma vez e a sessão fica salva no dispositivo
+- **🔐 Acesso com usuário**: cada técnico entra uma vez e a sessão fica salva no dispositivo (o token fica guardado no Keystore do Android, não em texto puro)
 - **📝 Registro rápido**: registro de intervenções em campo, assinadas automaticamente com o seu usuário
 - **📷 Câmera integrada**: tire fotos e edite-as com anotações
 - **🖼️ Coleção de fotos**: além das fotos de antes e depois, adicione a um serviço ou pendente quantas fotos quiser (câmera ou galeria); ao tocar em qualquer foto, ela é exibida em tela cheia, passando de uma para outra e ampliando com dois dedos
@@ -211,7 +212,7 @@ Aplicativo independente (`mantpro_stock_app`), pensado para consultar e
 movimentar o estoque do almoxarifado pelo celular sem precisar do aplicativo de
 serviços.
 
-- **🔐 Acesso com usuário**: usa o mesmo sistema de usuários e sessão do aplicativo de serviços
+- **🔐 Acesso com usuário**: usa o mesmo sistema de usuários e sessão do aplicativo de serviços (o token fica guardado no Keystore do Android, não em texto puro)
 - **🗂️ Navegação pelo almoxarifado**: árvore de estantes > prateleiras > seções, igual ao PC
 - **🔎 Busca de materiais**: por nome, código, descrição ou localização
 - **➕➖ Entradas e saídas**: registre movimentações de estoque pelo celular, com motivo opcional
@@ -242,6 +243,9 @@ serviços.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring e sqlcipher3-wheels (opcionais: criptografia dos bancos de dados)
   - sqlite3 (incluído no Python)
 
 ### Aplicativo para celular
@@ -525,6 +529,8 @@ encerrada sozinha se o administrador desativar o usuário ou redefinir a senha
 dele; nesse caso, o aplicativo volta para a tela de acesso **sem perder os
 registros que ainda estiverem pendentes de envio**.
 
+O token de sessão fica guardado no **Keystore do Android** (armazenamento seguro), não em texto puro. Depois de **5 tentativas de login erradas** seguidas, esse usuário fica bloqueado por 15 minutos (e um celular, depois de 20 tentativas erradas); o aplicativo mostra quanto tempo falta. Na janela do PC, 5 erros bloqueiam o login por um minuto.
+
 ---
 
 ## 🏭 Máquinas
@@ -693,6 +699,7 @@ Para que a sincronização funcione:
 
 - ✅ O PC e o celular devem estar na **mesma rede Wi-Fi**
 - ✅ O **firewall** deve permitir conexões na porta 5000 (ou na configurada)
+- ✅ Também deve permitir a **porta seguinte** (5001 por padrão), usada pela conexão criptografada (HTTPS)
 - ✅ No Windows, talvez seja preciso criar uma exceção no firewall
 
 ### Solução de problemas
@@ -733,6 +740,14 @@ Para que a sincronização funcione:
 - Valem as mesmas verificações do MantPro (permissão de notificações e exclusão da otimização de bateria, veja acima)
 - Se o almoxarifado não tiver nenhum material cadastrado, nenhuma notificação é exibida: é o comportamento esperado
 - Ela é reavaliada sempre que o aplicativo sincroniza com o PC (ao abrir e a cada 25 segundos enquanto está aberto)
+
+**O MantPro pede uma chave de recuperação ao iniciar:**
+- Os bancos de dados estão criptografados e o chaveiro do sistema não tem mais a chave deles (sistema reinstalado, outra conta de usuário…)
+- Digite a chave de recuperação que foi mostrada ao ativar a criptografia; o MantPro a guarda de novo no chaveiro
+- Se você não a tiver, os bancos de dados não podem ser abertos: tire `mantenimiento.db` e `almacen.db` da pasta de dados, abra o MantPro e restaure uma cópia de segurança
+
+**"Muitas tentativas erradas" ao fazer login:**
+- Depois de várias senhas erradas seguidas, o login fica bloqueado por um tempo (15 minutos no celular, um minuto no PC); espere o tempo indicado no aviso ou peça a um administrador para redefinir sua senha
 
 ### 🔒 Observação sobre segurança
 

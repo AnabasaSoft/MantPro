@@ -154,6 +154,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **🔒 Droits par enregistrement** : un technicien ne peut modifier ou supprimer que ses propres interventions ; un administrateur peut gérer n'importe laquelle, y compris réassigner l'auteur d'un ou plusieurs enregistrements à la fois
 - **📋 Audit des modifications** : journal de qui modifie ou supprime chaque intervention (pas seulement de qui l'a créée), consultable et filtrable par technicien et par type d'action dans « Journal des modifications » (administrateurs uniquement)
 - **🔐 Sessions des appareils** : liste les mobiles associés à chaque utilisateur, avec le modèle réel, et permet de révoquer une ou plusieurs sessions précises sans désactiver tout l'utilisateur (administrateurs uniquement). En se reconnectant depuis le même appareil, la session précédente est remplacée automatiquement au lieu de s'accumuler
+- **🛡️ Sécurité** : synchronisation avec les mobiles chiffrée en HTTPS (le certificat du PC est épinglé par le QR), **bases de données chiffrées** en option (SQLCipher, clé dans le trousseau du système) et **sauvegardes chiffrées par mot de passe**, tentatives de connexion limitées contre la force brute, photos reçues des mobiles vérifiées et sauvegardes cohérentes avec contrôle d'intégrité
 - **📊 Tableau de bord avec KPI et graphiques** : cartes des rappels en attente, des tâches à faire, des enregistrements du mois et du MTBF/MTTR moyens de toute l'usine, ainsi que des graphiques des machines avec le plus de pannes et des pannes par mois, dessinés sans bibliothèque externe
 - **🎨 Thèmes visuels** : choisissez entre mode sombre (par défaut), clair ou un style rétro inspiré de Windows 98, dans le menu « Apparence »
 - **📅 Calendrier interactif** : visualisez et gérez les tâches de maintenance avec un code couleur (fériés, congés, jours avec tâches)
@@ -163,7 +164,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **📱 Synchronisation avec le mobile** : serveur intégré (démarrage automatique) pour se synchroniser avec l'application mobile via QR
 - **🔍 Moteur de recherche** : recherche avancée par dates, tags et contenu
 - **👤 Filtre par technicien** : filtrez l'historique et les exports (PDF, CSV et Excel) par la personne qui a réalisé l'intervention
-- **📦 Sauvegarde et restauration** : sauvegarde manuelle complète (BD + photos) en choisissant où l'enregistrer, sauvegarde automatique incrémentale à la fermeture de l'application (voir [Sauvegardes](#-sauvegardes)) et restauration avec barre de progression, avec le sous-menu `Fichier > ♻️ Restaurer` pour choisir n'importe quelle sauvegarde manuelle ou aller directement aux sauvegardes automatiques
+- **📦 Sauvegarde et restauration** : sauvegarde manuelle complète (BD + photos) en choisissant où l'enregistrer, sauvegarde automatique incrémentale à la fermeture de l'application (voir [Sauvegardes](#-sauvegardes)) et restauration avec barre de progression, avec le sous-menu `Fichier > ♻️ Restaurer` pour choisir n'importe quelle sauvegarde manuelle ou aller directement aux sauvegardes automatiques. Les sauvegardes peuvent être **chiffrées par mot de passe** (`Fichier > 🔒 Mot de passe des sauvegardes…`)
 - **🏷️ Système de tags** : classement par étiquettes (Urgent, Électrique, Mécanique, Préventif)
 - **🔨 Tâches en attente** : gestion des interventions en attente (créer, terminer, modifier, supprimer) et **assignation à un technicien précis**
 - **🚦 Priorité des tâches en attente** : chaque intervention en attente a une priorité (Basse, Moyenne, Haute ou Critique) pour décider laquelle traiter en premier, avec sa couleur dans la liste ; on peut aussi joindre des photos à sa collection
@@ -185,7 +186,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 
 ### 📱 Application mobile (Android)
 
-- **🔐 Connexion par utilisateur** : chaque technicien se connecte une fois et la session reste enregistrée sur l'appareil
+- **🔐 Connexion par utilisateur** : chaque technicien se connecte une fois et la session reste enregistrée sur l'appareil (le jeton est conservé dans le Keystore d'Android, pas en clair)
 - **📝 Saisie rapide** : enregistrement des interventions sur le terrain, signées automatiquement avec votre utilisateur
 - **📷 Appareil photo intégré** : prenez des photos et annotez-les
 - **🖼️ Collection de photos** : en plus des photos avant et après, ajoutez à une intervention ou à une tâche en attente autant de photos que vous voulez (appareil photo ou galerie) ; en touchant une photo, elle s'affiche en plein écran, en passant de l'une à l'autre et en zoomant à deux doigts
@@ -212,7 +213,7 @@ Application indépendante (`mantpro_stock_app`), conçue pour consulter et
 mouvementer le stock du magasin depuis le mobile sans avoir besoin de
 l'application des interventions.
 
-- **🔐 Connexion par utilisateur** : utilise le même système d'utilisateurs et de session que l'application des interventions
+- **🔐 Connexion par utilisateur** : utilise le même système d'utilisateurs et de session que l'application des interventions (le jeton est conservé dans le Keystore d'Android, pas en clair)
 - **🗂️ Navigation dans le magasin** : arborescence rayonnages > tablettes > sections, comme sur le PC
 - **🔎 Recherche d'articles** : par nom, code, description ou emplacement
 - **➕➖ Entrées et sorties** : enregistrez des mouvements de stock depuis le mobile, avec un motif facultatif
@@ -243,6 +244,9 @@ l'application des interventions.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring et sqlcipher3-wheels (facultatifs : chiffrement des bases de données)
   - sqlite3 (inclus avec Python)
 
 ### Application mobile
@@ -533,6 +537,8 @@ l'utilisateur ou réinitialise son mot de passe ; dans ce cas, l'application
 revient à l'écran de connexion **sans perdre les enregistrements encore en
 attente d'envoi**.
 
+Le jeton de session est conservé dans le **Keystore d'Android** (stockage sécurisé), pas en clair. Après **5 tentatives de connexion échouées** d'affilée, l'utilisateur est bloqué 15 minutes (et un mobile, après 20 tentatives échouées) ; l'application indique combien de temps attendre. Dans la fenêtre du PC, 5 échecs bloquent la connexion une minute.
+
 ---
 
 ## 🏭 Machines
@@ -710,6 +716,7 @@ Pour que la synchronisation fonctionne :
 
 - ✅ Le PC et le mobile doivent être sur le **même réseau Wi-Fi**
 - ✅ Le **pare-feu** doit autoriser les connexions sur le port 5000 (ou celui
+- ✅ Il doit aussi autoriser le **port suivant** (5001 par défaut), utilisé par la connexion chiffrée (HTTPS)
   configuré)
 - ✅ Sous Windows, il peut être nécessaire de créer une exception dans le
   pare-feu
@@ -752,6 +759,14 @@ Pour que la synchronisation fonctionne :
 - Les mêmes vérifications que pour MantPro s'appliquent (autorisation des notifications et exclusion de l'optimisation de la batterie, voir ci-dessus)
 - Si le magasin n'a aucun article enregistré, aucune notification n'est affichée : c'est le comportement attendu
 - Elle est réévaluée à chaque synchronisation de l'application avec le PC (à l'ouverture et toutes les 25 secondes tant qu'elle est ouverte)
+
+**MantPro demande une clé de récupération au démarrage :**
+- Les bases de données sont chiffrées et le trousseau du système n'a plus leur clé (système réinstallé, autre compte utilisateur…)
+- Saisissez la clé de récupération affichée lors de l'activation du chiffrement ; MantPro l'enregistre à nouveau dans le trousseau
+- Sans elle, les bases de données ne peuvent pas être ouvertes : sortez `mantenimiento.db` et `almacen.db` du dossier de données, ouvrez MantPro et restaurez une sauvegarde
+
+**« Trop de tentatives échouées » à la connexion :**
+- Après plusieurs mots de passe erronés d'affilée, la connexion est bloquée un moment (15 minutes sur le mobile, une minute sur le PC) ; attendez le temps indiqué ou demandez à un administrateur de réinitialiser votre mot de passe
 
 ### 🔒 Remarque sur la sécurité
 

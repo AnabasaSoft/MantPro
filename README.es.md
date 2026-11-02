@@ -154,6 +154,7 @@ versiones estables. Los cambios de cada versión están en
 - **🔒 Permisos por Registro**: un técnico solo puede editar o borrar sus propios trabajos; un administrador puede gestionar cualquiera, incluida la reasignación del autor de uno o varios registros a la vez
 - **📋 Auditoría de Cambios**: registro de quién edita o borra cada trabajo (no solo quién lo creó), consultable y filtrable por técnico y por tipo de acción desde "Registro de cambios" (solo administradores)
 - **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores). Al volver a iniciar sesión desde el mismo dispositivo, su sesión anterior se sustituye automáticamente en vez de acumularse
+- **🛡️ Seguridad**: sincronización con los móviles cifrada por HTTPS (el certificado del PC queda fijado por el QR), **bases de datos cifradas** opcionales (SQLCipher, con la clave en el llavero del sistema) y **copias de seguridad cifradas con contraseña**, intentos de inicio de sesión limitados contra la fuerza bruta, fotos recibidas de los móviles comprobadas y copias consistentes con comprobación de integridad
 - **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas
 - **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia"
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
@@ -163,7 +164,7 @@ versiones estables. Los cambios de cada versión están en
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
 - **👤 Filtro por Técnico**: Filtra el historial y las exportaciones (PDF, CSV y Excel) por la persona que hizo el trabajo
-- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas
+- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas. Las copias se pueden **cifrar con contraseña** (`Archivo > 🔒 Contraseña de las copias…`)
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
 - **🚦 Prioridad de Pendientes**: cada trabajo pendiente tiene prioridad (Baja, Media, Alta o Crítica) para decidir cuál atacar primero, con su color en la lista; también se le pueden adjuntar fotos a su colección
@@ -185,7 +186,7 @@ versiones estables. Los cambios de cada versión están en
 
 ### 📱 Aplicación Móvil (Android)
 
-- **🔐 Acceso con Usuario**: Cada técnico inicia sesión una vez y la sesión queda guardada en el dispositivo
+- **🔐 Acceso con Usuario**: Cada técnico inicia sesión una vez y la sesión queda guardada en el dispositivo (el token se guarda en el Keystore de Android, no en claro)
 - **📝 Registro Rápido**: Captura de intervenciones sobre el terreno, firmadas automáticamente con su usuario
 - **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
 - **🖼️ Colección de Fotos**: además de las fotos de antes y después, añade a un trabajo o pendiente todas las fotos que quieras (cámara o galería); al tocar cualquier foto se ve a pantalla completa, pasando de una a otra y ampliando con dos dedos
@@ -211,7 +212,7 @@ versiones estables. Los cambios de cada versión están en
 Aplicación independiente (`mantpro_stock_app`), pensada para consultar y mover
 stock de almacén desde el móvil sin necesidad de la app de trabajos.
 
-- **🔐 Acceso con Usuario**: usa el mismo sistema de usuarios y sesión que la app de trabajos
+- **🔐 Acceso con Usuario**: usa el mismo sistema de usuarios y sesión que la app de trabajos (el token se guarda en el Keystore de Android, no en claro)
 - **🗂️ Navegación del Almacén**: árbol de estanterías > baldas > secciones, igual que en el PC
 - **🔎 Búsqueda de Materiales**: por nombre, código, descripción o ubicación
 - **➕➖ Entradas y Salidas**: registra movimientos de stock desde el móvil, con motivo opcional
@@ -242,6 +243,9 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring y sqlcipher3-wheels (opcionales: cifrado de las bases de datos)
   - sqlite3 (incluido en Python)
 
 ### Aplicación Móvil
@@ -524,6 +528,8 @@ sesión se cierra sola si el administrador desactiva al usuario o le restablece 
 contraseña; en ese caso la app vuelve a la pantalla de acceso **sin perder los
 registros que aún estén pendientes de subir**.
 
+El token de sesión se guarda en el **Keystore de Android** (almacenamiento seguro), no en claro. Tras **5 intentos fallidos** seguidos de inicio de sesión, ese usuario se bloquea 15 minutos (y un móvil, tras 20 intentos fallidos); la app muestra cuánto hay que esperar. En la ventana del PC, 5 fallos bloquean el inicio de sesión un minuto.
+
 ---
 
 ## 🏭 Maquinaria
@@ -691,6 +697,7 @@ Para que la sincronización funcione:
 
 - ✅ PC y móvil deben estar en la **misma red WiFi**
 - ✅ El **firewall** debe permitir conexiones en el puerto 5000 (o el configurado)
+- ✅ También debe permitir el **puerto siguiente** (5001 por defecto), que usa la conexión cifrada (HTTPS)
 - ✅ Si usas Windows, puede que necesites crear una excepción de firewall
 
 ### Solución de Problemas
@@ -731,6 +738,14 @@ Para que la sincronización funcione:
 - Se aplican las mismas comprobaciones que en MantPro (permiso de notificaciones y exclusión de la optimización de batería, ver arriba)
 - Si el almacén no tiene ningún material dado de alta, no se muestra ninguna notificación: es el comportamiento esperado
 - Se reevalúa cada vez que la app sincroniza con el PC (al abrir y cada 25 segundos mientras está abierta)
+
+**MantPro pide una clave de recuperación al arrancar:**
+- Las bases de datos están cifradas y el llavero del sistema ya no tiene su clave (sistema reinstalado, otra cuenta de usuario…)
+- Escribe la clave de recuperación que se mostró al activar el cifrado; MantPro la vuelve a guardar en el llavero
+- Si no la tienes, las bases de datos no se pueden abrir: saca `mantenimiento.db` y `almacen.db` de la carpeta de datos, abre MantPro y restaura una copia de seguridad
+
+**«Demasiados intentos fallidos» al iniciar sesión:**
+- Tras varias contraseñas erróneas seguidas, el inicio de sesión se bloquea un tiempo (15 minutos en el móvil, un minuto en el PC); espera lo que indica el aviso o pide a un administrador que te restablezca la contraseña
 
 ### 🔒 Nota sobre seguridad
 

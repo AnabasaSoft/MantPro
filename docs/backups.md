@@ -68,6 +68,10 @@ the good data.
   and `backups_auto` are rewritten with the new password (or unencrypted),
   keeping their dates. Backups saved anywhere else keep their old password.
 - **If the password is forgotten**, encrypted backups cannot be recovered.
+- **With encrypted databases** (*Tools → Database encryption*), backups still
+  contain the databases **unencrypted**, so they can be restored on another
+  computer without its key; protect them with this password. Restoring over an
+  encrypted database keeps it encrypted.
 
 Format of each encrypted file:
 

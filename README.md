@@ -151,6 +151,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🔒 Per-Record Permissions**: a technician can only edit or delete their own jobs; an administrator can manage any of them, including reassigning the author of one or several records at once
 - **📋 Change Auditing**: a log of who edits or deletes each job (not just who created it), searchable and filterable by technician and action type from "Change log" (administrators only)
 - **🔐 Device Sessions**: lists the phones linked to each user, with their real model, and lets you revoke one or several specific sessions without deactivating the whole user (administrators only). When someone signs in again from the same device, their previous session is replaced automatically instead of piling up
+- **🛡️ Security**: phone sync encrypted with HTTPS (the PC's certificate is pinned by the QR code), optional **encrypted databases** (SQLCipher, key in the system keyring) and **password-encrypted backups**, sign-in attempts limited against brute force, photos received from phones checked, and consistent backups with an integrity check
 - **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries
 - **🎨 Visual Themes**: choose between dark mode (default), light mode or a retro style inspired by Windows 98, from the "Appearance" menu
 - **📅 Interactive Calendar**: View and manage maintenance tasks with colour codes (public holidays, vacations, days with tasks)
@@ -160,7 +161,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📱 Mobile Sync**: Built-in server (starts automatically) to sync with the mobile app via QR code
 - **🔍 Search**: Advanced search by date, tags and content
 - **👤 Filter by Technician**: Filter the history and exports (PDF, CSV and Excel) by the person who did the job
-- **📦 Backup/Restore**: full manual backup (database + photos) choosing where to save it, incremental automatic backup when closing the app (see [Backups](#-backups)), and restore with a progress bar, with a `File > Restore` submenu to pick any manual backup or go straight to the automatic ones
+- **📦 Backup/Restore**: full manual backup (database + photos) choosing where to save it, incremental automatic backup when closing the app (see [Backups](#-backups)), and restore with a progress bar, with a `File > Restore` submenu to pick any manual backup or go straight to the automatic ones. Backups can be **encrypted with a password** (`File > 🔒 Backup password…`)
 - **🏷️ Tags**: Categorisation with labels (Urgent, Electrical, Mechanical, Preventive)
 - **🔨 Pending Tasks**: Management of pending jobs (create, complete, edit, delete) and **assignment to a specific technician**
 - **🚦 Pending Job Priority**: each pending job has a priority (Low, Medium, High or Critical) to decide which one to tackle first, shown with its colour in the list; photos can also be added to its collection
@@ -182,7 +183,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ### 📱 Mobile Application (Android)
 
-- **🔐 User Sign-in**: Each technician signs in once and the session is kept on the device
+- **🔐 User Sign-in**: Each technician signs in once and the session is kept on the device (the token is kept in the Android Keystore, not in plain text)
 - **📝 Quick Logging**: Capture jobs in the field, automatically signed with the user's name
 - **📷 Built-in Camera**: Take photos and annotate them
 - **🖼️ Photo Collection**: besides the before and after photos, add as many photos as you want to a job or pending job (camera or gallery); tapping any photo opens it full screen, swiping from one to the next and pinching to zoom
@@ -208,7 +209,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 A standalone app (`mantpro_stock_app`) for checking and moving warehouse stock
 from your phone without needing the jobs app.
 
-- **🔐 User Sign-in**: uses the same user and session system as the jobs app
+- **🔐 User Sign-in**: uses the same user and session system as the jobs app (the token is kept in the Android Keystore, not in plain text)
 - **🗂️ Warehouse Browsing**: shelving unit > shelf > section tree, just like on the PC
 - **🔎 Material Search**: by name, code, description or location
 - **➕➖ Stock In and Out**: log stock movements from your phone, with an optional reason
@@ -239,6 +240,9 @@ from your phone without needing the jobs app.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring and sqlcipher3-wheels (optional: database encryption)
   - sqlite3 (included with Python)
 
 ### Mobile Application
@@ -519,6 +523,8 @@ session ends on its own if the administrator deactivates the user or resets
 their password; in that case the app returns to the sign-in screen **without
 losing any records still waiting to be uploaded**.
 
+The session token is stored in the **Android Keystore** (secure storage), not in plain text. After **5 failed sign-in attempts** in a row the user is blocked for 15 minutes (and a phone, after 20 failed attempts); the app shows how long to wait. In the PC window, 5 failed attempts block sign-in for one minute.
+
 ---
 
 ## 🏭 Machinery
@@ -681,6 +687,7 @@ For sync to work:
 
 - ✅ The PC and the phone must be on the **same Wi-Fi network**
 - ✅ The **firewall** must allow connections on port 5000 (or the configured one)
+- ✅ It must also allow the **next port** (5001 by default), used by the encrypted connection (HTTPS)
 - ✅ On Windows, you may need to create a firewall exception
 
 ### Troubleshooting
@@ -721,6 +728,14 @@ For sync to work:
 - The same checks as for MantPro apply (notification permission and exclusion from battery optimisation, see above)
 - If the warehouse has no materials added, no notification is shown: this is the expected behaviour
 - It is re-evaluated every time the app syncs with the PC (when opening it and every 25 seconds while it is open)
+
+**MantPro asks for a recovery key when starting:**
+- The databases are encrypted and the system keyring no longer has their key (system reinstalled, a different user account…)
+- Enter the recovery key that was shown when encryption was turned on; MantPro saves it in the keyring again
+- If you do not have it, the databases cannot be opened: move `mantenimiento.db` and `almacen.db` out of the data folder, open MantPro and restore a backup
+
+**"Too many failed attempts" when signing in:**
+- After several wrong passwords in a row, sign-in is blocked for a while (15 minutes on the phone, one minute on the PC); wait for the time shown, or ask an administrator to reset your password
 
 ### 🔒 Security note
 

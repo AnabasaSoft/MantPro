@@ -154,6 +154,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🔒 Permisos per registre**: un tècnic només pot editar o esborrar els seus propis treballs; un administrador pot gestionar-ne qualsevol, inclosa la reassignació de l'autor d'un o diversos registres alhora
 - **📋 Auditoria de canvis**: registre de qui edita o esborra cada treball (no només qui el va crear), consultable i filtrable per tècnic i per tipus d'acció des de "Registre de canvis" (només administradors)
 - **🔐 Sessions de dispositius**: llista els mòbils vinculats a cada usuari, amb el seu model real, i permet revocar una o diverses sessions concretes sense desactivar l'usuari sencer (només administradors). En tornar a iniciar sessió des del mateix dispositiu, la sessió anterior se substitueix automàticament en lloc d'acumular-se
+- **🛡️ Seguretat**: sincronització amb els mòbils xifrada per HTTPS (el certificat del PC queda fixat pel QR), **bases de dades xifrades** opcionals (SQLCipher, amb la clau al clauer del sistema) i **còpies de seguretat xifrades amb contrasenya**, intents d'inici de sessió limitats contra la força bruta, fotos rebudes dels mòbils comprovades i còpies consistents amb comprovació d'integritat
 - **📊 Tauler amb KPI i gràfics**: targetes d'avisos pendents, tasques per fer, registres del mes i MTBF/MTTR mitjans de tota la planta, a més de gràfics de les màquines amb més avaries i d'avaries per mes, dibuixats sense dependre de biblioteques externes
 - **🎨 Temes visuals**: tria entre mode fosc (per defecte), clar o un estil retro inspirat en Windows 98, des del menú "Aparença"
 - **📅 Calendari interactiu**: visualitza i gestiona les tasques de manteniment amb codis de color (festius, vacances, dies amb tasques)
@@ -163,7 +164,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📱 Sincronització mòbil**: servidor integrat (s'engega automàticament) per sincronitzar amb l'aplicació mòbil mitjançant QR
 - **🔍 Sistema de cerca**: cerca avançada per dates, etiquetes i contingut
 - **👤 Filtre per tècnic**: filtra l'historial i les exportacions (PDF, CSV i Excel) per la persona que va fer el treball
-- **📦 Còpia i restauració**: còpia manual completa (BD + fotos) triant on desar-la, còpia automàtica incremental en tancar l'aplicació (vegeu [Còpies de seguretat](#-còpies-de-seguretat)), i restauració amb barra de progrés, amb el submenú `Arxiu > Restaurar` per triar entre qualsevol còpia manual o anar directament a les còpies automàtiques
+- **📦 Còpia i restauració**: còpia manual completa (BD + fotos) triant on desar-la, còpia automàtica incremental en tancar l'aplicació (vegeu [Còpies de seguretat](#-còpies-de-seguretat)), i restauració amb barra de progrés, amb el submenú `Arxiu > Restaurar` per triar entre qualsevol còpia manual o anar directament a les còpies automàtiques. Les còpies es poden **xifrar amb contrasenya** (`Arxiu > 🔒 Contrasenya de les còpies…`)
 - **🏷️ Sistema d'etiquetes**: classificació amb etiquetes (Urgent, Elèctric, Mecànic, Preventiu)
 - **🔨 Tasques pendents**: gestió de treballs pendents (crear, completar, editar, eliminar) i **assignació a un tècnic concret**
 - **🚦 Prioritat dels pendents**: cada treball pendent té una prioritat (Baixa, Mitjana, Alta o Crítica) per decidir quin atacar primer, amb el seu color a la llista; també s'hi poden adjuntar fotos a la seva col·lecció
@@ -185,7 +186,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 
 ### 📱 Aplicació mòbil (Android)
 
-- **🔐 Accés amb usuari**: cada tècnic inicia sessió una vegada i la sessió queda desada al dispositiu
+- **🔐 Accés amb usuari**: cada tècnic inicia sessió una vegada i la sessió queda desada al dispositiu (el token es desa al Keystore d'Android, no en clar)
 - **📝 Registre ràpid**: captura d'intervencions sobre el terreny, signades automàticament amb el seu usuari
 - **📷 Càmera integrada**: presa de fotos i edició amb anotacions
 - **🖼️ Col·lecció de fotos**: a més de les fotos d'abans i després, afegeix a un treball o pendent totes les fotos que vulguis (càmera o galeria); en tocar qualsevol foto es veu a pantalla completa, passant de l'una a l'altra i ampliant amb dos dits
@@ -212,7 +213,7 @@ Aplicació independent (`mantpro_stock_app`), pensada per consultar i moure
 l'estoc del magatzem des del mòbil sense necessitat de l'aplicació de
 treballs.
 
-- **🔐 Accés amb usuari**: fa servir el mateix sistema d'usuaris i sessió que l'aplicació de treballs
+- **🔐 Accés amb usuari**: fa servir el mateix sistema d'usuaris i sessió que l'aplicació de treballs (el token es desa al Keystore d'Android, no en clar)
 - **🗂️ Navegació pel magatzem**: arbre de prestatgeries > prestatges > seccions, igual que al PC
 - **🔎 Cerca de materials**: per nom, codi, descripció o ubicació
 - **➕➖ Entrades i sortides**: registra moviments d'estoc des del mòbil, amb motiu opcional
@@ -243,6 +244,9 @@ treballs.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring i sqlcipher3-wheels (opcionals: xifratge de les bases de dades)
   - sqlite3 (inclòs a Python)
 
 ### Aplicació mòbil
@@ -526,6 +530,8 @@ sessió es tanca sola si l'administrador desactiva l'usuari o li restableix la
 contrasenya; en aquest cas l'aplicació torna a la pantalla d'accés **sense
 perdre els registres que encara estiguin pendents de pujar**.
 
+El token de sessió es desa al **Keystore d'Android** (emmagatzematge segur), no en clar. Després de **5 intents fallits** seguits d'inici de sessió, aquell usuari es bloqueja 15 minuts (i un mòbil, després de 20 intents fallits); l'aplicació mostra quant cal esperar. A la finestra del PC, 5 errors bloquegen l'inici de sessió un minut.
+
 ---
 
 ## 🏭 Maquinària
@@ -691,6 +697,7 @@ Perquè la sincronització funcioni:
 
 - ✅ El PC i el mòbil han de ser a la **mateixa xarxa WiFi**
 - ✅ El **tallafoc** ha de permetre connexions al port 5000 (o el configurat)
+- ✅ També ha de permetre el **port següent** (5001 per defecte), que fa servir la connexió xifrada (HTTPS)
 - ✅ Si fas servir Windows, potser hauràs de crear una excepció al tallafoc
 
 ### Resolució de problemes
@@ -731,6 +738,14 @@ Perquè la sincronització funcioni:
 - S'apliquen les mateixes comprovacions que a MantPro (permís de notificacions i exclusió de l'optimització de bateria, vegeu més amunt)
 - Si el magatzem no té cap material donat d'alta, no es mostra cap notificació: és el comportament esperat
 - Es torna a avaluar cada vegada que l'aplicació se sincronitza amb el PC (en obrir-la i cada 25 segons mentre està oberta)
+
+**MantPro demana una clau de recuperació en arrencar:**
+- Les bases de dades estan xifrades i el clauer del sistema ja no en té la clau (sistema reinstal·lat, un altre compte d'usuari…)
+- Escriu la clau de recuperació que es va mostrar en activar el xifratge; MantPro la torna a desar al clauer
+- Si no la tens, les bases de dades no es poden obrir: treu `mantenimiento.db` i `almacen.db` de la carpeta de dades, obre MantPro i restaura una còpia de seguretat
+
+**«Massa intents fallits» en iniciar sessió:**
+- Després de diverses contrasenyes errònies seguides, l'inici de sessió es bloqueja una estona (15 minuts al mòbil, un minut al PC); espera el temps que indica l'avís o demana a un administrador que et restableixi la contrasenya
 
 ### 🔒 Nota sobre seguretat
 

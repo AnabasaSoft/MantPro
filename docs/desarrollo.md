@@ -13,6 +13,15 @@ MantPro/
 │   │   ├── almacen.py           # Stock de almacén: estructura, materiales y movimientos
 │   │   ├── maquinas.py          # Árbol de maquinaria y su histórico de trabajos
 │   │   ├── basedatos.py         # Base de datos de trabajos
+│   │   ├── conexion_bd.py       # Única entrada a SQLite: cifrado (SQLCipher) y llavero
+│   │   ├── seguridad.py         # Límite de intentos de login, fotos, escritura atómica
+│   │   ├── certificado.py       # Certificado TLS propio del servidor y su huella
+│   │   ├── cifrado_copias.py    # Copias de seguridad cifradas con contraseña
+│   │   ├── estadisticas.py      # Estadísticas por técnico
+│   │   ├── nombres.py           # Aviso de nombres repetidos o muy parecidos
+│   │   ├── etiquetas.py         # Etiquetas QR de las máquinas
+│   │   ├── fotos.py             # Fotos de los trabajos (colección)
+│   │   ├── rutas.py             # Carpeta de datos
 │   │   └── importar.py          # Importación desde Excel/CSV
 │   ├── interfaz/                # Ventanas PyQt6
 │   │   ├── arranque.py          # Arranque: instancia única y login
@@ -31,8 +40,13 @@ MantPro/
 ├── fotos_recibidas/             # Carpeta de imágenes
 ├── mantenimiento.db             # Base de datos SQLite (trabajos de mantenimiento)
 ├── almacen.db                   # Base de datos SQLite (stock de almacén, independiente)
+├── servidor_cert.pem / servidor_clave.pem  # Certificado TLS del servidor (lo crea MantPro)
+├── clave_copias.json            # Clave de las copias cifradas (si se activan)
+├── clave_bd.json                # Clave de las BD cifradas, solo si no hay llavero
 ├── mantenimiento_app/           # Aplicación móvil Flutter (trabajos)
 │   ├── lib/main.dart            # Código principal móvil
+│   ├── lib/conexion_segura.dart # HTTPS con el certificado del PC fijado por su huella
+│   ├── lib/actualizador.dart    # Descarga e instalación de la versión nueva
 │   ├── lib/i18n/                # Traducciones del móvil (ES / EN / EU / CA / GL / PT / FR)
 │   ├── pubspec.yaml             # Dependencias Flutter
 │   └── android/                 # Configuración Android

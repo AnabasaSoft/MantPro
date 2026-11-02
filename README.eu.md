@@ -156,6 +156,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🔒 Erregistro bakoitzeko baimenak**: teknikari batek bere lanak baino ezin ditu editatu edo ezabatu; administratzaile batek edozein kudea dezake, baita erregistro baten edo batzuen egilea aldi berean berresleitu ere
 - **📋 Aldaketen auditoria**: lan bakoitza nork editatzen edo ezabatzen duen erregistratzen da (ez bakarrik nork sortu zuen), "Aldaketen erregistroa" ataletik kontsultatu eta teknikariaren eta ekintza motaren arabera iragazi daitekeena (administratzaileak soilik)
 - **🔐 Gailuen saioak**: erabiltzaile bakoitzari lotutako mugikorrak zerrendatzen ditu, haien benetako modeloarekin, eta saio jakin bat edo batzuk baliogabetzeko aukera ematen du erabiltzaile osoa desaktibatu gabe (administratzaileak soilik). Gailu beretik berriro saioa hastean, aurreko saioa automatikoki ordezten da, pilatu beharrean
+- **🛡️ Segurtasuna**: mugikorrekiko sinkronizazioa HTTPS bidez zifratuta (PCaren ziurtagiria QRaren bidez finkatuta), aukerako **datu-base zifratuak** (SQLCipher, gakoa sistemaren gako-sortan) eta **pasahitzarekin zifratutako babeskopiak**, saio-hasierako saiakerak mugatuta indar gordinaren aurka, mugikorretatik jasotako argazkiak egiaztatuta eta babeskopia koherenteak osotasun-egiaztapenarekin
 - **📊 Aginte-panela KPI eta grafikoekin**: egiteke dauden abisuen, egiteko zereginen, hilabeteko erregistroen eta lantegi osoko batez besteko MTBF/MTTRren txartelak, gehi matxura gehien dituzten makinen eta hilabeteko matxuren grafikoak, kanpoko liburutegirik gabe marraztuak
 - **🎨 Gai bisualak**: aukeratu modu ilun (lehenetsia), argi edo Windows 98an inspiratutako estilo retro baten artean, "Itxura" menutik
 - **📅 Egutegi interaktiboa**: Ikusi eta kudeatu mantentze-zereginak kolore-kodeekin (jaiegunak, oporrak, zereginak dituzten egunak)
@@ -165,7 +166,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **📱 Mugikorreko sinkronizazioa**: Zerbitzari integratua (automatikoki abiarazten da) mugikorreko aplikazioarekin QR bidez sinkronizatzeko
 - **🔍 Bilaketa-sistema**: Bilaketa aurreratua datetan, etiketetan eta edukian
 - **👤 Teknikariaren araberako iragazkia**: Iragazi historia eta esportazioak (PDF, CSV eta Excel) lana egin zuen pertsonaren arabera
-- **📦 Babeskopia/Berrezartzea**: eskuzko babeskopia osoa (DB + argazkiak) non gorde aukeratuz, babeskopia automatiko inkrementala aplikazioa ixtean (ikusi [Babeskopiak](#-babeskopiak)), eta berrezartzea aurrerapen-barrarekin, `Fitxategia > Berrezarri` azpimenuarekin edozein eskuzko babeskopia aukeratzeko edo zuzenean kopia automatikoetara joateko
+- **📦 Babeskopia/Berrezartzea**: eskuzko babeskopia osoa (DB + argazkiak) non gorde aukeratuz, babeskopia automatiko inkrementala aplikazioa ixtean (ikusi [Babeskopiak](#-babeskopiak)), eta berrezartzea aurrerapen-barrarekin, `Fitxategia > Berrezarri` azpimenuarekin edozein eskuzko babeskopia aukeratzeko edo zuzenean kopia automatikoetara joateko. Babeskopiak **pasahitzarekin zifra daitezke** (`Fitxategia > 🔒 Babeskopien pasahitza…`)
 - **🏷️ Etiketa-sistema**: Etiketen bidezko sailkapena (Urgentea, Elektrikoa, Mekanikoa, Prebentiboa)
 - **🔨 Egiteke dauden zereginak**: Egiteke dauden lanen kudeaketa (sortu, osatu, editatu, ezabatu) eta **teknikari jakin bati esleitzea**
 - **🚦 Egiteke dauden lanen lehentasuna**: egiteke dagoen lan bakoitzak lehentasun bat du (Baxua, Ertaina, Altua edo Kritikoa) zein lehenago egin erabakitzeko, zerrendan bere kolorearekin; bere bildumari argazkiak ere gehi dakizkioke
@@ -187,7 +188,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 
 ### 📱 Mugikorreko aplikazioa (Android)
 
-- **🔐 Erabiltzailearekin sarbidea**: Teknikari bakoitzak behin hasten du saioa eta saioa gailuan gordeta geratzen da
+- **🔐 Erabiltzailearekin sarbidea**: Teknikari bakoitzak behin hasten du saioa eta saioa gailuan gordeta geratzen da (tokena Androiden Keystorean gordetzen da, ez testu argian)
 - **📝 Erregistro azkarra**: Lanak tokian bertan erregistratzea, erabiltzailearekin automatikoki sinatuta
 - **📷 Kamera integratua**: Argazkiak atera eta oharrekin editatu
 - **🖼️ Argazki bilduma**: aurreko eta ondorengo argazkiez gain, gehitu lan edo egiteke dagoen lan bati nahi adina argazki (kamera edo galeria); edozein argazki sakatuz pantaila osoan ikusten da, batetik bestera pasatuz eta bi hatzekin handituz
@@ -213,7 +214,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 Aplikazio independentea (`mantpro_stock_app`), biltegiko stocka mugikorretik
 kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
-- **🔐 Erabiltzailearekin sarbidea**: lanen aplikazioaren erabiltzaile- eta saio-sistema bera erabiltzen du
+- **🔐 Erabiltzailearekin sarbidea**: lanen aplikazioaren erabiltzaile- eta saio-sistema bera erabiltzen du (tokena Androiden Keystorean gordetzen da, ez testu argian)
 - **🗂️ Biltegiaren nabigazioa**: apalategiak > apalak > atalak zuhaitza, PCan bezala
 - **🔎 Materialen bilaketa**: izenaren, kodearen, deskribapenaren edo kokapenaren arabera
 - **➕➖ Sarrerak eta irteerak**: erregistratu stock-mugimenduak mugikorretik, aukerako arrazoi batekin
@@ -244,6 +245,9 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
   - requests
   - xlsxwriter
   - openpyxl
+  - Pillow
+  - cryptography
+  - keyring eta sqlcipher3-wheels (aukerakoak: datu-baseen zifratzea)
   - sqlite3 (Python-ekin dator)
 
 ### Mugikorreko aplikazioa
@@ -528,6 +532,8 @@ bere kabuz ixten da administratzaileak erabiltzailea desaktibatzen badu edo
 pasahitza berrezartzen badio; kasu horretan aplikazioa sarbide-pantailara
 itzultzen da **igotzeko dauden erregistroak galdu gabe**.
 
+Saioaren tokena **Androiden Keystorean** (biltegiratze segurua) gordetzen da, ez testu argian. Saioa hasteko **5 saiakera huts** jarraian egin ondoren, erabiltzaile hori 15 minutuz blokeatzen da (eta mugikor bat, 20 saiakera huts egin ondoren); aplikazioak zenbat itxaron behar den erakusten du. PCko leihoan, 5 hutsegitek minutu batez blokeatzen dute saio-hasiera.
+
 ---
 
 ## 🏭 Makineria
@@ -696,6 +702,7 @@ Sinkronizazioak funtziona dezan:
 
 - ✅ PCak eta mugikorrak **WiFi sare berean** egon behar dute
 - ✅ **Suebakiak** 5000 atakan (edo konfiguratutakoan) konexioak onartu behar ditu
+- ✅ **Hurrengo ataka** ere onartu behar du (5001 lehenespenez), konexio zifratuak (HTTPS) erabiltzen duena
 - ✅ Windows erabiltzen baduzu, baliteke suebakian salbuespen bat sortu behar izatea
 
 ### Arazoen konponbidea
@@ -738,6 +745,14 @@ Sinkronizazioak funtziona dezan:
 - MantPro-ko egiaztapen berak aplikatzen dira (jakinarazpenen baimena eta bateria-optimizaziotik salbuestea, ikusi goian)
 - Biltegian materialik altan emanda ez badago, ez da jakinarazpenik erakusten: espero den portaera da
 - Aplikazioa PCarekin sinkronizatzen den bakoitzean berriro ebaluatzen da (irekitzean eta irekita dagoen bitartean 25 segundoz behin)
+
+**MantProk berreskuratze-gako bat eskatzen du abiaraztean:**
+- Datu-baseak zifratuta daude eta sistemaren gako-sortak jada ez du haien gakoa (sistema berrinstalatuta, beste erabiltzaile-kontu bat…)
+- Idatzi zifratzea aktibatzean erakutsi zen berreskuratze-gakoa; MantProk berriro gordetzen du gako-sortan
+- Ez baduzu, datu-baseak ezin dira ireki: atera `mantenimiento.db` eta `almacen.db` datuen karpetatik, ireki MantPro eta leheneratu babeskopia bat
+
+**«Saiakera huts gehiegi» saioa hastean:**
+- Jarraian hainbat pasahitz oker sartu ondoren, saio-hasiera denbora batez blokeatzen da (15 minutu mugikorrean, minutu bat PCan); itxaron oharrak dioena edo eskatu administratzaile bati pasahitza berrezartzeko
 
 ### 🔒 Segurtasunari buruzko oharra
 
