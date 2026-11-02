@@ -109,7 +109,7 @@ class ChequeadorActualizaciones(QThread):
 class GeneradorPDFThread(QThread):
     resultado = pyqtSignal(bool, str)
 
-    def _miniatura_pdf(self, nombre):
+    def _miniatura_pdf(self, nombre, ancho_max=2.6 * cm, alto_max=2.2 * cm):
         """Foto de la colección reducida (máx. 600 px, JPEG) para el PDF, así
         un trabajo con muchas fotos no dispara el tamaño del fichero. None si
         no existe o no se puede leer."""
@@ -124,7 +124,7 @@ class GeneradorPDFThread(QThread):
                 foto.thumbnail((600, 600))
                 buffer = BytesIO(); foto.save(buffer, "JPEG", quality=80); buffer.seek(0)
                 ancho, alto = foto.size
-            escala = min(2.6 * cm / ancho, 2.2 * cm / alto)
+            escala = min(ancho_max / ancho, alto_max / alto)
             return PDFImage(buffer, width=ancho * escala, height=alto * escala)
         except Exception:
             return None
@@ -184,31 +184,15 @@ class GeneradorPDFThread(QThread):
                     img_obj = ""
                     img_obj_d = ""
 
+                    # Fotos de antes y después: encajadas en su celda (3 cm de
+                    # ancho menos el margen) sin deformarlas. Antes se fijaba
+                    # el tamaño a mano y las apaisadas se salían de la celda.
                     m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
                     if m:
-                        nombre_foto = m.group(1).split("]")[0].strip()
-                        ruta_foto = os.path.join(self.carpeta_fotos, nombre_foto)
-                        if os.path.exists(ruta_foto):
-                            try:
-                                img = PDFImage(ruta_foto)
-                                img.drawHeight = 2.5 * cm
-                                img.drawWidth = 3.0 * cm
-                                img.keepAspectRatio = True
-                                img_obj = img
-                            except: img_obj = "Error Img"
-
+                        img_obj = self._miniatura_pdf(m.group(1).split("]")[0].strip(), 2.75 * cm, 2.5 * cm) or ""
                     m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
                     if m_d:
-                        nombre_foto_d = m_d.group(1).split("]")[0].strip()
-                        ruta_foto_d = os.path.join(self.carpeta_fotos, nombre_foto_d)
-                        if os.path.exists(ruta_foto_d):
-                            try:
-                                img_d = PDFImage(ruta_foto_d)
-                                img_d.drawHeight = 2.5 * cm
-                                img_d.drawWidth = 3.0 * cm
-                                img_d.keepAspectRatio = True
-                                img_obj_d = img_d
-                            except: img_obj_d = "Error Img"
+                        img_obj_d = self._miniatura_pdf(m_d.group(1).split("]")[0].strip(), 2.75 * cm, 2.5 * cm) or ""
 
                     desc_visual = re.sub(r"\[FOTO:.*?\]", "", desc_visual)
                     desc_visual = re.sub(r"\[FOTO_DESPUES:.*?\]", "", desc_visual)
