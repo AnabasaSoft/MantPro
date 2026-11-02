@@ -849,5 +849,15 @@
   "msg_error_conversion_bd": "Les bases de données n'ont pas pu être converties ; elles restent telles quelles.\n\n{error}",
   "msg_bd_sin_sqlcipher": "Les bases de données sont chiffrées et cette installation de MantPro n'inclut pas SQLCipher : elle ne peut donc pas les ouvrir. Installez la version de MantPro de la page de téléchargements.",
   "msg_pedir_clave_recuperacion": "Les bases de données sont chiffrées et leur clé n'est pas dans le trousseau du système (par exemple, après une réinstallation du système ou un changement d'utilisateur).\n\nSaisissez la clé de récupération affichée lors de l'activation du chiffrement :",
-  "msg_clave_recuperacion_mal": "Cette clé n'ouvre pas les bases de données. Vérifiez qu'elle est complète (64 lettres et chiffres) et saisissez-la à nouveau :"
+  "msg_clave_recuperacion_mal": "Cette clé n'ouvre pas les bases de données. Vérifiez qu'elle est complète (64 lettres et chiffres) et saisissez-la à nouveau :",
+  "sesiones_col_cifrado": "Chiffrement",
+  "sesiones_cifrada": "🔒 Chiffrée",
+  "sesiones_sin_cifrar": "⚠️ Non chiffrée (ancienne application)",
+  "sesiones_http_desactivado": "🔒 Connexion non chiffrée désactivée : le PC ne sert les mobiles que par la connexion chiffrée.",
+  "btn_activar_http": "Autoriser à nouveau la connexion non chiffrée",
+  "btn_desactivar_http": "Désactiver la connexion non chiffrée",
+  "sesiones_http_pendientes": "⚠️ {n} mobiles se connectent encore sans chiffrement (avec une application antérieure à la 3.10.3). Mettez leur application à jour avant de désactiver la connexion non chiffrée.",
+  "sesiones_http_listo": "Plus aucun mobile n'utilise la connexion non chiffrée : vous pouvez la désactiver.",
+  "msg_confirmar_desactivar_http": "Les mobiles avec une application antérieure à la 3.10.3 cesseront de se synchroniser jusqu'à sa mise à jour. Ceux associés avec l'ancien QR et une application déjà à jour passent d'eux-mêmes à la connexion chiffrée.\n\nDésactiver la connexion non chiffrée ?",
+  "msg_desactivar_http_pendientes": "Ces mobiles se connectent encore sans chiffrement et cesseront de se synchroniser jusqu'à la mise à jour de leur application :"
 }

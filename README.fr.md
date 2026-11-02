@@ -779,6 +779,11 @@ précédentes ; HTTPS utilise le **port suivant** (par exemple 5000 et 5001),
 donc s'il y a un pare-feu il faut ouvrir les deux. Si vous exposez un jour le
 serveur hors du réseau local, faites-le via un VPN.
 
+Quand tous les mobiles ont l'application à jour, désactivez la connexion non
+chiffrée dans `Outils > 🔐 Sessions des appareils` : la colonne « Chiffrement »
+indique quels mobiles se connectent encore sans elle. Dès lors, le PC ne répond
+plus qu'en HTTPS.
+
 Les bases de données peuvent aussi être enregistrées **chiffrées** (`Outils >
 Chiffrement des bases de données…`, SQLCipher) : la clé est conservée dans le
 trousseau du système et une clé de récupération s'affiche pour être notée.

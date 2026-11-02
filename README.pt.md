@@ -760,6 +760,11 @@ HTTPS usa a **porta seguinte** (por exemplo, 5000 e 5001), então, se houver um
 firewall, é preciso abrir as duas. Se algum dia expuser o servidor fora da rede
 local, faça isso por uma VPN.
 
+Quando todos os celulares tiverem o aplicativo atualizado, desative a conexão
+sem criptografia em `Ferramentas > 🔐 Sessões de dispositivos`: a coluna
+«Criptografia» mostra quais celulares ainda se conectam sem ela. A partir daí o
+PC só atende por HTTPS.
+
 Os bancos de dados também podem ser salvos **criptografados** (`Ferramentas >
 Criptografia dos bancos de dados…`, SQLCipher): a chave fica no chaveiro do
 sistema e é mostrada uma chave de recuperação para você anotar. Vem desativado.

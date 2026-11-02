@@ -849,5 +849,15 @@
   "msg_error_conversion_bd": "The databases could not be converted; they stay as they were.\n\n{error}",
   "msg_bd_sin_sqlcipher": "The databases are encrypted and this MantPro installation does not include SQLCipher, so it cannot open them. Install the MantPro version from the downloads page.",
   "msg_pedir_clave_recuperacion": "The databases are encrypted and their key is not in the system keyring (for example, after reinstalling the system or changing user).\n\nEnter the recovery key that was shown when encryption was turned on:",
-  "msg_clave_recuperacion_mal": "That key does not open the databases. Check that it is complete (64 letters and numbers) and enter it again:"
+  "msg_clave_recuperacion_mal": "That key does not open the databases. Check that it is complete (64 letters and numbers) and enter it again:",
+  "sesiones_col_cifrado": "Encryption",
+  "sesiones_cifrada": "🔒 Encrypted",
+  "sesiones_sin_cifrar": "⚠️ Unencrypted (old app)",
+  "sesiones_http_desactivado": "🔒 Unencrypted connection turned off: the PC only serves the phones over the encrypted connection.",
+  "btn_activar_http": "Allow the unencrypted connection again",
+  "btn_desactivar_http": "Turn off the unencrypted connection",
+  "sesiones_http_pendientes": "⚠️ {n} phones still connect unencrypted (with an app older than 3.10.3). Update their app before turning off the unencrypted connection.",
+  "sesiones_http_listo": "No phone uses the unencrypted connection any more: you can turn it off.",
+  "msg_confirmar_desactivar_http": "Phones with an app older than 3.10.3 will stop syncing until it is updated. Those paired with the old QR code and an already updated app switch to the encrypted connection by themselves.\n\nTurn off the unencrypted connection?",
+  "msg_desactivar_http_pendientes": "These phones still connect unencrypted and will stop syncing until their app is updated:"
 }

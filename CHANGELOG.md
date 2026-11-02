@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Seguridad
+- **Desactivar la conexión sin cifrar** (*Herramientas → 🔐 Sesiones de dispositivos*, solo administradores): la columna nueva «Cifrado» muestra si cada móvil se conecta por la conexión cifrada o todavía sin cifrar (app anterior a la 3.10.3), y abajo se avisa de cuántos quedan. Cuando no queda ninguno, un botón desactiva la conexión sin cifrar y el PC pasa a atender solo por HTTPS (también las fotos, que por HTTP se servían sin sesión). Los móviles con la app ya actualizada pero vinculados con el QR antiguo siguen pasando solos a la conexión cifrada. Se puede volver a permitir desde el mismo sitio.
+
 ### Mejoras
 - **Ayuda (F1)**: apartado nuevo **🛡️ Seguridad y cifrado** (conexión cifrada con los móviles, bloqueo tras intentos fallidos, fotos comprobadas, bases de datos y copias cifradas y qué no se cifra), una nota sobre la conexión cifrada en «Apps del móvil» y tres problemas frecuentes nuevos: la clave de recuperación al abrir, «Demasiados intentos fallidos» y la contraseña que se pide al restaurar una copia. En los 7 idiomas.
 

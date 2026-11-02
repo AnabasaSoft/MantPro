@@ -34,7 +34,9 @@ workshop Wi-Fi). Keep in mind:
   its own certificate and the phones only accept it if its fingerprint matches
   the one in the pairing QR code. During the transition the PC also answers
   over unencrypted HTTP on the configured port, for apps from earlier
-  versions. Do not expose the sync ports to the internet.
+  versions, until an administrator turns it off in `Tools > Device sessions`
+  (which shows the phones that still use it). Do not expose the sync ports
+  to the internet.
 - **The databases can be encrypted** (`Tools > Database encryption…`,
   SQLCipher/AES-256, key in the system keyring plus a recovery key). It is
   off by default. **Photos are not encrypted.** Protect the computer. **Backups can be encrypted**
@@ -99,8 +101,9 @@ la oficina o del taller). Ten en cuenta que:
   crea su propio certificado y los móviles solo lo aceptan si su huella
   coincide con la del QR de vinculación. Durante la transición, el PC sigue
   respondiendo también por HTTP sin cifrar en el puerto configurado, para las
-  apps de versiones anteriores. No expongas los puertos de sincronización a
-  internet.
+  apps de versiones anteriores, hasta que un administrador lo desactive en
+  `Herramientas > Sesiones de dispositivos` (que muestra qué móviles lo usan
+  todavía). No expongas los puertos de sincronización a internet.
 - **Las bases de datos se pueden cifrar** (`Herramientas > Cifrado de las
   bases de datos…`, SQLCipher/AES-256, con la clave en el llavero del sistema y
   una clave de recuperación). Viene desactivado. **Las fotos no se cifran.** Protege el equipo. **Las copias de

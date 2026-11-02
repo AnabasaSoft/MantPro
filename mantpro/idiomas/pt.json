@@ -849,5 +849,15 @@
   "msg_error_conversion_bd": "Não foi possível converter os bancos de dados; eles continuam como estavam.\n\n{error}",
   "msg_bd_sin_sqlcipher": "Os bancos de dados estão criptografados e esta instalação do MantPro não inclui o SQLCipher, então não consegue abri-los. Instale a versão do MantPro da página de downloads.",
   "msg_pedir_clave_recuperacion": "Os bancos de dados estão criptografados e a chave deles não está no chaveiro do sistema (por exemplo, depois de reinstalar o sistema ou trocar de usuário).\n\nDigite a chave de recuperação que foi mostrada ao ativar a criptografia:",
-  "msg_clave_recuperacion_mal": "Essa chave não abre os bancos de dados. Verifique se está completa (64 letras e números) e digite-a novamente:"
+  "msg_clave_recuperacion_mal": "Essa chave não abre os bancos de dados. Verifique se está completa (64 letras e números) e digite-a novamente:",
+  "sesiones_col_cifrado": "Criptografia",
+  "sesiones_cifrada": "🔒 Criptografada",
+  "sesiones_sin_cifrar": "⚠️ Sem criptografia (aplicativo antigo)",
+  "sesiones_http_desactivado": "🔒 Conexão sem criptografia desativada: o PC só atende os celulares pela conexão criptografada.",
+  "btn_activar_http": "Permitir novamente a conexão sem criptografia",
+  "btn_desactivar_http": "Desativar a conexão sem criptografia",
+  "sesiones_http_pendientes": "⚠️ {n} celulares ainda se conectam sem criptografia (com um aplicativo anterior à 3.10.3). Atualize o aplicativo deles antes de desativar a conexão sem criptografia.",
+  "sesiones_http_listo": "Nenhum celular usa mais a conexão sem criptografia: você pode desativá-la.",
+  "msg_confirmar_desactivar_http": "Os celulares com um aplicativo anterior à 3.10.3 vão parar de sincronizar até que ele seja atualizado. Os vinculados com o QR antigo e o aplicativo já atualizado passam sozinhos para a conexão criptografada.\n\nDesativar a conexão sem criptografia?",
+  "msg_desactivar_http_pendientes": "Estes celulares ainda se conectam sem criptografia e vão parar de sincronizar até que o aplicativo deles seja atualizado:"
 }

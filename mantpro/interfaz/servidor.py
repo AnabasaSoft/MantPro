@@ -82,6 +82,20 @@ class ServidorSincronizacion(QThread):
             if (request.content_length or 0) > seguridad.TAMANO_MAXIMO_PETICION:
                 return jsonify({"status": "error", "error": "demasiado_grande",
                                 "message": "El envío es demasiado grande."}), 413
+
+        # Conexión sin cifrar desactivada (Herramientas → Sesiones de
+        # dispositivos): por HTTP solo se responde a /api/tls, para que un
+        # móvil con la app ya actualizada pero vinculado con el QR antiguo
+        # pueda pasar a HTTPS. Si el HTTPS no ha podido arrancar, HTTP sigue
+        # funcionando igual, para no dejar a nadie sin sincronizar.
+        @self.app.before_request
+        def _solo_https():
+            if request.is_secure or not self.huella or not usuarios.http_desactivado():
+                return None
+            if request.path == '/api/tls':
+                return None
+            return jsonify({"status": "error", "error": "https_obligatorio",
+                            "message": "El PC solo acepta conexiones cifradas: actualiza la app."}), 426
         self.server_port = puerto or PUERTO_POR_DEFECTO
         self.puerto_https = self.server_port + 1
         self.huella = None   # huella del certificado, cuando HTTPS está en marcha
@@ -107,7 +121,7 @@ class ServidorSincronizacion(QThread):
             token = _token_peticion()
             u = usuarios.usuario_por_token(token)
             if u is not None:
-                usuarios.registrar_contacto(token)
+                usuarios.registrar_contacto(token, cifrada=request.is_secure)
             return u
 
         def requiere_token(func):

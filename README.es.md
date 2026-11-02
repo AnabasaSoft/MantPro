@@ -758,6 +758,11 @@ el **puerto siguiente** (por ejemplo, 5000 y 5001), así que si hay un
 cortafuegos hay que abrir los dos. Si alguna vez expones el servidor fuera de
 la red local, hazlo a través de una VPN.
 
+Cuando todos los móviles tengan la app actualizada, desactiva la conexión sin
+cifrar en `Herramientas > 🔐 Sesiones de dispositivos`: la columna «Cifrado»
+muestra qué móviles se conectan todavía sin ella. A partir de entonces el PC
+solo atiende por HTTPS.
+
 Las bases de datos también se pueden guardar **cifradas** (`Herramientas >
 Cifrado de las bases de datos…`, SQLCipher): la clave va en el llavero del
 sistema y se muestra una clave de recuperación para apuntarla. Viene

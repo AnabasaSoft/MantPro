@@ -758,6 +758,11 @@ el **port següent** (per exemple, 5000 i 5001), així que si hi ha un tallafoc
 cal obrir-los tots dos. Si mai exposes el servidor fora de la xarxa local,
 fes-ho a través d'una VPN.
 
+Quan tots els mòbils tinguin l'app actualitzada, desactiva la connexió sense
+xifrar a `Eines > 🔐 Sessions de dispositius`: la columna «Xifratge» mostra quins
+mòbils es connecten encara sense ella. A partir d'aleshores el PC només atén
+per HTTPS.
+
 Les bases de dades també es poden desar **xifrades** (`Eines > Xifratge de
 les bases de dades…`, SQLCipher): la clau va al clauer del sistema i es mostra
 una clau de recuperació per apuntar-la. Ve desactivat.

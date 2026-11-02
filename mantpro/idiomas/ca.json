@@ -849,5 +849,15 @@
   "msg_error_conversion_bd": "No s'han pogut convertir les bases de dades; es queden com estaven.\n\n{error}",
   "msg_bd_sin_sqlcipher": "Les bases de dades estan xifrades i aquesta instal·lació de MantPro no inclou SQLCipher, així que no les pot obrir. Instal·la la versió de MantPro de la pàgina de baixades.",
   "msg_pedir_clave_recuperacion": "Les bases de dades estan xifrades i la seva clau no és al clauer del sistema (per exemple, després de reinstal·lar el sistema o canviar d'usuari).\n\nEscriu la clau de recuperació que es va mostrar en activar el xifratge:",
-  "msg_clave_recuperacion_mal": "Aquesta clau no obre les bases de dades. Comprova que sigui completa (64 lletres i números) i torna a escriure-la:"
+  "msg_clave_recuperacion_mal": "Aquesta clau no obre les bases de dades. Comprova que sigui completa (64 lletres i números) i torna a escriure-la:",
+  "sesiones_col_cifrado": "Xifratge",
+  "sesiones_cifrada": "🔒 Xifrada",
+  "sesiones_sin_cifrar": "⚠️ Sense xifrar (app antiga)",
+  "sesiones_http_desactivado": "🔒 Connexió sense xifrar desactivada: el PC només atén els mòbils per la connexió xifrada.",
+  "btn_activar_http": "Torna a permetre la connexió sense xifrar",
+  "btn_desactivar_http": "Desactiva la connexió sense xifrar",
+  "sesiones_http_pendientes": "⚠️ {n} mòbils es connecten encara sense xifrar (amb una app anterior a la 3.10.3). Actualitza'n l'app abans de desactivar la connexió sense xifrar.",
+  "sesiones_http_listo": "Cap mòbil no fa servir ja la connexió sense xifrar: la pots desactivar.",
+  "msg_confirmar_desactivar_http": "Els mòbils amb una app anterior a la 3.10.3 deixaran de sincronitzar fins que s'actualitzi. Els vinculats amb el QR antic i l'app ja actualitzada passen sols a la connexió xifrada.\n\nVols desactivar la connexió sense xifrar?",
+  "msg_desactivar_http_pendientes": "Aquests mòbils es connecten encara sense xifrar i deixaran de sincronitzar fins que se n'actualitzi l'app:"
 }

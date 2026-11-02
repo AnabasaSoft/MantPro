@@ -151,6 +151,10 @@ def inicializar():
     # dispositivos" si está en línea (ver registrar_contacto).
     if "ultimo_contacto" not in _columnas(con, "sesiones"):
         cur.execute("ALTER TABLE sesiones ADD COLUMN ultimo_contacto TEXT")
+    # Si el móvil se conectó la última vez por la conexión cifrada (1), sin
+    # cifrar (0, app antigua) o no se sabe aún (NULL). Ver sesiones_sin_cifrar.
+    if "cifrada" not in _columnas(con, "sesiones"):
+        cur.execute("ALTER TABLE sesiones ADD COLUMN cifrada INTEGER")
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS auditoria (
@@ -689,7 +693,7 @@ def listar_sesiones():
     """Todas las sesiones de dispositivos de todos los usuarios, con el estado calculado."""
     con = _conn()
     filas = con.execute(
-        "SELECT s.token, s.dispositivo, s.creado, s.expira, s.ultimo_contacto, "
+        "SELECT s.token, s.dispositivo, s.creado, s.expira, s.ultimo_contacto, s.cifrada, "
         "u.id AS usuario_id, u.login, u.nombre "
         "FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id "
         "ORDER BY s.creado DESC"
@@ -706,6 +710,9 @@ def listar_sesiones():
         if en_memoria and (not d["ultimo_contacto"] or en_memoria.isoformat(timespec="seconds") > d["ultimo_contacto"]):
             d["ultimo_contacto"] = en_memoria.isoformat(timespec="seconds")
         d["en_linea"] = en_linea(d["token"], d["activa"])
+        if d["token"] in _CIFRADA:
+            d["cifrada"] = _CIFRADA[d["token"]]
+        d["cifrada"] = None if d["cifrada"] is None else bool(d["cifrada"])
         sesiones.append(d)
     return sesiones
 
@@ -726,6 +733,7 @@ _ULTIMO_CONTACTO = {}
 _ULTIMA_ESCRITURA_CONTACTO = {}
 _INTERVALOS = {}       # token -> últimos intervalos entre contactos (s)
 _DESCONECTADO = {}     # token -> hora del aviso "me desconecto" de la app
+_CIFRADA = {}          # token -> True/False: si su último contacto fue por HTTPS
 
 
 def margen_en_linea(token):
@@ -752,12 +760,16 @@ def registrar_desconexion(token):
         _DESCONECTADO[token] = datetime.now()
 
 
-def registrar_contacto(token):
-    """Anota que el móvil de esta sesión acaba de hablar con el servidor. Lo
-    llama el servidor de sincronización en cada petición con un token válido."""
+def registrar_contacto(token, cifrada=None):
+    """Anota que el móvil de esta sesión acaba de hablar con el servidor, y si
+    lo ha hecho por la conexión cifrada. Lo llama el servidor de
+    sincronización en cada petición con un token válido."""
     if not token:
         return
     ahora = datetime.now()
+    cambio_conexion = cifrada is not None and _CIFRADA.get(token) != cifrada
+    if cifrada is not None:
+        _CIFRADA[token] = cifrada
     anterior = _ULTIMO_CONTACTO.get(token)
     if anterior is not None:
         hueco = (ahora - anterior).total_seconds()
@@ -767,17 +779,53 @@ def registrar_contacto(token):
     _ULTIMO_CONTACTO[token] = ahora
     _DESCONECTADO.pop(token, None)
     ultima = _ULTIMA_ESCRITURA_CONTACTO.get(token)
-    if ultima and (ahora - ultima).total_seconds() < 60:
+    if ultima and (ahora - ultima).total_seconds() < 60 and not cambio_conexion:
         return
     _ULTIMA_ESCRITURA_CONTACTO[token] = ahora
     try:
         con = _conn()
-        con.execute("UPDATE sesiones SET ultimo_contacto = ? WHERE token = ?",
-                    (ahora.isoformat(timespec="seconds"), token))
+        con.execute("UPDATE sesiones SET ultimo_contacto = ?, cifrada = COALESCE(?, cifrada) WHERE token = ?",
+                    (ahora.isoformat(timespec="seconds"), None if cifrada is None else int(cifrada), token))
         con.commit()
         con.close()
     except sqlite3.Error:
         pass  # no es crítico: la hora en memoria sigue valiendo para "en línea"
+
+
+def sesiones_sin_cifrar():
+    """Sesiones activas cuyo móvil se conectó la última vez sin cifrar (una
+    app anterior a la conexión cifrada): mientras haya alguna, conviene no
+    desactivar la conexión sin cifrar."""
+    return [s for s in listar_sesiones() if s["activa"] and s.get("cifrada") is False]
+
+
+# Conexión sin cifrar (HTTP) desactivada: el PC solo atiende por HTTPS. Se
+# guarda en la tabla config; en memoria para no leer la BD en cada petición.
+_HTTP_DESACTIVADO = None
+
+
+def http_desactivado():
+    global _HTTP_DESACTIVADO
+    if _HTTP_DESACTIVADO is None:
+        try:
+            con = _conn()
+            fila = con.execute("SELECT valor FROM config WHERE clave = 'http_desactivado'").fetchone()
+            con.close()
+            _HTTP_DESACTIVADO = bool(fila) and fila[0] == "1"
+        except sqlite3.Error:
+            return False
+    return _HTTP_DESACTIVADO
+
+
+def fijar_http_desactivado(desactivado):
+    global _HTTP_DESACTIVADO
+    con = _conn()
+    con.execute("CREATE TABLE IF NOT EXISTS config (clave TEXT PRIMARY KEY, valor TEXT)")
+    con.execute("INSERT OR REPLACE INTO config (clave, valor) VALUES ('http_desactivado', ?)",
+                ("1" if desactivado else "0",))
+    con.commit()
+    con.close()
+    _HTTP_DESACTIVADO = bool(desactivado)
 
 
 # ---------------------------------------------------------------- auditoría

@@ -753,6 +753,10 @@ seguinte** (por exemplo, 5000 e 5001), así que se hai un cortalumes hai que
 abrir os dous. Se algunha vez expós o servidor fóra da rede local, faino a
 través dunha VPN.
 
+Cando todos os móbiles teñan a app actualizada, desactiva a conexión sen cifrar
+en `Ferramentas > 🔐 Sesións de dispositivos`: a columna «Cifrado» mostra que
+móbiles se conectan aínda sen ela. A partir de entón o PC só atende por HTTPS.
+
 As bases de datos tamén se poden gardar **cifradas** (`Ferramentas > Cifrado
 das bases de datos…`, SQLCipher): a chave vai no chaveiro do sistema e
 móstrase unha chave de recuperación para apuntala. Vén desactivado.

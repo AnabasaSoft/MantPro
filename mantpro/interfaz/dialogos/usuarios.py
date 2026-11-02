@@ -670,7 +670,7 @@ class DialogoSesiones(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.tabla = QTableWidget(0, 8)
+        self.tabla = QTableWidget(0, 9)
         self.tabla.setHorizontalHeaderLabels([
             t("sesiones_col_usuario", "Usuario"),
             t("sesiones_col_dispositivo", "Dispositivo"),
@@ -679,6 +679,7 @@ class DialogoSesiones(QDialog):
             t("sesiones_col_estado", "Estado"),
             t("sesiones_col_conexion", "Conexión"),
             t("sesiones_col_ultimo_contacto", "Último contacto"),
+            t("sesiones_col_cifrado", "Cifrado"),
             "token",
         ])
         self.tabla.setColumnHidden(self.COL_TOKEN, True)
@@ -691,6 +692,16 @@ class DialogoSesiones(QDialog):
         cabecera.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         cabecera.setStretchLastSection(False)
         layout.addWidget(self.tabla)
+
+        # Conexión sin cifrar (HTTP), que se mantiene para las apps antiguas
+        fila_http = QHBoxLayout()
+        self.lbl_http = QLabel()
+        self.lbl_http.setWordWrap(True)
+        self.boton_http = QPushButton()
+        self.boton_http.clicked.connect(self._cambiar_http)
+        fila_http.addWidget(self.lbl_http, 1)
+        fila_http.addWidget(self.boton_http)
+        layout.addLayout(fila_http)
 
         acciones = QHBoxLayout()
         boton_actualizar = QPushButton(t("sesiones_actualizar", "🔄 Actualizar"))
@@ -714,7 +725,15 @@ class DialogoSesiones(QDialog):
         self._temporizador.timeout.connect(self._actualizar_conexion)
         self._temporizador.start(5000)
 
-    COL_CONEXION, COL_ULTIMO_CONTACTO, COL_TOKEN = 5, 6, 7
+    COL_CONEXION, COL_ULTIMO_CONTACTO, COL_CIFRADO, COL_TOKEN = 5, 6, 7, 8
+
+    @staticmethod
+    def _texto_cifrado(s):
+        if s.get("cifrada") is True:
+            return t("sesiones_cifrada", "🔒 Cifrada")
+        if s.get("cifrada") is False:
+            return t("sesiones_sin_cifrar", "⚠️ Sin cifrar (app antigua)")
+        return "—"
 
     @staticmethod
     def _texto_conexion(s):
@@ -732,6 +751,10 @@ class DialogoSesiones(QDialog):
         contacto = self.tabla.item(fila, self.COL_ULTIMO_CONTACTO)
         contacto.setText(_formatear_fecha(s.get("ultimo_contacto")))
         contacto._iso = s.get("ultimo_contacto") or ""
+        cifrado = self.tabla.item(fila, self.COL_CIFRADO)
+        cifrado.setText(self._texto_cifrado(s))
+        if s["activa"] and s.get("cifrada") is False:
+            cifrado.setForeground(Qt.GlobalColor.darkYellow)
 
     def _actualizar_conexion(self):
         por_token = {s["token"]: s for s in usuarios.listar_sesiones()}
@@ -742,6 +765,7 @@ class DialogoSesiones(QDialog):
             if s is not None:
                 self._pintar_conexion(fila, s)
         self.tabla.setSortingEnabled(True)
+        self._pintar_http()
 
     def refrescar(self):
         datos = usuarios.listar_sesiones()
@@ -757,6 +781,7 @@ class DialogoSesiones(QDialog):
                 QTableWidgetItem(t("sesiones_activa", "Activa") if s["activa"] else t("sesiones_expirada", "Expirada")),
                 QTableWidgetItem(self._texto_conexion(s)),
                 _ItemFecha(s.get("ultimo_contacto")),
+                QTableWidgetItem(self._texto_cifrado(s)),
                 QTableWidgetItem(s["token"]),
             ]
             for col, item in enumerate(columnas):
@@ -765,6 +790,52 @@ class DialogoSesiones(QDialog):
                 self.tabla.setItem(fila, col, item)
             self._pintar_conexion(fila, s)
         self.tabla.setSortingEnabled(True)
+        self._pintar_http()
+
+    def _pintar_http(self):
+        if usuarios.http_desactivado():
+            self.lbl_http.setText(t("sesiones_http_desactivado",
+                "🔒 Conexión sin cifrar desactivada: el PC solo atiende a los móviles por la conexión cifrada."))
+            self.boton_http.setText(t("btn_activar_http", "Volver a permitir la conexión sin cifrar"))
+            return
+        pendientes = len(usuarios.sesiones_sin_cifrar())
+        if pendientes:
+            texto = t("sesiones_http_pendientes",
+                "⚠️ {n} móviles se conectan todavía sin cifrar (con una app anterior a la 3.10.3). "
+                "Actualiza su app antes de desactivar la conexión sin cifrar.").format(n=pendientes)
+        else:
+            texto = t("sesiones_http_listo",
+                "Ningún móvil usa ya la conexión sin cifrar: puedes desactivarla.")
+        self.lbl_http.setText(texto)
+        self.boton_http.setText(t("btn_desactivar_http", "Desactivar la conexión sin cifrar"))
+
+    def _cambiar_http(self):
+        titulo = t("sesiones_titulo", "Sesiones de dispositivos")
+        if usuarios.http_desactivado():
+            usuarios.fijar_http_desactivado(False)
+            usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar", "Conexión sin cifrar (HTTP) permitida otra vez")
+            self._pintar_http()
+            return
+        pendientes = usuarios.sesiones_sin_cifrar()
+        texto = t("msg_confirmar_desactivar_http",
+            "Los móviles con una app anterior a la 3.10.3 dejarán de sincronizar hasta que se actualice. "
+            "Los vinculados con el QR antiguo y la app ya actualizada pasan solos a la conexión cifrada.\n\n¿Desactivar la conexión sin cifrar?")
+        if pendientes:
+            nombres = "\n".join(f"• {s.get('nombre') or s['login']} — {s.get('dispositivo') or '—'}" for s in pendientes[:10])
+            texto = t("msg_desactivar_http_pendientes",
+                "Estos móviles se conectan todavía sin cifrar y dejarán de sincronizar hasta que se actualice su app:") + "\n\n" + nombres + "\n\n" + texto
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning if pendientes else QMessageBox.Icon.Question)
+        msg.setWindowTitle(titulo)
+        msg.setText(texto)
+        btn_si = msg.addButton(t("btn_desactivar_http", "Desactivar la conexión sin cifrar"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(t("btn_cancelar", "Cancelar"), QMessageBox.ButtonRole.RejectRole)
+        msg.exec()
+        if msg.clickedButton() != btn_si:
+            return
+        usuarios.fijar_http_desactivado(True)
+        usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar", "Conexión sin cifrar (HTTP) desactivada")
+        self._pintar_http()
 
     def _tokens_seleccionados(self):
         filas = {i.row() for i in self.tabla.selectedIndexes()}

@@ -849,5 +849,15 @@
   "msg_error_conversion_bd": "Non se puideron converter as bases de datos; quedan como estaban.\n\n{error}",
   "msg_bd_sin_sqlcipher": "As bases de datos están cifradas e esta instalación de MantPro non inclúe SQLCipher, así que non pode abrilas. Instala a versión de MantPro da páxina de descargas.",
   "msg_pedir_clave_recuperacion": "As bases de datos están cifradas e a súa chave non está no chaveiro do sistema (por exemplo, tras reinstalar o sistema ou cambiar de usuario).\n\nEscribe a chave de recuperación que se mostrou ao activar o cifrado:",
-  "msg_clave_recuperacion_mal": "Esa chave non abre as bases de datos. Revisa que estea completa (64 letras e números) e volve escribila:"
+  "msg_clave_recuperacion_mal": "Esa chave non abre as bases de datos. Revisa que estea completa (64 letras e números) e volve escribila:",
+  "sesiones_col_cifrado": "Cifrado",
+  "sesiones_cifrada": "🔒 Cifrada",
+  "sesiones_sin_cifrar": "⚠️ Sen cifrar (app antiga)",
+  "sesiones_http_desactivado": "🔒 Conexión sen cifrar desactivada: o PC só atende os móbiles pola conexión cifrada.",
+  "btn_activar_http": "Volver permitir a conexión sen cifrar",
+  "btn_desactivar_http": "Desactivar a conexión sen cifrar",
+  "sesiones_http_pendientes": "⚠️ {n} móbiles conéctanse aínda sen cifrar (cunha app anterior á 3.10.3). Actualiza a súa app antes de desactivar a conexión sen cifrar.",
+  "sesiones_http_listo": "Ningún móbil usa xa a conexión sen cifrar: podes desactivala.",
+  "msg_confirmar_desactivar_http": "Os móbiles cunha app anterior á 3.10.3 deixarán de sincronizar ata que se actualice. Os vinculados co QR antigo e a app xa actualizada pasan sós á conexión cifrada.\n\nDesactivar a conexión sen cifrar?",
+  "msg_desactivar_http_pendientes": "Estes móbiles conéctanse aínda sen cifrar e deixarán de sincronizar ata que se actualice a súa app:"
 }

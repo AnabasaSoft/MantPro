@@ -126,6 +126,7 @@
 <h2><a name="seguridad"></a>🛡️ Security and encryption</h2>
 <ul>
 <li><b>Encrypted connection with the phones (HTTPS):</b> the PC creates its own certificate and its fingerprint travels in the pairing QR code, so the phones only connect to <i>that</i> PC and nobody on the WiFi can read the data or impersonate it. The encrypted connection uses the port after the sync port (5001 if you use 5000): if there is a firewall, open both.</li>
+<li><b>Unencrypted connection:</b> while there are phones with an old app, the PC also serves them unencrypted. In <i>Tools → 🔐 Device sessions</i>, the «Encryption» column shows which phones still use it; when none is left, press <b>Turn off the unencrypted connection</b>.</li>
 <li><b>Protected sign-in:</b> after 5 wrong passwords in a row, the user is blocked for 15 minutes on the phone and for one minute on the PC. On the phone, the session is kept in Android's secure storage.</li>
 <li><b>Checked photos:</b> the PC only saves photos from the phones if they are real images of 30 MB at most, and over the encrypted connection they can only be viewed while signed in.</li>
 <li><b>Encrypted databases</b> (<i>Tools → 🔐 Database encryption…</i>, off by default): anyone who copies the files or takes the disk cannot read the data. MantPro opens them by itself with the key in the system keyring. <b>Write down the recovery key</b> shown when you turn it on and keep it outside the computer.</li>

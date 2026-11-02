@@ -765,6 +765,11 @@ HTTPSk **hurrengo ataka** erabiltzen du (adibidez, 5000 eta 5001), beraz
 suhesia badago biak ireki behar dira. Zerbitzaria sare lokaletik kanpo jartzen
 baduzu inoiz, egin VPN baten bidez.
 
+Mugikor guztiek aplikazioa eguneratuta dutenean, desaktibatu zifratu gabeko
+konexioa `Tresnak > 🔐 Gailuen saioak` atalean: «Zifratzea» zutabeak erakusten
+du zein mugikor konektatzen diren oraindik hura gabe. Hortik aurrera PCak HTTPS
+bidez bakarrik ematen du zerbitzua.
+
 Datu-baseak **zifratuta** ere gorde daitezke (`Tresnak > Datu-baseen
 zifratzea…`, SQLCipher): gakoa sistemaren gako-sortan gordetzen da eta
 berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator.

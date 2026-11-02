@@ -849,5 +849,15 @@
   "msg_error_conversion_bd": "Ezin izan dira datu-baseak bihurtu; lehen bezala geratzen dira.\n\n{error}",
   "msg_bd_sin_sqlcipher": "Datu-baseak zifratuta daude eta MantProren instalazio honek ez du SQLCipher, eta beraz ezin ditu ireki. Instalatu deskargen orriko MantProren bertsioa.",
   "msg_pedir_clave_recuperacion": "Datu-baseak zifratuta daude eta haien gakoa ez dago sistemaren gako-sortan (adibidez, sistema berrinstalatu edo erabiltzailez aldatu ondoren).\n\nIdatzi zifratzea aktibatzean erakutsi zen berreskuratze-gakoa:",
-  "msg_clave_recuperacion_mal": "Gako horrek ez ditu datu-baseak irekitzen. Egiaztatu osorik dagoela (64 letra eta zenbaki) eta idatzi berriro:"
+  "msg_clave_recuperacion_mal": "Gako horrek ez ditu datu-baseak irekitzen. Egiaztatu osorik dagoela (64 letra eta zenbaki) eta idatzi berriro:",
+  "sesiones_col_cifrado": "Zifratzea",
+  "sesiones_cifrada": "🔒 Zifratua",
+  "sesiones_sin_cifrar": "⚠️ Zifratu gabe (aplikazio zaharra)",
+  "sesiones_http_desactivado": "🔒 Zifratu gabeko konexioa desaktibatuta: PCak konexio zifratuaren bidez bakarrik ematen die zerbitzua mugikorrei.",
+  "btn_activar_http": "Baimendu berriro zifratu gabeko konexioa",
+  "btn_desactivar_http": "Desaktibatu zifratu gabeko konexioa",
+  "sesiones_http_pendientes": "⚠️ {n} mugikor zifratu gabe konektatzen dira oraindik (3.10.3 baino lehenagoko aplikazio batekin). Eguneratu haien aplikazioa zifratu gabeko konexioa desaktibatu aurretik.",
+  "sesiones_http_listo": "Mugikor batek ere ez du jada zifratu gabeko konexioa erabiltzen: desaktibatu dezakezu.",
+  "msg_confirmar_desactivar_http": "3.10.3 baino lehenagoko aplikazioa duten mugikorrek sinkronizatzeari utziko diote eguneratu arte. QR zaharrarekin lotuta eta aplikazioa eguneratuta dutenak bere kabuz pasatzen dira konexio zifratura.\n\nZifratu gabeko konexioa desaktibatu?",
+  "msg_desactivar_http_pendientes": "Mugikor hauek zifratu gabe konektatzen dira oraindik, eta sinkronizatzeari utziko diote haien aplikazioa eguneratu arte:"
 }
