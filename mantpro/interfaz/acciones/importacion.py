@@ -20,6 +20,7 @@
 
 """Importación desde Excel/CSV."""
 
+import os
 from PyQt6.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                              QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QDialog,
                              QAbstractItemView, QFileDialog)
@@ -61,6 +62,10 @@ class AccionesImportacion:
         self.refresh_all()
 
         titulos = [h[0] for h in hojas]
+        # Registro de cambios: qué se ha importado (los elementos uno a uno no
+        # se apuntan; el fichero y el resumen de cada hoja, sí)
+        usuarios.auditar("copias", "importar", os.path.basename(dialogo.txt_fichero.text()),
+                         detalle=dialogo.texto_resumen(titulos, resultados) + f"\nCopia previa: {ruta_copia}")
         msg = QMessageBox(dialogo)
         msg.setWindowTitle(t("imp_titulo")); msg.setIcon(QMessageBox.Icon.Information)
         # Más ancho solo para el texto (no para el icono): con varias hojas

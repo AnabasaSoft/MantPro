@@ -158,7 +158,10 @@ class DialogoLogin(QDialog):
             return
         usuario = usuarios.autenticar(login, password)
         if usuario is None:
-            seguridad.LOGIN_LOCAL.fallo(clave)
+            if seguridad.LOGIN_LOCAL.fallo(clave):
+                usuarios.registrar_auditoria(
+                    0, None, "bloquear", f"Bloqueado {seguridad.LOGIN_LOCAL.bloqueo} segundos por intentos fallidos",
+                    "seguridad", objeto=f"Inicio de sesión de «{login}» en el PC", origen="💻 PC")
             self.aviso.setText(t("login_error", "Usuario o contraseña incorrectos."))
             self.campo_password.clear()
             self.campo_password.setFocus()
@@ -813,7 +816,7 @@ class DialogoSesiones(QDialog):
         titulo = t("sesiones_titulo", "Sesiones de dispositivos")
         if usuarios.http_desactivado():
             usuarios.fijar_http_desactivado(False)
-            usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar", "Conexión sin cifrar (HTTP) permitida otra vez")
+            usuarios.auditar("seguridad", "configurar", "Conexión sin cifrar (HTTP) permitida otra vez")
             self._pintar_http()
             return
         pendientes = usuarios.sesiones_sin_cifrar()
@@ -834,7 +837,7 @@ class DialogoSesiones(QDialog):
         if msg.clickedButton() != btn_si:
             return
         usuarios.fijar_http_desactivado(True)
-        usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar", "Conexión sin cifrar (HTTP) desactivada")
+        usuarios.auditar("seguridad", "configurar", "Conexión sin cifrar (HTTP) desactivada")
         self._pintar_http()
 
     def _tokens_seleccionados(self):
@@ -850,6 +853,10 @@ class DialogoSesiones(QDialog):
         tokens = self._tokens_seleccionados()
         if not tokens:
             return
+        por_token = {s["token"]: s for s in usuarios.listar_sesiones()}
         for token in tokens:
+            s = por_token.get(token, {})
             usuarios.revocar_token(token)
+            usuarios.auditar("seguridad", "revocar", f"{s.get('nombre') or s.get('login', '')} — {s.get('dispositivo') or '?'}",
+                             detalle="Sesión del móvil revocada: tendrá que volver a iniciar sesión")
         self.refrescar()

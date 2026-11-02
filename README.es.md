@@ -154,7 +154,7 @@ versiones estables. Los cambios de cada versión están en
 - **👥 Gestión de Usuarios**: Login con usuario y contraseña, roles de administrador y técnico, alta y baja de usuarios, y restablecimiento de contraseñas
 - **✍️ Autoría de los Trabajos**: Cada intervención guarda quién la realizó, visible en el historial y en los informes
 - **🔒 Permisos por Registro**: un técnico solo puede editar o borrar sus propios trabajos; un administrador puede gestionar cualquiera, incluida la reasignación del autor de uno o varios registros a la vez
-- **📋 Auditoría de Cambios**: registro de quién edita o borra cada trabajo (no solo quién lo creó), consultable y filtrable por técnico y por tipo de acción desde "Registro de cambios" (solo administradores)
+- **📋 Registro de Cambios**: quién cambió qué, cuándo y desde dónde (PC o móvil) en trabajos, pendientes, avisos, listas de comprobación, máquinas, almacén, usuarios, seguridad y configuración, con cada campo antes → después; filtros, buscador y exportación a Excel/CSV (solo administradores)
 - **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores). Al volver a iniciar sesión desde el mismo dispositivo, su sesión anterior se sustituye automáticamente en vez de acumularse
 - **🛡️ Seguridad**: sincronización con los móviles cifrada por HTTPS (el certificado del PC queda fijado por el QR), **bases de datos cifradas** opcionales (SQLCipher, con la clave en el llavero del sistema) y **copias de seguridad cifradas con contraseña**, intentos de inicio de sesión limitados contra la fuerza bruta, fotos recibidas de los móviles comprobadas y copias consistentes con comprobación de integridad
 - **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas
@@ -520,10 +520,14 @@ cambio anotado en el registro de auditoría.
 
 ### Registro de cambios (auditoría)
 
-Cada vez que se edita o se borra un trabajo queda constancia de quién lo hizo,
-cuándo y qué cambió. Los administradores pueden consultarlo desde
-`Herramientas` > `📋 Registro de cambios`, con filtros por técnico y por tipo de
-acción (editar/borrar).
+Los administradores ven en `Herramientas` > `📋 Registro de cambios` **quién
+cambió qué, cuándo y desde dónde** (el PC o qué móvil): trabajos, pendientes,
+avisos, listas de comprobación, máquinas y repuestos, artículos y estructura del
+almacén, usuarios y especialidades, seguridad (sesiones revocadas, bloqueos por
+intentos fallidos, cifrado, conexión sin cifrar), copias restauradas,
+importaciones y configuración. Cada cambio muestra los campos afectados
+**antes → después**. Se puede filtrar por categoría, acción, usuario y periodo,
+buscar por texto y exportar a Excel o CSV.
 
 ### Sesión en el móvil
 
@@ -804,18 +808,23 @@ La estructura del código y de la base de datos está en
 
 ---
 
-## 🗺️ Hoja de ruta
+## 🧭 Hoja de ruta
 
 Lo que viene, sin fechas y sin un orden cerrado:
 
 - **Repuestos consumidos en cada trabajo**, con el coste de material por máquina
 - **Proveedores, precios y pedidos de compra** a partir del stock bajo mínimo
-- **Checklists** en los mantenimientos preventivos y subtareas en los trabajos
 - **Preventivo por contador** (horas de uso, ciclos, km), además de por fecha
-- **Tiempo trabajado y firma** al cerrar un trabajo
+- **Tiempo trabajado y firma** al cerrar un trabajo (también en el móvil)
 - **Documentación técnica por máquina** (manuales, planos y esquemas en PDF)
-- **Varios PC a la vez** y servidor sin ventana (Raspberry Pi, NAS, Docker)
-- Más idiomas y app para iPhone
+- **Criticidad de las máquinas (ABC)**, para decidir dónde invertir en mantenimiento
+- **Solicitudes de trabajo** desde producción u otros departamentos que crean un pendiente
+- **Notificaciones push** de trabajos urgentes y **vídeos** en los trabajos
+- **Varios PC a la vez**, servidor sin ventana (Raspberry Pi, NAS, Docker) y acceso web
+- **Varios centros o plantas** con datos e indicadores por centro
+- Más idiomas (italiano, alemán…) y app para iPhone
+
+Recién hecho: listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
 
 Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
 en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

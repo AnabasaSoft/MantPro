@@ -380,7 +380,7 @@ class PestanaPendientes:
             if tarea_id:
                 if lista[0]:
                     checklists.guardar_resultado(tarea_id, lista[0], lista[1])
-                self.db.borrar_pendiente(id_pendiente)
+                self.db.borrar_pendiente(id_pendiente, motivo="completar")
                 self.refresh_todos()
                 self.refresh_all()
                 self.statusBar().showMessage(t("msg_tarea_completada").format(titulo=titulo), 5000)

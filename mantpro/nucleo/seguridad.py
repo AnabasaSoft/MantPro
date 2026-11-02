@@ -56,13 +56,17 @@ class LimiteIntentos:
             return int(restante) + 1
 
     def fallo(self, clave):
+        """Apunta un intento fallido. Devuelve True si con este se bloquea."""
         ahora = time.monotonic()
+        bloquea = False
         with self._cerrojo:
             recientes = [t for t in self._fallos.get(clave, []) if ahora - t < self.ventana] + [ahora]
             if len(recientes) >= self.maximo:
                 self._hasta[clave] = ahora + self.bloqueo
                 recientes = []
+                bloquea = True
             self._fallos[clave] = recientes
+        return bloquea
 
     def acierto(self, clave):
         with self._cerrojo:

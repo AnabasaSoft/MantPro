@@ -838,3 +838,141 @@ def obtener_movimientos(material_id, limite=20):
         (material_id, limite)).fetchall()
     con.close()
     return [dict(f) for f in filas]
+
+
+# ---------------------------------------------------------------- registro de cambios
+# Altas, cambios y bajas de artículos, repuestos de máquinas y estructura del
+# almacén quedan en el registro de cambios (los movimientos de stock ya tienen
+# su propio historial). Valen igual desde el PC que desde MantPro Stock.
+from . import usuarios as _usuarios
+
+
+def _foto_material(material_id):
+    m = obtener_material(material_id)
+    if not m:
+        return {}
+    return {"codigo": m.get("codigo") or "", "nombre": m.get("nombre") or "", "descripcion": m.get("descripcion") or "",
+            "unidad": m.get("unidad") or "", "minimo": m.get("stock_minimo"),
+            "ubicacion": obtener_ubicacion_texto(m.get("seccion_id")) or "", "foto": "Sí" if m.get("foto") else "No"}
+
+
+_ETIQ_MATERIAL = {"codigo": "Código", "nombre": "Nombre", "descripcion": "Descripción", "unidad": "Unidad",
+                  "minimo": "Stock mínimo", "ubicacion": "Ubicación", "foto": "Foto"}
+
+
+def _objeto_material(foto):
+    return f"{foto.get('codigo')} · {foto.get('nombre')}" if foto.get("codigo") else foto.get("nombre", "")
+
+
+def _nombre_maquina(maquina_id):
+    from . import maquinas
+    return maquinas.mapa_rutas_completas().get(maquina_id, str(maquina_id))
+
+
+_crear_material_sin_registro = crear_material
+_actualizar_material_sin_registro = actualizar_material
+_borrar_material_sin_registro = borrar_material
+_guardar_repuesto_sin_registro = guardar_repuesto
+_quitar_repuesto_sin_registro = quitar_repuesto
+_fijar_maquinas_sin_registro = fijar_maquinas_de_material
+
+
+def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
+                   stock_inicial=0, usuario_id=None, usuario_nombre=None):
+    material_id = _crear_material_sin_registro(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
+                                               stock_inicial, usuario_id, usuario_nombre)
+    despues = _foto_material(material_id)
+    _usuarios.auditar("almacen", "crear", _objeto_material(despues),
+                      detalle=f"Stock inicial: {stock_inicial}" if stock_inicial else "",
+                      cambios=_usuarios.diferencias({}, despues, _ETIQ_MATERIAL))
+    return material_id
+
+
+def actualizar_material(material_id, codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
+                        usuario_id=None, usuario_nombre=None):
+    antes = _foto_material(material_id)
+    resultado = _actualizar_material_sin_registro(material_id, codigo, nombre, descripcion, unidad, stock_minimo,
+                                                  seccion_id, foto, usuario_id, usuario_nombre)
+    despues = _foto_material(material_id)
+    _usuarios.auditar("almacen", "editar", _objeto_material(despues),
+                      cambios=_usuarios.diferencias(antes, despues, _ETIQ_MATERIAL))
+    return resultado
+
+
+def borrar_material(material_id):
+    antes = _foto_material(material_id)
+    stock = (obtener_material(material_id) or {}).get("stock_actual")
+    resultado = _borrar_material_sin_registro(material_id)
+    if antes:
+        _usuarios.auditar("almacen", "borrar", _objeto_material(antes),
+                          detalle=f"Stock en el momento de borrarlo: {stock}\nUbicación: {antes.get('ubicacion') or '-'}")
+    return resultado
+
+
+def guardar_repuesto(maquina_id, material_id, cantidad=1, notas=""):
+    anterior = next((r for r in repuestos_de_maquina(maquina_id) if r["material_id"] == material_id), None)
+    resultado = _guardar_repuesto_sin_registro(maquina_id, material_id, cantidad, notas)
+    articulo = _objeto_material(_foto_material(material_id))
+    _usuarios.auditar("maquinas", "editar" if anterior else "crear", _nombre_maquina(maquina_id),
+                      cambios=[{"campo": f"Repuesto {articulo}",
+                                "antes": f"{anterior['cantidad']:g}" if anterior else "",
+                                "despues": f"{float(cantidad):g}" + (f" ({notas})" if notas else "")}])
+    return resultado
+
+
+def quitar_repuesto(maquina_id, material_id):
+    resultado = _quitar_repuesto_sin_registro(maquina_id, material_id)
+    _usuarios.auditar("maquinas", "borrar", _nombre_maquina(maquina_id),
+                      detalle=f"Repuesto quitado: {_objeto_material(_foto_material(material_id))}")
+    return resultado
+
+
+def fijar_maquinas_de_material(material_id, vinculos):
+    antes = {r["maquina_id"]: r["cantidad"] for r in maquinas_de_material(material_id)} \
+        if "maquinas_de_material" in globals() else {}
+    resultado = _fijar_maquinas_sin_registro(material_id, vinculos)
+    despues = {mid: float(c) for mid, (c, _n) in vinculos.items()}
+    cambios = [{"campo": f"Máquina {_nombre_maquina(mid)}",
+                "antes": f"{antes[mid]:g}" if mid in antes else "",
+                "despues": f"{despues[mid]:g}" if mid in despues else ""}
+               for mid in sorted(set(antes) | set(despues)) if antes.get(mid) != despues.get(mid)]
+    if cambios:
+        _usuarios.auditar("almacen", "editar", _objeto_material(_foto_material(material_id)), cambios=cambios,
+                          detalle="Máquinas en las que se usa como repuesto")
+    return resultado
+
+
+def _envolver_estructura(nombre_funcion, accion, describir):
+    original = globals()[nombre_funcion]
+
+    def envoltorio(*args, **kwargs):
+        try:
+            objeto = describir(*args)   # antes: al borrar, después ya no estaría
+        except Exception:
+            objeto = ""
+        resultado = original(*args, **kwargs)
+        fallo = resultado is False or (isinstance(resultado, tuple) and resultado and resultado[0] is False)
+        if not fallo:
+            _usuarios.auditar("almacen", accion, objeto)
+        return resultado
+    envoltorio.__doc__ = original.__doc__
+    globals()[nombre_funcion] = envoltorio
+
+
+_envolver_estructura("crear_zona", "crear", lambda nombre, *a: f"Zona «{nombre}»")
+_envolver_estructura("renombrar_zona", "editar", lambda zid, nombre, *a: f"Zona «{_nombre_zona(zid)}» → «{nombre}»")
+def _nombre_zona(zid):
+    con = _conn(); f = con.execute("SELECT nombre FROM zonas WHERE id=?", (zid,)).fetchone(); con.close()
+    return f[0] if f else str(zid)
+
+
+def _nombre_estanteria(eid):
+    con = _conn(); f = con.execute("SELECT nombre FROM estanterias WHERE id=?", (eid,)).fetchone(); con.close()
+    return f[0] if f else str(eid)
+
+
+_envolver_estructura("eliminar_zona", "borrar", lambda zid, *a: f"Zona «{_nombre_zona(zid)}»")
+_envolver_estructura("crear_estanteria", "crear", lambda nombre, num_baldas, *a: f"Estantería «{nombre}» ({num_baldas} baldas)")
+_envolver_estructura("editar_estanteria", "editar", lambda eid, nombre, num_baldas, *a: f"Estantería «{nombre}» ({num_baldas} baldas)")
+_envolver_estructura("renombrar_estanteria", "editar", lambda eid, nombre, *a: f"Estantería «{_nombre_estanteria(eid)}» → «{nombre}»")
+_envolver_estructura("eliminar_estanteria", "borrar", lambda eid, *a: f"Estantería «{_nombre_estanteria(eid)}»")

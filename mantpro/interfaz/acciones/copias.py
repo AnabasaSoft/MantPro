@@ -111,8 +111,7 @@ class AccionesCopias:
             finally:
                 QApplication.restoreOverrideCursor()
         cifrado_copias.guardar_clave(nueva)
-        usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar",
-            "Contraseña de las copias de seguridad " + ("quitada" if nueva is None else "puesta o cambiada"))
+        usuarios.auditar("seguridad", "configurar", "Contraseña de las copias de seguridad " + ("quitada" if nueva is None else "puesta o cambiada"))
         hecho = (tt("msg_contrasena_copias_quitada", "Las copias nuevas se guardarán sin cifrar.") if nueva is None
                  else tt("msg_contrasena_copias_puesta", "Las copias nuevas se guardarán cifradas con esta contraseña."))
         if not dlg.aplicar_existentes:
@@ -185,8 +184,7 @@ class AccionesCopias:
             if msg.clickedButton() != btn_si: return
             detalle = ""
         conexion_bd.programar_conversion(dlg.accion)
-        usuarios.registrar_auditoria(usuarios.id_actual(), None, "editar",
-            ("Cifrado de las bases de datos activado (clave en " + detalle + ")") if dlg.accion == "cifrar"
+        usuarios.auditar("seguridad", "configurar", ("Cifrado de las bases de datos activado (clave en " + detalle + ")") if dlg.accion == "cifrar"
             else "Cifrado de las bases de datos quitado")
         QMessageBox.information(self, titulo, tt("msg_reabrir_para_cifrar",
             "MantPro se cerrará ahora (con su copia de seguridad de siempre). Al volver a abrirlo se hará el cambio, "
@@ -299,6 +297,8 @@ class AccionesCopias:
                     cifrado_copias.guardar_clave(next(iter(nuevas.values())))
                     texto += "\n\n🔒 " + tt("msg_contrasena_copias_adoptada",
                         "Las copias nuevas de este equipo también se cifrarán con esa contraseña.")
+                usuarios.auditar("copias", "restaurar", os.path.basename(archivo_zip),
+                                 detalle="Copia automática" if es_auto_backup else "Copia completa")
                 QMessageBox.information(self, t("title_restauracion"), texto); self.refresh_all()
                 if mensaje:   # BD restaurada, pero alguna foto no se ha podido sacar
                     QMessageBox.warning(self, t("title_restauracion"), tt("msg_fotos_no_restauradas",

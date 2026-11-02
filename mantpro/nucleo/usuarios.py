@@ -37,6 +37,8 @@ import hashlib
 import hmac
 import secrets
 import base64
+import json
+import threading
 from collections import deque
 from datetime import datetime, timedelta
 
@@ -168,6 +170,12 @@ def inicializar():
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         )
     """)
+    # Ampliación del registro de cambios: de qué tipo es (categoría), sobre
+    # qué (objeto), qué ha cambiado campo a campo (cambios, JSON
+    # [{campo, antes, despues}]) y desde dónde (origen: «PC» o el móvil).
+    for columna in ("categoria", "objeto", "cambios", "origen"):
+        if columna not in _columnas(con, "auditoria"):
+            cur.execute(f"ALTER TABLE auditoria ADD COLUMN {columna} TEXT")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_auditoria_tarea ON auditoria(tarea_id)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria(fecha DESC)")
 
@@ -830,19 +838,81 @@ def fijar_http_desactivado(desactivado):
 
 # ---------------------------------------------------------------- auditoría
 
-def registrar_auditoria(usuario_id, tarea_id, accion, detalle=""):
-    """Apunta una acción (editar/borrar) sobre un registro del historial."""
+# Quién hace la petición en el servidor de los móviles (cada petición va en
+# su propio hilo): el servidor lo fija al validar el token, y así las
+# funciones del núcleo apuntan en el registro al usuario y al móvil correctos
+# en vez de al usuario con la sesión abierta en el PC.
+_actor = threading.local()
+
+
+def fijar_actor_peticion(usuario, dispositivo=None):
+    _actor.usuario = usuario
+    _actor.origen = f"📱 {dispositivo}" if dispositivo else "📱"
+
+
+def limpiar_actor_peticion():
+    _actor.usuario = None
+    _actor.origen = None
+
+
+def _actor_actual():
+    """(usuario_id, origen) de quien hace el cambio ahora mismo."""
+    u = getattr(_actor, "usuario", None)
+    if u:
+        return u.get("id"), getattr(_actor, "origen", None) or "📱"
+    return id_actual(), "💻 PC"
+
+
+def _texto(v):
+    if v is None:
+        return ""
+    if isinstance(v, float) and v.is_integer():
+        v = int(v)
+    if isinstance(v, (list, tuple, set)):
+        return ", ".join(str(x) for x in v)
+    return str(v)
+
+
+def diferencias(antes, despues, etiquetas=None):
+    """Cambios campo a campo entre dos dicts: [{campo, antes, despues}].
+    [etiquetas] da el nombre legible de cada campo (y solo esos se miran)."""
+    etiquetas = etiquetas or {k: k for k in set(antes or {}) | set(despues or {})}
+    cambios = []
+    for clave, nombre in etiquetas.items():
+        a, d = _texto((antes or {}).get(clave)), _texto((despues or {}).get(clave))
+        if a.strip() != d.strip():
+            cambios.append({"campo": nombre, "antes": a[:2000], "despues": d[:2000]})
+    return cambios
+
+
+def registrar_auditoria(usuario_id, tarea_id, accion, detalle="", categoria="trabajos",
+                        objeto="", cambios=None, origen=None):
+    """Apunta un cambio en el registro (Herramientas → Registro de cambios).
+
+    - accion: crear, editar, borrar, revertir, completar, descompletar,
+      restaurar, importar, configurar…
+    - categoria: trabajos, pendientes, avisos, usuarios, seguridad, almacen,
+      maquinas, checklists, copias, configuracion.
+    - objeto: a qué afecta, en texto («Compresor GA30», «usuario jperez»…).
+    - cambios: [{campo, antes, despues}] (ver diferencias()).
+    Si usuario_id u origen no se dan, se toman de quien hace la petición (el
+    móvil, en el servidor) o del usuario con la sesión abierta en el PC."""
     try:
+        actor_id, actor_origen = _actor_actual()
+        if usuario_id is None:
+            usuario_id = actor_id
+        origen = origen or actor_origen
         con = _conn()
         nombre = ""
         if usuario_id:
             fila = con.execute("SELECT nombre FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
             nombre = fila["nombre"] if fila else ""
         con.execute(
-            "INSERT INTO auditoria (fecha, usuario_id, usuario_nombre, tarea_id, accion, detalle) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO auditoria (fecha, usuario_id, usuario_nombre, tarea_id, accion, detalle, "
+            "categoria, objeto, cambios, origen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (datetime.now().isoformat(timespec="seconds"), usuario_id, nombre,
-             tarea_id, accion, (detalle or "")[:500]),
+             tarea_id, accion, (detalle or "")[:2000], categoria, (objeto or "")[:300],
+             json.dumps(cambios, ensure_ascii=False) if cambios else None, origen),
         )
         con.commit()
         con.close()
@@ -850,8 +920,19 @@ def registrar_auditoria(usuario_id, tarea_id, accion, detalle=""):
         print(f"Error registrar_auditoria: {e}")
 
 
-def obtener_auditoria(usuario_id=None, accion=None, tarea_id=None, limite=200):
-    """Devuelve los registros de auditoría, los más recientes primero."""
+def auditar(categoria, accion, objeto="", detalle="", cambios=None, objeto_id=None):
+    """Atajo para apuntar un cambio de quien lo hace ahora (PC o móvil). Si es
+    una edición sin cambios reales, no apunta nada."""
+    if accion == "editar" and cambios is not None and not cambios and not detalle:
+        return
+    registrar_auditoria(None, objeto_id, accion, detalle, categoria, objeto, cambios)
+
+
+def obtener_auditoria(usuario_id=None, accion=None, tarea_id=None, limite=200, categoria=None,
+                      texto=None, desde=None, hasta=None, desplazamiento=0):
+    """Registros del registro de cambios, los más recientes primero. [desde] y
+    [hasta] son fechas AAAA-MM-DD (incluidas); [texto] busca en el objeto, el
+    detalle, los cambios y el usuario."""
     con = _conn()
     sql = "SELECT * FROM auditoria WHERE 1=1"
     params = []
@@ -861,8 +942,126 @@ def obtener_auditoria(usuario_id=None, accion=None, tarea_id=None, limite=200):
         sql += " AND accion = ?"; params.append(accion)
     if tarea_id is not None:
         sql += " AND tarea_id = ?"; params.append(tarea_id)
-    sql += " ORDER BY id DESC LIMIT ?"
-    params.append(limite)
+    if categoria is not None:
+        # Los registros antiguos no tienen categoría: eran todos de trabajos
+        sql += " AND COALESCE(categoria, 'trabajos') = ?"; params.append(categoria)
+    if desde:
+        sql += " AND fecha >= ?"; params.append(desde)
+    if hasta:
+        sql += " AND fecha < ?"; params.append(hasta + "T99")
+    if texto:
+        sql += (" AND (COALESCE(objeto,'') || ' ' || COALESCE(detalle,'') || ' ' || COALESCE(cambios,'')"
+                " || ' ' || COALESCE(usuario_nombre,'')) LIKE ?")
+        params.append(f"%{texto}%")
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params += [limite, desplazamiento]
     filas = con.execute(sql, params).fetchall()
     con.close()
-    return [dict(f) for f in filas]
+    resultado = []
+    for f in filas:
+        d = dict(f)
+        d["categoria"] = d.get("categoria") or "trabajos"
+        try:
+            d["cambios"] = json.loads(d["cambios"]) if d.get("cambios") else []
+        except ValueError:
+            d["cambios"] = []
+        resultado.append(d)
+    return resultado
+
+# ------------------------------------------- registro de cambios de usuarios
+# Las funciones de gestión de usuarios y especialidades apuntan lo que cambian
+# (sirven igual desde el PC que desde el servidor de los móviles).
+
+_NOMBRES_ROL = {"admin": "Administrador", "tecnico": "Técnico", "almacen": "Almacén"}
+_ETIQUETAS_USUARIO = {"nombre": "Nombre", "roles": "Roles", "activo": "Activo", "especialidades": "Especialidades"}
+
+
+def _foto_usuario(usuario_id):
+    """Estado de un usuario para comparar antes y después de un cambio."""
+    u = next((x for x in listar_usuarios() if x["id"] == usuario_id), None)
+    if not u:
+        return {}
+    return {"login": u.get("login"), "nombre": u.get("nombre"),
+            "roles": sorted(_NOMBRES_ROL.get(r, r) for r in (u.get("roles") or [])),
+            "activo": "Sí" if u.get("activo") else "No",
+            "especialidades": sorted(e["nombre"] for e in especialidades_de_usuario(usuario_id))}
+
+
+def _objeto_usuario(foto):
+    return f"{foto.get('nombre', '')} ({foto.get('login', '')})" if foto else ""
+
+
+_crear_usuario_sin_registro = crear_usuario
+_actualizar_usuario_sin_registro = actualizar_usuario
+_cambiar_password_sin_registro = cambiar_password
+_crear_especialidad_sin_registro = crear_especialidad
+_renombrar_especialidad_sin_registro = renombrar_especialidad
+_borrar_especialidad_sin_registro = borrar_especialidad
+
+
+def crear_usuario(login, nombre, password, roles=("tecnico",), debe_cambiar=True, especialidad_ids=None):
+    ok, mensaje = _crear_usuario_sin_registro(login, nombre, password, roles, debe_cambiar, especialidad_ids)
+    if ok:
+        u = next((x for x in listar_usuarios() if x["login"] == (login or "").strip()), None)
+        foto = _foto_usuario(u["id"]) if u else {}
+        auditar("usuarios", "crear", _objeto_usuario(foto),
+                cambios=diferencias({}, foto, _ETIQUETAS_USUARIO), objeto_id=u["id"] if u else None)
+    return ok, mensaje
+
+
+def actualizar_usuario(usuario_id, nombre=None, roles=None, activo=None, especialidad_ids=None):
+    antes = _foto_usuario(usuario_id)
+    ok, mensaje = _actualizar_usuario_sin_registro(usuario_id, nombre, roles, activo, especialidad_ids)
+    if ok:
+        despues = _foto_usuario(usuario_id)
+        accion = "desactivar" if antes.get("activo") == "Sí" and despues.get("activo") == "No" else \
+                 "activar" if antes.get("activo") == "No" and despues.get("activo") == "Sí" else "editar"
+        auditar("usuarios", accion, _objeto_usuario(despues),
+                cambios=diferencias(antes, despues, _ETIQUETAS_USUARIO), objeto_id=usuario_id)
+    return ok, mensaje
+
+
+def cambiar_password(usuario_id, password_nueva, password_actual=None, forzar=False):
+    ok, mensaje = _cambiar_password_sin_registro(usuario_id, password_nueva, password_actual, forzar)
+    if ok:
+        foto = _foto_usuario(usuario_id)
+        auditar("usuarios", "contrasena", _objeto_usuario(foto),
+                detalle=("Contraseña restablecida por un administrador (deberá cambiarla al entrar); se cierran sus sesiones"
+                         if forzar else "Contraseña cambiada por el propio usuario; se cierran sus sesiones"),
+                objeto_id=usuario_id)
+    return ok, mensaje
+
+
+def crear_especialidad(nombre):
+    ok, resultado = _crear_especialidad_sin_registro(nombre)
+    if ok:
+        auditar("usuarios", "crear", f"Especialidad «{(nombre or '').strip()}»")
+    return ok, resultado
+
+
+def renombrar_especialidad(especialidad_id, nombre_nuevo):
+    anterior = next((e["nombre"] for e in listar_especialidades() if e["id"] == especialidad_id), "")
+    ok, mensaje = _renombrar_especialidad_sin_registro(especialidad_id, nombre_nuevo)
+    if ok:
+        auditar("usuarios", "editar", f"Especialidad «{(nombre_nuevo or '').strip()}»",
+                cambios=diferencias({"n": anterior}, {"n": (nombre_nuevo or "").strip()}, {"n": "Nombre"}))
+    return ok, mensaje
+
+
+def borrar_especialidad(especialidad_id):
+    anterior = next((e["nombre"] for e in listar_especialidades() if e["id"] == especialidad_id), "")
+    resultado = _borrar_especialidad_sin_registro(especialidad_id)
+    auditar("usuarios", "borrar", f"Especialidad «{anterior}»",
+            detalle="Se quita a los usuarios, pendientes y avisos que la tenían")
+    return resultado
+
+
+def dispositivo_de_token(token):
+    """Modelo del móvil de una sesión («OPPO CPH2781»), o None."""
+    try:
+        con = _conn()
+        fila = con.execute("SELECT dispositivo FROM sesiones WHERE token = ?", (token,)).fetchone()
+        con.close()
+        return fila[0] if fila else None
+    except sqlite3.Error:
+        return None

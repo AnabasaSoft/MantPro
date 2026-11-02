@@ -154,7 +154,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **👥 Gestion des utilisateurs** : connexion par identifiant et mot de passe, rôles administrateur et technicien, création et désactivation d'utilisateurs et réinitialisation des mots de passe
 - **✍️ Auteur des interventions** : chaque intervention enregistre qui l'a réalisée, visible dans l'historique et les rapports
 - **🔒 Droits par enregistrement** : un technicien ne peut modifier ou supprimer que ses propres interventions ; un administrateur peut gérer n'importe laquelle, y compris réassigner l'auteur d'un ou plusieurs enregistrements à la fois
-- **📋 Audit des modifications** : journal de qui modifie ou supprime chaque intervention (pas seulement de qui l'a créée), consultable et filtrable par technicien et par type d'action dans « Journal des modifications » (administrateurs uniquement)
+- **📋 Journal des modifications** : qui a modifié quoi, quand et d'où (PC ou mobile) pour les interventions, rappels, listes de contrôle, machines, magasin, utilisateurs, sécurité et réglages, avec chaque champ avant → après ; filtres, recherche et export Excel/CSV (administrateurs uniquement)
 - **🔐 Sessions des appareils** : liste les mobiles associés à chaque utilisateur, avec le modèle réel, et permet de révoquer une ou plusieurs sessions précises sans désactiver tout l'utilisateur (administrateurs uniquement). En se reconnectant depuis le même appareil, la session précédente est remplacée automatiquement au lieu de s'accumuler
 - **🛡️ Sécurité** : synchronisation avec les mobiles chiffrée en HTTPS (le certificat du PC est épinglé par le QR), **bases de données chiffrées** en option (SQLCipher, clé dans le trousseau du système) et **sauvegardes chiffrées par mot de passe**, tentatives de connexion limitées contre la force brute, photos reçues des mobiles vérifiées et sauvegardes cohérentes avec contrôle d'intégrité
 - **📊 Tableau de bord avec KPI et graphiques** : cartes des rappels en attente, des tâches à faire, des enregistrements du mois et du MTBF/MTTR moyens de toute l'usine, ainsi que des graphiques des machines avec le plus de pannes et des pannes par mois, dessinés sans bibliothèque externe
@@ -528,10 +528,15 @@ journal d'audit.
 
 ### Journal des modifications (audit)
 
-Chaque fois qu'une intervention est modifiée ou supprimée, on enregistre qui
-l'a fait, quand et ce qui a changé. Les administrateurs peuvent le consulter
-dans `Outils` > `📋 Journal des modifications`, avec des filtres par
-technicien et par type d'action (modifier/supprimer).
+Les administrateurs voient dans `Outils` > `📋 Journal des modifications`
+**qui a modifié quoi, quand et d'où** (le PC ou quel mobile) : interventions,
+interventions en attente, rappels, listes de contrôle, machines et pièces de
+rechange, articles et organisation du magasin, utilisateurs et spécialités,
+sécurité (sessions révoquées, blocages après échecs de connexion, chiffrement,
+connexion non chiffrée), sauvegardes restaurées, importations et réglages.
+Chaque modification affiche les champs concernés **avant → après**. On peut
+filtrer par catégorie, action, utilisateur et période, rechercher du texte et
+exporter vers Excel ou CSV.
 
 ### Session sur le mobile
 
@@ -827,18 +832,23 @@ sécurité, consultez [SECURITY.md](SECURITY.md).
 
 ---
 
-## 🗺️ Feuille de route
+## 🧭 Feuille de route
 
 Ce qui arrive, sans dates et sans ordre figé :
 
-- **Pièces consommées dans chaque intervention**, avec le coût matière par machine
-- **Fournisseurs, prix et commandes d'achat** à partir du stock sous le minimum
-- **Check-lists** pour la maintenance préventive et sous-tâches dans les interventions
-- **Préventif au compteur** (heures de fonctionnement, cycles, km), en plus de la date
-- **Temps passé et signature** à la clôture d'une intervention
+- **Pièces de rechange consommées à chaque intervention**, avec le coût matière par machine
+- **Fournisseurs, prix et bons de commande** à partir du stock sous le minimum
+- **Préventif par compteur** (heures de marche, cycles, km), en plus de par date
+- **Temps passé et signature** à la clôture d'une intervention (aussi sur le mobile)
 - **Documentation technique par machine** (manuels, plans et schémas en PDF)
-- **Plusieurs PC en même temps** et serveur sans interface (Raspberry Pi, NAS, Docker)
-- Plus de langues et une application iPhone
+- **Criticité des machines (ABC)**, pour décider où investir en maintenance
+- **Demandes d'intervention** depuis la production ou d'autres services, qui créent une intervention en attente
+- **Notifications push** des interventions urgentes et **vidéos** dans les interventions
+- **Plusieurs PC à la fois**, serveur sans fenêtre (Raspberry Pi, NAS, Docker) et accès web
+- **Plusieurs sites ou usines** avec données et indicateurs par site
+- Plus de langues (italien, allemand…) et application iPhone
+
+Fait récemment : listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

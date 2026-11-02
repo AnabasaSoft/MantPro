@@ -328,3 +328,78 @@ def recuento(items):
 
 def sin_marcar(items):
     return [it for it in items if it.get("estado") not in ESTADOS]
+
+
+# ---------------------------------------------------------------- registro de cambios
+from . import usuarios as _usuarios
+
+
+def _texto_punto(p):
+    texto = p["texto"]
+    if p.get("tipo") == "lectura":
+        rango = []
+        if p.get("minimo") is not None: rango.append(f"mín. {_num(p['minimo']):g}")
+        if p.get("maximo") is not None: rango.append(f"máx. {_num(p['maximo']):g}")
+        texto += f" [lectura{(' ' + p['unidad']) if p.get('unidad') else ''}{(', ' + ', '.join(rango)) if rango else ''}]"
+    return texto
+
+
+def _foto_plantilla(plantilla_id):
+    p = obtener_plantilla(plantilla_id)
+    if not p:
+        return {}
+    return {"nombre": p["nombre"], "puntos": "\n".join(f"{i + 1}. {_texto_punto(x)}" for i, x in enumerate(p["puntos"]))}
+
+
+_ETIQ_PLANTILLA = {"nombre": "Nombre", "puntos": "Puntos"}
+
+_guardar_plantilla_sin_registro = guardar_plantilla
+_borrar_plantilla_sin_registro = borrar_plantilla
+_asignar_sin_registro = asignar
+
+
+def guardar_plantilla(plantilla_id, nombre, puntos):
+    antes = _foto_plantilla(plantilla_id) if plantilla_id else {}
+    nuevo_id = _guardar_plantilla_sin_registro(plantilla_id, nombre, puntos)
+    despues = _foto_plantilla(nuevo_id)
+    _usuarios.auditar("checklists", "editar" if plantilla_id else "crear", despues.get("nombre", ""),
+                      cambios=_usuarios.diferencias(antes, despues, _ETIQ_PLANTILLA))
+    return nuevo_id
+
+
+def borrar_plantilla(plantilla_id):
+    antes = _foto_plantilla(plantilla_id)
+    avisos, pendientes = usos_de_plantilla(plantilla_id)
+    _borrar_plantilla_sin_registro(plantilla_id)
+    _usuarios.auditar("checklists", "borrar", antes.get("nombre", ""),
+                      detalle=f"Se quita de {avisos} avisos y {pendientes} pendientes\n{antes.get('puntos', '')}")
+
+
+def asignar(tipo, item_id, plantilla_id):
+    anterior = checklist_de(tipo, item_id)
+    _asignar_sin_registro(tipo, item_id, plantilla_id)
+    if (anterior or None) == (plantilla_id or None):
+        return
+    nombres = {p["id"]: p["nombre"] for p in listar_plantillas()}
+    con = _conn()
+    fila = con.execute(f"SELECT titulo FROM {_tabla(tipo)} WHERE id=?", (item_id,)).fetchone()
+    con.close()
+    _usuarios.auditar("avisos" if tipo == "aviso" else "pendientes", "editar", fila[0] if fila else "",
+                      cambios=[{"campo": "Lista de comprobación", "antes": nombres.get(anterior, ""),
+                                "despues": nombres.get(plantilla_id, "")}])
+
+
+def cambios_resultado(antes_items, despues_items):
+    """Diferencias entre dos listas rellenadas, punto a punto (para el
+    registro de cambios al corregir una lista desde el historial)."""
+    def linea(it):
+        estado = {"ok": "Bien", "mal": "Mal", "na": "No aplica"}.get(it.get("estado"), "Sin revisar")
+        partes = [estado]
+        if it.get("valor"): partes.append(f"{it['valor']} {it.get('unidad') or ''}".strip())
+        if it.get("nota"): partes.append(f"«{it['nota']}»")
+        return " · ".join(partes)
+    cambios = []
+    for a, d in zip(antes_items, despues_items):
+        if linea(a) != linea(d):
+            cambios.append({"campo": a.get("texto", ""), "antes": linea(a), "despues": linea(d)})
+    return cambios

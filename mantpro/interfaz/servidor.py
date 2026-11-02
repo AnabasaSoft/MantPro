@@ -32,7 +32,7 @@ from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
 from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists
-from ..nucleo.basedatos import get_db_connection
+from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
 PUERTO_POR_DEFECTO = 5000
@@ -83,6 +83,10 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "error": "demasiado_grande",
                                 "message": "El envío es demasiado grande."}), 413
 
+        @self.app.teardown_request
+        def _olvidar_actor(_exc=None):
+            usuarios.limpiar_actor_peticion()
+
         # Conexión sin cifrar desactivada (Herramientas → Sesiones de
         # dispositivos): por HTTP solo se responde a /api/tls, para que un
         # móvil con la app ya actualizada pero vinculado con el QR antiguo
@@ -106,6 +110,8 @@ class ServidorSincronizacion(QThread):
         # "database is locked" al chocar con la GUI, igual que ya se hacía
         # en un par de rutas de esta misma clase.
         self._conn = lambda: get_db_connection(self.db_path)
+        # Para el registro de cambios: estado antes y después de cada cambio
+        self._lector = LectorBD(self.db_path)
 
         # --- AUTENTICACIÓN POR TOKEN ---------------------------------------
         def _token_peticion():
@@ -137,6 +143,9 @@ class ServidorSincronizacion(QThread):
                         "message": "Sesión no válida. Vuelve a iniciar sesión."
                     }), 401
                 g.usuario_mantpro = u
+                # Para el registro de cambios: lo que se haga en esta petición
+                # lo ha hecho este usuario desde este móvil.
+                usuarios.fijar_actor_peticion(u, usuarios.dispositivo_de_token(_token_peticion()))
                 return func(*args, **kwargs)
             return envoltorio
 
@@ -175,8 +184,17 @@ class ServidorSincronizacion(QThread):
                                 "message": "Demasiados intentos fallidos. Espera unos minutos."}), 429
             usuario = usuarios.autenticar(login_usuario, password)
             if usuario is None:
-                seguridad.LOGIN_RED_USUARIO.fallo(clave_usuario)
-                seguridad.LOGIN_RED_IP.fallo(clave_ip)
+                bloquea_u = seguridad.LOGIN_RED_USUARIO.fallo(clave_usuario)
+                bloquea_ip = seguridad.LOGIN_RED_IP.fallo(clave_ip)
+                if bloquea_u or bloquea_ip:
+                    # Posible intento de adivinar contraseñas: al registro de cambios
+                    usuarios.registrar_auditoria(
+                        0, None, "bloquear",
+                        (f"Usuario «{login_usuario}» bloqueado {seguridad.LOGIN_RED_USUARIO.bloqueo // 60} minutos por intentos fallidos"
+                         if bloquea_u else "") + ("\n" if bloquea_u and bloquea_ip else "") +
+                        (f"Dirección {clave_ip} bloqueada {seguridad.LOGIN_RED_IP.bloqueo // 60} minutos por intentos fallidos"
+                         if bloquea_ip else ""),
+                        "seguridad", objeto=f"Inicio de sesión de «{login_usuario}»", origen=f"📱 {clave_ip}")
                 return jsonify({"status": "error", "error": "credenciales",
                                 "message": "Usuario o contraseña incorrectos."}), 401
             seguridad.LOGIN_RED_USUARIO.acierto(clave_usuario)
@@ -440,6 +458,10 @@ class ServidorSincronizacion(QThread):
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo)
+                lista = checklists.normalizar_items(request.form.get('checklist', ''))
+                usuarios.auditar("pendientes", "completar", titulo, detalle="Pasa al historial" + (
+                    f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
+                    + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
@@ -471,8 +493,11 @@ class ServidorSincronizacion(QThread):
                 usuario = g.usuario_mantpro
                 c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id) VALUES (?,?,?,?,?,?)',
                           (titulo, detalles, usuario['id'], usuario['nombre'], prioridad, especialidad_id))
+                nuevo_id = c.lastrowid
                 conn.commit()
                 conn.close()
+                usuarios.auditar("pendientes", "crear", titulo,
+                                 cambios=usuarios.diferencias({}, foto_pendiente(self._lector, nuevo_id), ETIQ_PENDIENTE))
 
                 print("✅ Pendiente guardado OK")
                 self.pendiente_actualizado.emit()
@@ -501,6 +526,7 @@ class ServidorSincronizacion(QThread):
                 # Colección: las que ya tenía (vienen en los detalles) + las nuevas
                 detalles = con_fotos_galeria(detalles, fotos_galeria(detalles) + self._procesar_galeria(request))
 
+                antes = foto_pendiente(self._lector, id_p)
                 conn = self._conn()
                 c = conn.cursor()
                 # Actualizamos título y detalles (y prioridad si el móvil la ha enviado)
@@ -510,6 +536,8 @@ class ServidorSincronizacion(QThread):
                     c.execute('UPDATE pendientes SET titulo=?, detalles=? WHERE id=?', (titulo, detalles, id_p))
                 conn.commit()
                 conn.close()
+                usuarios.auditar("pendientes", "editar", titulo,
+                                 cambios=usuarios.diferencias(antes, foto_pendiente(self._lector, id_p), ETIQ_PENDIENTE))
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
@@ -522,11 +550,15 @@ class ServidorSincronizacion(QThread):
             # (Mantener código original)
             try:
                 id_p = request.form.get('id')
+                antes = foto_pendiente(self._lector, id_p)
                 conn = self._conn()
                 c = conn.cursor()
                 c.execute('DELETE FROM pendientes WHERE id=?', (id_p,))
                 conn.commit()
                 conn.close()
+                if antes:
+                    usuarios.auditar("pendientes", "borrar", antes.get("titulo", ""),
+                                     cambios=usuarios.diferencias(antes, {}, ETIQ_PENDIENTE))
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
@@ -854,6 +886,10 @@ class ServidorSincronizacion(QThread):
                 conn.close()
                 print("✅ BD CERRADA Y COMMIT REALIZADO")
 
+                usuarios.auditar("avisos", "completar", titulo, detalle=f"Completado el {fecha_final}" + (
+                    f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
+                    + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
+
                 # 7. AVISAR INTERFAZ PC
                 self.pendiente_actualizado.emit()
 
@@ -911,6 +947,7 @@ class ServidorSincronizacion(QThread):
                 id_t = request.form.get('id')
                 desc_final = request.form.get('detalles') # Ya viene formateada desde el móvil (sin tags FOTO)
                 tags = request.form.get('tags')
+                antes_auditoria = foto_tarea(self._lector, id_t)
 
                 conn = self._conn()
                 c = conn.cursor()
@@ -958,6 +995,9 @@ class ServidorSincronizacion(QThread):
                 else:
                     c.execute("UPDATE tareas SET descripcion=?, tags=? WHERE id=?", (desc_final, tags, id_t))
                 conn.commit()
+                despues = foto_tarea(self._lector, id_t)
+                usuarios.auditar("trabajos", "editar", (despues.get("descripcion") or "").split("\n")[0],
+                                 cambios=usuarios.diferencias(antes_auditoria, despues, ETIQ_TAREA), objeto_id=int(id_t))
                 conn.close()
 
                 self.pendiente_actualizado.emit() # Para refrescar la UI de escritorio
@@ -1047,6 +1087,9 @@ class ServidorSincronizacion(QThread):
 
                     # 4. Actualizar el aviso con la fecha histórica correcta
                     c.execute("UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?", (prev_fecha, id_aviso))
+                    usuarios.auditar("avisos", "descompletar", titulo,
+                                     detalle="Se borra del historial el preventivo apuntado",
+                                     cambios=[{"campo": "Última vez completado", "antes": ult_fecha or "", "despues": prev_fecha or ""}])
 
                 conn.commit()
                 conn.close()

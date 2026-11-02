@@ -156,7 +156,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **👥 Erabiltzaileen kudeaketa**: Erabiltzaile eta pasahitzarekin saioa hastea, administratzaile eta teknikari rolak, erabiltzaileen altak eta bajak, eta pasahitzak berrezartzea
 - **✍️ Lanen egiletza**: Lan bakoitzak nork egin zuen gordetzen du, historian eta txostenetan ikusgai
 - **🔒 Erregistro bakoitzeko baimenak**: teknikari batek bere lanak baino ezin ditu editatu edo ezabatu; administratzaile batek edozein kudea dezake, baita erregistro baten edo batzuen egilea aldi berean berresleitu ere
-- **📋 Aldaketen auditoria**: lan bakoitza nork editatzen edo ezabatzen duen erregistratzen da (ez bakarrik nork sortu zuen), "Aldaketen erregistroa" ataletik kontsultatu eta teknikariaren eta ekintza motaren arabera iragazi daitekeena (administratzaileak soilik)
+- **📋 Aldaketen erregistroa**: nork zer aldatu zuen, noiz eta nondik (PC edo mugikorra) lanetan, zain dauden lanetan, abisuetan, egiaztapen-zerrendetan, makinetan, biltegian, erabiltzaileetan, segurtasunean eta konfigurazioan, eremu bakoitza lehen → ondoren; iragazkiak, bilatzailea eta Excel/CSV esportazioa (administratzaileentzat bakarrik)
 - **🔐 Gailuen saioak**: erabiltzaile bakoitzari lotutako mugikorrak zerrendatzen ditu, haien benetako modeloarekin, eta saio jakin bat edo batzuk baliogabetzeko aukera ematen du erabiltzaile osoa desaktibatu gabe (administratzaileak soilik). Gailu beretik berriro saioa hastean, aurreko saioa automatikoki ordezten da, pilatu beharrean
 - **🛡️ Segurtasuna**: mugikorrekiko sinkronizazioa HTTPS bidez zifratuta (PCaren ziurtagiria QRaren bidez finkatuta), aukerako **datu-base zifratuak** (SQLCipher, gakoa sistemaren gako-sortan) eta **pasahitzarekin zifratutako babeskopiak**, saio-hasierako saiakerak mugatuta indar gordinaren aurka, mugikorretatik jasotako argazkiak egiaztatuta eta babeskopia koherenteak osotasun-egiaztapenarekin
 - **📊 Aginte-panela KPI eta grafikoekin**: egiteke dauden abisuen, egiteko zereginen, hilabeteko erregistroen eta lantegi osoko batez besteko MTBF/MTTRren txartelak, gehi matxura gehien dituzten makinen eta hilabeteko matxuren grafikoak, kanpoko liburutegirik gabe marraztuak
@@ -524,10 +524,15 @@ aldaketa bakoitza auditoria-erregistroan idatzita geratuz.
 
 ### Aldaketen erregistroa (auditoria)
 
-Lan bat editatzen edo ezabatzen den bakoitzean, nork egin zuen, noiz eta zer
-aldatu zen jasotzen da. Administratzaileek `Tresnak` > `📋 Aldaketen erregistroa`
-ataletik kontsulta dezakete, teknikariaren eta ekintza motaren (editatu/ezabatu)
-araberako iragazkiekin.
+Administratzaileek `Tresnak` > `📋 Aldaketen erregistroa` atalean ikusten dute
+**nork zer aldatu zuen, noiz eta nondik** (PCtik edo zein mugikorretik): lanak,
+zain dauden lanak, abisuak, egiaztapen-zerrendak, makinak eta ordezko piezak,
+biltegiko artikuluak eta egitura, erabiltzaileak eta espezialitateak,
+segurtasuna (baliogabetutako saioak, saiakera hutsengatiko blokeoak, zifratzea,
+zifratu gabeko konexioa), leheneratutako babeskopiak, inportazioak eta
+konfigurazioa. Aldaketa bakoitzak eragindako eremuak erakusten ditu
+**lehen → ondoren**. Kategoria, ekintza, erabiltzaile eta epearen arabera iragaz
+daiteke, testuz bilatu eta Excelera edo CSVra esportatu.
 
 ### Saioa mugikorrean
 
@@ -811,18 +816,23 @@ Segurtasun-akatsetarako, ikus [SECURITY.md](SECURITY.md).
 
 ---
 
-## 🗺️ Bide-orria
+## 🧭 Bide-orria
 
 Datozenak, datarik gabe eta ordena itxirik gabe:
 
 - **Lan bakoitzean erabilitako ordezko piezak**, makina bakoitzeko materialaren kostuarekin
-- **Hornitzaileak, prezioak eta erosketa-eskaerak** gutxieneko stockaren azpitik dagoenetik abiatuta
-- **Kontrol-zerrendak** mantentze prebentiboetan eta azpizereginak lanetan
-- **Kontagailu bidezko prebentiboa** (erabilera-orduak, zikloak, km), dataren araberakoaz gain
-- **Lan egindako denbora eta sinadura** lan bat ixtean
-- **Makina bakoitzeko dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFan)
-- **Hainbat PC aldi berean** eta leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker)
-- Hizkuntza gehiago eta iPhonerako aplikazioa
+- **Hornitzaileak, prezioak eta erosketa-eskaerak** gutxienekotik beherako stocketik abiatuta
+- **Kontagailu bidezko prebentiboa** (erabilera-orduak, zikloak, km), dataz gain
+- **Lan egindako denbora eta sinadura** lana ixtean (mugikorrean ere)
+- **Makina bakoitzaren dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFn)
+- **Makinen kritikotasuna (ABC)**, mantentzean non inbertitu erabakitzeko
+- **Lan-eskaerak** ekoizpenetik edo beste sail batzuetatik, zain dagoen lan bat sortzen dutenak
+- Lan larrien **push jakinarazpenak** eta lanetako **bideoak**
+- **Hainbat PC aldi berean**, leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker) eta web bidezko sarbidea
+- **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
+- Hizkuntza gehiago (italiera, alemana…) eta iPhonerako aplikazioa
+
+Berriki egina: egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

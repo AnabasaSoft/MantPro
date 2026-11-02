@@ -516,8 +516,10 @@ class PestanaHistorial:
         puede = self._puede_modificar(tarea_id)
         dlg = DialogoRellenarChecklist(self, titulo, lista["items"], lista["plantilla"], solo_lectura=not puede)
         if dlg.exec() and puede:
-            checklists.guardar_resultado(tarea_id, dlg.items(), lista["plantilla"])
-            usuarios.registrar_auditoria(usuarios.id_actual(), tarea_id, "editar", "Lista de comprobación corregida")
+            nuevos = dlg.items()
+            checklists.guardar_resultado(tarea_id, nuevos, lista["plantilla"])
+            usuarios.auditar("trabajos", "editar", titulo, detalle=f"Lista de comprobación «{lista['plantilla']}» corregida",
+                             cambios=checklists.cambios_resultado(lista["items"], nuevos), objeto_id=tarea_id)
             self.refresh_history()
 
     def _menu_contextual_historial(self, pos):

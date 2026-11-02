@@ -153,7 +153,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **👥 Gerenciamento de usuários**: login com usuário e senha, funções de administrador e técnico, cadastro e desativação de usuários e redefinição de senhas
 - **✍️ Autoria dos serviços**: cada intervenção guarda quem a realizou, visível no histórico e nos relatórios
 - **🔒 Permissões por registro**: um técnico só pode editar ou excluir seus próprios serviços; um administrador pode gerenciar qualquer um, inclusive reatribuir o autor de um ou vários registros de uma vez
-- **📋 Auditoria de alterações**: registro de quem edita ou exclui cada serviço (não só de quem o criou), consultável e filtrável por técnico e por tipo de ação em "Registro de alterações" (somente administradores)
+- **📋 Registro de Alterações**: quem alterou o quê, quando e de onde (PC ou celular) em serviços, pendentes, avisos, checklists, máquinas, almoxarifado, usuários, segurança e configurações, com cada campo antes → depois; filtros, busca e exportação para Excel/CSV (somente administradores)
 - **🔐 Sessões de dispositivos**: lista os celulares vinculados a cada usuário, com o modelo real, e permite revogar uma ou várias sessões específicas sem desativar o usuário inteiro (somente administradores). Ao entrar de novo pelo mesmo dispositivo, a sessão anterior é substituída automaticamente em vez de se acumular
 - **🛡️ Segurança**: sincronização com os celulares criptografada por HTTPS (o certificado do PC fica fixado pelo QR), **bancos de dados criptografados** opcionais (SQLCipher, com a chave no chaveiro do sistema) e **cópias de segurança criptografadas com senha**, tentativas de login limitadas contra força bruta, fotos recebidas dos celulares verificadas e cópias consistentes com verificação de integridade
 - **📊 Painel com KPIs e gráficos**: cartões de avisos pendentes, tarefas a fazer, registros do mês e MTBF/MTTR médios de toda a planta, além de gráficos das máquinas com mais falhas e de falhas por mês, desenhados sem depender de bibliotecas externas
@@ -521,10 +521,14 @@ cada alteração fica anotada no registro de auditoria.
 
 ### Registro de alterações (auditoria)
 
-Sempre que um serviço é editado ou excluído, fica registrado quem fez, quando e
-o que mudou. Os administradores podem consultar isso em
-`Ferramentas` > `📋 Registro de alterações`, com filtros por técnico e por tipo
-de ação (editar/excluir).
+Os administradores veem em `Ferramentas` > `📋 Registro de alterações` **quem
+alterou o quê, quando e de onde** (o PC ou qual celular): serviços, serviços
+pendentes, avisos, checklists, máquinas e peças de reposição, itens e estrutura
+do almoxarifado, usuários e especialidades, segurança (sessões revogadas,
+bloqueios por tentativas erradas, criptografia, conexão sem criptografia),
+cópias restauradas, importações e configurações. Cada alteração mostra os
+campos afetados **antes → depois**. É possível filtrar por categoria, ação,
+usuário e período, buscar por texto e exportar para Excel ou CSV.
 
 ### Sessão no celular
 
@@ -806,18 +810,23 @@ segurança, veja o [SECURITY.md](SECURITY.md).
 
 ---
 
-## 🗺️ Roteiro
+## 🧭 Roteiro
 
 O que vem por aí, sem datas e sem uma ordem fechada:
 
-- **Peças consumidas em cada serviço**, com o custo de material por máquina
+- **Peças de reposição usadas em cada serviço**, com o custo de material por máquina
 - **Fornecedores, preços e pedidos de compra** a partir do estoque abaixo do mínimo
-- **Checklists** nas manutenções preventivas e subtarefas nos serviços
 - **Preventiva por contador** (horas de uso, ciclos, km), além de por data
-- **Tempo trabalhado e assinatura** ao encerrar um serviço
-- **Documentação técnica por máquina** (manuais, plantas e esquemas em PDF)
-- **Vários PCs ao mesmo tempo** e servidor sem janela (Raspberry Pi, NAS, Docker)
-- Mais idiomas e app para iPhone
+- **Tempo trabalhado e assinatura** ao fechar um serviço (também no celular)
+- **Documentação técnica por máquina** (manuais, desenhos e esquemas em PDF)
+- **Criticidade das máquinas (ABC)**, para decidir onde investir em manutenção
+- **Solicitações de serviço** da produção ou de outros departamentos que criam um serviço pendente
+- **Notificações push** de serviços urgentes e **vídeos** nos serviços
+- **Vários PCs ao mesmo tempo**, servidor sem janela (Raspberry Pi, NAS, Docker) e acesso web
+- **Várias unidades ou plantas** com dados e indicadores por unidade
+- Mais idiomas (italiano, alemão…) e aplicativo para iPhone
+
+Feito recentemente: checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

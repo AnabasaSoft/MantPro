@@ -51,7 +51,7 @@
 <li><b>Double-click</b> a job to view or edit it, with its photos.</li>
 <li>With the <b>right mouse button</b> you can delete several jobs, <b>revert to pending</b> a job finished by mistake and, if you are an administrator, change the author of several records at once.</li>
 </ul>
-<p>Every edit or deletion is logged in <i>Tools → 📋 Change log</i>.</p>
+<p>Every change is logged in <i>Tools → 📋 Change log</i>: who made it, when, from where (PC or phone) and which fields changed.</p>
 
 <h2><a name="buscador"></a>🔍 Search</h2>
 <p>Find jobs by text (for example «motor», «leak» or the name of a part), by date range and by tags. Results open with a double-click, just like in the history.</p>
@@ -101,7 +101,7 @@
 <li><b>📲 Sync App (QR):</b> shows the code to link the phones.</li>
 <li><b>📱 Install MantPro on phone</b> and <b>📦 Install MantPro Stock on phone:</b> show a QR code; scanning it with the phone's camera downloads the latest version of the app to install it.</li>
 <li><b>🔌 Sync port…:</b> change it only if another program uses the same port. The QR then has to be scanned again on the phones. MantPro uses that port and the next one (the latter for the encrypted connection): if there is a firewall, open both.</li>
-<li><b>👥 User management</b>, <b>🔐 Device sessions</b> (which phones are connected right now, and revoking their access) and <b>📋 Change log</b> (who edited or deleted each job).</li>
+<li><b>👥 User management</b>, <b>🔐 Device sessions</b> (which phones are connected right now, and revoking their access) and <b>📋 Change log</b> (who changed what, when and from where: jobs, pending jobs, reminders, checklists, machines, warehouse, users, security, backups and settings, with each field before → after; it can be filtered, searched and exported to Excel or CSV).</li>
 <li><b>🔐 Database encryption…:</b> stores <code>mantenimiento.db</code> and <code>almacen.db</code> encrypted (SQLCipher), with the key in the system keyring: MantPro opens them by itself, but anyone who copies the files or takes the disk cannot read them. When it is turned on, a <b>recovery key</b> is shown that you must write down: MantPro asks for it if the keyring loses the key (system reinstalled, new user…). The change is made when MantPro is opened again.</li>
 <li><b>📅 Manage Days / Holidays</b> and <b>🌍 Country / Region (Holidays)</b>: special days in the calendar.</li>
 <li><b>☑️ Checklists…:</b> create templates of items to check (OK / not OK / N/A, or readings with their unit and correct range) and assign them to reminders and pending jobs when creating or editing them. When they are completed, on the PC or the phone, the checklist must be filled in; it is saved with the job (☑️ in the history, ☑️❌ if something was not OK; right-click to view it) and it appears in the PDF, Excel and CSV.</li>

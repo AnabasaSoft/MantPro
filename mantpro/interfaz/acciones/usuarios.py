@@ -21,9 +21,7 @@
 """Usuarios, sesiones, contraseñas, auditoría y cierre de sesión."""
 
 import os
-from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMessageBox,
-                             QTableWidget, QTableWidgetItem, QHeaderView, QDialog,
-                             QAbstractItemView, QComboBox)
+from PyQt6.QtWidgets import QMessageBox, QDialog
 
 from ...idiomas import t
 from ..comun import resource_path, tt
@@ -38,72 +36,11 @@ class AccionesUsuarios:
     principal (self.db, self.tabs...) como si estuvieran en la propia clase."""
 
     def ver_auditoria(self):
+        """Herramientas → Registro de cambios (solo administradores)."""
         if not usuarios.es_admin():
             return
-        dlg = QDialog(self)
-        dlg.setWindowTitle(tt("menu_auditoria", "Registro de cambios"))
-        dlg.resize(900, 500)
-        lay = QVBoxLayout(dlg)
-
-        fila = QHBoxLayout()
-        fila.addWidget(QLabel(tt("hdr_realizado_por", "Realizado por") + ":"))
-        combo_u = QComboBox()
-        combo_u.addItem(tt("filtro_todos", "Todos"), "TODOS")
-        for u in usuarios.listar_usuarios(incluir_inactivos=True):
-            combo_u.addItem(u["nombre"], u["id"])
-        fila.addWidget(combo_u)
-
-        fila.addWidget(QLabel(tt("lbl_accion", "Acción") + ":"))
-        combo_a = QComboBox()
-        combo_a.addItem(tt("filtro_todos", "Todos"), "TODOS")
-        combo_a.addItem(tt("accion_editar", "Editar"), "editar")
-        combo_a.addItem(tt("accion_borrar", "Borrar"), "borrar")
-        combo_a.addItem(tt("accion_revertir", "Revertir a pendiente"), "revertir")
-        fila.addWidget(combo_a)
-        lay.addLayout(fila)
-
-        tabla = QTableWidget(0, 5)
-        tabla.setHorizontalHeaderLabels([
-            tt("lbl_fecha_hora", "Fecha y hora"),
-            tt("hdr_realizado_por", "Realizado por"),
-            tt("lbl_accion", "Acción"),
-            "ID",
-            tt("lbl_detalle", "Detalle"),
-        ])
-        tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        tabla.setColumnWidth(0, 150)
-        tabla.setColumnWidth(1, 160)
-        tabla.setColumnWidth(2, 100)
-        tabla.setColumnWidth(3, 45)
-        tabla.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        tabla.setAlternatingRowColors(True)
-        lay.addWidget(tabla)
-
-        def refrescar(*_):
-            uid = combo_u.currentData()
-            accion = combo_a.currentData()
-            registros = usuarios.obtener_auditoria(
-                usuario_id=uid if uid != "TODOS" else None,
-                accion=accion if accion != "TODOS" else None,
-                limite=500)
-            tabla.setRowCount(len(registros))
-            for fila_n, r in enumerate(registros):
-                tabla.setItem(fila_n, 0, QTableWidgetItem(r["fecha"]))
-                tabla.setItem(fila_n, 1, QTableWidgetItem(r["usuario_nombre"]))
-                accion_txt = {"editar": "✏️ Editado", "borrar": "🗑️ Borrado", "revertir": "↩️ Revertido a pendiente"}.get(r["accion"], r["accion"])
-                tabla.setItem(fila_n, 2, QTableWidgetItem(accion_txt))
-                tabla.setItem(fila_n, 3, QTableWidgetItem(str(r["tarea_id"])))
-                tabla.setItem(fila_n, 4, QTableWidgetItem(r["detalle"]))
-
-        combo_u.currentIndexChanged.connect(refrescar)
-        combo_a.currentIndexChanged.connect(refrescar)
-        refrescar()
-
-        cerrar = QPushButton(t("cerrar"))
-        cerrar.clicked.connect(dlg.accept)
-        lay.addWidget(cerrar)
-        dlg.exec()
+        from ..dialogos.auditoria import DialogoRegistroCambios
+        DialogoRegistroCambios(self).exec()
 
     def gestionar_usuarios(self):
         if not usuarios.es_admin():

@@ -153,7 +153,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **👥 Xestión de usuarios**: inicio de sesión con usuario e contrasinal, roles de administrador e técnico, alta e baixa de usuarios, e restablecemento de contrasinais
 - **✍️ Autoría dos traballos**: cada intervención garda quen a fixo, visible no historial e nos informes
 - **🔒 Permisos por rexistro**: un técnico só pode editar ou borrar os seus propios traballos; un administrador pode xestionar calquera, incluída a reasignación do autor dun ou varios rexistros á vez
-- **📋 Auditoría de cambios**: rexistro de quen edita ou borra cada traballo (non só quen o creou), consultable e filtrable por técnico e por tipo de acción dende "Rexistro de cambios" (só administradores)
+- **📋 Rexistro de cambios**: quen cambiou que, cando e desde onde (PC ou móbil) en traballos, pendentes, avisos, listas de comprobación, máquinas, almacén, usuarios, seguranza e configuración, con cada campo antes → despois; filtros, buscador e exportación a Excel/CSV (só administradores)
 - **🔐 Sesións de dispositivos**: lista os móbiles vinculados a cada usuario, co seu modelo real, e permite revogar unha ou varias sesións concretas sen desactivar o usuario enteiro (só administradores). Ao volver iniciar sesión dende o mesmo dispositivo, a sesión anterior substitúese automaticamente en vez de acumularse
 - **🛡️ Seguranza**: sincronización cos móbiles cifrada por HTTPS (o certificado do PC queda fixado polo QR), **bases de datos cifradas** opcionais (SQLCipher, coa chave no chaveiro do sistema) e **copias de seguranza cifradas con contrasinal**, intentos de inicio de sesión limitados contra a forza bruta, fotos recibidas dos móbiles comprobadas e copias consistentes con comprobación de integridade
 - **📊 Panel con KPI e gráficos**: tarxetas de avisos pendentes, tarefas por facer, rexistros do mes e MTBF/MTTR medios de toda a planta, ademais de gráficos das máquinas con máis avarías e de avarías por mes, debuxados sen depender de bibliotecas externas
@@ -520,10 +520,14 @@ anotado no rexistro de auditoría.
 
 ### Rexistro de cambios (auditoría)
 
-Cada vez que se edita ou se borra un traballo queda constancia de quen o fixo,
-cando e que cambiou. Os administradores poden consultalo dende
-`Ferramentas` > `📋 Rexistro de cambios`, con filtros por técnico e por tipo de
-acción (editar/borrar).
+Os administradores ven en `Ferramentas` > `📋 Rexistro de cambios` **quen
+cambiou que, cando e desde onde** (o PC ou que móbil): traballos, pendentes,
+avisos, listas de comprobación, máquinas e recambios, artigos e estrutura do
+almacén, usuarios e especialidades, seguranza (sesións revogadas, bloqueos por
+intentos fallidos, cifrado, conexión sen cifrar), copias restauradas,
+importacións e configuración. Cada cambio mostra os campos afectados
+**antes → despois**. Pódese filtrar por categoría, acción, usuario e período,
+buscar por texto e exportar a Excel ou CSV.
 
 ### Sesión no móbil
 
@@ -797,18 +801,23 @@ seguranza, mira [SECURITY.md](SECURITY.md).
 
 ---
 
-## 🗺️ Folla de ruta
+## 🧭 Folla de ruta
 
 O que vén, sen datas e sen unha orde pechada:
 
 - **Recambios consumidos en cada traballo**, co custo de material por máquina
-- **Provedores, prezos e pedidos de compra** a partir do stock por baixo do mínimo
-- **Listas de verificación** nos mantementos preventivos e subtarefas nos traballos
+- **Provedores, prezos e pedidos de compra** a partir do stock baixo mínimo
 - **Preventivo por contador** (horas de uso, ciclos, km), ademais de por data
-- **Tempo traballado e sinatura** ao pechar un traballo
+- **Tempo traballado e sinatura** ao pechar un traballo (tamén no móbil)
 - **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
-- **Varios PC á vez** e servidor sen xanela (Raspberry Pi, NAS, Docker)
-- Máis idiomas e app para iPhone
+- **Criticidade das máquinas (ABC)**, para decidir onde investir en mantemento
+- **Solicitudes de traballo** desde produción ou outros departamentos que crean un pendente
+- **Notificacións push** de traballos urxentes e **vídeos** nos traballos
+- **Varios PC á vez**, servidor sen xanela (Raspberry Pi, NAS, Docker) e acceso web
+- **Varios centros ou plantas** con datos e indicadores por centro
+- Máis idiomas (italiano, alemán…) e app para iPhone
+
+Feito hai pouco: listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

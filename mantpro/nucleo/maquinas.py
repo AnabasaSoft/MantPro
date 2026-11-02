@@ -477,3 +477,66 @@ def averias_por_mes(n_meses=12, fecha_inicio=None, fecha_fin=None):
         clave = f"{anio:04d}-{mes:02d}"
         meses.append((clave, por_mes.get(clave, 0)))
     return meses
+
+
+# ---------------------------------------------------------------- registro de cambios
+# Altas, cambios y bajas de máquinas y zonas quedan en el registro de cambios.
+from . import usuarios as _usuarios
+
+
+def _foto_maquina(id_maquina):
+    con = _conn()
+    f = con.execute("SELECT nombre, padre_id, notas, foto, zona_id FROM maquinas WHERE id=?", (id_maquina,)).fetchone()
+    if not f:
+        con.close()
+        return {}
+    zona = con.execute("SELECT nombre FROM zonas WHERE id=?", (f[4],)).fetchone() if f[4] else None
+    con.close()
+    rutas = mapa_rutas_completas()
+    return {"nombre": f[0], "superior": rutas.get(f[1], "") if f[1] else "", "notas": f[2] or "",
+            "zona": zona[0] if zona else "", "foto": "Sí" if f[3] else "No"}
+
+
+_ETIQ_MAQUINA = {"nombre": "Nombre", "superior": "Máquina superior", "zona": "Zona", "notas": "Notas", "foto": "Foto"}
+
+_agregar_maquina_sin_registro = agregar_maquina
+_actualizar_maquina_sin_registro = actualizar_maquina
+_borrar_maquina_sin_registro = borrar_maquina
+_borrar_zona_sin_registro = borrar_zona
+
+
+def agregar_maquina(nombre, padre_id=None, notas="", foto=None, zona_id=None):
+    _agregar_maquina_sin_registro(nombre, padre_id, notas, foto, zona_id)
+    con = _conn()
+    nuevo = con.execute("SELECT MAX(id) FROM maquinas").fetchone()[0]
+    con.close()
+    foto_m = _foto_maquina(nuevo) if nuevo else {}
+    _usuarios.auditar("maquinas", "crear", mapa_rutas_completas().get(nuevo, nombre),
+                      cambios=_usuarios.diferencias({}, foto_m, _ETIQ_MAQUINA))
+
+
+def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None, zona_id=None):
+    antes = _foto_maquina(id_maquina)
+    _actualizar_maquina_sin_registro(id_maquina, nombre, padre_id, notas, foto, zona_id)
+    _usuarios.auditar("maquinas", "editar", mapa_rutas_completas().get(id_maquina, nombre),
+                      cambios=_usuarios.diferencias(antes, _foto_maquina(id_maquina), _ETIQ_MAQUINA))
+
+
+def borrar_maquina(id_maquina):
+    nombre = mapa_rutas_completas().get(id_maquina, "")
+    con = _conn()
+    n_sub = len(_descendientes(con, id_maquina)) - 1
+    con.close()
+    _borrar_maquina_sin_registro(id_maquina)
+    _usuarios.auditar("maquinas", "borrar", nombre,
+                      detalle=(f"Con {n_sub} submáquinas; " if n_sub > 0 else "") +
+                              "sus trabajos se conservan, sin máquina asignada")
+
+
+def borrar_zona(id_zona):
+    con = _conn()
+    fila = con.execute("SELECT nombre FROM zonas WHERE id=?", (id_zona,)).fetchone()
+    con.close()
+    _borrar_zona_sin_registro(id_zona)
+    _usuarios.auditar("maquinas", "borrar", f"Zona «{fila[0] if fila else id_zona}»",
+                      detalle="Las máquinas que la tenían quedan sin zona")

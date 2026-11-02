@@ -151,7 +151,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **👥 User Management**: Username and password login, administrator and technician roles, adding and deactivating users, and password resets
 - **✍️ Job Authorship**: Each job records who carried it out, visible in the history and in reports
 - **🔒 Per-Record Permissions**: a technician can only edit or delete their own jobs; an administrator can manage any of them, including reassigning the author of one or several records at once
-- **📋 Change Auditing**: a log of who edits or deletes each job (not just who created it), searchable and filterable by technician and action type from "Change log" (administrators only)
+- **📋 Change Log**: who changed what, when and from where (PC or phone) for jobs, pending jobs, reminders, checklists, machines, warehouse, users, security and settings, with each field before → after; filters, search and export to Excel/CSV (administrators only)
 - **🔐 Device Sessions**: lists the phones linked to each user, with their real model, and lets you revoke one or several specific sessions without deactivating the whole user (administrators only). When someone signs in again from the same device, their previous session is replaced automatically instead of piling up
 - **🛡️ Security**: phone sync encrypted with HTTPS (the PC's certificate is pinned by the QR code), optional **encrypted databases** (SQLCipher, key in the system keyring) and **password-encrypted backups**, sign-in attempts limited against brute force, photos received from phones checked, and consistent backups with an integrity check
 - **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries
@@ -516,9 +516,13 @@ history rows (multiple selection with Ctrl/Shift), an administrator can also
 
 ### Change log (audit)
 
-Every time a job is edited or deleted, a record is kept of who did it, when
-and what changed. Administrators can view it from `Tools` > `📋 Change log`,
-with filters by technician and by action type (edit/delete).
+Administrators can see in `Tools` > `📋 Change log` **who changed what, when
+and from where** (the PC or which phone): jobs, pending jobs, reminders,
+checklists, machines and spare parts, warehouse items and layout, users and
+specialities, security (sessions revoked, sign-in blocks, encryption, the
+unencrypted connection), backups restored, imports and settings. Each change
+shows the affected fields **before → after**. It can be filtered by category,
+action, user and period, searched by text and exported to Excel or CSV.
 
 ### Session on the phone
 
@@ -792,18 +796,23 @@ The code and database structure is described in
 
 ---
 
-## 🗺️ Roadmap
+## 🧭 Roadmap
 
 What's coming, without dates and in no fixed order:
 
-- **Spare parts used in each job**, with material cost per machine
+- **Spare parts used in each job**, with the material cost per machine
 - **Suppliers, prices and purchase orders** based on low stock
-- **Checklists** for preventive maintenance and subtasks in jobs
 - **Meter-based preventive maintenance** (running hours, cycles, km), as well as date-based
-- **Time worked and sign-off** when closing a job
+- **Time worked and sign-off** when closing a job (also on the phone)
 - **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
-- **Several PCs at once** and a headless server (Raspberry Pi, NAS, Docker)
-- More languages and an iPhone app
+- **Machine criticality (ABC)**, to decide where to invest maintenance
+- **Work requests** from production or other departments that create a pending job
+- **Push notifications** of urgent jobs and **videos** in jobs
+- **Several PCs at once**, a headless server (Raspberry Pi, NAS, Docker) and web access
+- **Several sites or plants** with separate data and KPIs per site
+- More languages (Italian, German…) and an iPhone app
+
+Recently done: checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

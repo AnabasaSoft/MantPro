@@ -154,7 +154,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **👥 Gestió d'usuaris**: inici de sessió amb usuari i contrasenya, rols d'administrador i tècnic, alta i baixa d'usuaris, i restabliment de contrasenyes
 - **✍️ Autoria dels treballs**: cada intervenció desa qui la va fer, visible a l'historial i als informes
 - **🔒 Permisos per registre**: un tècnic només pot editar o esborrar els seus propis treballs; un administrador pot gestionar-ne qualsevol, inclosa la reassignació de l'autor d'un o diversos registres alhora
-- **📋 Auditoria de canvis**: registre de qui edita o esborra cada treball (no només qui el va crear), consultable i filtrable per tècnic i per tipus d'acció des de "Registre de canvis" (només administradors)
+- **📋 Registre de canvis**: qui va canviar què, quan i des d'on (PC o mòbil) en treballs, pendents, avisos, llistes de comprovació, màquines, magatzem, usuaris, seguretat i configuració, amb cada camp abans → després; filtres, cercador i exportació a Excel/CSV (només administradors)
 - **🔐 Sessions de dispositius**: llista els mòbils vinculats a cada usuari, amb el seu model real, i permet revocar una o diverses sessions concretes sense desactivar l'usuari sencer (només administradors). En tornar a iniciar sessió des del mateix dispositiu, la sessió anterior se substitueix automàticament en lloc d'acumular-se
 - **🛡️ Seguretat**: sincronització amb els mòbils xifrada per HTTPS (el certificat del PC queda fixat pel QR), **bases de dades xifrades** opcionals (SQLCipher, amb la clau al clauer del sistema) i **còpies de seguretat xifrades amb contrasenya**, intents d'inici de sessió limitats contra la força bruta, fotos rebudes dels mòbils comprovades i còpies consistents amb comprovació d'integritat
 - **📊 Tauler amb KPI i gràfics**: targetes d'avisos pendents, tasques per fer, registres del mes i MTBF/MTTR mitjans de tota la planta, a més de gràfics de les màquines amb més avaries i d'avaries per mes, dibuixats sense dependre de biblioteques externes
@@ -522,10 +522,14 @@ anotat al registre d'auditoria.
 
 ### Registre de canvis (auditoria)
 
-Cada vegada que s'edita o s'esborra un treball en queda constància: qui ho va
-fer, quan i què va canviar. Els administradors ho poden consultar des de
-`Eines` > `📋 Registre de canvis`, amb filtres per tècnic i per tipus d'acció
-(editar/esborrar).
+Els administradors veuen a `Eines` > `📋 Registre de canvis` **qui va canviar
+què, quan i des d'on** (el PC o quin mòbil): treballs, pendents, avisos, llistes
+de comprovació, màquines i recanvis, articles i estructura del magatzem, usuaris
+i especialitats, seguretat (sessions revocades, bloquejos per intents fallits,
+xifratge, connexió sense xifrar), còpies restaurades, importacions i
+configuració. Cada canvi mostra els camps afectats **abans → després**. Es pot
+filtrar per categoria, acció, usuari i període, cercar per text i exportar a
+Excel o CSV.
 
 ### Sessió al mòbil
 
@@ -803,18 +807,23 @@ seguretat, mira [SECURITY.md](SECURITY.md).
 
 ---
 
-## 🗺️ Full de ruta
+## 🧭 Full de ruta
 
 El que ve, sense dates i sense un ordre tancat:
 
-- **Recanvis consumits a cada treball**, amb el cost de material per màquina
-- **Proveïdors, preus i comandes de compra** a partir de l'estoc per sota del mínim
-- **Llistes de comprovació** als manteniments preventius i subtasques als treballs
+- **Recanvis consumits en cada treball**, amb el cost de material per màquina
+- **Proveïdors, preus i comandes de compra** a partir de l'estoc sota mínim
 - **Preventiu per comptador** (hores d'ús, cicles, km), a més de per data
-- **Temps treballat i signatura** en tancar un treball
+- **Temps treballat i signatura** en tancar un treball (també al mòbil)
 - **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
-- **Diversos PC alhora** i servidor sense finestra (Raspberry Pi, NAS, Docker)
-- Més idiomes i app per a iPhone
+- **Criticitat de les màquines (ABC)**, per decidir on invertir en manteniment
+- **Sol·licituds de treball** des de producció o altres departaments que creen un pendent
+- **Notificacions push** de treballs urgents i **vídeos** als treballs
+- **Diversos PC alhora**, servidor sense finestra (Raspberry Pi, NAS, Docker) i accés web
+- **Diversos centres o plantes** amb dades i indicadors per centre
+- Més idiomes (italià, alemany…) i app per a iPhone
+
+Fet fa poc: llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

@@ -225,7 +225,8 @@ class GestorBaseDatos:
             c.execute('DELETE FROM tareas WHERE id=?', (i,))
             c.execute('DELETE FROM checklist_resultados WHERE tarea_id=?', (i,))
             conn.commit(); conn.close()
-            usuarios.registrar_auditoria(usuarios.id_actual(), i, "borrar", detalle)
+            usuarios.registrar_auditoria(None, i, "borrar", detalle, "trabajos",
+                                         objeto=(fila[1].split("\n")[0][:120] if fila else ""))
             return True
         except Exception as e:
             print(f"Error borrar_tarea: {e}"); return False
@@ -310,3 +311,212 @@ class GestorBaseDatos:
             c.execute('UPDATE pendientes SET titulo=?, detalles=?, prioridad=?, especialidad_id=? WHERE id=?', (t, d, prioridad, especialidad_id, i))
             conn.commit(); conn.close(); return True
         except: return False
+
+
+# ==========================================
+# 3. REGISTRO DE CAMBIOS (Herramientas → Registro de cambios)
+# ==========================================
+# Las operaciones de GestorBaseDatos que cambian trabajos, pendientes, avisos
+# y días del calendario apuntan qué ha cambiado, campo a campo. Se envuelven
+# aquí para no repetir el código en cada pestaña que las usa.
+
+from functools import wraps as _wraps
+
+_PRIORIDADES = {"Baja": "Baja", "Media": "Media", "Alta": "Alta", "Crítica": "Crítica"}
+
+
+def _limpiar_desc(desc):
+    desc = re.sub(r"\[FOTO.*?:.*?\]", "", desc or "")
+    return re.sub(r"\[REF:.*?\]", "", desc).strip()
+
+
+def _nombre_especialidad(eid):
+    if not eid:
+        return ""
+    return next((e["nombre"] for e in usuarios.listar_especialidades() if e["id"] == eid), str(eid))
+
+
+def _foto_tarea(db, i):
+    d = db.obtener_tarea_por_id(i)
+    if not d:
+        return {}
+    rutas = maquinas.mapa_rutas_completas() if d[6] else {}
+    return {"fecha": d[1], "descripcion": _limpiar_desc(d[2]), "tags": d[3], "autor": d[5] or usuarios.ETIQUETA_HISTORICO,
+            "maquina": rutas.get(d[6], "") if d[6] else "", "horas_paro": d[7] if d[7] is not None else ""}
+
+
+_ETIQ_TAREA = {"fecha": "Fecha", "descripcion": "Descripción", "tags": "Etiquetas", "autor": "Realizado por",
+               "maquina": "Máquina", "horas_paro": "Horas de paro"}
+
+
+def _foto_pendiente(db, i):
+    try:
+        con = db.conectar()
+        f = con.execute("SELECT titulo, detalles, asignado_nombre, prioridad, especialidad_id FROM pendientes WHERE id=?", (i,)).fetchone()
+        con.close()
+    except Exception:
+        return {}
+    if not f:
+        return {}
+    return {"titulo": f[0], "detalles": _limpiar_desc(f[1]), "asignado": f[2] or "", "prioridad": f[3] or "",
+            "especialidad": _nombre_especialidad(f[4])}
+
+
+_ETIQ_PENDIENTE = {"titulo": "Título", "detalles": "Detalles", "asignado": "Asignado a", "prioridad": "Prioridad",
+                   "especialidad": "Especialidad"}
+
+
+def _foto_aviso(db, i):
+    a = next((x for x in db.obtener_avisos() if x[0] == i), None)
+    if not a:
+        return {}
+    return {"titulo": a[1], "inicio": a[2], "frecuencia": a[3], "margen": a[4], "ultima": a[5] or "",
+            "asignado": a[7] or "", "especialidad": _nombre_especialidad(a[8])}
+
+
+_ETIQ_AVISO = {"titulo": "Título", "inicio": "Fecha de inicio", "frecuencia": "Frecuencia", "margen": "Días de margen",
+               "asignado": "Asignado a", "especialidad": "Especialidad"}
+
+
+def _envolver_edicion(nombre_metodo, foto, etiquetas, categoria, accion="editar"):
+    original = getattr(GestorBaseDatos, nombre_metodo)
+
+    @_wraps(original)
+    def envoltorio(self, item_id, *args, **kwargs):
+        antes = foto(self, item_id)
+        resultado = original(self, item_id, *args, **kwargs)
+        if resultado:
+            despues = foto(self, item_id)
+            usuarios.auditar(categoria, accion, despues.get("titulo") or (despues.get("descripcion") or "").split("\n")[0],
+                             cambios=usuarios.diferencias(antes, despues, etiquetas),
+                             objeto_id=item_id if categoria == "trabajos" else None)
+        return resultado
+    setattr(GestorBaseDatos, nombre_metodo, envoltorio)
+
+
+for _m in ("actualizar_tarea",):
+    _envolver_edicion(_m, _foto_tarea, _ETIQ_TAREA, "trabajos")
+for _m in ("actualizar_pendiente", "asignar_pendiente", "asignar_especialidad_pendiente"):
+    _envolver_edicion(_m, _foto_pendiente, _ETIQ_PENDIENTE, "pendientes")
+for _m in ("actualizar_aviso", "asignar_aviso", "asignar_especialidad_aviso"):
+    _envolver_edicion(_m, _foto_aviso, _ETIQ_AVISO, "avisos")
+
+
+def _envolver_creacion(nombre_metodo, foto, etiquetas, categoria):
+    original = getattr(GestorBaseDatos, nombre_metodo)
+
+    @_wraps(original)
+    def envoltorio(self, *args, **kwargs):
+        nuevo_id = original(self, *args, **kwargs)
+        if nuevo_id:
+            despues = foto(self, nuevo_id)
+            usuarios.auditar(categoria, "crear", despues.get("titulo", ""),
+                             cambios=usuarios.diferencias({}, despues, etiquetas))
+        return nuevo_id
+    setattr(GestorBaseDatos, nombre_metodo, envoltorio)
+
+
+_envolver_creacion("agregar_pendiente", _foto_pendiente, _ETIQ_PENDIENTE, "pendientes")
+_envolver_creacion("agregar_aviso", _foto_aviso, _ETIQ_AVISO, "avisos")
+
+
+def _resumen(foto, etiquetas):
+    return "\n".join(f"{etiquetas[k]}: {foto[k]}" for k in etiquetas if foto.get(k) not in (None, ""))
+
+
+_borrar_aviso_original = GestorBaseDatos.borrar_aviso
+
+
+def _borrar_aviso(self, i):
+    antes = _foto_aviso(self, i)
+    ok = _borrar_aviso_original(self, i)
+    if ok and antes:
+        usuarios.auditar("avisos", "borrar", antes.get("titulo", ""), cambios=usuarios.diferencias(antes, {}, _ETIQ_AVISO))
+    return ok
+
+
+GestorBaseDatos.borrar_aviso = _borrar_aviso
+
+_borrar_pendiente_original = GestorBaseDatos.borrar_pendiente
+
+
+def _borrar_pendiente(self, i, motivo="borrar"):
+    """motivo="completar" cuando el pendiente pasa al historial (no es un borrado)."""
+    antes = _foto_pendiente(self, i)
+    ok = _borrar_pendiente_original(self, i)
+    if ok and antes:
+        if motivo == "completar":
+            usuarios.auditar("pendientes", "completar", antes.get("titulo", ""), detalle="Pasa al historial")
+        else:
+            usuarios.auditar("pendientes", "borrar", antes.get("titulo", ""), cambios=usuarios.diferencias(antes, {}, _ETIQ_PENDIENTE))
+    return ok
+
+
+GestorBaseDatos.borrar_pendiente = _borrar_pendiente
+
+_marcar_aviso_original = GestorBaseDatos.marcar_aviso_completado
+
+
+def _marcar_aviso(self, id_aviso, fecha_completada, estado):
+    antes = _foto_aviso(self, id_aviso)
+    ok = _marcar_aviso_original(self, id_aviso, fecha_completada, estado)
+    if antes:
+        if estado and fecha_completada and fecha_completada != antes.get("ultima"):
+            usuarios.auditar("avisos", "completar", antes.get("titulo", ""), detalle=f"Completado el {fecha_completada}")
+        elif not estado or fecha_completada != antes.get("ultima"):
+            usuarios.auditar("avisos", "descompletar", antes.get("titulo", ""),
+                             cambios=usuarios.diferencias({"u": antes.get("ultima")}, {"u": fecha_completada or ""},
+                                                          {"u": "Última vez completado"}))
+    return ok
+
+
+GestorBaseDatos.marcar_aviso_completado = _marcar_aviso
+
+for _m, _accion in (("marcar_dia_especial", "crear"), ("borrar_dia_especial", "borrar")):
+    def _hacer(original, accion):
+        @_wraps(original)
+        def envoltorio(self, fecha, *args):
+            ok = original(self, fecha, *args)
+            usuarios.auditar("configuracion", accion, f"Día especial {fecha}",
+                             detalle=(f"Tipo: {args[0]}" if args else ""))
+            return ok
+        return envoltorio
+    setattr(GestorBaseDatos, _m, _hacer(getattr(GestorBaseDatos, _m), _accion))
+
+
+class LectorBD:
+    """Lo justo de GestorBaseDatos para leer el estado de un trabajo, un
+    pendiente o un aviso desde otra parte (el servidor de los móviles), sin
+    volver a preparar las tablas."""
+
+    def __init__(self, ruta):
+        self.db_name = ruta
+
+    def conectar(self):
+        return conectar(self.db_name, timeout=20)
+
+    obtener_tarea_por_id = GestorBaseDatos.obtener_tarea_por_id
+    obtener_avisos = GestorBaseDatos.obtener_avisos
+
+
+# Para el servidor de los móviles: fotografía de cada cosa y nombres de campo
+foto_tarea, foto_pendiente, foto_aviso = _foto_tarea, _foto_pendiente, _foto_aviso
+ETIQ_TAREA, ETIQ_PENDIENTE, ETIQ_AVISO = _ETIQ_TAREA, _ETIQ_PENDIENTE, _ETIQ_AVISO
+
+
+_CONFIG_AUDITADA = {"puerto_servidor": "Puerto de sincronización", "country_iso": "País (festivos)",
+                    "region_iso": "Región (festivos)", "parent_iso": "Región superior (festivos)",
+                    "idioma": "Idioma"}
+_set_config_original = GestorBaseDatos.set_config
+
+
+def _set_config(self, clave, valor):
+    antes = self.get_config(clave) if clave in _CONFIG_AUDITADA else None
+    ok = _set_config_original(self, clave, valor)
+    if ok and clave in _CONFIG_AUDITADA and (antes or "") != (valor or ""):
+        usuarios.auditar("configuracion", "configurar", _CONFIG_AUDITADA[clave],
+                         cambios=[{"campo": _CONFIG_AUDITADA[clave], "antes": antes or "", "despues": valor or ""}])
+    return ok
+
+
+GestorBaseDatos.set_config = _set_config
