@@ -38,6 +38,27 @@ from ..widgets.fotos import DialogoSelectorFoto, GaleriaFotosWidget, LabelArrast
 from ...nucleo import usuarios
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria, quitar_marcas_foto
 
+def _montar_con_desplazamiento(dialogo, contenido, botones):
+    """Pone el formulario [contenido] (un layout) dentro de una zona con barra
+    de desplazamiento y los [botones] fijos debajo. Así, si el formulario no
+    cabe en la altura de la pantalla, se desplaza en vez de aplastar las fotos
+    y montar unos controles encima de otros. Ajusta la altura a la pantalla."""
+    from PyQt6.QtWidgets import QScrollArea, QFrame, QWidget, QApplication
+    interior = QWidget(); interior.setLayout(contenido)
+    zona = QScrollArea(); zona.setWidgetResizable(True); zona.setFrameShape(QFrame.Shape.NoFrame)
+    zona.setWidget(interior)
+    exterior = QVBoxLayout(); exterior.setContentsMargins(0, 0, 0, 8)
+    exterior.addWidget(zona, 1)
+    fila = QHBoxLayout(); fila.setContentsMargins(10, 0, 10, 0); fila.addWidget(botones)
+    exterior.addLayout(fila)
+    dialogo.setLayout(exterior)
+    pantalla = QApplication.primaryScreen()
+    if pantalla is not None:
+        alto_max = pantalla.availableGeometry().height() - 60
+        deseado = interior.sizeHint().height() + botones.sizeHint().height() + 30
+        dialogo.resize(max(dialogo.width(), interior.sizeHint().width() + 30), min(deseado, alto_max))
+
+
 class EditDialog(QDialog):
     def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, horas_paro=None,
                  repuestos=None, tiempo=None):
@@ -156,7 +177,7 @@ class EditDialog(QDialog):
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
-        l.addWidget(b); self.setLayout(l)
+        _montar_con_desplazamiento(self, l, b)
 
     def separar_datos(self, texto):
         self.fotos_galeria_iniciales = fotos_galeria(texto)
@@ -288,7 +309,7 @@ class DialogoEditarPendiente(QDialog):
         self.actualizar_vista_foto()
         self.galeria = GaleriaFotosWidget(parent.carpeta_fotos if parent is not None else "", self, self.fotos_coleccion_iniciales)
         l.addWidget(self.galeria)
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); _montar_con_desplazamiento(self, l, b)
     def actualizar_vista_foto(self):
         if self.ruta_foto_seleccionada and os.path.exists(self.ruta_foto_seleccionada):
             pix = QPixmap(self.ruta_foto_seleccionada)
@@ -345,7 +366,7 @@ class CompleteDialog(QDialog):
         l.addWidget(self.tiempo)
         self.repuestos = RepuestosUsadosWidget(self)
         l.addWidget(self.repuestos)
-        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); _montar_con_desplazamiento(self, l, b)
     def click_foto(self, e):
         if self.foto_filename:
             ruta = os.path.join(self.carpeta_fotos, self.foto_filename)

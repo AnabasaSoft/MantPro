@@ -1037,5 +1037,6 @@
   "lbl_personas": "pertsona",
   "msg_tiempo_no_valido": "ez da ulertzen",
   "aud_f_tiempo": "Lan egindako denbora",
-  "aud_f_coste_hora": "Lanorduaren kostua"
+  "aud_f_coste_hora": "Lanorduaren kostua",
+  "lbl_persona": "pertsona"
 }

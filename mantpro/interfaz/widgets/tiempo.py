@@ -41,12 +41,15 @@ class CampoTiempoTrabajo(QWidget):
         h.addWidget(self.campo)
         h.addWidget(QLabel("×"))
         self.spin_personas = QSpinBox(); self.spin_personas.setRange(1, 50); self.spin_personas.setValue(personas or 1)
-        self.spin_personas.setSuffix(" " + tt("lbl_personas", "personas"))
+        self.spin_personas.valueChanged.connect(self._sufijo); self._sufijo(self.spin_personas.value())
         h.addWidget(self.spin_personas)
         self.lbl = QLabel(); self.lbl.setStyleSheet("color: gray;")
         h.addWidget(self.lbl)
         h.addStretch()
         self._validar()
+
+    def _sufijo(self, n):
+        self.spin_personas.setSuffix(" " + (tt("lbl_persona", "persona") if n == 1 else tt("lbl_personas", "personas")))
 
     def _validar(self, *_):
         texto = self.campo.text().strip()

@@ -1037,5 +1037,6 @@
   "lbl_personas": "personas",
   "msg_tiempo_no_valido": "no se entiende",
   "aud_f_tiempo": "Tiempo trabajado",
-  "aud_f_coste_hora": "Coste de la hora de trabajo"
+  "aud_f_coste_hora": "Coste de la hora de trabajo",
+  "lbl_persona": "persona"
 }
