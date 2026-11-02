@@ -650,6 +650,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
               ),
             ),
           ]),
+          if (AuthService.esAdmin) ...[
           const SizedBox(height: 12),
           TextFormField(
             controller: _precio,
@@ -657,6 +658,7 @@ class _PantallaArticuloState extends State<PantallaArticulo> {
             decoration: InputDecoration(labelText: tt('lbl_precio_unitario', 'Precio unitario'),
                 hintText: tt('ph_precio', 'sin precio'), border: const OutlineInputBorder()),
           ),
+          ],
           if (widget.materialId == null) ...[
             const SizedBox(height: 12),
             TextFormField(

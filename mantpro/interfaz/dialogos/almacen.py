@@ -33,7 +33,7 @@ from ...idiomas import t
 from ... import idiomas
 from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, maquinas, consumos
+from ...nucleo import almacen, maquinas, consumos, usuarios
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -550,6 +550,9 @@ class DialogoEditarMaterial(QDialog):
         v3 = QVBoxLayout(); v3.addWidget(QLabel(tt("lbl_precio_unitario", "Precio unitario") + f" ({consumos.moneda()})"))
         self.campo_precio = QLineEdit("" if not material or material.get("precio") is None else f"{material['precio']:g}".replace(".", ","))
         self.campo_precio.setPlaceholderText(tt("ph_precio", "sin precio"))
+        if not usuarios.es_admin():
+            self.campo_precio.setEnabled(False)
+            self.campo_precio.setToolTip(tt("tt_precio_solo_admin", "Solo un administrador puede cambiar los precios."))
         v3.addWidget(self.campo_precio); h_um.addLayout(v3)
         l.addLayout(h_um)
 

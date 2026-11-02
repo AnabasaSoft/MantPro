@@ -160,6 +160,8 @@ class AuthService {
   /// Solo admin y almacén pueden dar de alta/editar artículos y registrar movimientos de stock.
   /// Un usuario puede tener varios roles a la vez (p.ej. técnico y almacén).
   static bool get puedeGestionarAlmacen => roles.contains('admin') || roles.contains('almacen');
+  /// Los precios de los artículos solo los cambia un administrador.
+  static bool get esAdmin => roles.contains('admin');
 
   // El token de sesión va en el almacenamiento seguro del sistema (Keystore
   // de Android), no en SharedPreferences en claro, para que no se pueda leer
@@ -727,8 +729,9 @@ class StockApi {
       'descripcion': descripcion,
       'unidad': unidad,
       'stock_minimo': stockMinimo.toString(),
-      // Siempre se manda (vacío = sin precio): el PC solo lo toca si llega
-      'precio': precio?.toString() ?? '',
+      // Solo un administrador cambia precios: los demás no lo mandan y el
+      // PC lo deja como estaba (vacío = sin precio). El PC lo comprueba también.
+      if (AuthService.esAdmin) 'precio': precio?.toString() ?? '',
       // Si no se ha elegido sección todavía se manda la balda (o el hueco de
       // suelo) y el servidor resuelve o crea una sección por defecto: así no
       // hace falta tener secciones creadas de antemano para dar de alta.

@@ -63,6 +63,10 @@ class ServidorSincronizacion(QThread):
     registro_recibido = pyqtSignal(str, str, str, str, str)
     pendiente_actualizado = pyqtSignal()
     stock_actualizado = pyqtSignal()
+    # Un móvil empieza (True) o termina (False) de enviar algo que afecta a
+    # estas pestañas: "historial", "pendientes", "avisos", "stock". La ventana
+    # lo marca subrayando el título de la pestaña con una barra de progreso.
+    actividad_movil = pyqtSignal(list, bool)
 
     error_arranque = pyqtSignal(str)
 
@@ -83,9 +87,40 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "error": "demasiado_grande",
                                 "message": "El envío es demasiado grande."}), 413
 
+        # Qué pestañas del PC toca cada envío del móvil (para el aviso visual)
+        def _pestanas_de(ruta, metodo):
+            if metodo not in ("POST", "PUT", "DELETE"):
+                return []
+            if ruta.startswith("/api/stock/"):
+                return ["stock"]
+            return {
+                "/api/upload": ["historial"],
+                "/api/editar_historial": ["historial"],
+                "/api/restaurar_foto": ["historial"],
+                "/api/revertir_pendiente": ["historial", "pendientes"],
+                "/api/completar_pendiente": ["pendientes", "historial"],
+                "/api/agregar_pendiente": ["pendientes"],
+                "/api/editar_pendiente": ["pendientes"],
+                "/api/eliminar_pendiente": ["pendientes"],
+                "/api/completar_aviso": ["avisos", "historial"],
+                "/api/descompletar_aviso": ["avisos", "historial"],
+            }.get(ruta, [])
+
+        # Se avisa en cuanto llega la cabecera del envío (antes de leer las
+        # fotos), así la barra se ve también mientras se suben.
+        @self.app.before_request
+        def _avisar_inicio():
+            pestanas = _pestanas_de(request.path, request.method)
+            if pestanas:
+                g.pestanas_actividad = pestanas
+                self.actividad_movil.emit(pestanas, True)
+
         @self.app.teardown_request
         def _olvidar_actor(_exc=None):
             usuarios.limpiar_actor_peticion()
+            pestanas = g.pop("pestanas_actividad", None) if g else None
+            if pestanas:
+                self.actividad_movil.emit(pestanas, False)
 
         # Conexión sin cifrar desactivada (Herramientas → Sesiones de
         # dispositivos): por HTTP solo se responde a /api/tls, para que un
@@ -1268,7 +1303,9 @@ class ServidorSincronizacion(QThread):
                     datos.get('codigo', ''), nombre, datos.get('descripcion', ''),
                     datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
                     seccion_id, filename or None, float(datos.get('stock_inicial') or 0),
-                    usuario['id'], usuario['nombre'], precio=consumos.numero(datos.get('precio')))
+                    usuario['id'], usuario['nombre'],
+                    # Los precios solo los pone un administrador
+                    precio=consumos.numero(datos.get('precio')) if usuarios.es_admin(usuario) else None)
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "id": material_id, "foto": filename or None})
             except Exception as e:
@@ -1306,7 +1343,8 @@ class ServidorSincronizacion(QThread):
                     datos.get('unidad', ''), float(datos.get('stock_minimo') or 0),
                     seccion_id, foto_final, usuario['id'], usuario['nombre'],
                     # Solo si la app manda el precio (las versiones anteriores no lo conocen)
-                    precio=consumos.numero(datos.get('precio')), cambiar_precio='precio' in datos)
+                    precio=consumos.numero(datos.get('precio')),
+                    cambiar_precio='precio' in datos and usuarios.es_admin(usuario))
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "foto": foto_final})
             except Exception as e:

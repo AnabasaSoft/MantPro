@@ -118,6 +118,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.server_thread.stock_actualizado.connect(self.refresh_stock)
         self.server_thread.stock_actualizado.connect(self.refresh_stock_alertas)
         self.server_thread.error_arranque.connect(self._servidor_no_arranca)
+        self.server_thread.actividad_movil.connect(self._actividad_movil)
         if self.sincronizacion_activa:
             self.server_thread.start()
         self.setWindowTitle(t("title_control_mantenimiento"))
@@ -142,6 +143,11 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.aplicar_estilo_visual()
         cw = QWidget(); self.setCentralWidget(cw); ml = QVBoxLayout(); ml.setContentsMargins(10, 10, 10, 10); cw.setLayout(ml)
         self.tabs = QTabWidget(); ml.addWidget(self.tabs)
+        # Subrayado animado bajo el título de las pestañas que reciben datos de un móvil
+        from .widgets.pestanas_actividad import BarraPestanasActividad
+        self.barra_pestanas = BarraPestanasActividad(self.tabs)
+        self.tabs.setTabBar(self.barra_pestanas)
+        self.barra_pestanas.set_tab_widget(self.tabs)
         self._poblar_tabs()
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
@@ -230,6 +236,18 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
 
         self.settings.setValue("geometry", self.saveGeometry())
         e.accept()
+
+    def _actividad_movil(self, pestanas, empieza):
+        """Un móvil empieza o termina de enviar algo: subraya el título de las
+        pestañas afectadas con una barra de progreso mientras dura."""
+        barra = getattr(self, "barra_pestanas", None)
+        if barra is None:
+            return
+        widgets = {"historial": "tab_history", "pendientes": "tab_todo", "avisos": "tab_avisos", "stock": "tab_stock"}
+        for clave in pestanas:
+            widget = getattr(self, widgets.get(clave, ""), None)
+            if widget is not None:
+                (barra.empezar if empieza else barra.terminar)(widget)
 
     def on_registro_recibido(self, titulo, detalles, tags, filename, ruta_foto):
         if self.qr_dialog: self.qr_dialog.accept(); self.qr_dialog = None
