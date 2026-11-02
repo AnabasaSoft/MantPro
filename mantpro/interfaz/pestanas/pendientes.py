@@ -33,7 +33,7 @@ from ...idiomas import t
 from ..comun import traducir_prioridad, tt
 from ..dialogos.trabajos import CompleteDialog, DialogoEditarPendiente
 from ..widgets.fotos import GaleriaFotosWidget
-from ...nucleo import usuarios, checklists, consumos
+from ...nucleo import usuarios, checklists, consumos, mano_obra
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -380,6 +380,7 @@ class PestanaPendientes:
             if tarea_id:
                 consumos.registrar_consumo(tarea_id, dialogo.repuestos.items(), usuarios.id_actual(),
                                            usuarios.nombre_actual(), titulo, fecha)
+                mano_obra.fijar_tiempo(tarea_id, dialogo.tiempo.minutos(), dialogo.tiempo.personas(), registrar=False)
                 if lista[0]:
                     checklists.guardar_resultado(tarea_id, lista[0], lista[1])
                 self.db.borrar_pendiente(id_pendiente, motivo="completar")

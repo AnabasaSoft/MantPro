@@ -310,3 +310,74 @@ Widget filaChecklistHistorial(BuildContext context, Map<String, dynamic>? checkl
     ])),
   );
 }
+
+// ---------------------------------------------------------------- tiempo trabajado
+// (se apunta después, sin cronómetro: igual que en el PC, ver mano_obra.py)
+
+/// Minutos a partir de lo que se escriba: «1:30», «1,5» (horas), «2» (horas),
+/// «90 min», «1 h 30». null si está vacío o no se entiende.
+int? leerDuracion(String texto) {
+  final t = texto.trim().toLowerCase().replaceAll(',', '.');
+  if (t.isEmpty) return null;
+  var m = RegExp(r'^(\d+):(\d{1,2})$').firstMatch(t);
+  if (m != null) return int.parse(m.group(1)!) * 60 + int.parse(m.group(2)!);
+  m = RegExp(r'^(\d+(?:\.\d+)?)\s*min(?:utos)?$').firstMatch(t);
+  if (m != null) return double.parse(m.group(1)!).round();
+  m = RegExp(r'^(\d+(?:\.\d+)?)\s*h(?:oras?)?\s*(?:(\d+)\s*(?:min(?:utos)?)?)?$').firstMatch(t);
+  if (m != null) return (double.parse(m.group(1)!) * 60).round() + int.parse(m.group(2) ?? '0');
+  final h = double.tryParse(t);
+  return h == null ? null : (h * 60).round();
+}
+
+/// «1 h 30 min», «45 min».
+String textoDuracion(int? minutos) {
+  if (minutos == null || minutos <= 0) return '';
+  final h = minutos ~/ 60, m = minutos % 60;
+  if (h > 0 && m > 0) return '$h h $m min';
+  return h > 0 ? '$h h' : '$m min';
+}
+
+/// «1:30», para volver a ponerlo en el campo.
+String textoEntradaDuracion(int? minutos) =>
+    (minutos == null || minutos <= 0) ? '' : '${minutos ~/ 60}:${(minutos % 60).toString().padLeft(2, '0')}';
+
+/// Campo «Tiempo trabajado» + personas. Se apunta al volver de la avería.
+class CampoTiempoTrabajo extends StatefulWidget {
+  final TextEditingController controlador;
+  final int personas;
+  final ValueChanged<int> alCambiarPersonas;
+  const CampoTiempoTrabajo({super.key, required this.controlador, required this.personas, required this.alCambiarPersonas});
+  @override
+  State<CampoTiempoTrabajo> createState() => _CampoTiempoTrabajoState();
+}
+
+class _CampoTiempoTrabajoState extends State<CampoTiempoTrabajo> {
+  @override
+  Widget build(BuildContext context) {
+    final texto = widget.controlador.text.trim();
+    final minutos = leerDuracion(texto);
+    final malo = texto.isNotEmpty && minutos == null;
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Expanded(child: TextField(
+        controller: widget.controlador,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        onChanged: (_) => setState(() {}),
+        decoration: InputDecoration(
+          labelText: t('lbl_tiempo_trabajado'),
+          hintText: t('ph_tiempo_trabajado'),
+          prefixIcon: const Icon(Icons.timer_outlined),
+          helperText: malo ? t('msg_tiempo_no_valido') : (minutos != null ? textoDuracion(minutos) : null),
+          helperStyle: TextStyle(color: malo ? Colors.red : null),
+        ),
+      )),
+      const SizedBox(width: 8),
+      Padding(padding: const EdgeInsets.only(top: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(icon: const Icon(Icons.remove_circle_outline), visualDensity: VisualDensity.compact,
+            onPressed: widget.personas > 1 ? () => widget.alCambiarPersonas(widget.personas - 1) : null),
+        Text('× ${widget.personas}', style: const TextStyle(fontSize: 16)),
+        IconButton(icon: const Icon(Icons.add_circle_outline), visualDensity: VisualDensity.compact,
+            onPressed: () => widget.alCambiarPersonas(widget.personas + 1)),
+      ])),
+    ]);
+  }
+}

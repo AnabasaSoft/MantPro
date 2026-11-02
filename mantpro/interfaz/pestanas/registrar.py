@@ -34,8 +34,9 @@ from ..comun import (_crear_checks_etiquetas, _estilo_zona_arrastre, _poblar_com
                      _tags_desde_checks, tt)
 from ..widgets.fotos import DialogoSelectorFoto, GaleriaFotosWidget, LabelArrastrable, VisorFoto
 from ...nucleo.fotos import con_fotos_galeria
-from ...nucleo import consumos, usuarios
+from ...nucleo import consumos, usuarios, mano_obra
 from ..widgets.repuestos import RepuestosUsadosWidget
+from ..widgets.tiempo import CampoTiempoTrabajo
 
 class PestanaRegistrar:
     """Pestaña «Registrar»: alta directa de trabajos.
@@ -91,6 +92,8 @@ class PestanaRegistrar:
         fila_horas_paro_entry.addWidget(self.spin_horas_paro_entry)
         l.addLayout(fila_horas_paro_entry)
 
+        self.tiempo_entry = CampoTiempoTrabajo(self)
+        l.addWidget(self.tiempo_entry)
         self.repuestos_entry = RepuestosUsadosWidget(self)
         self.combo_maquina_entry.currentIndexChanged.connect(
             lambda _i: self.repuestos_entry.set_maquina(self.combo_maquina_entry.currentData()))
@@ -165,7 +168,8 @@ class PestanaRegistrar:
             # Repuestos usados: salen del stock y quedan con el trabajo y su precio
             consumos.registrar_consumo(tarea_id, self.repuestos_entry.items(), usuarios.id_actual(),
                                        usuarios.nombre_actual(), r, d)
-            self.repuestos_entry.vaciar()
+            mano_obra.fijar_tiempo(tarea_id, self.tiempo_entry.minutos(), self.tiempo_entry.personas(), registrar=False)
+            self.repuestos_entry.vaciar(); self.tiempo_entry.vaciar()
             self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()
             self.chk_urgente.setChecked(False); self.chk_electrico.setChecked(False)

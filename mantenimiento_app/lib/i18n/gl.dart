@@ -226,4 +226,8 @@ const Map<String, String> traduccionesGl = {
     "btn_con_repuestos": "Con recambios",
     "lbl_repuestos_usados_q": "Usaches recambios?",
     "btn_sin_repuestos": "Sen recambios",
+    // --- Tiempo trabajado ---
+    "lbl_tiempo_trabajado": "Tempo traballado",
+    "ph_tiempo_trabajado": "p. ex. 1:30 ou 1,5",
+    "msg_tiempo_no_valido": "non se entende",
 };

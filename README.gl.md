@@ -182,6 +182,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **👥 Estatísticas por técnico**: botón no Dashboard cos traballos de cada técnico por ano e mes, avarías, preventivos, horas de parada e pendentes asignados agora mesmo, con gráfico de barras; filtrable por tipo (todos, traballos e avarías ou mantemento preventivo) e exportable a PDF (con logotipo) e Excel
 - **🔩 Recambios por máquina**: que artigos do almacén leva cada máquina e cantos, co seu stock e localización, e en que máquinas se usa cada artigo (ver [Maquinaria](#-maquinaria))
 - **💶 Recambios usados e o seu custo**: ao rexistrar, completar ou editar un traballo apúntanse os recambios usados (propóñense primeiro os da máquina); saen do stock e quedan gardados co traballo e o prezo dese momento, así que o custo non cambia aínda que despois cambie o prezo. Ao corrixilos axústase o stock. Cada artigo pode ter prezo unitario (moeda configurable). `Máquinas > 💶 Custo de recambios` mostra o custo por máquina, coas súas submáquinas, por ano e exportable a Excel; o historial, o PDF, o Excel e o CSV inclúenos
+- **⏱️ Tempo traballado**: canto durou cada traballo e cantas persoas, **apuntado despois** (sen cronómetro: nunha avaría primeiro arránxase), no PC ou no móbil, tamén ao completar avisos e pendentes, e corrixible no historial. Cun custo da hora interno (só administradores; cada traballo garda a tarifa do momento), `Máquinas > 💶 Custos` mostra horas, man de obra, recambios e total por máquina, e as estatísticas por técnico inclúen as súas horas
 - **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para pegar nas máquinas; ao escanealas coa app MantPro ábrese a ficha da máquina
 - **🔍 Aviso de repetidos**: ao crear ou renomear unha máquina, ou ao crear ou editar un artigo, avisa se xa hai outro co mesmo código ou un nome igual ou moi parecido (por exemplo «Extractor de finos» / «Extracción de finos»), sen avisar cando só cambia o número («Lora 1» / «Lora 2»)
 - **📲 Instalar as apps cun QR**: `Ferramentas > 📱 Instalar MantPro no móbil` e `📦 Instalar MantPro Stock no móbil` mostran un QR que, ao escanealo coa cámara do móbil, descarga a última versión estable da app
@@ -806,7 +807,6 @@ seguranza, mira [SECURITY.md](SECURITY.md).
 
 O que vén, sen datas e sen unha orde pechada:
 
-- **Custo de man de obra** (prezo por hora de cada técnico) para sumar ao de material
 - **Provedores, prezos e pedidos de compra** a partir do stock baixo mínimo
 - **Preventivo por contador** (horas de uso, ciclos, km), ademais de por data
 - **Tempo traballado e sinatura** ao pechar un traballo (tamén no móbil)
@@ -818,7 +818,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano, alemán…) e app para iPhone
 
-Feito hai pouco: recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

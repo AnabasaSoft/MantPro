@@ -899,6 +899,9 @@ class Registro {
   /// con él) o la que trae del PC un trabajo del historial.
   /// {"plantilla": nombre, "items": [...]}
   Map<String, dynamic>? checklist;
+  /// Tiempo trabajado (minutos) y cuántas personas; se apunta después.
+  int? minutosTrabajo;
+  int personas;
 
   Registro({
     this.id,
@@ -918,6 +921,8 @@ class Registro {
     List<String>? fotosExtra,
     List<String>? serverFotosExtra,
     this.checklist,
+    this.minutosTrabajo,
+    this.personas = 1,
   }) : materiales = materiales ?? [],
        fotosExtra = fotosExtra ?? [],
        serverFotosExtra = serverFotosExtra ?? [];
@@ -940,6 +945,8 @@ class Registro {
     'fotosExtra': fotosExtra,
     'serverFotosExtra': serverFotosExtra,
     'checklist': checklist,
+    'minutosTrabajo': minutosTrabajo,
+    'personas': personas,
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -963,6 +970,8 @@ class Registro {
     fotosExtra: listaTextos(json['fotosExtra']),
     serverFotosExtra: listaTextos(json['serverFotosExtra']),
     checklist: json['checklist'] is Map ? Map<String, dynamic>.from(json['checklist']) : null,
+    minutosTrabajo: json['minutosTrabajo'],
+    personas: json['personas'] ?? 1,
   );
 }
 
@@ -1640,7 +1649,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
             }).toList();
             await cachearFotosHistorial(urlUsar, nuevosH);
             final prefs = await SharedPreferences.getInstance();
@@ -1835,7 +1844,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -1895,6 +1904,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 
       if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
       r.fields.addAll(camposChecklist(d['checklist']));
+        if (d['minutos_trabajo'] != null) { r.fields['minutos_trabajo'] = '${d['minutos_trabajo']}'; r.fields['personas'] = '${d['personas'] ?? 1}'; }
 
       if (d['imagePath'] != null && File(d['imagePath']).existsSync()) {
         r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
@@ -2051,6 +2061,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'fotosExtra': r.fotosExtra,
           'checklist': r.checklist,
           'checklist_id': p.checklistId,   // para recuperarla si se deshace
+          'minutos_trabajo': r.minutosTrabajo,
+          'personas': r.personas,
         };
         // ---------------------
 
@@ -2370,7 +2382,7 @@ class _TabAvisosState extends State<TabAvisos> {
     setState(() => _cargando = true);
 
     List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2384,7 +2396,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2420,18 +2432,28 @@ class _TabAvisosState extends State<TabAvisos> {
     // Repuestos usados (opcional): sin lista, con un botón más en la
     // confirmación; con lista, se pregunta al guardarla.
     bool conRepuestos = false;
+    // Tiempo trabajado (opcional), en el mismo diálogo: se apunta al acabar
+    final tiempoCtrl = TextEditingController();
+    int personas = 1;
+    Widget campoTiempo(StateSetter setSt) => CampoTiempoTrabajo(controlador: tiempoCtrl, personas: personas,
+        alCambiarPersonas: (v) => setSt(() => personas = v));
     if (lista.isEmpty) {
-      final r = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_confirmar")), content: Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), actions: [
+      final r = await showDialog<String>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(title: Text(t("lbl_confirmar")),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), const SizedBox(height: 10), campoTiempo(setSt)]), actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, 'no'), child: Text(t("btn_no"))),
         if (_urlPC != null) TextButton.icon(icon: const Icon(Icons.build, size: 16), onPressed: () => Navigator.pop(ctx, 'repuestos'), label: Text(t("btn_con_repuestos"))),
-        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, 'si'), child: Text(t("btn_si"), style: const TextStyle(color: Colors.white)))]));
+        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, 'si'), child: Text(t("btn_si"), style: const TextStyle(color: Colors.white)))])));
       if (r == null || r == 'no') return;
       conRepuestos = r == 'repuestos';
-    } else if (_urlPC != null) {
-      conRepuestos = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_repuestos_usados_q")), actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_sin_repuestos"))),
-        ElevatedButton.icon(icon: const Icon(Icons.build, size: 16), onPressed: () => Navigator.pop(ctx, true), label: Text(t("btn_anadir_material")))])) == true;
+    } else {
+      conRepuestos = await showDialog<bool>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: Text(_urlPC != null ? t("lbl_repuestos_usados_q") : t("lbl_tiempo_trabajado")),
+        content: campoTiempo(setSt),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_urlPC != null ? t("btn_sin_repuestos") : t("btn_si"))),
+          if (_urlPC != null) ElevatedButton.icon(icon: const Icon(Icons.build, size: 16), onPressed: () => Navigator.pop(ctx, true), label: Text(t("btn_anadir_material")))]))) == true;
     }
+    final minutos = leerDuracion(tiempoCtrl.text);
     List<Map<String, dynamic>> materiales = [];
     if (conRepuestos && mounted) {
       final elegidos = await pedirRepuestosUsados(context, _urlPC!);
@@ -2439,7 +2461,8 @@ class _TabAvisosState extends State<TabAvisos> {
       materiales = elegidos;
     }
     setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
-        if (materiales.isNotEmpty) 'materiales': json.encode(materiales)})); await _guardarColas(); _sincronizar();
+        if (materiales.isNotEmpty) 'materiales': json.encode(materiales),
+        if (minutos != null) 'minutos_trabajo': '$minutos', if (minutos != null) 'personas': '$personas'})); await _guardarColas(); _sincronizar();
   }
   Future<void> _descompletar(AvisoPC a) async {
     if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_deshecho")))); return; }
@@ -2529,7 +2552,9 @@ class _TabHistorialState extends State<TabHistorial> {
     for (var e in _colaEdiciones) { int i = _registros.indexWhere((r) => r.id.toString() == e['id']); if (i != -1) { _registros[i] = Registro(id: _registros[i].id, titulo: _registros[i].titulo, detalles: e['detalles'], tags: e['tags'], serverImageName: _registros[i].serverImageName, serverImageNameDespues: _registros[i].serverImageNameDespues, imagePath: e['fotoPath'] ?? _registros[i].imagePath, imagePathDespues: e['fotoPathDespues'] ?? _registros[i].imagePathDespues, maquinaId: e.containsKey('maquinaId') ? e['maquinaId'] : _registros[i].maquinaId,
         serverFotosExtra: e.containsKey('fotosExtraMantener') ? listaTextos(e['fotosExtraMantener']) : _registros[i].serverFotosExtra, fotosExtra: listaTextos(e['fotosExtra']),
         checklist: _registros[i].checklist,
-        materiales: e.containsKey('materiales') ? List<Map<String, dynamic>>.from((e['materiales'] as List).map((x) => Map<String, dynamic>.from(x))) : _registros[i].materiales); } }
+        materiales: e.containsKey('materiales') ? List<Map<String, dynamic>>.from((e['materiales'] as List).map((x) => Map<String, dynamic>.from(x))) : _registros[i].materiales,
+        minutosTrabajo: e.containsKey('minutos_trabajo') ? e['minutos_trabajo'] : _registros[i].minutosTrabajo,
+        personas: e.containsKey('minutos_trabajo') ? (e['personas'] ?? 1) : _registros[i].personas); } }
   }
   Future<void> _sincronizarEdiciones() async {
     if (_urlPC == null || _colaEdiciones.isEmpty) return;
@@ -2544,6 +2569,7 @@ class _TabHistorialState extends State<TabHistorial> {
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
         if (e.containsKey('materiales')) req.fields['materiales'] = json.encode(e['materiales']);
+        if (e.containsKey('minutos_trabajo')) { req.fields['minutos_trabajo'] = '${e['minutos_trabajo'] ?? ''}'; req.fields['personas'] = '${e['personas'] ?? 1}'; }
         for (final fp in listaTextos(e['fotosExtra'])) { if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await req.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); ok.add(e); } else if (res.statusCode == 200) ok.add(e);
@@ -2595,7 +2621,8 @@ class _TabHistorialState extends State<TabHistorial> {
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
     List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null,
-        materiales: (i['materiales'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList())).toList();
+        materiales: (i['materiales'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList(),
+        minutosTrabajo: i['minutos_trabajo'], personas: i['personas'] ?? 1)).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
       if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
@@ -2735,12 +2762,15 @@ class _TabHistorialState extends State<TabHistorial> {
         // Si ya había una edición sin enviar, su colección es la vigente.
         serverFotosExtra: ep.containsKey('fotosExtraMantener') ? listaTextos(ep['fotosExtraMantener']) : r.serverFotosExtra,
         fotosExtra: listaTextos(ep['fotosExtra']),
-        materiales: ep.containsKey('materiales') ? List<Map<String, dynamic>>.from((ep['materiales'] as List).map((e) => Map<String, dynamic>.from(e))) : r.materiales),
+        materiales: ep.containsKey('materiales') ? List<Map<String, dynamic>>.from((ep['materiales'] as List).map((e) => Map<String, dynamic>.from(e))) : r.materiales,
+        minutosTrabajo: ep.containsKey('minutos_trabajo') ? ep['minutos_trabajo'] : r.minutosTrabajo,
+        personas: ep.containsKey('minutos_trabajo') ? (ep['personas'] ?? 1) : r.personas),
         esHistorial: true, onSave: (re) async {
       Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
           'fotosExtra': re.fotosExtra, 'fotosExtraMantener': re.serverFotosExtra,
           // Repuestos usados: el PC ajusta el stock por la diferencia
-          'materiales': re.materiales};
+          'materiales': re.materiales,
+          'minutos_trabajo': re.minutosTrabajo, 'personas': re.personas};
       int i = _colaEdiciones.indexWhere((e) => e['id'] == r.id.toString()); if (i != -1) _colaEdiciones[i] = ne; else _colaEdiciones.add(ne);
       await _guardarCola(); setState(() => _aplicarCambiosVisuales()); _sincronizarEdiciones(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_guardado"))));
     })));
@@ -2858,6 +2888,11 @@ class _TabHistorialState extends State<TabHistorial> {
                   Flexible(child: Text(r.maquinaNombre!, style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
                 ])),
               filaChecklistHistorial(context, r.checklist, r.detalles.split('\n').first),
+              if ((r.minutosTrabajo ?? 0) > 0) Padding(padding: const EdgeInsets.only(top: 3), child: Row(children: [
+                const Icon(Icons.timer_outlined, size: 14, color: Colors.blueGrey),
+                const SizedBox(width: 4),
+                Text(textoDuracion(r.minutosTrabajo) + (r.personas > 1 ? ' × ${r.personas}' : ''), style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+              ])),
               if (r.materiales.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 3), child: Row(children: [
                 const Icon(Icons.build, size: 14, color: Colors.blueGrey),
                 const SizedBox(width: 4),
@@ -3053,6 +3088,8 @@ class _FormScreenState extends State<FormScreen> {
   bool _u=false, _e=false, _m=false, _p=false;
   String _prioridad = 'Media';
   List<Map<String, dynamic>> _materiales = [];
+  final _tiempoCtrl = TextEditingController();   // tiempo trabajado («1:30»)
+  int _personas = 1;
   int? _maquinaId;
   int? _especialidadId;
   List<MapEntry<String, int?>> _arbolMaquinas = MaquinasCache.arbol([]);
@@ -3072,7 +3109,7 @@ class _FormScreenState extends State<FormScreen> {
       // reabre "Gestionar" sobre el mismo pendiente.
       if (widget.tagsIniciales != null) { final tgs = widget.tagsIniciales!; _u=tgs.contains("Urgente"); _e=tgs.contains("Eléctrico"); _m=tgs.contains("Mecánico"); _p=tgs.contains("Preventivo"); _tag.text = tgs.split(', ').where((x) => x.isNotEmpty && !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(x)).join(', '); }
     }
-    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _maquinaId = r.maquinaId; _prioridad = r.prioridad; }
+    if (widget.registroExistente != null) { final r = widget.registroExistente!; if (r.titulo.isNotEmpty) _t.text = r.titulo; _d.text = r.detalles.replaceAll(RegExp(r"\[FOTO.*?:.*?\]"), "").replaceAll(RegExp(r"\[REF:.*?\]"), "").trim(); if (r.imagePath != null && File(r.imagePath!).existsSync()) _img = r.imagePath; if (r.imagePathDespues != null && File(r.imagePathDespues!).existsSync()) _imgDespues = r.imagePathDespues; _u=r.tags.contains("Urgente"); _e=r.tags.contains("Eléctrico"); _m=r.tags.contains("Mecánico"); _p=r.tags.contains("Preventivo"); _tag.text = r.tags.split(', ').where((t) => !['Urgente','Eléctrico','Mecánico','Preventivo'].contains(t)).join(', '); _materiales = r.materiales.map((e) => Map<String, dynamic>.from(e)).toList(); _tiempoCtrl.text = textoEntradaDuracion(r.minutosTrabajo); _personas = r.personas; _maquinaId = r.maquinaId; _prioridad = r.prioridad; }
     if (widget.pendientePC != null) {
       // Un pendiente puede traer colección si viene de revertir un trabajo.
       _d.text = _d.text.replaceAll(RegExp(r"\[FOTOS:.*?\]"), "").trim();
@@ -3182,7 +3219,8 @@ class _FormScreenState extends State<FormScreen> {
     // ---------------------------
 
     Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId, fotosExtra: galeriaLocal, serverFotosExtra: galeriaServidor,
-        checklist: (lista != null && lista.isNotEmpty) ? lista : null);
+        checklist: (lista != null && lista.isNotEmpty) ? lista : null,
+        minutosTrabajo: leerDuracion(_tiempoCtrl.text), personas: _personas);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -3230,6 +3268,10 @@ class _FormScreenState extends State<FormScreen> {
           items: _arbolMaquinas.map((e) => DropdownMenuItem<int?>(value: e.value, child: Text(e.key))).toList(),
           onChanged: (v) => setState(() => _maquinaId = v),
         ),
+        if (!widget.esCrearPendiente) ...[
+          const SizedBox(height: 10),
+          CampoTiempoTrabajo(controlador: _tiempoCtrl, personas: _personas, alCambiarPersonas: (v) => setState(() => _personas = v)),
+        ],
         const SizedBox(height: 15), const Divider(),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(t("lbl_materiales_usados"), style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -3511,6 +3553,7 @@ class SincronizadorGlobal {
           req.fields['tags'] = item.tags;
           if (item.fecha != null) req.fields['fecha'] = item.fecha!;
           if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
+          if (item.minutosTrabajo != null) { req.fields['minutos_trabajo'] = '${item.minutosTrabajo}'; req.fields['personas'] = '${item.personas}'; }
         if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
           if (item.imagePath != null && File(item.imagePath!).existsSync()) {
             req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
@@ -3554,6 +3597,7 @@ class SincronizadorGlobal {
         if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
         if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
         r.fields.addAll(camposChecklist(d['checklist']));
+        if (d['minutos_trabajo'] != null) { r.fields['minutos_trabajo'] = '${d['minutos_trabajo']}'; r.fields['personas'] = '${d['personas'] ?? 1}'; }
         if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
         if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
         for (final fp in listaTextos(d['fotosExtra'])) { if (File(fp).existsSync()) r.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
@@ -3587,7 +3631,7 @@ class SincronizadorGlobal {
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
     List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -3607,6 +3651,7 @@ class SincronizadorGlobal {
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
         if (e.containsKey('materiales')) req.fields['materiales'] = json.encode(e['materiales']);
+        if (e.containsKey('minutos_trabajo')) { req.fields['minutos_trabajo'] = '${e['minutos_trabajo'] ?? ''}'; req.fields['personas'] = '${e['personas'] ?? 1}'; }
         for (final fp in listaTextos(e['fotosExtra'])) { if (File(fp).existsSync()) req.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
         final res = await req.send();
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); hok.add(e); } else if (res.statusCode == 200) hok.add(e);
@@ -3632,7 +3677,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         nuevosH = dH.map((i) => <String, dynamic>{
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? []
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
         }).toList();
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');

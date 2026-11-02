@@ -183,6 +183,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **👥 Estadístiques per tècnic**: botó al Dashboard amb els treballs de cada tècnic per any i mes, avaries, preventius, hores d'aturada i pendents assignats ara mateix, amb gràfic de barres; filtrable per tipus (tots, treballs i avaries o manteniment preventiu) i exportable a PDF (amb logotip) i Excel
 - **🔩 Recanvis per màquina**: quins articles del magatzem porta cada màquina i quants, amb el seu estoc i ubicació, i a quines màquines s'utilitza cada article (vegeu [Maquinària](#-maquinària))
 - **💶 Recanvis utilitzats i el seu cost**: en registrar, completar o editar un treball s'hi apunten els recanvis utilitzats (es proposen primer els de la màquina); surten de l'estoc i queden desats amb el treball i el preu d'aquell moment, així que el cost no canvia encara que després canviï el preu. En corregir-los s'ajusta l'estoc. Cada article pot tenir preu unitari (moneda configurable). `Màquines > 💶 Cost de recanvis` mostra el cost per màquina, amb les submàquines, per any i exportable a Excel; l'historial, el PDF, l'Excel i el CSV els inclouen
+- **⏱️ Temps treballat**: quant va durar cada treball i quantes persones, **apuntat després** (sense cronòmetre: en una avaria primer s'arregla), al PC o al mòbil, també en completar avisos i pendents, i corregible a l'historial. Amb un cost de l'hora intern (només administradors; cada treball desa la tarifa del moment), `Màquines > 💶 Costos` mostra hores, mà d'obra, recanvis i total per màquina, i les estadístiques per tècnic inclouen les seves hores
 - **🏷️ Etiquetes QR per màquina**: PDF d'etiquetes per enganxar a les màquines; en escanejar-les amb l'app MantPro s'obre la fitxa de la màquina
 - **🔍 Avís de repetits**: en crear o reanomenar una màquina, o en crear o editar un article, avisa si ja n'hi ha un altre amb el mateix codi o un nom igual o molt semblant (per exemple «Extractor de fins» / «Extracció de fins»), sense avisar quan només canvia el número («Lora 1» / «Lora 2»)
 - **📲 Instal·lar les apps amb un QR**: `Eines > 📱 Instal·lar MantPro al mòbil` i `📦 Instal·lar MantPro Stock al mòbil` mostren un QR que, en escanejar-lo amb la càmera del mòbil, baixa l'última versió estable de l'app
@@ -812,7 +813,6 @@ seguretat, mira [SECURITY.md](SECURITY.md).
 
 El que ve, sense dates i sense un ordre tancat:
 
-- **Cost de mà d'obra** (preu per hora de cada tècnic) per sumar al de material
 - **Proveïdors, preus i comandes de compra** a partir de l'estoc sota mínim
 - **Preventiu per comptador** (hores d'ús, cicles, km), a més de per data
 - **Temps treballat i signatura** en tancar un treball (també al mòbil)
@@ -824,7 +824,7 @@ El que ve, sense dates i sense un ordre tancat:
 - **Diversos centres o plantes** amb dades i indicadors per centre
 - Més idiomes (italià, alemany…) i app per a iPhone
 
-Fet fa poc: recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
+Fet fa poc: temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

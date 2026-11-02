@@ -84,6 +84,7 @@ _CAMPOS = {
     "País (festivos)": "aud_f_pais", "Región (festivos)": "aud_f_region",
     "Región superior (festivos)": "aud_f_region_superior", "Idioma": "aud_f_idioma",
     "Precio unitario": "aud_f_precio", "Moneda": "aud_f_moneda",
+    "Tiempo trabajado": "aud_f_tiempo", "Coste de la hora de trabajo": "aud_f_coste_hora",
 }
 
 

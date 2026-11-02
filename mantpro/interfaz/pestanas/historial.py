@@ -32,8 +32,8 @@ from PyQt6.QtGui import QIcon, QColor, QPixmap
 from ...idiomas import t
 from ..comun import _estilo_check_etiqueta, traducir_tags_bd, tt
 from ..dialogos.trabajos import EditDialog
-from ...nucleo import usuarios, checklists, consumos
-from ..dialogos.checklists import DialogoRellenarChecklist, resumen_texto
+from ...nucleo import usuarios, checklists, consumos, mano_obra
+from ..dialogos.checklists import DialogoRellenarChecklist, resumen_texto, texto_tiempo_export
 
 class PestanaHistorial:
     """Pestañas «Historial» y «Buscador»: consulta, edición, borrado y reasignación de trabajos.
@@ -59,6 +59,7 @@ class PestanaHistorial:
         table.setRowCount(len(data))
         listas = checklists.resultados_de([f[0] for f in data])
         usados = consumos.materiales_de_trabajos([f[0] for f in data])
+        tiempos = mano_obra.tiempos_de([f[0] for f in data])
         moneda = consumos.moneda()
         pm_foto = QPixmap(16, 16); pm_foto.fill(QColor("#3daee9")); icon_foto = QIcon(pm_foto)
         pm_vacio = QPixmap(16, 16); pm_vacio.fill(Qt.GlobalColor.transparent); icon_vacio = QIcon(pm_vacio)
@@ -77,6 +78,11 @@ class PestanaHistorial:
                 r_lista = checklists.recuento(lista["items"])
                 desc_visual = ("☑️❌ " if r_lista["mal"] else "☑️ ") + desc_visual
                 desc_limpia += f"\n\n☑️ {lista['plantilla']}: {resumen_texto(lista['items'])}"
+            tiempo = tiempos.get(id_t)
+            if tiempo:
+                desc_visual = "⏱️ " + desc_visual
+                desc_limpia += "\n\n⏱️ " + tt("lbl_tiempo_trabajado", "⏱️ Tiempo trabajado").replace("⏱️", "").strip() + \
+                    ": " + texto_tiempo_export(tiempo, moneda)
             mats = usados.get(id_t)
             if mats:
                 importe, sin_precio = consumos.coste(mats)
@@ -363,10 +369,11 @@ class PestanaHistorial:
             maquina_id = d[6] if len(d) > 6 else None
             horas_paro = d[7] if len(d) > 7 else None
             dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id, horas_paro=horas_paro,
-                             repuestos=consumos.materiales_de_trabajo(i))
+                             repuestos=consumos.materiales_de_trabajo(i), tiempo=mano_obra.tiempo_de(i))
             if dlg.exec():
                 fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro = dlg.get_data()
                 self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro)
+                mano_obra.fijar_tiempo(i, dlg.tiempo.minutos(), dlg.tiempo.personas())
                 # Repuestos: si han cambiado, el stock se ajusta por la diferencia
                 consumos.corregir_consumo(i, dlg.repuestos.items(), usuarios.id_actual(), usuarios.nombre_actual(),
                                           (desc or "").split("\n")[0])

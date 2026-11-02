@@ -40,7 +40,7 @@ from ...nucleo.fotos import con_fotos_galeria, fotos_galeria, quitar_marcas_foto
 
 class EditDialog(QDialog):
     def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, horas_paro=None,
-                 repuestos=None):
+                 repuestos=None, tiempo=None):
         super().__init__(parent)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
@@ -143,6 +143,9 @@ class EditDialog(QDialog):
         fila_horas_paro.addWidget(self.spin_horas_paro)
         l.addLayout(fila_horas_paro)
 
+        from ..widgets.tiempo import CampoTiempoTrabajo
+        self.tiempo = CampoTiempoTrabajo(self, (tiempo or {}).get("minutos"), (tiempo or {}).get("personas", 1))
+        l.addWidget(self.tiempo)
         # Repuestos usados: al cambiarlos se ajusta el stock por la diferencia
         from ..widgets.repuestos import RepuestosUsadosWidget
         self.repuestos = RepuestosUsadosWidget(self, repuestos or [])
@@ -337,6 +340,9 @@ class CompleteDialog(QDialog):
         self.galeria = GaleriaFotosWidget(self.carpeta_fotos, self, fotos_galeria(detalles))
         l.addWidget(self.galeria)
         from ..widgets.repuestos import RepuestosUsadosWidget
+        from ..widgets.tiempo import CampoTiempoTrabajo
+        self.tiempo = CampoTiempoTrabajo(self)
+        l.addWidget(self.tiempo)
         self.repuestos = RepuestosUsadosWidget(self)
         l.addWidget(self.repuestos)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel); b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar")); b.accepted.connect(self.accept); b.rejected.connect(self.reject); l.addWidget(b); self.setLayout(l)

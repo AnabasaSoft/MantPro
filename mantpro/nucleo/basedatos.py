@@ -81,6 +81,9 @@ class GestorBaseDatos:
         # Repuestos consumidos en cada trabajo y precio de los artículos
         from . import consumos
         consumos.inicializar()
+        # Tiempo trabajado en cada trabajo y coste de la hora
+        from . import mano_obra
+        mano_obra.inicializar()
         # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
         maquinas.configurar_db(self.db_name)
         maquinas.inicializar()

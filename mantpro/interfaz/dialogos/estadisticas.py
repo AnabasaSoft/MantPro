@@ -115,11 +115,14 @@ class DialogoEstadisticasTecnicos(QDialog):
         # Las columnas que no aportan nada con el tipo elegido no se muestran
         # (en preventivos todo es preventivo y no hay averías ni pendientes; en
         # trabajos no hay preventivos).
-        self._columnas = [] if tipo == "preventivos" else [
-            c for c in ("averias", "preventivos", "horas_paro", "pendientes") if not (tipo == "trabajos" and c == "preventivos")]
-        self.lbl_nota.setVisible(bool(self._columnas))
+        # Horas trabajadas (el tiempo apuntado en sus trabajos): en todos los tipos
+        self._columnas = ["horas_trabajo"] + ([] if tipo == "preventivos" else [
+            c for c in ("averias", "preventivos", "horas_paro", "pendientes") if not (tipo == "trabajos" and c == "preventivos")])
+        self._con_nota = tipo != "preventivos"
+        self.lbl_nota.setVisible(self._con_nota)
         nombres_col = {"averias": tt("hdr_averias", "Averías"), "preventivos": tt("hdr_preventivos", "Preventivos"),
-                       "horas_paro": tt("hdr_horas_paro", "Horas de parada"), "pendientes": tt("hdr_pendientes_asignados", "Pendientes")}
+                       "horas_paro": tt("hdr_horas_paro", "Horas de parada"), "pendientes": tt("hdr_pendientes_asignados", "Pendientes"),
+                       "horas_trabajo": tt("hdr_horas_trabajadas", "Horas trabajadas")}
         cabeceras = ([tt("hdr_tecnico", "Técnico"), tt("hdr_total", "Total")]
                      + [nombres_col[c] for c in self._columnas] + meses)
         self.tabla.setSortingEnabled(False)
@@ -128,7 +131,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         self.tabla.setRowCount(len(datos))
         for i, d in enumerate(datos):
             celdas = [QTableWidgetItem(d["nombre"]), _ItemNumero(d["total"])]
-            celdas += [_ItemNumero(d[c], f"{d[c]:g}") for c in self._columnas]
+            celdas += [_ItemNumero(round(d[c], 2), f"{round(d[c], 2):g}") for c in self._columnas]
             if anio:
                 celdas += [_ItemNumero(n, str(n) if n else "·") for n in d["meses"]]
             for j, item in enumerate(celdas):
@@ -149,7 +152,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         cabeceras = [self.tabla.horizontalHeaderItem(c).text() for c in range(self.tabla.columnCount())]
         filas = []
         for d in self._datos:
-            fila = [d["nombre"], d["total"]] + [d[c] for c in self._columnas]
+            fila = [d["nombre"], d["total"]] + [round(d[c], 2) for c in self._columnas]
             if self._anio:
                 fila += d["meses"]
             filas.append(fila)
@@ -208,7 +211,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         f_total = wb.add_format({"border": 1, "num_format": "0.##", "align": "right", "bold": True})
         ws.write(0, 0, titulo, f_tit)
         ws.write(1, 0, fecha)
-        if self._columnas:
+        if self._con_nota:
             ws.write(2, 0, self.lbl_nota.text(), f_nota)
         fila0 = 4
         for c, txt in enumerate(cabeceras): ws.write(fila0, c, txt, f_cab)
@@ -290,7 +293,7 @@ class DialogoEstadisticasTecnicos(QDialog):
                 ("LEFTPADDING", (fijas, 0), (-1, -1), 1), ("RIGHTPADDING", (fijas, 0), (-1, -1), 2),
             ]))
             elementos.append(tabla)
-            if self._columnas:
+            if self._con_nota:
                 elementos += [Spacer(1, 8), Paragraph(esc(self.lbl_nota.text()), nota)]
             doc.build(elementos)
         finally:

@@ -242,4 +242,8 @@ const Map<String, String> traduccionesPt = {
     "btn_con_repuestos": "Com peças",
     "lbl_repuestos_usados_q": "Você usou peças?",
     "btn_sin_repuestos": "Sem peças",
+    // --- Tiempo trabajado ---
+    "lbl_tiempo_trabajado": "Tempo trabalhado",
+    "ph_tiempo_trabajado": "ex.: 1:30 ou 1,5",
+    "msg_tiempo_no_valido": "não entendido",
 };

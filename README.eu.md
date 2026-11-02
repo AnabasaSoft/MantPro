@@ -185,6 +185,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **👥 Teknikarien estatistikak**: Aginte-mahaiko botoia, teknikari bakoitzaren lanak urteka eta hilabeteka, matxurak, prebentiboak, geldialdi-orduak eta une honetan esleituta dituen lanak erakusten dituena, barra-grafikoarekin; motaren arabera iragazten da (guztiak, lanak eta matxurak edo mantentze prebentiboa) eta PDFra (logoarekin) eta Excelera esportatzen da
 - **🔩 Makina bakoitzeko ordezko piezak**: makina bakoitzak biltegiko zein artikulu daramatzan eta zenbat, haien stockarekin eta kokapenarekin, eta artikulu bakoitza zein makinatan erabiltzen den (ikus [Makineria](#-makineria))
 - **💶 Erabilitako ordezko piezak eta haien kostua**: lan bat erregistratzean, osatzean edo editatzean erabilitako ordezko piezak idazten dira (makinarenak lehenengo proposatzen dira); stocketik ateratzen dira eta lanarekin batera gordetzen dira momentu horretako prezioarekin, beraz kostua ez da aldatzen prezioa gero aldatzen bada ere. Zuzentzean stocka doitzen da. Artikulu bakoitzak unitateko prezioa izan dezake (txanpona konfiguragarria). `Makinak > 💶 Ordezko piezen kostua` atalak makina bakoitzeko kostua erakusten du, azpimakinak barne, urteka eta Excelera esportagarria; historian, PDFan, Excelen eta CSVan agertzen dira
+- **⏱️ Lan egindako denbora**: lan bakoitzak zenbat iraun zuen eta zenbat pertsonak, **gero idatzita** (kronometrorik gabe: matxura batean lehenik konpontzen da), PCan edo mugikorrean, abisuak eta zain dauden lanak osatzean ere, eta historian zuzen daiteke. Barneko orduko kostu batekin (administratzaileek bakarrik; lan bakoitzak uneko tarifa gordetzen du), `Makinak > 💶 Kostuak` atalak orduak, esku-lana, ordezko piezak eta guztizkoa erakusten ditu makinako, eta teknikarien estatistiketan haien orduak agertzen dira
 - **🏷️ Makina bakoitzeko QR etiketak**: makinetan itsasteko etiketen PDFa; MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen da
 - **🔍 Bikoiztuen abisua**: makina bat sortzean edo izena aldatzean, edo artikulu bat sortzean edo editatzean, kode bera edo izen bera edo oso antzekoa duen beste bat badagoen abisatzen du (adib. «Finoen erauzgailua» / «Finoen erauzketa»), zenbakia bakarrik aldatzen denean abisatu gabe («Lora 1» / «Lora 2»)
 - **📲 Aplikazioak QR batekin instalatu**: `Tresnak > 📱 Instalatu MantPro mugikorrean` eta `📦 Instalatu MantPro Stock mugikorrean` aukerek QR bat erakusten dute; mugikorraren kamerarekin eskaneatzean aplikazioaren azken bertsio egonkorra deskargatzen da
@@ -821,7 +822,6 @@ Segurtasun-akatsetarako, ikus [SECURITY.md](SECURITY.md).
 
 Datozenak, datarik gabe eta ordena itxirik gabe:
 
-- **Esku-lanaren kostua** (teknikari bakoitzaren orduko prezioa) materialarenari gehitzeko
 - **Hornitzaileak, prezioak eta erosketa-eskaerak** gutxienekotik beherako stocketik abiatuta
 - **Kontagailu bidezko prebentiboa** (erabilera-orduak, zikloak, km), dataz gain
 - **Lan egindako denbora eta sinadura** lana ixtean (mugikorrean ere)
@@ -833,7 +833,7 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
 - Hizkuntza gehiago (italiera, alemana…) eta iPhonerako aplikazioa
 
-Berriki egina: lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
+Berriki egina: lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

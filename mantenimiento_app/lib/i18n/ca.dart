@@ -226,4 +226,8 @@ const Map<String, String> traduccionesCa = {
     "btn_con_repuestos": "Amb recanvis",
     "lbl_repuestos_usados_q": "Has fet servir recanvis?",
     "btn_sin_repuestos": "Sense recanvis",
+    // --- Tiempo trabajado ---
+    "lbl_tiempo_trabajado": "Temps treballat",
+    "ph_tiempo_trabajado": "p. ex. 1:30 o 1,5",
+    "msg_tiempo_no_valido": "no s'entén",
 };

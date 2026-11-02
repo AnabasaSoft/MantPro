@@ -533,3 +533,15 @@ def texto_repuestos_export(mats, moneda):
     lineas.append(f"{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" +
                   (f" ({tt('lbl_sin_precio_algunos', '(hay artículos sin precio)').strip('()')})" if sin_precio else ""))
     return "\n".join(lineas)
+
+
+
+def texto_tiempo_export(t, moneda):
+    """«1 h 30 min × 2 — 54,00 €» (o «-» si no hay tiempo apuntado)."""
+    if not t:
+        return "-"
+    from ...nucleo import consumos, mano_obra
+    texto = mano_obra.texto_tiempo(t)
+    if t.get("importe") is not None:
+        texto += f" — {consumos.formato_importe(t['importe'], moneda)}"
+    return texto

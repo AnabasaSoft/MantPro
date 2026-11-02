@@ -225,4 +225,8 @@ const Map<String, String> traduccionesEu = {
     "btn_con_repuestos": "Piezekin",
     "lbl_repuestos_usados_q": "Ordezko piezarik erabili duzu?",
     "btn_sin_repuestos": "Piezarik gabe",
+    // --- Tiempo trabajado ---
+    "lbl_tiempo_trabajado": "Lan egindako denbora",
+    "ph_tiempo_trabajado": "adib. 1:30 edo 1,5",
+    "msg_tiempo_no_valido": "ez da ulertzen",
 };

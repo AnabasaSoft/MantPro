@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -326,6 +326,7 @@ class ServidorSincronizacion(QThread):
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo, nueva_tarea, fecha_final)
+                self._tiempo_trabajo(request, nueva_tarea)
 
                 # Emitimos la señal pasando el título correcto para la notificación
                 self.registro_recibido.emit(titulo, detalles, tags, raw_desc if raw_desc else "", filename if filename else "")
@@ -495,6 +496,7 @@ class ServidorSincronizacion(QThread):
                     conn.commit()
 
                 self._descontar_materiales_trabajo(request, usuario, titulo, nueva_tarea, fecha_final)
+                self._tiempo_trabajo(request, nueva_tarea)
                 lista = checklists.normalizar_items(request.form.get('checklist', ''))
                 usuarios.auditar("pendientes", "completar", titulo, detalle="Pasa al historial" + (
                     f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
@@ -680,6 +682,7 @@ class ServidorSincronizacion(QThread):
                 nombres_maquinas = {m["id"]: m["nombre"] for m in maquinas.listar_maquinas()}
                 listas = checklists.resultados_de([r[0] for r in filas])
                 usados = consumos.materiales_de_trabajos([r[0] for r in filas])
+                tiempos = mano_obra.tiempos_de([r[0] for r in filas])
                 # Procesamos para extraer nombre de foto si existe
                 resultados = []
                 for r in filas:
@@ -711,7 +714,9 @@ class ServidorSincronizacion(QThread):
                         "maquina_nombre": nombres_maquinas.get(maquina_id, "") if maquina_id else "",
                         "checklist": listas.get(r[0]),
                         "materiales": [{"material_id": m["material_id"], "codigo": m["codigo"], "nombre": m["nombre"],
-                                        "unidad": m["unidad"], "cantidad": m["cantidad"]} for m in usados.get(r[0], [])]
+                                        "unidad": m["unidad"], "cantidad": m["cantidad"]} for m in usados.get(r[0], [])],
+                        "minutos_trabajo": (tiempos.get(r[0]) or {}).get("minutos"),
+                        "personas": (tiempos.get(r[0]) or {}).get("personas", 1)
                     })
                 conn.close()
                 return jsonify({"items": resultados, "has_more": hay_mas, "page": page})
@@ -931,6 +936,7 @@ class ServidorSincronizacion(QThread):
                 if tarea_nueva:
                     self._descontar_materiales_trabajo(request, g.usuario_mantpro, f"Mantenimiento Preventivo: {titulo}",
                                                        tarea_id, fecha_final)
+                    self._tiempo_trabajo(request, tarea_id)
                 usuarios.auditar("avisos", "completar", titulo, detalle=f"Completado el {fecha_final}" + (
                     f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
                     + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
@@ -1050,6 +1056,7 @@ class ServidorSincronizacion(QThread):
                             int(id_t), nuevos, g.usuario_mantpro['id'], g.usuario_mantpro['nombre'],
                             (desc_final or "").split("\n")[0]):
                         self.stock_actualizado.emit()
+                self._tiempo_trabajo(request, int(id_t), registrar=True)
                 despues = foto_tarea(self._lector, id_t)
                 usuarios.auditar("trabajos", "editar", (despues.get("descripcion") or "").split("\n")[0],
                                  cambios=usuarios.diferencias(antes_auditoria, despues, ETIQ_TAREA), objeto_id=int(id_t))
@@ -1432,6 +1439,19 @@ class ServidorSincronizacion(QThread):
             if filename:
                 nombres.append(filename)
         return nombres
+
+    def _tiempo_trabajo(self, req, tarea_id, registrar=False):
+        """Campos 'minutos_trabajo' y 'personas' del móvil (tiempo trabajado,
+        apuntado después, sin cronómetro). Solo si la app los envía."""
+        if tarea_id is None or 'minutos_trabajo' not in req.form:
+            return
+        try:
+            personas = int(req.form.get('personas') or 1)
+        except ValueError:
+            personas = 1
+        mano_obra.fijar_tiempo(tarea_id, mano_obra.leer_duracion(req.form.get('minutos_trabajo') + " min")
+                               if (req.form.get('minutos_trabajo') or "").strip() else None,
+                               personas, registrar=registrar)
 
     def _descontar_materiales_trabajo(self, req, usuario, referencia, tarea_id=None, fecha=None):
         """Lee el campo 'materiales' (JSON: [{"material_id":.., "cantidad":..}, ...])

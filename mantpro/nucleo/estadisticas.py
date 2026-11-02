@@ -56,19 +56,23 @@ def por_tecnico(ruta_db, anio=None, tipo=None):
     "trabajos" (averías y demás trabajos). Con "preventivos" no se cuentan
     los pendientes, que son trabajos por hacer y no preventivos."""
     con = conectar(ruta_db)
-    sql = "SELECT COALESCE(NULLIF(TRIM(usuario_nombre), ''), ?), fecha, tags, horas_paro FROM tareas"
+    # minutos_trabajo: tiempo trabajado apuntado en el trabajo (ver mano_obra.py)
+    columnas = {f[1] for f in con.execute("PRAGMA table_info(tareas)")}
+    minutos = "minutos_trabajo" if "minutos_trabajo" in columnas else "NULL"
+    sql = f"SELECT COALESCE(NULLIF(TRIM(usuario_nombre), ''), ?), fecha, tags, horas_paro, {minutos} FROM tareas"
     parametros = [usuarios.ETIQUETA_HISTORICO]
     if anio:
         sql += " WHERE substr(fecha, 1, 4) = ?"
         parametros.append(str(anio))
     datos = {}
-    for nombre, fecha, tags, horas in con.execute(sql, parametros):
+    for nombre, fecha, tags, horas, min_trabajo in con.execute(sql, parametros):
         preventivo = es_preventivo(tags)
         if (tipo == "preventivos" and not preventivo) or (tipo == "trabajos" and preventivo):
             continue
         d = datos.setdefault(nombre, {"nombre": nombre, "total": 0, "meses": [0] * 12, "averias": 0,
-                                      "preventivos": 0, "horas_paro": 0.0, "pendientes": 0})
+                                      "preventivos": 0, "horas_paro": 0.0, "pendientes": 0, "horas_trabajo": 0.0})
         d["total"] += 1
+        d["horas_trabajo"] += (min_trabajo or 0) / 60
         mes = (fecha or "")[5:7]
         if anio and mes.isdigit() and 1 <= int(mes) <= 12:
             d["meses"][int(mes) - 1] += 1
@@ -80,6 +84,6 @@ def por_tecnico(ruta_db, anio=None, tipo=None):
     for nombre, n in [] if tipo == "preventivos" else con.execute("SELECT asignado_nombre, COUNT(*) FROM pendientes "
                                  "WHERE TRIM(COALESCE(asignado_nombre, '')) <> '' GROUP BY asignado_nombre"):
         datos.setdefault(nombre, {"nombre": nombre, "total": 0, "meses": [0] * 12, "averias": 0,
-                                  "preventivos": 0, "horas_paro": 0.0, "pendientes": 0})["pendientes"] = n
+                                  "preventivos": 0, "horas_paro": 0.0, "pendientes": 0, "horas_trabajo": 0.0})["pendientes"] = n
     con.close()
     return sorted(datos.values(), key=lambda d: (-d["total"], d["nombre"].lower()))

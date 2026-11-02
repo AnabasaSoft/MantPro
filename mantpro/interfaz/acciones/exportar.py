@@ -36,8 +36,8 @@ from ..comun import tt
 from ..dialogos.trabajos import DialogoExportarPDF, DialogoFiltroTecnico
 from ..hilos import GeneradorPDFThread
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking, GraficoCircularTrabajos
-from ...nucleo import usuarios, maquinas, checklists, consumos
-from ..dialogos.checklists import texto_export, texto_repuestos_export
+from ...nucleo import usuarios, maquinas, checklists, consumos, mano_obra
+from ..dialogos.checklists import texto_export, texto_repuestos_export, texto_tiempo_export
 from ...nucleo.fotos import fotos_galeria
 from ...nucleo.rutas import DATA_DIR
 
@@ -61,11 +61,13 @@ class AccionesExportar:
             mapa_maquinas = maquinas.mapa_rutas_completas()
             listas = checklists.resultados_de([tarea[0] for tarea in datos])
             usados = consumos.materiales_de_trabajos([tarea[0] for tarea in datos]); moneda = consumos.moneda()
+            tiempos = mano_obra.tiempos_de([tarea[0] for tarea in datos])
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
                 writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después"), tt("lbl_coleccion_fotos", "Colección de fotos"), tt("lbl_checklist", "Lista de comprobación"),
-                                 tt("lbl_repuestos_usados", "🔩 Repuestos usados").replace("🔩", "").strip()])
+                                 tt("lbl_repuestos_usados", "🔩 Repuestos usados").replace("🔩", "").strip(),
+                                 tt("lbl_tiempo_trabajado", "⏱️ Tiempo trabajado").replace("⏱️", "").strip()])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD al formato corto del idioma activo
                     fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
@@ -88,7 +90,8 @@ class AccionesExportar:
                     coleccion = ", ".join(fotos_galeria(tarea[2])) or "-"
                     writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues, coleccion,
                                      texto_export(listas.get(tarea[0])),
-                                     texto_repuestos_export(usados.get(tarea[0]), moneda)])
+                                     texto_repuestos_export(usados.get(tarea[0]), moneda),
+                                     texto_tiempo_export(tiempos.get(tarea[0]), moneda)])
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -173,7 +176,8 @@ class AccionesExportar:
             listas = checklists.resultados_de([tarea[0] for tarea in datos])
             usados = consumos.materiales_de_trabajos([tarea[0] for tarea in datos]); moneda = consumos.moneda()
             col_coleccion = 7
-            col_lista = col_repuestos = None
+            col_lista = col_repuestos = col_tiempo = None
+            tiempos = mano_obra.tiempos_de([tarea[0] for tarea in datos])
             if listas:
                 col_lista = col_coleccion
                 worksheet.write(0, col_lista, tt("lbl_checklist", "Lista de comprobación"), bold)
@@ -183,6 +187,11 @@ class AccionesExportar:
                 col_repuestos = col_coleccion
                 worksheet.write(0, col_repuestos, tt("lbl_repuestos_usados", "🔩 Repuestos usados").replace("🔩", "").strip(), bold)
                 worksheet.set_column(col_repuestos, col_repuestos, 40)
+                col_coleccion += 1
+            if tiempos:
+                col_tiempo = col_coleccion
+                worksheet.write(0, col_tiempo, tt("lbl_tiempo_trabajado", "⏱️ Tiempo trabajado").replace("⏱️", "").strip(), bold)
+                worksheet.set_column(col_tiempo, col_tiempo, 26)
                 col_coleccion += 1
             max_coleccion = max((len(fotos_galeria(tarea[2])) for tarea in datos), default=0)
             for k in range(max_coleccion):
@@ -242,6 +251,8 @@ class AccionesExportar:
                     worksheet.write(row, col_lista, texto_export(listas.get(tarea[0])), wrap)
                 if col_repuestos is not None:
                     worksheet.write(row, col_repuestos, texto_repuestos_export(usados.get(tarea[0]), moneda), wrap)
+                if col_tiempo is not None:
+                    worksheet.write(row, col_tiempo, texto_tiempo_export(tiempos.get(tarea[0]), moneda), wrap)
                 for k, nombre_g in enumerate(fotos_galeria(tarea[2])):
                     ruta_g = os.path.join(self.carpeta_fotos, nombre_g)
                     opc = miniatura_excel(ruta_g) if os.path.exists(ruta_g) else None

@@ -182,6 +182,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **👥 Estatísticas por técnico**: botão no Painel com os serviços de cada técnico por ano e mês, falhas, preventivos, horas de parada e pendentes atribuídos agora, com gráfico de barras; filtrável por tipo (todos, serviços e falhas ou manutenção preventiva) e exportável para PDF (com logo) e Excel
 - **🔩 Peças de reposição por máquina**: quais itens do almoxarifado cada máquina leva e quantos, com seu estoque e localização, e em quais máquinas cada item é usado (veja [Máquinas](#-máquinas))
 - **💶 Peças usadas e seu custo**: ao registrar, concluir ou editar um serviço, anotam-se as peças usadas (as da máquina aparecem primeiro); elas saem do estoque e ficam salvas com o serviço e o preço daquele momento, então o custo não muda mesmo que o preço mude depois. Ao corrigi-las, o estoque é ajustado. Cada item pode ter preço unitário (moeda configurável). `Máquinas > 💶 Custo de peças` mostra o custo por máquina, incluindo as submáquinas, por ano e exportável para Excel; o histórico, o PDF, o Excel e o CSV as incluem
+- **⏱️ Tempo trabalhado**: quanto durou cada serviço e quantas pessoas, **anotado depois** (sem cronômetro: numa avaria primeiro se conserta), no PC ou no celular, também ao concluir avisos e pendentes, e corrigível no histórico. Com um custo da hora interno (somente administradores; cada serviço guarda a tarifa do momento), `Máquinas > 💶 Custos` mostra horas, mão de obra, peças e total por máquina, e as estatísticas por técnico incluem suas horas
 - **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para colar nas máquinas; ao escaneá-las com o aplicativo MantPro abre-se a ficha da máquina
 - **🔍 Aviso de duplicados**: ao criar ou renomear uma máquina, ou ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome igual ou muito parecido (por exemplo «Extrator de finos» / «Extração de finos»), sem avisar quando só muda o número («Lora 1» / «Lora 2»)
 - **📲 Instalar os aplicativos com um QR**: `Ferramentas > 📱 Instalar MantPro no celular` e `📦 Instalar MantPro Stock no celular` mostram um QR que, ao ser escaneado com a câmera do celular, baixa a última versão estável do aplicativo
@@ -815,7 +816,6 @@ segurança, veja o [SECURITY.md](SECURITY.md).
 
 O que vem por aí, sem datas e sem uma ordem fechada:
 
-- **Custo de mão de obra** (preço por hora de cada técnico) para somar ao de material
 - **Fornecedores, preços e pedidos de compra** a partir do estoque abaixo do mínimo
 - **Preventiva por contador** (horas de uso, ciclos, km), além de por data
 - **Tempo trabalhado e assinatura** ao fechar um serviço (também no celular)
@@ -827,7 +827,7 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Várias unidades ou plantas** com dados e indicadores por unidade
 - Mais idiomas (italiano, alemão…) e aplicativo para iPhone
 
-Feito recentemente: peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
+Feito recentemente: tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
