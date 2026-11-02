@@ -67,7 +67,8 @@ jobs:
       shell: bash
       run: |
         python -m PyInstaller.utils.cliutils.archive_viewer -r -b dist/MantPro_WIN.exe > contenido.txt
-        for m in sqlcipher3.dbapi2 "sqlcipher3/_sqlite3" keyring.backends.Windows; do
+        # "sqlcipher3._sqlite3": el punto vale por "/" (Linux) y por "\\" (Windows)
+        for m in sqlcipher3.dbapi2 "sqlcipher3._sqlite3" keyring.backends.Windows; do
           grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.Windows"
@@ -169,7 +170,8 @@ jobs:
       shell: bash
       run: |
         python -m PyInstaller.utils.cliutils.archive_viewer -r -b dist/MantPro_Linux > contenido.txt
-        for m in sqlcipher3.dbapi2 "sqlcipher3/_sqlite3" keyring.backends.SecretService; do
+        # "sqlcipher3._sqlite3": el punto vale por "/" (Linux) y por "\\" (Windows)
+        for m in sqlcipher3.dbapi2 "sqlcipher3._sqlite3" keyring.backends.SecretService; do
           grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.SecretService"
