@@ -40,6 +40,7 @@ import 'i18n/strings.dart';
 import 'actualizador.dart';
 import 'servicio_conexion.dart';
 import 'conexion_segura.dart';
+import 'checklists.dart';
 
 
 // ==========================================================================
@@ -894,6 +895,10 @@ class Registro {
   /// en el PC (marca [FOTOS: ...] de la descripción).
   List<String> fotosExtra;
   List<String> serverFotosExtra;
+  /// Lista de comprobación: la rellenada al completar un pendiente (se envía
+  /// con él) o la que trae del PC un trabajo del historial.
+  /// {"plantilla": nombre, "items": [...]}
+  Map<String, dynamic>? checklist;
 
   Registro({
     this.id,
@@ -912,6 +917,7 @@ class Registro {
     this.especialidadId,
     List<String>? fotosExtra,
     List<String>? serverFotosExtra,
+    this.checklist,
   }) : materiales = materiales ?? [],
        fotosExtra = fotosExtra ?? [],
        serverFotosExtra = serverFotosExtra ?? [];
@@ -933,6 +939,7 @@ class Registro {
     'especialidadId': especialidadId,
     'fotosExtra': fotosExtra,
     'serverFotosExtra': serverFotosExtra,
+    'checklist': checklist,
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -955,6 +962,7 @@ class Registro {
     especialidadId: json['especialidadId'],
     fotosExtra: listaTextos(json['fotosExtra']),
     serverFotosExtra: listaTextos(json['serverFotosExtra']),
+    checklist: json['checklist'] is Map ? Map<String, dynamic>.from(json['checklist']) : null,
   );
 }
 
@@ -969,7 +977,9 @@ class PendientePC {
   String prioridad;
   int? especialidadId;
   String? especialidad;
-  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad});
+  /// Plantilla de lista de comprobación asignada en el PC (null = sin lista).
+  int? checklistId;
+  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad, this.checklistId});
   factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
         id: json['id'],
         titulo: json['titulo'],
@@ -979,11 +989,13 @@ class PendientePC {
         prioridad: (json['prioridad'] as String?) ?? 'Media',
         especialidadId: json['especialidad_id'],
         especialidad: json['especialidad'],
+        checklistId: json['checklist_id'],
       );
   Map<String, dynamic> toJson() => {
         'id': id, 'titulo': titulo, 'detalles': detalles,
         'asignado_a': asignadoA, 'asignado': asignado, 'prioridad': prioridad,
         'especialidad_id': especialidadId, 'especialidad': especialidad,
+        'checklist_id': checklistId,
       };
   /// true si el trabajo es del usuario que tiene la sesión abierta.
   bool get esMio => asignadoA != null && asignadoA == AuthService.usuarioId;
@@ -998,8 +1010,10 @@ class AvisoPC {
   // la fecha del propio móvil, sin depender de que el PC esté sincronizado.
   String? fechaInicioRaw, ultimaCompletada;
   int duracionDias;
-  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0});
-  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0);
+  /// Plantilla de lista de comprobación asignada en el PC (null = sin lista).
+  int? checklistId;
+  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId});
+  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0, checklistId: json['checklist_id']);
 }
 
 /// Prioridad para ordenar avisos con los más urgentes primero:
@@ -1626,7 +1640,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
             }).toList();
             await cachearFotosHistorial(urlUsar, nuevosH);
             final prefs = await SharedPreferences.getInstance();
@@ -1821,7 +1835,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -1880,6 +1894,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       // ---------------------
 
       if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
+      r.fields.addAll(camposChecklist(d['checklist']));
 
       if (d['imagePath'] != null && File(d['imagePath']).existsSync()) {
         r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
@@ -2034,6 +2049,8 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           'prioridad': r.prioridad,
           'materiales': r.materiales,
           'fotosExtra': r.fotosExtra,
+          'checklist': r.checklist,
+          'checklist_id': p.checklistId,   // para recuperarla si se deshace
         };
         // ---------------------
 
@@ -2059,7 +2076,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
           _colaEdiciones.add(mapTempEdit);
           int i = _listaPC.indexWhere((x) => x.id == p.id);
-          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles, asignadoA: p.asignadoA, asignado: p.asignado, prioridad: r.prioridad);
+          if (i != -1) _listaPC[i] = PendientePC(id: p.id, titulo: r.titulo, detalles: r.detalles, asignadoA: p.asignadoA, asignado: p.asignado, prioridad: r.prioridad, especialidadId: p.especialidadId, especialidad: p.especialidad, checklistId: p.checklistId);
         });
           _guardarCache();
           _sincronizarTodo(silencioso: true);
@@ -2136,7 +2153,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                           tooltip: t("tooltip_cancelar_envio"),
                           onPressed: () {
                             setState(() {
-                              _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles'], prioridad: cItem['prioridad'] ?? 'Media'));
+                              _listaPC.insert(0, PendientePC(id: cItem['id'], titulo: cItem['titulo'], detalles: cItem['detalles'], prioridad: cItem['prioridad'] ?? 'Media', checklistId: cItem['checklist_id']));
                               // El pendiente no tiene foto "de después" ni campo de tags
                               // propio, pero sí recuperamos la foto "de antes" y las tags
                               // que ya tenía (guardadas en cItem al completarlo) para que
@@ -2173,7 +2190,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                       title: Row(mainAxisSize: MainAxisSize.min, children: [
                         Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 6),
                             decoration: BoxDecoration(color: _colorPrioridad(item.prioridad), shape: BoxShape.circle)),
-                        Flexible(child: Text(item.titulo, style: const TextStyle(fontWeight: FontWeight.bold))),
+                        Flexible(child: Text("${item.checklistId != null ? '☑️ ' : ''}${item.titulo}", style: const TextStyle(fontWeight: FontWeight.bold))),
                       ]),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2353,7 +2370,7 @@ class _TabAvisosState extends State<TabAvisos> {
     setState(() => _cargando = true);
 
     List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2367,7 +2384,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2395,8 +2412,13 @@ class _TabAvisosState extends State<TabAvisos> {
   }
   Future<void> _completar(AvisoPC a) async {
     if (_colaRestaurar.contains(a.id.toString())) { setState(() => _colaRestaurar.remove(a.id.toString())); await _guardarColas(); return; }
-    if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_confirmar")), content: Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"), style: const TextStyle(color: Colors.white)))])) != true) return;
-    setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0]})); await _guardarColas(); _sincronizar();
+    // Con lista de comprobación, rellenarla es la confirmación; si se
+    // cancela, el aviso sigue como estaba. Sin conexión funciona igual: la
+    // plantilla está guardada en el móvil y lo rellenado va en la cola.
+    final lista = await rellenarChecklistSiHay(context, a.checklistId, a.titulo);
+    if (lista == null || !mounted) return;
+    if (lista.isEmpty && await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_confirmar")), content: Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_no"))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_si"), style: const TextStyle(color: Colors.white)))])) != true) return;
+    setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista)})); await _guardarColas(); _sincronizar();
   }
   Future<void> _descompletar(AvisoPC a) async {
     if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_deshecho")))); return; }
@@ -2420,7 +2442,7 @@ class _TabAvisosState extends State<TabAvisos> {
             String st = traducirEstadoAviso(a.estado); String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
             Color c = cl == 'red' ? Colors.redAccent : (cl == 'orange' ? Colors.orange : (cl == 'green' ? Colors.green : Colors.blue));
             Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red' || cl == 'orange') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
-            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text(a.titulo, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
+            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text("${a.checklistId != null ? '☑️ ' : ''}${a.titulo}", style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
           }))),
       ]),
       floatingActionButton: FloatingActionButton(mini: true, backgroundColor: p>0?Colors.white:Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : Icon(Icons.sync, color: p>0?Colors.orange:Colors.white), onPressed: _sincronizar),
@@ -2548,7 +2570,7 @@ class _TabHistorialState extends State<TabHistorial> {
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'])).toList();
+    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null)).toList();
     final dir = await getApplicationDocumentsDirectory();
     for (var r in nuevos) {
       if (r.serverImageName != null) { final fp = path.join(dir.path, r.serverImageName!); if (!File(fp).existsSync()) { try { var ir = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/foto/${r.serverImageName}")); if (ir.statusCode == 200) await File(fp).writeAsBytes(ir.bodyBytes); } catch (e) { /* */ } } }
@@ -2806,6 +2828,7 @@ class _TabHistorialState extends State<TabHistorial> {
                   const SizedBox(width: 4),
                   Flexible(child: Text(r.maquinaNombre!, style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
                 ])),
+              filaChecklistHistorial(context, r.checklist, r.detalles.split('\n').first),
             ]), trailing: Icon(p ? Icons.cloud_upload : Icons.edit, size: 20, color: p ? Colors.orange : Colors.blueGrey), onTap: () => _edit(r), onLongPress: p ? null : () => _revertirAPendiente(r)));
           })))
       ]),
@@ -3090,8 +3113,15 @@ class _FormScreenState extends State<FormScreen> {
     final resultado = await showDialog<Map<String, dynamic>>(context: context, builder: (_) => _DialogoSeleccionarMaterial(urlPC: widget.urlPC!));
     if (resultado != null) setState(() => _materiales.add(resultado));
   }
-  void _save(bool end) {
+  Future<void> _save(bool end) async {
     if (_t.text.isEmpty && !widget.esHistorial) return;
+    // Terminar un pendiente con lista de comprobación: primero se rellena; si
+    // se cancela, se vuelve al formulario sin perder nada.
+    Map<String, dynamic>? lista;
+    if (end && widget.pendientePC?.checklistId != null) {
+      lista = await rellenarChecklistSiHay(context, widget.pendientePC!.checklistId, _t.text);
+      if (lista == null || !mounted) return;
+    }
     List<String> l=[]; if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo"); if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
     String df = _d.text; if (widget.pendientePC != null) { final m = RegExp(r"\[REF:(\d+)\]").firstMatch(widget.pendientePC!.detalles); if (m != null) df += " ${m.group(0)}"; }
 
@@ -3114,7 +3144,8 @@ class _FormScreenState extends State<FormScreen> {
     }
     // ---------------------------
 
-    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId, fotosExtra: galeriaLocal, serverFotosExtra: galeriaServidor);
+    Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId, fotosExtra: galeriaLocal, serverFotosExtra: galeriaServidor,
+        checklist: (lista != null && lista.isNotEmpty) ? lista : null);
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }
@@ -3430,6 +3461,7 @@ class SincronizadorGlobal {
         if (d.containsKey('especialidad_id') && d['especialidad_id'] != null) r.fields['especialidad_id'] = d['especialidad_id'].toString();
         if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
         if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
+        r.fields.addAll(camposChecklist(d['checklist']));
         if (d['imagePath'] != null && File(d['imagePath']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto', d['imagePath']));
         if (d['imagePathDespues'] != null && File(d['imagePathDespues']).existsSync()) r.files.add(await http.MultipartFile.fromPath('foto_despues', d['imagePathDespues']));
         for (final fp in listaTextos(d['fotosExtra'])) { if (File(fp).existsSync()) r.files.add(await http.MultipartFile.fromPath('fotos_extra', fp)); }
@@ -3463,7 +3495,7 @@ class SincronizadorGlobal {
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
     List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha']}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -3507,7 +3539,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         nuevosH = dH.map((i) => <String, dynamic>{
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre']
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist']
         }).toList();
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');
@@ -3524,6 +3556,7 @@ class SincronizadorGlobal {
       descargar('pendientes', 'trabajos_pc'),
       descargar('avisos', 'avisos_cache'),
       descargar('dashboard', 'dashboard_cache'),
+      descargar('checklists', claveCacheChecklists),
       descargarHistorial(),
     ]);
     // Las pestañas ya pueden enseñar los datos sin esperar a las fotos.

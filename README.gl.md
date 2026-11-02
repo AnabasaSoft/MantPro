@@ -171,6 +171,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Prioridade dos pendentes**: cada traballo pendente ten unha prioridade (Baixa, Media, Alta ou Crítica) para decidir cal atacar primeiro, coa súa cor na lista; tamén se lle poden achegar fotos á súa colección
 - **↩️ Reverter a pendente**: se un traballo se completou por erro, pódese devolver a Pendentes cun clic dende o historial (con aviso se tiña máquina vinculada, xa que se perdería ese dato), e queda rexistrado na auditoría
 - **🔁 Lembretes**: avisos de mantemento que se repiten automaticamente. Se pasa a data non se saltan: quedan en **Pendente** (laranxa) mentres dura a marxe e despois en **Atrasado** (vermello) ata que se fan, e a data seguinte cóntase dende o día real en que se fixo o traballo
+- **☑️ Listas de comprobación**: modelos reutilizables («Revisión mensual do compresor») con puntos que se marcan ben / mal / non aplica e lecturas coa súa unidade e o seu rango correcto (fóra de rango, «mal» automaticamente); asígnanse a avisos e pendentes e énchense ao completalos, no PC ou no móbil (tamén sen conexión). Gárdanse co traballo, vense no historial e saen nas exportacións a PDF, Excel e CSV
 - **📦 Control do stock do almacén**: estrutura de andeis, baldas e seccións configurable, ficha de materiais con foto, entradas/saídas con historial e alertas de stock por baixo do mínimo
 - **📄 Exportar o stock**: botón "📄 Exportar" na lapela de stock para sacar o almacén enteiro, unha zona ou un andel a PDF, CSV ou Excel, ordenado por localización; a lapela de stock por baixo do mínimo tamén ten o seu botón para exportar só os materiais en alerta
 - **🗑️ Tempo máximo de gardado**: `Ferramentas` permite borrar do historial os traballos máis antigos que un número de anos, meses ou días, coas súas fotos e unha copia de seguranza previa (só administradores)
@@ -199,6 +200,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🔁 Volver sincronizar a man**: as lapelas Pendentes, Historial e Lembretes teñen o seu propio botón para reenviar de inmediato o que teña o móbil e aínda non teña o PC
 - **↩️ Reverter a pendente**: mantendo premido un rexistro do Historial pódese devolver á lapela Pendentes se se completou por erro
 - **🏷️ Etiquetas rápidas**: sistema de etiquetado rápido con caixas de verificación
+- **☑️ Listas de comprobación**: os avisos e pendentes con lista piden enchela ao completalos (ben / mal / non aplica e lecturas), tamén sen conexión; o historial mostra a lista enchida
 - **🔌 Modo sen conexión**: traballa sen conexión e sincroniza cando poidas
 - **⏰ Lembretes diarios**: notificación automática ás 8:00 (hora local) se hai traballos pendentes sen completar
 - **🧰 Material usado**: engade ao traballo o material do almacén que empregaches, buscándoo polo nome ou o código; descóntase só do stock ao gardar (ver [Material usado nun traballo](#-stock-do-almacén))

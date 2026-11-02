@@ -172,6 +172,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Prioritat dels pendents**: cada treball pendent té una prioritat (Baixa, Mitjana, Alta o Crítica) per decidir quin atacar primer, amb el seu color a la llista; també s'hi poden adjuntar fotos a la seva col·lecció
 - **↩️ Revertir a pendent**: si un treball es va completar per error, es pot tornar a Pendents amb un clic des de l'historial (amb avís si tenia màquina vinculada, ja que es perdria aquesta dada), i queda registrat a l'auditoria
 - **🔁 Recordatoris**: avisos de manteniment que es repeteixen automàticament. Si es passa la data no se salten: queden en **Pendent** (taronja) mentre dura el marge i després en **Endarrerit** (vermell) fins que es fan, i la data següent es compta des del dia real en què es va fer el treball
+- **☑️ Llistes de comprovació**: plantilles reutilitzables («Revisió mensual del compressor») amb punts que es marquen bé / malament / no s'aplica i lectures amb la seva unitat i el seu rang correcte (fora de rang, «malament» automàticament); s'assignen a avisos i pendents i s'omplen en completar-los, al PC o al mòbil (també sense connexió). Es desen amb el treball, es veuen a l'historial i surten a les exportacions a PDF, Excel i CSV
 - **📦 Control de l'estoc del magatzem**: estructura de prestatgeries, prestatges i seccions configurable, fitxa de materials amb foto, entrades/sortides amb historial i alertes d'estoc per sota del mínim
 - **📄 Exportar l'estoc**: botó "📄 Exportar" a la pestanya d'estoc per treure el magatzem sencer, una zona o una prestatgeria a PDF, CSV o Excel, ordenat per ubicació; la pestanya d'estoc per sota del mínim també té el seu botó per exportar només els materials en alerta
 - **🗑️ Temps màxim de conservació**: `Eines` permet esborrar de l'historial els treballs més antics que un nombre d'anys, mesos o dies, amb les seves fotos i una còpia de seguretat prèvia (només administradors)
@@ -200,6 +201,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🔁 Tornar a sincronitzar manualment**: les pestanyes Pendents, Historial i Recordatoris tenen el seu propi botó per reenviar de seguida el que tingui el mòbil i encara no tingui el PC
 - **↩️ Revertir a pendent**: mantenint premut un registre de l'Historial es pot tornar a la pestanya Pendents si es va completar per error
 - **🏷️ Etiquetes ràpides**: sistema d'etiquetatge ràpid amb caselles
+- **☑️ Llistes de comprovació**: els avisos i pendents amb llista demanen omplir-la en completar-los (bé / malament / no s'aplica i lectures), també sense connexió; l'historial mostra la llista omplerta
 - **🔌 Mode fora de línia**: treballa sense connexió i sincronitza quan puguis
 - **⏰ Recordatoris diaris**: notificació automàtica a les 8:00 (hora local) si hi ha treballs pendents sense completar
 - **🧰 Material utilitzat**: afegeix al treball el material del magatzem que has fet servir, cercant-lo pel nom o el codi; es descompta sol de l'estoc en desar (vegeu [Material utilitzat en un treball](#-estoc-del-magatzem))

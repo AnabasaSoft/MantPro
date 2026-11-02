@@ -169,6 +169,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Pending Job Priority**: each pending job has a priority (Low, Medium, High or Critical) to decide which one to tackle first, shown with its colour in the list; photos can also be added to its collection
 - **↩️ Revert to Pending**: if a job was completed by mistake, it can be sent back to Pending with one click from the history (with a warning if it had a linked machine, since that data would be lost), and it is recorded in the audit log
 - **🔁 Reminders**: Maintenance alerts that repeat automatically. If the date passes they are not skipped: they stay **Pending** (orange) during the margin and then **Overdue** (red) until done, and the next date is counted from the day the job was actually done
+- **☑️ Checklists**: reusable templates ("Monthly compressor inspection") with items marked OK / not OK / N/A and readings with their unit and correct range (out of range is marked not OK automatically); assigned to reminders and pending jobs and filled in when completing them, on the PC or the phone (also offline). Saved with the job, shown in the history and included in the PDF, Excel and CSV exports
 - **📦 Warehouse Stock Control**: Configurable structure of shelving units, shelves and sections, material records with photo, stock in/out with history and low-stock alerts
 - **📄 Stock Export**: "📄 Export" button in the stock tab to export the whole warehouse, a zone or a single shelving unit to PDF, CSV or Excel, sorted by location; the low stock tab also has its own button to export only the materials on alert
 - **🗑️ Maximum Retention Time**: `Tools` lets you delete from the history the jobs older than a number of years, months or days, together with their photos and a backup made beforehand (administrators only)
@@ -197,6 +198,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🔁 Manual Resync**: The Pending, History and Reminders tabs each have their own button to immediately resend whatever the phone has and the PC does not yet
 - **↩️ Revert to Pending**: long-pressing a record in the History lets you send it back to the Pending tab if it was completed by mistake
 - **🏷️ Quick Tags**: Fast tagging with checkboxes
+- **☑️ Checklists**: reminders and pending jobs with a checklist ask to fill it in when completed (OK / not OK / N/A and readings), also offline; the history shows the filled-in checklist
 - **🔌 Offline Mode**: Work without a connection and sync when you are able to
 - **⏰ Daily Reminders**: Automatic notification at 8:00 AM (local time) if there are pending jobs not yet completed
 - **🧰 Materials Used**: Add the warehouse materials you used to the job, searching by name or code; they are deducted from stock automatically when saving (see [Materials used in a job](#-warehouse-stock))

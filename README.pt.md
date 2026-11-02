@@ -171,6 +171,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Prioridade dos pendentes**: cada serviço pendente tem uma prioridade (Baixa, Média, Alta ou Crítica) para decidir qual atacar primeiro, com sua cor na lista; também é possível anexar fotos à coleção dele
 - **↩️ Reverter para pendente**: se um serviço foi concluído por engano, ele pode voltar para Pendentes com um clique a partir do histórico (com aviso se tinha máquina vinculada, já que esse dado se perderia), ficando registrado na auditoria
 - **🔁 Lembretes**: avisos de manutenção que se repetem automaticamente. Se a data passar, eles não são pulados: ficam **Pendentes** (laranja) durante a margem e depois **Atrasados** (vermelho) até serem feitos, e a próxima data é contada a partir do dia em que o serviço foi realmente feito
+- **☑️ Checklists**: modelos reutilizáveis («Revisão mensal do compressor») com itens marcados como OK / com problema / não se aplica e leituras com a unidade e a faixa correta (fora da faixa, «com problema» automaticamente); são atribuídos a avisos e serviços pendentes e preenchidos ao concluí-los, no PC ou no celular (também sem conexão). Ficam salvos com o serviço, aparecem no histórico e nas exportações em PDF, Excel e CSV
 - **📦 Controle do estoque do almoxarifado**: estrutura configurável de estantes, prateleiras e seções, ficha de materiais com foto, entradas/saídas com histórico e alertas de estoque abaixo do mínimo
 - **📄 Exportar o estoque**: botão "📄 Exportar" na aba de estoque para gerar o almoxarifado inteiro, uma zona ou uma estante em PDF, CSV ou Excel, ordenado por localização; a aba de estoque abaixo do mínimo também tem seu botão para exportar apenas os materiais em alerta
 - **🗑️ Tempo máximo de armazenamento**: `Ferramentas` permite excluir do histórico os serviços mais antigos que um número de anos, meses ou dias, com suas fotos e uma cópia de segurança prévia (somente administradores)
@@ -199,6 +200,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🔁 Sincronizar manualmente**: as abas Pendentes, Histórico e Lembretes têm seu próprio botão para reenviar na hora o que o celular tiver e o PC ainda não
 - **↩️ Reverter para pendente**: mantendo pressionado um registro do Histórico, ele pode voltar para a aba Pendentes se foi concluído por engano
 - **🏷️ Tags rápidas**: sistema de etiquetas rápido com caixas de seleção
+- **☑️ Checklists**: os avisos e serviços pendentes com checklist pedem para preenchê-lo ao concluí-los (OK / com problema / não se aplica e leituras), também sem conexão; o histórico mostra o checklist preenchido
 - **🔌 Modo offline**: trabalhe sem conexão e sincronize quando puder
 - **⏰ Lembretes diários**: notificação automática às 8:00 (horário local) se houver serviços pendentes não concluídos
 - **🧰 Material usado**: adicione ao serviço o material do almoxarifado que você usou, buscando pelo nome ou código; ele é descontado do estoque automaticamente ao salvar (veja [Material usado em um serviço](#-estoque-do-almoxarifado))

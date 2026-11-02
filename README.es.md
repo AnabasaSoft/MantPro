@@ -172,6 +172,7 @@ versiones estables. Los cambios de cada versión están en
 - **🚦 Prioridad de Pendientes**: cada trabajo pendiente tiene prioridad (Baja, Media, Alta o Crítica) para decidir cuál atacar primero, con su color en la lista; también se le pueden adjuntar fotos a su colección
 - **↩️ Revertir a Pendiente**: si un trabajo se completó por error, se puede devolver a Pendientes con un clic desde el historial (con aviso si tenía máquina vinculada, ya que se perdería ese dato), quedando registrado en la auditoría
 - **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente. Si se pasa la fecha no se saltan: se quedan en **Pendiente** (naranja) mientras dura el margen y luego en **Atrasado** (rojo) hasta que se hacen, y la siguiente fecha se cuenta desde el día real en que se hizo el trabajo
+- **☑️ Listas de comprobación**: plantillas reutilizables («Revisión mensual de compresor») con puntos que se marcan bien / mal / no aplica y lecturas con su unidad y su rango correcto (fuera de rango, «mal» automáticamente); se asignan a avisos y pendientes y se rellenan al completarlos, en el PC o en el móvil (también sin conexión). Se guardan con el trabajo, se ven en el historial y salen en las exportaciones a PDF, Excel y CSV
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
 - **📄 Exportar el Stock**: botón "📄 Exportar" en la pestaña de stock para sacar el almacén entero, una zona o una estantería a PDF, CSV o Excel, ordenado por ubicación; la pestaña de stock bajo mínimo también tiene su botón para exportar solo los materiales en alerta
 - **🗑️ Tiempo Máximo de Guardado**: `Herramientas` permite borrar del historial los trabajos más antiguos que un número de años, meses o días, con sus fotos y una copia de seguridad previa (solo administradores)
@@ -200,6 +201,7 @@ versiones estables. Los cambios de cada versión están en
 - **🔁 Resincronizar a Mano**: Las pestañas Pendientes, Historial y Recordatorios tienen su propio botón para reenviar de inmediato lo que el móvil tenga y el PC todavía no
 - **↩️ Revertir a Pendiente**: manteniendo pulsado un registro del Historial se puede devolver a la pestaña Pendientes si se completó por error
 - **🏷️ Tags Rápidos**: Sistema de etiquetado rápido con checkboxes
+- **☑️ Listas de comprobación**: los avisos y pendientes con lista piden rellenarla al completarlos (bien / mal / no aplica y lecturas), también sin conexión; el historial muestra la lista rellenada
 - **🔌 Modo Offline**: Trabaja sin conexión y sincroniza cuando estés disponible
 - **⏰ Recordatorios Diarios**: Notificación automática a las 8:00 AM (hora local) si hay trabajos pendientes sin completar
 - **🧰 Material Usado**: Añade al trabajo el material del almacén que has empleado, buscándolo por nombre o código; se descuenta solo del stock al guardar (ver [Material usado en un trabajo](#-stock-de-almacén))

@@ -174,6 +174,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🚦 Egiteke dauden lanen lehentasuna**: egiteke dagoen lan bakoitzak lehentasun bat du (Baxua, Ertaina, Altua edo Kritikoa) zein lehenago egin erabakitzeko, zerrendan bere kolorearekin; bere bildumari argazkiak ere gehi dakizkioke
 - **↩️ Egitekora itzuli**: lan bat oker osatu bada, klik batekin Egiteke atalera itzul daiteke historiatik (abisuarekin, makina lotuta bazuen, datu hori galduko bailitzateke), eta auditorian erregistratuta geratzen da
 - **🔁 Gogorarazleak**: Automatikoki errepikatzen diren mantentze-abisuak. Data pasatzen bada ez dira saltatzen: **Zain** (laranja) geratzen dira tartean, eta gero **Atzeratuta** (gorria) egin arte; hurrengo data lana benetan egin zen egunetik kontatzen da
+- **☑️ Egiaztapen-zerrendak**: txantiloi berrerabilgarriak («Konpresorearen hileko berrikuspena») ondo / gaizki / ez dagokio markatzen diren puntuekin eta unitate eta tarte zuzena duten irakurketekin (tartetik kanpo, «gaizki» automatikoki); abisuei eta zain dauden lanei esleitzen zaizkie eta osatzean betetzen dira, PCan edo mugikorrean (konexiorik gabe ere). Lanarekin gordetzen dira, historian ikusten dira eta PDF, Excel eta CSV esportazioetan agertzen dira
 - **📦 Biltegiko stockaren kontrola**: Apalategi, apal eta ataleko egitura konfiguragarria, materialen fitxa argazkiarekin, sarrerak/irteerak historiarekin eta gutxienekoaren azpiko stockaren alertak
 - **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta; gutxienekotik beherako stockaren fitxak ere badu bere botoia, alertan dauden materialak soilik esportatzeko
 - **🗑️ Gordetzeko gehieneko denbora**: `Tresnak` menutik historiatik ezaba daitezke urte, hilabete edo egun kopuru bat baino zaharragoak diren lanak, haien argazkiekin eta aurretik segurtasun-kopia bat eginez (administratzaileak soilik)
@@ -202,6 +203,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🔁 Eskuz berriro sinkronizatu**: Egiteke, Historia eta Gogorarazleak fitxek beren botoia dute, mugikorrak duena eta PCak oraindik ez duena berehala berriro bidaltzeko
 - **↩️ Egitekora itzuli**: Historiako erregistro bat sakatuta mantenduz, Egiteke fitxara itzul daiteke oker osatu bada
 - **🏷️ Etiketa azkarrak**: Kontrol-laukiekin etiketatze azkarra
+- **☑️ Egiaztapen-zerrendak**: zerrenda duten abisuek eta lanek hura betetzeko eskatzen dute osatzean (ondo / gaizki / ez dagokio eta irakurketak), konexiorik gabe ere; historiak betetako zerrenda erakusten du
 - **🔌 Konexiorik gabeko modua**: Lan egin konexiorik gabe eta sinkronizatu ahal duzunean
 - **⏰ Eguneroko gogorarazleak**: Jakinarazpen automatikoa 8:00etan (ordu lokala) osatu gabeko lanak badaude
 - **🧰 Erabilitako materiala**: Gehitu lanari erabili duzun biltegiko materiala, izenaren edo kodearen arabera bilatuz; gordetzean stocketik automatikoki kentzen da (ikusi [Lan batean erabilitako materiala](#-biltegiko-stocka))

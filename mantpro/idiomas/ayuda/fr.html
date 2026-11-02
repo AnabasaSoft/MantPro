@@ -104,6 +104,7 @@
 <li><b>👥 Gestion des utilisateurs</b>, <b>🔐 Sessions des appareils</b> (quels mobiles sont connectés en ce moment, et révoquer leur accès) et <b>📋 Journal des modifications</b> (qui a modifié ou supprimé chaque intervention).</li>
 <li><b>🔐 Chiffrement des bases de données… :</b> enregistre <code>mantenimiento.db</code> et <code>almacen.db</code> chiffrées (SQLCipher), avec la clé dans le trousseau du système : MantPro les ouvre tout seul, mais quiconque copie les fichiers ou emporte le disque ne peut pas les lire. À l'activation, une <b>clé de récupération</b> s'affiche et doit être notée : MantPro la demande si le trousseau perd la clé (système réinstallé, nouvel utilisateur…). Le changement se fait à la prochaine ouverture de MantPro.</li>
 <li><b>📅 Gérer les jours / fériés</b> et <b>🌍 Pays / Région (Fériés)</b> : jours spéciaux du calendrier.</li>
+<li><b>☑️ Listes de contrôle… :</b> créez des modèles de points à vérifier (bon / pas bon / sans objet, ou relevés avec leur unité et leur plage correcte) et attribuez-les aux rappels et aux interventions en attente en les créant ou en les modifiant. À leur clôture, sur le PC ou le mobile, il faut remplir la liste ; elle est enregistrée avec l'intervention (☑️ dans l'historique, ☑️❌ si un point n'était pas bon ; clic droit pour la voir) et figure dans le PDF, l'Excel et le CSV.</li>
 <li><b>🗑️ Durée maximale de conservation des interventions… :</b> supprime les interventions plus anciennes que la durée choisie, après une sauvegarde.</li>
 <li><b>🧹 Nettoyer les photos inutiles :</b> supprime les photos qu'aucun enregistrement n'utilise plus.</li>
 <li><b>🌐 Langue</b> et, dans le menu <i>Apparence</i>, le thème clair, sombre ou classique.</li>
@@ -121,6 +122,7 @@
 <li>Tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser et affiche une notification « Connecté au PC ». Une fois fermée complètement, elle ne consomme plus de batterie.</li>
 <li>Dans MantPro, le bouton <b>scanner</b> lit l'étiquette QR d'une machine et ouvre sa fiche.</li>
 <li>La connexion avec le PC est <b>chiffrée</b>. Pour associer un nouveau mobile, mettez d'abord son application à jour : une ancienne application ne comprend pas le nouveau QR.</li>
+<li>Les rappels et interventions marqués <b>☑️</b> ont une liste de contrôle : elle se remplit sur le mobile à leur clôture, même hors connexion.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Sécurité et chiffrement</h2>

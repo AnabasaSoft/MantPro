@@ -104,6 +104,7 @@
 <li><b>👥 User management</b>, <b>🔐 Device sessions</b> (which phones are connected right now, and revoking their access) and <b>📋 Change log</b> (who edited or deleted each job).</li>
 <li><b>🔐 Database encryption…:</b> stores <code>mantenimiento.db</code> and <code>almacen.db</code> encrypted (SQLCipher), with the key in the system keyring: MantPro opens them by itself, but anyone who copies the files or takes the disk cannot read them. When it is turned on, a <b>recovery key</b> is shown that you must write down: MantPro asks for it if the keyring loses the key (system reinstalled, new user…). The change is made when MantPro is opened again.</li>
 <li><b>📅 Manage Days / Holidays</b> and <b>🌍 Country / Region (Holidays)</b>: special days in the calendar.</li>
+<li><b>☑️ Checklists…:</b> create templates of items to check (OK / not OK / N/A, or readings with their unit and correct range) and assign them to reminders and pending jobs when creating or editing them. When they are completed, on the PC or the phone, the checklist must be filled in; it is saved with the job (☑️ in the history, ☑️❌ if something was not OK; right-click to view it) and it appears in the PDF, Excel and CSV.</li>
 <li><b>🗑️ Maximum job retention time…:</b> deletes jobs older than the time you choose, after making a backup.</li>
 <li><b>🧹 Clean Orphan Photos:</b> deletes photos that no record uses any more.</li>
 <li><b>🌐 Language</b> and, in the <i>Appearance</i> menu, the light, dark or classic theme.</li>
@@ -121,6 +122,7 @@
 <li>While the app is open, even in the background, it keeps syncing and shows a «Connected to the PC» notification. Once fully closed it stops using battery.</li>
 <li>In MantPro, the <b>scan</b> button reads a machine's QR label and opens its page.</li>
 <li>The connection with the PC is <b>encrypted</b>. To pair a new phone, update its app first: an old app does not understand the new QR code.</li>
+<li>Reminders and pending jobs marked <b>☑️</b> have a checklist: it is filled in on the phone when completing them, also offline.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Security and encryption</h2>
