@@ -120,6 +120,17 @@
 <li>Les apps funcionen <b>sense connexió</b>: tot es desa al mòbil i s'envia sol quan el PC torna a estar a l'abast.</li>
 <li>Mentre l'app està oberta, encara que sigui en segon pla, continua sincronitzant i mostra una notificació «Connectat al PC». En tancar-la del tot deixa de gastar bateria.</li>
 <li>A MantPro, el botó d'<b>escanejar</b> llegeix l'etiqueta QR d'una màquina i n'obre la fitxa.</li>
+<li>La connexió amb el PC va <b>xifrada</b>. Per vincular un mòbil nou, actualitza abans la seva app: una app antiga no entén el QR nou.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Seguretat i xifratge</h2>
+<ul>
+<li><b>Connexió amb els mòbils xifrada (HTTPS):</b> el PC crea el seu propi certificat i la seva empremta va al QR de vinculació, així que els mòbils només es connecten a <i>aquell</i> PC i ningú a la WiFi pot llegir les dades ni fer-se passar per ell. La connexió xifrada fa servir el port següent al de sincronització (5001 si fas servir el 5000): si hi ha tallafoc, obre'ls tots dos.</li>
+<li><b>Inici de sessió protegit:</b> després de 5 contrasenyes errònies seguides, l'usuari queda bloquejat 15 minuts al mòbil i un minut al PC. Al mòbil, la sessió es desa a l'emmagatzematge segur d'Android.</li>
+<li><b>Fotos comprovades:</b> el PC només desa les fotos dels mòbils si són imatges de debò i de 30 MB com a màxim, i per la connexió xifrada només es poden veure amb la sessió iniciada.</li>
+<li><b>Bases de dades xifrades</b> (<i>Eines → 🔐 Xifratge de les bases de dades…</i>, desactivat per defecte): qui copiï els fitxers o s'emporti el disc no pot llegir les dades. MantPro les obre sol amb la clau del clauer del sistema. <b>Apunta la clau de recuperació</b> que es mostra en activar-lo i desa-la fora de l'ordinador.</li>
+<li><b>Còpies xifrades</b> (<i>Arxiu → 🔒 Contrasenya de les còpies…</i>): les còpies que surten de l'equip (USB, NAS, núvol) no es poden obrir sense la contrasenya. Les còpies porten les dades sense el xifratge de les bases de dades, per poder restaurar-les en un altre equip: protegeix-les amb aquesta contrasenya.</li>
+<li>Les fotos no es xifren. Per protegir tot l'equip, fes servir també el xifratge de disc (BitLocker a Windows, LUKS a Linux).</li>
 </ul>
 
 <h2><a name="problemas"></a>❓ Problemes freqüents</h2>
@@ -129,4 +140,7 @@
 <li><b>Algú ha oblidat la contrasenya:</b> un administrador la pot restablir a <i>Eines → 👥 Gestió d'usuaris</i>.</li>
 <li><b>No arriba la notificació diària al mòbil:</b> a Xiaomi, OPPO/Realme o Huawei posa l'app a <i>Bateria → Sense restriccions</i>.</li>
 <li><b>M'he equivocat en restaurar o importar:</b> a la carpeta <code>backups_auto</code> hi ha les còpies prèvies.</li>
+<li><b>En obrir MantPro demana una clau de recuperació:</b> les bases de dades estan xifrades i el clauer del sistema ja no en té la clau (sistema reinstal·lat, un altre usuari…). Escriu la clau que vas apuntar en activar el xifratge. Si no la tens, treu <code>mantenimiento.db</code> i <code>almacen.db</code> de la carpeta de dades, obre MantPro i restaura una còpia.</li>
+<li><b>«Massa intents fallits»:</b> espera el temps que indica l'avís o demana a un administrador que restableixi la contrasenya.</li>
+<li><b>En restaurar demana una contrasenya:</b> la còpia està xifrada amb la contrasenya de les còpies de l'equip on es va fer (o amb una d'anterior). Sense ella no es pot restaurar.</li>
 </ul>

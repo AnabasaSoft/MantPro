@@ -120,6 +120,17 @@
 <li>Os aplicativos funcionam <b>sem conexão</b>: tudo fica salvo no celular e é enviado sozinho quando o PC volta a estar ao alcance.</li>
 <li>Enquanto o aplicativo está aberto, mesmo em segundo plano, ele continua sincronizando e mostra uma notificação «Conectado ao PC». Ao fechá-lo totalmente, ele para de gastar bateria.</li>
 <li>No MantPro, o botão de <b>escanear</b> lê a etiqueta QR de uma máquina e abre a ficha dela.</li>
+<li>A conexão com o PC é <b>criptografada</b>. Para vincular um celular novo, atualize antes o aplicativo dele: um aplicativo antigo não entende o QR novo.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Segurança e criptografia</h2>
+<ul>
+<li><b>Conexão com os celulares criptografada (HTTPS):</b> o PC cria o próprio certificado e a impressão digital dele vai no QR de vinculação, então os celulares só se conectam a <i>esse</i> PC e ninguém no Wi-Fi consegue ler os dados nem se passar por ele. A conexão criptografada usa a porta seguinte à de sincronização (5001 se você usa a 5000): se houver firewall, abra as duas.</li>
+<li><b>Login protegido:</b> depois de 5 senhas erradas seguidas, o usuário fica bloqueado por 15 minutos no celular e por um minuto no PC. No celular, a sessão fica guardada no armazenamento seguro do Android.</li>
+<li><b>Fotos verificadas:</b> o PC só salva as fotos dos celulares se forem imagens de verdade e de no máximo 30 MB, e pela conexão criptografada elas só podem ser vistas com a sessão iniciada.</li>
+<li><b>Bancos de dados criptografados</b> (<i>Ferramentas → 🔐 Criptografia dos bancos de dados…</i>, desativado por padrão): quem copiar os arquivos ou levar o disco não consegue ler os dados. O MantPro os abre sozinho com a chave do chaveiro do sistema. <b>Anote a chave de recuperação</b> mostrada ao ativar e guarde-a fora do computador.</li>
+<li><b>Cópias criptografadas</b> (<i>Arquivo → 🔒 Senha das cópias…</i>): as cópias que saem do computador (pendrive, NAS, nuvem) não podem ser abertas sem a senha. As cópias levam os dados sem a criptografia dos bancos de dados, para poderem ser restauradas em outro computador: proteja-as com essa senha.</li>
+<li>As fotos não são criptografadas. Para proteger o computador inteiro, use também a criptografia de disco (BitLocker no Windows, LUKS no Linux).</li>
 </ul>
 
 <h2><a name="problemas"></a>❓ Problemas comuns</h2>
@@ -129,4 +140,7 @@
 <li><b>Alguém esqueceu a senha:</b> um administrador pode redefini-la em <i>Ferramentas → 👥 Gerenciamento de usuários</i>.</li>
 <li><b>A notificação diária não chega ao celular:</b> em Xiaomi, OPPO/Realme ou Huawei, deixe o aplicativo em <i>Bateria → Sem restrições</i>.</li>
 <li><b>Errei ao restaurar ou importar:</b> a pasta <code>backups_auto</code> guarda as cópias feitas antes.</li>
+<li><b>Ao abrir, o MantPro pede uma chave de recuperação:</b> os bancos de dados estão criptografados e o chaveiro do sistema não tem mais a chave deles (sistema reinstalado, outro usuário…). Digite a chave que você anotou ao ativar a criptografia. Se não a tiver, tire <code>mantenimiento.db</code> e <code>almacen.db</code> da pasta de dados, abra o MantPro e restaure uma cópia.</li>
+<li><b>«Muitas tentativas erradas»:</b> espere o tempo indicado no aviso ou peça a um administrador para redefinir a senha.</li>
+<li><b>Ao restaurar, pede uma senha:</b> a cópia está criptografada com a senha das cópias do computador onde foi feita (ou com uma anterior). Sem ela não é possível restaurar.</li>
 </ul>

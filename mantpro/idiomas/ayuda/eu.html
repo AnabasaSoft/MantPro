@@ -120,6 +120,17 @@
 <li>Aplikazioek <b>konexiorik gabe</b> funtzionatzen dute: dena mugikorrean gordetzen da eta berez bidaltzen da PCa berriro eskura dagoenean.</li>
 <li>Aplikazioa irekita dagoen bitartean, bigarren planoan egonda ere, sinkronizatzen jarraitzen du eta «PCra konektatuta» jakinarazpena erakusten du. Guztiz ixtean bateria gastatzeari uzten dio.</li>
 <li>MantPro-n, <b>eskaneatu</b> botoiak makina baten QR etiketa irakurtzen du eta haren fitxa irekitzen du.</li>
+<li>PCarekiko konexioa <b>zifratuta</b> doa. Mugikor berri bat lotzeko, eguneratu lehenik bere aplikazioa: aplikazio zahar batek ez du QR berria ulertzen.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Segurtasuna eta zifratzea</h2>
+<ul>
+<li><b>Mugikorrekiko konexio zifratua (HTTPS):</b> PCak bere ziurtagiria sortzen du eta haren hatz-marka lotze-QRan doa; beraz, mugikorrak PC <i>horretara</i> bakarrik konektatzen dira, eta WiFian inork ezin ditu datuak irakurri ezta PCaren itxura hartu ere. Konexio zifratuak sinkronizazio-atakaren hurrengoa erabiltzen du (5001, 5000 erabiltzen baduzu): suebakia badago, ireki biak.</li>
+<li><b>Saio-hasiera babestua:</b> jarraian 5 pasahitz oker sartu ondoren, erabiltzailea 15 minutuz blokeatzen da mugikorrean eta minutu batez PCan. Mugikorrean, saioa Androiden biltegiratze seguruan gordetzen da.</li>
+<li><b>Argazki egiaztatuak:</b> PCak mugikorretako argazkiak benetako irudiak badira eta gehienez 30 MB badituzte bakarrik gordetzen ditu, eta konexio zifratuaren bidez saioa hasita bakarrik ikus daitezke.</li>
+<li><b>Datu-base zifratuak</b> (<i>Tresnak → 🔐 Datu-baseen zifratzea…</i>, desaktibatuta lehenespenez): fitxategiak kopiatzen dituenak edo diskoa eramaten duenak ezin ditu datuak irakurri. MantProk bere kabuz irekitzen ditu sistemaren gako-sortako gakoarekin. <b>Idatzi berreskuratze-gakoa</b> aktibatzean erakusten dena eta gorde ordenagailutik kanpo.</li>
+<li><b>Babeskopia zifratuak</b> (<i>Fitxategia → 🔒 Babeskopien pasahitza…</i>): ordenagailutik ateratzen diren babeskopiak (USB, NAS, hodeia) ezin dira pasahitzik gabe ireki. Babeskopiek datuak datu-baseen zifratzerik gabe dituzte, beste ordenagailu batean leheneratu ahal izateko: babestu itzazu pasahitz honekin.</li>
+<li>Argazkiak ez dira zifratzen. Ordenagailu osoa babesteko, erabili diskoaren zifratzea ere (BitLocker Windowsen, LUKS Linuxen).</li>
 </ul>
 
 <h2><a name="problemas"></a>❓ Ohiko arazoak</h2>
@@ -129,4 +140,7 @@
 <li><b>Norbaitek pasahitza ahaztu du:</b> administratzaile batek berrezar dezake <i>Tresnak → 👥 Erabiltzaileen kudeaketa</i> atalean.</li>
 <li><b>Eguneroko jakinarazpena ez da mugikorrera iristen:</b> Xiaomi, OPPO/Realme edo Huawei-n jarri aplikazioa <i>Bateria → Murrizketarik gabe</i> moduan.</li>
 <li><b>Oker egin dut berrezartzean edo inportatzean:</b> <code>backups_auto</code> karpetan daude aurretiko kopiak.</li>
+<li><b>MantProk berreskuratze-gako bat eskatzen du irekitzean:</b> datu-baseak zifratuta daude eta sistemaren gako-sortak jada ez du haien gakoa (sistema berrinstalatuta, beste erabiltzaile bat…). Idatzi zifratzea aktibatzean idatzi zenuen gakoa. Ez baduzu, atera <code>mantenimiento.db</code> eta <code>almacen.db</code> datuen karpetatik, ireki MantPro eta leheneratu babeskopia bat.</li>
+<li><b>«Saiakera huts gehiegi»:</b> itxaron oharrak dioen denbora edo eskatu administratzaile bati pasahitza berrezartzeko.</li>
+<li><b>Leheneratzean pasahitz bat eskatzen du:</b> babeskopia egin zen ordenagailuko babeskopien pasahitzarekin (edo aurreko batekin) zifratuta dago. Hura gabe ezin da leheneratu.</li>
 </ul>

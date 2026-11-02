@@ -120,6 +120,17 @@
 <li>Les applications fonctionnent <b>sans connexion</b> : tout est enregistré sur le mobile et envoyé automatiquement quand le PC est de nouveau accessible.</li>
 <li>Tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser et affiche une notification « Connecté au PC ». Une fois fermée complètement, elle ne consomme plus de batterie.</li>
 <li>Dans MantPro, le bouton <b>scanner</b> lit l'étiquette QR d'une machine et ouvre sa fiche.</li>
+<li>La connexion avec le PC est <b>chiffrée</b>. Pour associer un nouveau mobile, mettez d'abord son application à jour : une ancienne application ne comprend pas le nouveau QR.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Sécurité et chiffrement</h2>
+<ul>
+<li><b>Connexion chiffrée avec les mobiles (HTTPS) :</b> le PC crée son propre certificat et son empreinte figure dans le QR d'association ; les mobiles ne se connectent donc qu'à <i>ce</i> PC et personne sur le Wi-Fi ne peut lire les données ni se faire passer pour lui. La connexion chiffrée utilise le port suivant celui de synchronisation (5001 si vous utilisez le 5000) : s'il y a un pare-feu, ouvrez les deux.</li>
+<li><b>Connexion protégée :</b> après 5 mots de passe erronés d'affilée, l'utilisateur est bloqué 15 minutes sur le mobile et une minute sur le PC. Sur le mobile, la session est conservée dans le stockage sécurisé d'Android.</li>
+<li><b>Photos vérifiées :</b> le PC n'enregistre les photos des mobiles que si ce sont de vraies images de 30 Mo maximum, et par la connexion chiffrée elles ne sont visibles qu'avec une session ouverte.</li>
+<li><b>Bases de données chiffrées</b> (<i>Outils → 🔐 Chiffrement des bases de données…</i>, désactivé par défaut) : quiconque copie les fichiers ou emporte le disque ne peut pas lire les données. MantPro les ouvre tout seul avec la clé du trousseau du système. <b>Notez la clé de récupération</b> affichée à l'activation et conservez-la hors de l'ordinateur.</li>
+<li><b>Sauvegardes chiffrées</b> (<i>Fichier → 🔒 Mot de passe des sauvegardes…</i>) : les sauvegardes qui quittent l'ordinateur (USB, NAS, cloud) ne peuvent pas être ouvertes sans le mot de passe. Les sauvegardes contiennent les données sans le chiffrement des bases de données, pour pouvoir être restaurées sur un autre ordinateur : protégez-les avec ce mot de passe.</li>
+<li>Les photos ne sont pas chiffrées. Pour protéger tout l'ordinateur, utilisez aussi le chiffrement du disque (BitLocker sous Windows, LUKS sous Linux).</li>
 </ul>
 
 <h2><a name="problemas"></a>❓ Problèmes fréquents</h2>
@@ -129,4 +140,7 @@
 <li><b>Quelqu'un a oublié son mot de passe :</b> un administrateur peut le réinitialiser dans <i>Outils → 👥 Gestion des utilisateurs</i>.</li>
 <li><b>La notification quotidienne n'arrive pas sur le mobile :</b> sur Xiaomi, OPPO/Realme ou Huawei, réglez l'application sur <i>Batterie → Aucune restriction</i>.</li>
 <li><b>Je me suis trompé en restaurant ou en important :</b> le dossier <code>backups_auto</code> contient les sauvegardes faites auparavant.</li>
+<li><b>À l'ouverture, MantPro demande une clé de récupération :</b> les bases de données sont chiffrées et le trousseau du système n'a plus leur clé (système réinstallé, autre utilisateur…). Saisissez la clé notée lors de l'activation du chiffrement. Sans elle, sortez <code>mantenimiento.db</code> et <code>almacen.db</code> du dossier de données, ouvrez MantPro et restaurez une sauvegarde.</li>
+<li><b>« Trop de tentatives échouées » :</b> attendez le temps indiqué ou demandez à un administrateur de réinitialiser le mot de passe.</li>
+<li><b>La restauration demande un mot de passe :</b> la sauvegarde est chiffrée avec le mot de passe des sauvegardes de l'ordinateur où elle a été faite (ou avec un ancien). Sans lui, elle ne peut pas être restaurée.</li>
 </ul>

@@ -120,6 +120,17 @@
 <li>The apps work <b>offline</b>: everything is stored on the phone and sent automatically when the PC is within reach again.</li>
 <li>While the app is open, even in the background, it keeps syncing and shows a «Connected to the PC» notification. Once fully closed it stops using battery.</li>
 <li>In MantPro, the <b>scan</b> button reads a machine's QR label and opens its page.</li>
+<li>The connection with the PC is <b>encrypted</b>. To pair a new phone, update its app first: an old app does not understand the new QR code.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Security and encryption</h2>
+<ul>
+<li><b>Encrypted connection with the phones (HTTPS):</b> the PC creates its own certificate and its fingerprint travels in the pairing QR code, so the phones only connect to <i>that</i> PC and nobody on the WiFi can read the data or impersonate it. The encrypted connection uses the port after the sync port (5001 if you use 5000): if there is a firewall, open both.</li>
+<li><b>Protected sign-in:</b> after 5 wrong passwords in a row, the user is blocked for 15 minutes on the phone and for one minute on the PC. On the phone, the session is kept in Android's secure storage.</li>
+<li><b>Checked photos:</b> the PC only saves photos from the phones if they are real images of 30 MB at most, and over the encrypted connection they can only be viewed while signed in.</li>
+<li><b>Encrypted databases</b> (<i>Tools → 🔐 Database encryption…</i>, off by default): anyone who copies the files or takes the disk cannot read the data. MantPro opens them by itself with the key in the system keyring. <b>Write down the recovery key</b> shown when you turn it on and keep it outside the computer.</li>
+<li><b>Encrypted backups</b> (<i>File → 🔒 Backup password…</i>): backups that leave the computer (USB, NAS, cloud) cannot be opened without the password. Backups contain the data without the database encryption, so they can be restored on another computer: protect them with this password.</li>
+<li>Photos are not encrypted. To protect the whole computer, also use disk encryption (BitLocker on Windows, LUKS on Linux).</li>
 </ul>
 
 <h2><a name="problemas"></a>❓ Common problems</h2>
@@ -129,4 +140,7 @@
 <li><b>Someone forgot their password:</b> an administrator can reset it in <i>Tools → 👥 User management</i>.</li>
 <li><b>The daily notification does not reach the phone:</b> on Xiaomi, OPPO/Realme or Huawei set the app to <i>Battery → No restrictions</i>.</li>
 <li><b>I made a mistake when restoring or importing:</b> the <code>backups_auto</code> folder holds the backups made beforehand.</li>
+<li><b>MantPro asks for a recovery key when opening:</b> the databases are encrypted and the system keyring no longer has their key (system reinstalled, another user…). Enter the key you wrote down when you turned encryption on. If you do not have it, move <code>mantenimiento.db</code> and <code>almacen.db</code> out of the data folder, open MantPro and restore a backup.</li>
+<li><b>«Too many failed attempts»:</b> wait for the time shown in the message or ask an administrator to reset the password.</li>
+<li><b>Restoring asks for a password:</b> the backup is encrypted with the backup password of the computer where it was made (or with an earlier one). It cannot be restored without it.</li>
 </ul>

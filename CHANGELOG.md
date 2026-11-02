@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Mejoras
+- **Ayuda (F1)**: apartado nuevo **🛡️ Seguridad y cifrado** (conexión cifrada con los móviles, bloqueo tras intentos fallidos, fotos comprobadas, bases de datos y copias cifradas y qué no se cifra), una nota sobre la conexión cifrada en «Apps del móvil» y tres problemas frecuentes nuevos: la clave de recuperación al abrir, «Demasiados intentos fallidos» y la contraseña que se pide al restaurar una copia. En los 7 idiomas.
+
 ### Correcciones
 - **MantPro (móvil)**: el botón para cancelar la descarga de una actualización salía como «btn_cancelar» (faltaba su traducción). Si la descarga o la instalación fallan, el aviso dice ahora el motivo.
 - **Paquete de openSUSE (OBS) con cifrado de las bases de datos**: openSUSE no tiene el módulo de SQLCipher para Python, así que el paquete no podía abrir unas bases de datos cifradas con la versión de GitHub (avisaba de que «esta instalación no incluye SQLCipher»). Ahora el paquete compila ese módulo desde su código fuente, como el que llevan los binarios de GitHub, y el cifrado funciona igual. El paquete pasa de `noarch` a `x86_64` y depende de `python3-keyring`.

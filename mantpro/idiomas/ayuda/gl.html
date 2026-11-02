@@ -120,6 +120,17 @@
 <li>As apps funcionan <b>sen conexión</b>: todo se garda no móbil e envíase só ao volver ter o PC ao alcance.</li>
 <li>Mentres a app está aberta, aínda que sexa en segundo plano, segue sincronizando e mostra unha notificación «Conectado ao PC». Ao pechala de todo deixa de gastar batería.</li>
 <li>En MantPro, o botón de <b>escanear</b> le a etiqueta QR dunha máquina e abre a súa ficha.</li>
+<li>A conexión co PC vai <b>cifrada</b>. Para vincular un móbil novo, actualiza antes a súa app: unha app antiga non entende o QR novo.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Seguranza e cifrado</h2>
+<ul>
+<li><b>Conexión cos móbiles cifrada (HTTPS):</b> o PC crea o seu propio certificado e a súa pegada vai no QR de vinculación, así que os móbiles só se conectan a <i>ese</i> PC e ninguén na WiFi pode ler os datos nin facerse pasar por el. A conexión cifrada usa o porto seguinte ao de sincronización (5001 se usas o 5000): se hai cortalumes, abre os dous.</li>
+<li><b>Inicio de sesión protexido:</b> tras 5 contrasinais erróneos seguidos, o usuario queda bloqueado 15 minutos no móbil e un minuto no PC. No móbil, a sesión gárdase no almacenamento seguro de Android.</li>
+<li><b>Fotos comprobadas:</b> o PC só garda as fotos dos móbiles se son imaxes de verdade e de 30 MB como moito, e pola conexión cifrada só se poden ver coa sesión iniciada.</li>
+<li><b>Bases de datos cifradas</b> (<i>Ferramentas → 🔐 Cifrado das bases de datos…</i>, desactivado por defecto): quen copie os ficheiros ou leve o disco non pode ler os datos. MantPro ábreos só coa chave do chaveiro do sistema. <b>Apunta a chave de recuperación</b> que se mostra ao activalo e gárdaa fóra do ordenador.</li>
+<li><b>Copias cifradas</b> (<i>Ficheiro → 🔒 Contrasinal das copias…</i>): as copias que saen do equipo (USB, NAS, nube) non se poden abrir sen o contrasinal. As copias levan os datos sen o cifrado das bases de datos, para poder restauralas noutro equipo: protéxeas con este contrasinal.</li>
+<li>As fotos non se cifran. Para protexer todo o equipo, usa tamén o cifrado de disco (BitLocker en Windows, LUKS en Linux).</li>
 </ul>
 
 <h2><a name="problemas"></a>❓ Problemas frecuentes</h2>
@@ -129,4 +140,7 @@
 <li><b>Alguén esqueceu o seu contrasinal:</b> un administrador pode restablecelo en <i>Ferramentas → 👥 Xestión de usuarios</i>.</li>
 <li><b>Non chega a notificación diaria ao móbil:</b> en Xiaomi, OPPO/Realme ou Huawei pon a app en <i>Batería → Sen restricións</i>.</li>
 <li><b>Equivoqueime ao restaurar ou importar:</b> no cartafol <code>backups_auto</code> están as copias previas.</li>
+<li><b>Ao abrir MantPro pide unha chave de recuperación:</b> as bases de datos están cifradas e o chaveiro do sistema xa non ten a súa chave (sistema reinstalado, outro usuario…). Escribe a chave que apuntaches ao activar o cifrado. Se non a tes, saca <code>mantenimiento.db</code> e <code>almacen.db</code> do cartafol de datos, abre MantPro e restaura unha copia.</li>
+<li><b>«Demasiados intentos fallidos»:</b> agarda o tempo que indica o aviso ou pídelle a un administrador que restableza o contrasinal.</li>
+<li><b>Ao restaurar pide un contrasinal:</b> a copia está cifrada co contrasinal das copias do equipo onde se fixo (ou cun anterior). Sen el non se pode restaurar.</li>
 </ul>
