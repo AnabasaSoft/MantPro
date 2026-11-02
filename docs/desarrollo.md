@@ -65,6 +65,23 @@ MantPro/
 > código: si no existe `mantenimiento.db` en la carpeta actual, la aplicación usa
 > `~/.local/share/MantPro` en Linux o `%APPDATA%\MantPro` en Windows.
 
+## Ejecutar desde el código fuente
+
+En distribuciones que no dejan instalar paquetes con `pip` fuera de un entorno
+virtual (openSUSE, Fedora, Debian…) y que no tienen el módulo de SQLCipher para
+Python, crea un entorno que use los paquetes del sistema y añádele solo SQLCipher:
+
+```bash
+python3 -m venv --system-site-packages venv
+venv/bin/pip install sqlcipher3-wheels==0.5.7
+venv/bin/python main.py
+```
+
+Sin SQLCipher MantPro funciona igual, pero no puede abrir unas bases de datos
+cifradas. Si copias las bases de datos cifradas de `~/.local/share/MantPro` a la
+carpeta del código, MantPro usa la clave que tiene el llavero para esa carpeta y
+la guarda también para la nueva.
+
 ## Base de Datos
 
 La aplicación utiliza SQLite con las siguientes tablas:

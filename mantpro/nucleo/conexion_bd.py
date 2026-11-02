@@ -235,11 +235,22 @@ def preparar():
         return
     if not HAY_SQLCIPHER:
         raise SinSQLCipher()
-    clave = leer_clave_guardada()
     cifradas = [r for r in rutas_bd() if esta_cifrada(r)]
+    clave = leer_clave_guardada()
     if clave and all(clave_abre(r, clave) for r in cifradas):
         usar_clave(clave)
         return
+    # La clave va a nombre de la carpeta de datos: si las bases de datos se
+    # han copiado a otra (p. ej. a la del código fuente), se prueba la de la
+    # carpeta de datos normal y, si las abre, se guarda también para esta.
+    from .rutas import ruta_datos_sistema
+    otra = ruta_datos_sistema()
+    if os.path.abspath(otra) != os.path.abspath(DATA_DIR):
+        clave = leer_clave_guardada(otra)
+        if clave and all(clave_abre(r, clave) for r in cifradas):
+            guardar_clave(clave)
+            usar_clave(clave)
+            return
     raise ClaveNoDisponible()
 
 

@@ -23,6 +23,15 @@
 import sys
 import os
 
+def ruta_datos_sistema():
+    """Carpeta de datos estándar del sistema (exista o no)."""
+    if sys.platform == "win32":
+        base_dir = os.getenv("APPDATA") or os.path.expanduser("~")
+    else:
+        base_dir = os.getenv("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+    return os.path.join(base_dir, "MantPro")
+
+
 def obtener_ruta_datos():
     """
     Determina dónde leer/escribir datos.

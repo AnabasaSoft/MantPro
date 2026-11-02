@@ -66,6 +66,24 @@ MantPro/
 > application uses `~/.local/share/MantPro` on Linux or `%APPDATA%\MantPro`
 > on Windows.
 
+## Running from source
+
+On distributions that do not allow installing packages with `pip` outside a
+virtual environment (openSUSE, Fedora, Debian…) and have no SQLCipher module for
+Python, create an environment that uses the system packages and add only
+SQLCipher to it:
+
+```bash
+python3 -m venv --system-site-packages venv
+venv/bin/pip install sqlcipher3-wheels==0.5.7
+venv/bin/python main.py
+```
+
+Without SQLCipher MantPro works the same, but it cannot open encrypted
+databases. If you copy the encrypted databases from `~/.local/share/MantPro` to
+the source folder, MantPro uses the key the keyring holds for that folder and
+also saves it for the new one.
+
 ## Database
 
 The application uses SQLite with the following tables:
