@@ -168,7 +168,11 @@ class DialogoEstadisticasTecnicos(QDialog):
             titulo += f" — {self.combo_tipo.currentText()}"
         base = re.sub(r"[^\w-]+", "_", tt("title_estadisticas_tecnicos", "Estadísticas por técnico")).strip("_")
         sufijo_tipo = "_" + re.sub(r"[^\w-]+", "_", self.combo_tipo.currentText()).strip("_") if self._tipo else ""
-        nombre_defecto = f"{base}_{self._anio or re.sub(r'[^\w-]+', '_', periodo)}{sufijo_tipo}.{formato}"
+        # Fuera de la f-string: una barra invertida dentro de {…} solo vale
+        # desde Python 3.12, y CI compila con 3.10 (PyInstaller dejaba fuera
+        # este módulo sin avisar y la app no arrancaba).
+        periodo_fichero = self._anio or re.sub(r'[^\w-]+', '_', periodo)
+        nombre_defecto = f"{base}_{periodo_fichero}{sufijo_tipo}.{formato}"
         filtro = "PDF (*.pdf)" if formato == "pdf" else "Excel (*.xlsx)"
         titulo_dlg = t("title_exportar_pdf") if formato == "pdf" else t("title_exportar_excel")
         guardar = getattr(self.parent(), "guardar_archivo_dialogo", None)

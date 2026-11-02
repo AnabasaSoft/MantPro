@@ -32,6 +32,14 @@ jobs:
     # SQLCipher (cifrado de las bases de datos) y el llavero: si no se pudieran
     # usar, MantPro arrancaría igual pero con la opción de cifrado desactivada,
     # así que mejor que la compilación falle aquí.
+    # Todo el código tiene que compilar con el Python de CI (3.10): si un
+    # fichero usa sintaxis más nueva (p. ej. una barra invertida dentro de una
+    # f-string, que solo vale desde 3.12), PyInstaller lo deja fuera sin avisar
+    # y la app no arranca.
+    - name: Comprobar que el código compila con Python 3.10
+      shell: bash
+      run: python -m compileall -q mantpro main.py
+
     - name: Comprobar SQLCipher y llavero
       shell: bash
       run: |
@@ -72,6 +80,23 @@ jobs:
           grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.Windows"
+        # Y todos los módulos de MantPro (si falta alguno, la app no arranca)
+        python - << 'EOF'
+        import pathlib, sys
+        dentro = pathlib.Path("contenido.txt").read_text(encoding="utf-8", errors="replace")
+        faltan = []
+        for f in sorted(pathlib.Path("mantpro").rglob("*.py")):
+            partes = list(f.with_suffix("").parts)
+            if partes[-1] == "__init__":
+                partes.pop()
+            modulo = ".".join(partes)
+            if not any(l.strip() == modulo for l in dentro.splitlines()):
+                faltan.append(modulo)
+        if faltan:
+            print("::error::Faltan en el ejecutable: " + ", ".join(faltan))
+            sys.exit(1)
+        print("Están todos los módulos de MantPro")
+        EOF
 
     - name: Build Windows Installer (Inno Setup)
       shell: bash
@@ -135,6 +160,14 @@ jobs:
     # SQLCipher (cifrado de las bases de datos) y el llavero: si no se pudieran
     # usar, MantPro arrancaría igual pero con la opción de cifrado desactivada,
     # así que mejor que la compilación falle aquí.
+    # Todo el código tiene que compilar con el Python de CI (3.10): si un
+    # fichero usa sintaxis más nueva (p. ej. una barra invertida dentro de una
+    # f-string, que solo vale desde 3.12), PyInstaller lo deja fuera sin avisar
+    # y la app no arranca.
+    - name: Comprobar que el código compila con Python 3.10
+      shell: bash
+      run: python -m compileall -q mantpro main.py
+
     - name: Comprobar SQLCipher y llavero
       shell: bash
       run: |
@@ -175,6 +208,23 @@ jobs:
           grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.SecretService"
+        # Y todos los módulos de MantPro (si falta alguno, la app no arranca)
+        python - << 'EOF'
+        import pathlib, sys
+        dentro = pathlib.Path("contenido.txt").read_text(encoding="utf-8", errors="replace")
+        faltan = []
+        for f in sorted(pathlib.Path("mantpro").rglob("*.py")):
+            partes = list(f.with_suffix("").parts)
+            if partes[-1] == "__init__":
+                partes.pop()
+            modulo = ".".join(partes)
+            if not any(l.strip() == modulo for l in dentro.splitlines()):
+                faltan.append(modulo)
+        if faltan:
+            print("::error::Faltan en el ejecutable: " + ", ".join(faltan))
+            sys.exit(1)
+        print("Están todos los módulos de MantPro")
+        EOF
 
     # --- PASO 2: SUBIR BINARIO SUELTO ---
     - name: Subir Binario Linux (Artefacto)
