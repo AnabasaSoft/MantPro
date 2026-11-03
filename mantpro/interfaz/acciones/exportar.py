@@ -66,7 +66,7 @@ class AccionesExportar:
                 writer = csv.writer(f, delimiter=';')
                 # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
                 writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después"), tt("lbl_coleccion_fotos", "Colección de fotos"), tt("lbl_checklist", "Lista de comprobación"),
-                                 tt("lbl_repuestos_usados", "🔩 Repuestos usados").replace("🔩", "").strip(),
+                                 tt("lbl_repuestos_usados", "🔩 Materiales usados").replace("🔩", "").strip(),
                                  tt("lbl_tiempo_trabajado", "⏱️ Tiempo trabajado").replace("⏱️", "").strip()])
                 for tarea in datos:
                     # Convertir formato de fecha de YYYY-MM-DD al formato corto del idioma activo
@@ -185,7 +185,7 @@ class AccionesExportar:
                 col_coleccion += 1
             if usados:
                 col_repuestos = col_coleccion
-                worksheet.write(0, col_repuestos, tt("lbl_repuestos_usados", "🔩 Repuestos usados").replace("🔩", "").strip(), bold)
+                worksheet.write(0, col_repuestos, tt("lbl_repuestos_usados", "🔩 Materiales usados").replace("🔩", "").strip(), bold)
                 worksheet.set_column(col_repuestos, col_repuestos, 40)
                 col_coleccion += 1
             if tiempos:

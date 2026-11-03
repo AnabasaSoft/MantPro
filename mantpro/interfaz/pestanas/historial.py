@@ -87,7 +87,7 @@ class PestanaHistorial:
             if mats:
                 importe, sin_precio = consumos.coste(mats)
                 desc_visual = "🔩 " + desc_visual
-                desc_limpia += "\n\n🔩 " + tt("lbl_repuestos_usados", "🔩 Repuestos usados").replace("🔩", "").strip() + ":\n" + "\n".join(
+                desc_limpia += "\n\n🔩 " + tt("lbl_repuestos_usados", "🔩 Materiales usados").replace("🔩", "").strip() + ":\n" + "\n".join(
                     f"• {m['cantidad']:g} {m['unidad'] or ''} {m['nombre']}".replace("  ", " ") for m in mats)
                 desc_limpia += f"\n{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" + \
                     (" *" if sin_precio else "")

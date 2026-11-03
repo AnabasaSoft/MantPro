@@ -989,7 +989,7 @@
   "aud_f_region": "Region (holidays)",
   "aud_f_region_superior": "Parent region (holidays)",
   "aud_f_idioma": "Language",
-  "lbl_repuestos_usados": "🔩 Spare parts used",
+  "lbl_repuestos_usados": "🔩 Materials used",
   "lbl_coste_material": "Material cost",
   "lbl_sin_precio_algunos": "(some items have no price)",
   "lbl_moneda": "Currency for prices",

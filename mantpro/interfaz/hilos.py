@@ -230,7 +230,7 @@ class GeneradorPDFThread(QThread):
                             partes.append(f"<b>{escape(tt('lbl_tiempo_trabajado', '⏱️ Tiempo trabajado').replace('⏱️', '').strip())}:</b> "
                                           + escape(texto_tiempo_export(tiempo, moneda)))
                         if mats:
-                            partes.append(f"<b>{escape(tt('lbl_repuestos_usados', '🔩 Repuestos usados').replace('🔩', '').strip())}</b><br/>"
+                            partes.append(f"<b>{escape(tt('lbl_repuestos_usados', '🔩 Materiales usados').replace('🔩', '').strip())}</b><br/>"
                                           + escape(texto_repuestos_export(mats, moneda)).replace("\n", "<br/>"))
                         filas_coleccion.append(len(data_tabla))
                         data_tabla.append([Paragraph("<br/>".join(partes), style_cell), "", "", "", "", ""])

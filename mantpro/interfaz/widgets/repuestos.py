@@ -133,7 +133,7 @@ class RepuestosUsadosWidget(QGroupBox):
     [{material_id, cantidad}]."""
 
     def __init__(self, parent=None, iniciales=None):
-        super().__init__(tt("lbl_repuestos_usados", "🔩 Repuestos usados"), parent)
+        super().__init__(tt("lbl_repuestos_usados", "🔩 Materiales usados"), parent)
         self._maquina_id = None
         self.moneda = consumos.moneda()
         self._filas = []   # [{material_id, codigo, nombre, unidad, cantidad, precio}]
