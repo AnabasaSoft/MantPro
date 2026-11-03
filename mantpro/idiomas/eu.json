@@ -1038,5 +1038,9 @@
   "msg_tiempo_no_valido": "ez da ulertzen",
   "aud_f_tiempo": "Lan egindako denbora",
   "aud_f_coste_hora": "Lanorduaren kostua",
-  "lbl_persona": "pertsona"
+  "lbl_persona": "pertsona",
+  "sesiones_caducidad": "🕒 Itxi PCarekin konektatu gabe daramaten mugikorren saioak:",
+  "sesiones_dias": "{n} egun",
+  "tt_sesiones_caducidad": "Mugikorra konektatzen den bakoitzean, saioa berritzen da: aplikazioa erabiltzen duenak ez du berriro sartu beharrik. Denbora hori konektatu gabe igarotzen duen saioa (galdutako mugikor bat edo jada ez dagoen norbaitena) bere kabuz ixten da; bidali gabe zuena ez da galtzen eta saioa berriro hastean bidaltzen da.",
+  "aud_f_dias_sin_conectar": "Konektatu gabeko egunak"
 }

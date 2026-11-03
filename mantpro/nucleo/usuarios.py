@@ -49,7 +49,42 @@ SESION_ACTUAL = None
 
 ITERACIONES = 200_000
 ETIQUETA_HISTORICO = "Histórico"
-DIAS_VALIDEZ_TOKEN = 365  # los tokens del móvil son de larga duración
+# Las sesiones del móvil caducan tras estos días SIN conectar con el PC; cada
+# contacto las renueva (ver registrar_contacto), así que quien usa la app no
+# tiene que volver a entrar. Configurable por el administrador (config
+# «dias_sesion», en Sesiones de dispositivos).
+DIAS_VALIDEZ_TOKEN = 60
+OPCIONES_DIAS_SESION = (30, 60, 90, 180, 365)
+
+
+def dias_sesion():
+    try:
+        con = _conn()
+        fila = con.execute("SELECT valor FROM config WHERE clave='dias_sesion'").fetchone()
+        con.close()
+        return int(fila[0]) if fila and str(fila[0]).isdigit() else DIAS_VALIDEZ_TOKEN
+    except Exception:
+        return DIAS_VALIDEZ_TOKEN
+
+
+def fijar_dias_sesion(dias):
+    """Cambia el plazo y lo aplica ya a las sesiones abiertas (contando desde
+    su último contacto): acortarlo cierra al momento las que lleven más tiempo
+    sin conectar."""
+    dias = int(dias)
+    anterior = dias_sesion()
+    con = _conn()
+    con.execute("CREATE TABLE IF NOT EXISTS config (clave TEXT PRIMARY KEY, valor TEXT)")
+    con.execute("INSERT OR REPLACE INTO config (clave, valor) VALUES ('dias_sesion', ?)", (str(dias),))
+    for token, ultimo, creado in con.execute("SELECT token, ultimo_contacto, creado FROM sesiones").fetchall():
+        base = _ULTIMO_CONTACTO.get(token) or datetime.fromisoformat(ultimo or creado)
+        con.execute("UPDATE sesiones SET expira=? WHERE token=?",
+                    ((base + timedelta(days=dias)).isoformat(timespec="seconds"), token))
+    con.commit()
+    con.close()
+    if anterior != dias:
+        auditar("seguridad", "configurar", "Caducidad de las sesiones del móvil",
+                cambios=[{"campo": "Días sin conectar", "antes": str(anterior), "despues": str(dias)}])
 
 
 # ---------------------------------------------------------------- infraestructura
@@ -650,7 +685,7 @@ def crear_token(usuario_id, dispositivo=None):
         "VALUES (?, ?, ?, ?, ?)",
         (token, usuario_id, dispositivo or "",
          ahora.isoformat(timespec="seconds"),
-         (ahora + timedelta(days=DIAS_VALIDEZ_TOKEN)).isoformat(timespec="seconds")),
+         (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds")),
     )
     con.commit()
     con.close()
@@ -792,8 +827,10 @@ def registrar_contacto(token, cifrada=None):
     _ULTIMA_ESCRITURA_CONTACTO[token] = ahora
     try:
         con = _conn()
-        con.execute("UPDATE sesiones SET ultimo_contacto = ?, cifrada = COALESCE(?, cifrada) WHERE token = ?",
-                    (ahora.isoformat(timespec="seconds"), None if cifrada is None else int(cifrada), token))
+        # Cada contacto renueva la sesión: caduca tras X días SIN conectar
+        con.execute("UPDATE sesiones SET ultimo_contacto = ?, cifrada = COALESCE(?, cifrada), expira = ? WHERE token = ?",
+                    (ahora.isoformat(timespec="seconds"), None if cifrada is None else int(cifrada),
+                     (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"), token))
         con.commit()
         con.close()
     except sqlite3.Error:

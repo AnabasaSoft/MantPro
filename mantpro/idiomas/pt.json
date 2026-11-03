@@ -1038,5 +1038,9 @@
   "msg_tiempo_no_valido": "não entendido",
   "aud_f_tiempo": "Tempo trabalhado",
   "aud_f_coste_hora": "Custo da hora de trabalho",
-  "lbl_persona": "pessoa"
+  "lbl_persona": "pessoa",
+  "sesiones_caducidad": "🕒 Encerrar as sessões dos celulares que estão sem se conectar ao PC há:",
+  "sesiones_dias": "{n} dias",
+  "tt_sesiones_caducidad": "Cada vez que o celular se conecta, a sessão é renovada: quem usa o aplicativo não precisa entrar de novo. Uma sessão que passar esse tempo sem se conectar (um celular perdido ou de alguém que já não está) é encerrada sozinha; o que estava sem enviar não se perde e é enviado ao fazer login de novo.",
+  "aud_f_dias_sin_conectar": "Dias sem se conectar"
 }

@@ -1038,5 +1038,9 @@
   "msg_tiempo_no_valido": "non se entende",
   "aud_f_tiempo": "Tempo traballado",
   "aud_f_coste_hora": "Custo da hora de traballo",
-  "lbl_persona": "persoa"
+  "lbl_persona": "persoa",
+  "sesiones_caducidad": "🕒 Pechar as sesións dos móbiles que leven sen conectar co PC:",
+  "sesiones_dias": "{n} días",
+  "tt_sesiones_caducidad": "Cada vez que o móbil conecta, a súa sesión renóvase: quen usa a app non ten que volver entrar. Unha sesión que pase este tempo sen conectar (un móbil perdido ou de alguén que xa non está) péchase soa; o que tivese sen enviar non se perde e envíase ao volver iniciar sesión.",
+  "aud_f_dias_sin_conectar": "Días sen conectar"
 }

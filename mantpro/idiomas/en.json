@@ -1038,5 +1038,9 @@
   "msg_tiempo_no_valido": "not understood",
   "aud_f_tiempo": "Time worked",
   "aud_f_coste_hora": "Cost per working hour",
-  "lbl_persona": "person"
+  "lbl_persona": "person",
+  "sesiones_caducidad": "🕒 Close sessions of phones that have not connected to the PC for:",
+  "sesiones_dias": "{n} days",
+  "tt_sesiones_caducidad": "Every time the phone connects, its session is renewed: whoever uses the app does not have to sign in again. A session that goes this long without connecting (a lost phone or someone who is no longer here) is closed automatically; anything not yet sent is not lost and is sent after signing in again.",
+  "aud_f_dias_sin_conectar": "Days without connecting"
 }

@@ -1038,5 +1038,9 @@
   "msg_tiempo_no_valido": "incompréhensible",
   "aud_f_tiempo": "Temps passé",
   "aud_f_coste_hora": "Coût de l'heure de travail",
-  "lbl_persona": "personne"
+  "lbl_persona": "personne",
+  "sesiones_caducidad": "🕒 Fermer les sessions des mobiles qui ne se sont pas connectés au PC depuis :",
+  "sesiones_dias": "{n} jours",
+  "tt_sesiones_caducidad": "À chaque connexion du mobile, sa session est renouvelée : qui utilise l'application n'a pas à se reconnecter. Une session qui reste ce temps sans se connecter (mobile perdu ou personne partie) est fermée automatiquement ; ce qui n'était pas envoyé n'est pas perdu et part à la reconnexion.",
+  "aud_f_dias_sin_conectar": "Jours sans connexion"
 }

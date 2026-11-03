@@ -1038,5 +1038,9 @@
   "msg_tiempo_no_valido": "no s'entén",
   "aud_f_tiempo": "Temps treballat",
   "aud_f_coste_hora": "Cost de l'hora de feina",
-  "lbl_persona": "persona"
+  "lbl_persona": "persona",
+  "sesiones_caducidad": "🕒 Tanca les sessions dels mòbils que portin sense connectar amb el PC:",
+  "sesiones_dias": "{n} dies",
+  "tt_sesiones_caducidad": "Cada vegada que el mòbil connecta, la seva sessió es renova: qui fa servir l'app no ha de tornar a entrar. Una sessió que passi aquest temps sense connectar (un mòbil perdut o d'algú que ja no hi és) es tanca sola; el que tingués sense enviar no es perd i s'envia en tornar a iniciar la sessió.",
+  "aud_f_dias_sin_conectar": "Dies sense connectar"
 }

@@ -42,6 +42,8 @@ workshop Wi-Fi). Keep in mind:
   off by default. **Photos are not encrypted.** Protect the computer. **Backups can be encrypted**
   with a password (`File > Backup password…`, AES-256-GCM with a scrypt-derived
   key); without one they are plain ZIP files.
+- **Phone sessions expire after 60 days without connecting** (configurable in
+  `Tools > Device sessions`); each connection renews them.
 - On the first start the user `admin` / `admin` is created, and the program
   **forces you to change the password** on first login.
 - Repeated failed logins are blocked for a while (15 minutes from the phones,
@@ -110,6 +112,9 @@ la oficina o del taller). Ten en cuenta que:
   seguridad se pueden cifrar** con contraseña (`Archivo > Contraseña de las
   copias…`, AES-256-GCM con la clave sacada con scrypt); sin ella son ZIP
   normales.
+- **Las sesiones de los móviles caducan tras 60 días sin conectar**
+  (configurable en `Herramientas > Sesiones de dispositivos`); cada conexión las
+  renueva.
 - En el primer arranque se crea el usuario `admin` / `admin`, y el programa
   **obliga a cambiar la contraseña** al entrar por primera vez.
 - Los intentos fallidos de inicio de sesión seguidos se bloquean un tiempo

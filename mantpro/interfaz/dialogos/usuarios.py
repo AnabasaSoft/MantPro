@@ -706,6 +706,25 @@ class DialogoSesiones(QDialog):
         fila_http.addWidget(self.boton_http)
         layout.addLayout(fila_http)
 
+        # Caducidad de las sesiones por inactividad (cada conexión las renueva)
+        fila_dias = QHBoxLayout()
+        fila_dias.addWidget(QLabel(t("sesiones_caducidad",
+            "🕒 Cerrar las sesiones de los móviles que lleven sin conectar con el PC:")))
+        self.combo_dias = QComboBox()
+        for dias in usuarios.OPCIONES_DIAS_SESION:
+            self.combo_dias.addItem(t("sesiones_dias", "{n} días").format(n=dias), dias)
+        actual = usuarios.dias_sesion()
+        if self.combo_dias.findData(actual) < 0:
+            self.combo_dias.addItem(t("sesiones_dias", "{n} días").format(n=actual), actual)
+        self.combo_dias.setCurrentIndex(self.combo_dias.findData(actual))
+        self.combo_dias.setToolTip(t("tt_sesiones_caducidad",
+            "Cada vez que el móvil conecta, su sesión se renueva: quien usa la app no tiene que volver a entrar. "
+            "Una sesión que pase este tiempo sin conectar (un móvil perdido o de alguien que ya no está) se cierra sola; "
+            "lo que tuviera sin enviar no se pierde y se envía al volver a iniciar sesión."))
+        self.combo_dias.currentIndexChanged.connect(self._cambiar_dias)
+        fila_dias.addWidget(self.combo_dias); fila_dias.addStretch()
+        layout.addLayout(fila_dias)
+
         acciones = QHBoxLayout()
         boton_actualizar = QPushButton(t("sesiones_actualizar", "🔄 Actualizar"))
         boton_revocar = QPushButton(t("sesiones_revocar", "🚫 Revocar sesión"))
@@ -794,6 +813,10 @@ class DialogoSesiones(QDialog):
             self._pintar_conexion(fila, s)
         self.tabla.setSortingEnabled(True)
         self._pintar_http()
+
+    def _cambiar_dias(self, _i):
+        usuarios.fijar_dias_sesion(self.combo_dias.currentData())
+        self.refrescar()
 
     def _pintar_http(self):
         if usuarios.http_desactivado():
