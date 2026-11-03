@@ -49,6 +49,7 @@ Cifrado:
 import hashlib
 import json
 import os
+import threading
 
 try:
     from sqlcipher3 import dbapi2 as sqlite3
@@ -59,6 +60,27 @@ except ImportError:   # p. ej. paquetes de distribuciones sin SQLCipher
 
 from .rutas import DATA_DIR
 from .seguridad import escribir_atomico
+
+
+# Abrir y cerrar conexiones a la vez desde dos hilos (el servidor atendiendo al
+# móvil y la interfaz refrescándose) puede dejar SQLite interbloqueado: cada
+# hilo coge dos mutex internos (el de la tabla de ficheros abiertos y el del
+# inodo) en orden contrario y la aplicación se congela. Se serializa solo la
+# apertura y el cierre; las consultas siguen ejecutándose en paralelo.
+_cerrojo_apertura = threading.RLock()
+
+
+class _Conexion(sqlite3.Connection):
+    def close(self):
+        with _cerrojo_apertura:
+            super().close()
+
+
+def _abrir(ruta, **kwargs):
+    """sqlite3.connect() con la apertura serializada (ver _cerrojo_apertura)."""
+    kwargs.setdefault("factory", _Conexion)
+    with _cerrojo_apertura:
+        return sqlite3.connect(ruta, **kwargs)
 
 CABECERA_SQLITE = b"SQLite format 3\x00"
 NOMBRES_BD = ("mantenimiento.db", "almacen.db")
@@ -210,7 +232,7 @@ def clave_abre(ruta, clave_hex):
     """True si [clave_hex] abre la base de datos cifrada [ruta]."""
     if not HAY_SQLCIPHER:
         return False
-    con = sqlite3.connect(ruta)
+    con = _abrir(ruta)
     try:
         _poner_clave(con, clave_hex)
         con.execute("SELECT count(*) FROM sqlite_master").fetchone()
@@ -268,11 +290,11 @@ def conectar(ruta, **kwargs):
             raise SinSQLCipher()
         if _clave_hex is None:
             raise ClaveNoDisponible()
-        con = sqlite3.connect(ruta, **kwargs)
+        con = _abrir(ruta, **kwargs)
         _poner_clave(con, _clave_hex)
         return con
     nueva = not os.path.exists(ruta) or os.path.getsize(ruta) == 0
-    con = sqlite3.connect(ruta, **kwargs)
+    con = _abrir(ruta, **kwargs)
     if nueva and _clave_hex is not None and HAY_SQLCIPHER \
             and os.path.dirname(os.path.abspath(ruta)) == os.path.abspath(DATA_DIR):
         _poner_clave(con, _clave_hex)   # base de datos nueva en una carpeta cifrada
@@ -294,7 +316,7 @@ def adjuntar(con, ruta, alias):
 
 def conectar_plano(ruta, **kwargs):
     """Conexión sin clave (para copias temporales sin cifrar)."""
-    return sqlite3.connect(ruta, **kwargs)
+    return _abrir(ruta, **kwargs)
 
 
 # ------------------------------------------------- copias y restauraciones
@@ -420,7 +442,7 @@ def convertir(accion, clave_hex, carpeta=None):
             for f in (nueva, nueva + "-wal", nueva + "-shm"):
                 try: os.remove(f)
                 except OSError: pass
-            con = sqlite3.connect(ruta, timeout=20)
+            con = _abrir(ruta, timeout=20)
             try:
                 if cifrada:
                     _poner_clave(con, clave_hex)
@@ -430,7 +452,7 @@ def convertir(accion, clave_hex, carpeta=None):
                 _exportar(con, nueva, clave_hex if accion == "cifrar" else None)
             finally:
                 con.close()
-            comprobar = sqlite3.connect(nueva)
+            comprobar = _abrir(nueva)
             try:
                 if accion == "cifrar":
                     _poner_clave(comprobar, clave_hex)
