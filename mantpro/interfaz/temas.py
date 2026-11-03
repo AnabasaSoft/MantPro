@@ -256,6 +256,7 @@ class Temas:
         QMenu { background-color: #2b2b2b; color: #e0e0e0; border: 1px solid #555; }
         QMenu::item { padding: 5px 20px; }
         QMenu::item:selected { background-color: #3daee9; color: white; }
+        QMenu::separator { height: 1px; background: #7a7a7a; margin: 5px 8px; }
 
         /* ESTILO ESPECÍFICO PARA DIÁLOGOS DE ARCHIVOS (QFileDialog) */
         QFileDialog QToolButton {
