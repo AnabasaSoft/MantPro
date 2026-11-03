@@ -164,7 +164,7 @@ const Map<String, String> traduccionesEn = {
     "btn_luego": "Later",
     "btn_descargar": "Download",
     "msg_sin_actualizaciones_sin_conexion": "❌ Could not check for updates (no connection)",
-    "msg_ya_ultima_version": "✅ You already have the latest version",
+    "msg_ya_ultima_version": "✅ You already have the latest version installed: v{version}",
     "tooltip_buscar_actualizaciones": "Check for updates",
     "estado_listo_esperando_conexion": "READY (Waiting for connection to upload)",
     "tooltip_cancelar_envio": "Cancel upload and return to pending",

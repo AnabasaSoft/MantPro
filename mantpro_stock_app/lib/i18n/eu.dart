@@ -136,7 +136,7 @@ const Map<String, String> traduccionesEu = {
     "btn_luego": "Geroago",
     "btn_descargar": "Deskargatu",
     "msg_sin_actualizaciones_sin_conexion": "❌ Ezin izan da eguneraketarik egiaztatu (konexiorik gabe)",
-    "msg_ya_ultima_version": "✅ Dagoeneko azken bertsioa duzu",
+    "msg_ya_ultima_version": "✅ Azken bertsioa duzu instalatuta: v{version}",
     "tooltip_buscar_actualizaciones": "Eguneraketak bilatu",
     "canal_conexion_pc": "PCarekiko konexioa",
     "canal_conexion_pc_desc": "Aplikazioa PCarekin sinkronizatzen mantentzen du bigarren planoan irekita dagoen bitartean",

@@ -648,7 +648,7 @@ Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = f
 }
 
 void _mostrarSnackSinNovedad(BuildContext context, {required bool error}) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? t("msg_sin_actualizaciones_sin_conexion") : t("msg_ya_ultima_version"))));
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error ? t("msg_sin_actualizaciones_sin_conexion") : t("msg_ya_ultima_version").replaceAll('{version}', kAppVersion))));
 }
 
 // Permite mostrar diálogos desde código de sincronización en segundo plano

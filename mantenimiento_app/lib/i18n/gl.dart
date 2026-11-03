@@ -166,7 +166,7 @@ const Map<String, String> traduccionesGl = {
     "btn_luego": "Despois",
     "btn_descargar": "Descargar",
     "msg_sin_actualizaciones_sin_conexion": "❌ Non se puideron comprobar actualizacións (sen conexión)",
-    "msg_ya_ultima_version": "✅ Xa tes a última versión",
+    "msg_ya_ultima_version": "✅ Xa tes instalada a última versión: v{version}",
     "tooltip_buscar_actualizaciones": "Buscar actualizacións",
     "estado_listo_esperando_conexion": "LISTO (Agardando conexión para subir)",
     "tooltip_cancelar_envio": "Cancelar envío e volver a pendente",

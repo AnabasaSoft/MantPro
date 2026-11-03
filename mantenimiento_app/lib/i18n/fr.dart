@@ -182,7 +182,7 @@ const Map<String, String> traduccionesFr = {
   "btn_luego": "Plus tard",
   "btn_descargar": "Télécharger",
   "msg_sin_actualizaciones_sin_conexion": "❌ Impossible de rechercher des mises à jour (pas de connexion)",
-  "msg_ya_ultima_version": "✅ Vous avez déjà la dernière version",
+  "msg_ya_ultima_version": "✅ Vous avez déjà la dernière version installée : v{version}",
   "tooltip_buscar_actualizaciones": "Rechercher des mises à jour",
   "estado_listo_esperando_conexion": "PRÊT (En attente de connexion pour l'envoi)",
   "tooltip_cancelar_envio": "Annuler l'envoi et remettre en attente",

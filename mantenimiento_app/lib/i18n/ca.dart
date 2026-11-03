@@ -166,7 +166,7 @@ const Map<String, String> traduccionesCa = {
     "btn_luego": "Després",
     "btn_descargar": "Descarregar",
     "msg_sin_actualizaciones_sin_conexion": "❌ No s'han pogut comprovar actualitzacions (sense connexió)",
-    "msg_ya_ultima_version": "✅ Ja tens l'última versió",
+    "msg_ya_ultima_version": "✅ Ja tens instal·lada l'última versió: v{version}",
     "tooltip_buscar_actualizaciones": "Cercar actualitzacions",
     "estado_listo_esperando_conexion": "LLEST (Esperant connexió per pujar)",
     "tooltip_cancelar_envio": "Cancel·lar enviament i tornar a pendent",

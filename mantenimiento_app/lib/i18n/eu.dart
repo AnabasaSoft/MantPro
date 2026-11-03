@@ -165,7 +165,7 @@ const Map<String, String> traduccionesEu = {
     "btn_luego": "Geroago",
     "btn_descargar": "Deskargatu",
     "msg_sin_actualizaciones_sin_conexion": "❌ Ezin izan da eguneraketarik egiaztatu (konexiorik gabe)",
-    "msg_ya_ultima_version": "✅ Dagoeneko azken bertsioa duzu",
+    "msg_ya_ultima_version": "✅ Azken bertsioa duzu instalatuta: v{version}",
     "tooltip_buscar_actualizaciones": "Eguneraketak bilatu",
     "estado_listo_esperando_conexion": "PREST (Konexioaren zain igotzeko)",
     "tooltip_cancelar_envio": "Bidalketa utzi eta zain jarri",
