@@ -231,4 +231,5 @@ const Map<String, String> traduccionesEn = {
     "lbl_tiempo_trabajado": "Time worked",
     "ph_tiempo_trabajado": "e.g. 1:30 or 1.5",
     "msg_tiempo_no_valido": "not understood",
+    "msg_actualizaciones_codigo_fuente": "Development version (built from source): no update check.",
 };

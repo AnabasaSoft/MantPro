@@ -154,4 +154,5 @@ const Map<String, String> traduccionesEn = {
     // --- Precio de los artículos ---
     "lbl_precio_unitario": "Unit price",
     "ph_precio": "no price",
+    "msg_actualizaciones_codigo_fuente": "Development version (built from source): no update check.",
 };

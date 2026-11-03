@@ -154,4 +154,5 @@ const Map<String, String> traduccionesEu = {
     // --- Precio de los artículos ---
     "lbl_precio_unitario": "Unitateko prezioa",
     "ph_precio": "prezio gabe",
+    "msg_actualizaciones_codigo_fuente": "Garapen-bertsioa (iturburu-kodetik konpilatua): ez da eguneratzerik bilatzen.",
 };

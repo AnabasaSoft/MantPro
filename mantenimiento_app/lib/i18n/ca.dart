@@ -230,4 +230,5 @@ const Map<String, String> traduccionesCa = {
     "lbl_tiempo_trabajado": "Temps treballat",
     "ph_tiempo_trabajado": "p. ex. 1:30 o 1,5",
     "msg_tiempo_no_valido": "no s'entén",
+    "msg_actualizaciones_codigo_fuente": "Versió de desenvolupament (compilada des del codi): no se cerquen actualitzacions.",
 };

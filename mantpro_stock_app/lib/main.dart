@@ -130,7 +130,9 @@ Future<void> evaluarNotificacionStock() async {
 // --- COMPROBADOR DE ACTUALIZACIONES (GitHub Releases) ---
 // IMPORTANTE: sube este número cada vez que publiques un nuevo release en GitHub (tag vX.Y.Z),
 // así la app sabrá que la instalada se ha quedado atrás. Comparte repositorio con MantPro.
-const String kAppVersion = '3.9.9';
+// Al compilar en GitHub se sustituye por la versión del tag; compilada desde el
+// código (en local) se queda así, igual que el PC, y no busca actualizaciones.
+const String kAppVersion = 'Dev Version';
 const String kRepoOwner = 'AnabasaSoft';
 const String kRepoName = 'MantPro';
 
@@ -181,6 +183,14 @@ Map<String, dynamic>? _releaseMasNueva(List<dynamic> releases) {
 }
 
 Future<void> comprobarActualizacionGitHub(BuildContext context, {bool forzar = false}) async {
+  // Compilada desde el código (no desde un tag): su versión no es real y
+  // siempre parecería desactualizada, así que no se busca nada.
+  if (!RegExp(r'^\d').hasMatch(kAppVersion)) {
+    if (forzar && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_actualizaciones_codigo_fuente"))));
+    }
+    return;
+  }
   final prefs = await SharedPreferences.getInstance();
   if (!forzar) {
     final ultima = prefs.getInt('update_ultima_comprobacion') ?? 0;

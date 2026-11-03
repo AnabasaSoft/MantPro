@@ -143,4 +143,5 @@ const Map<String, String> traduccionesFr = {
     // --- Precio de los artículos ---
     "lbl_precio_unitario": "Prix unitaire",
     "ph_precio": "sans prix",
+    "msg_actualizaciones_codigo_fuente": "Version de développement (compilée depuis le code) : aucune recherche de mises à jour.",
 };

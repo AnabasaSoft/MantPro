@@ -17,6 +17,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ### Mejoras
 - **Apps del móvil**: al buscar actualizaciones sin que haya una nueva, el aviso dice qué versión tienes instalada («✅ Ya tienes la última versión instalada: v3.10.4»).
+- **Apps del móvil compiladas desde el código** (pruebas en local): muestran «Dev Version», como el PC, en vez de un número inventado, y no buscan actualizaciones. Las de GitHub siguen mostrando la versión de su tag.
 - **Stock bajo mínimo**: la pestaña muestra también los artículos que están **justo en su mínimo**, con la cantidad sin color (en rojo siguen los que están por debajo), para tenerlos vigilados; el número del título sigue contando solo los que están por debajo. Al exportar la lista se elige si incluir o no los que están justo en el mínimo.
 - **Ayuda (F1)**: el coste de repuestos por máquina en «Máquinas», y los precios (solo administradores) y la moneda en «Stock de almacén».
 - **Aviso de datos llegando del móvil**: mientras el PC recibe algo de un móvil, el título de la pestaña afectada se subraya con una barra de progreso animada: trabajos nuevos o editados (**Historial**), pendientes creados, editados, borrados o completados (**Pendientes**), avisos completados o desmarcados (**Avisos**) y cambios en el almacén desde MantPro Stock (**Stock de almacén**). Empieza en cuanto llega el envío (también mientras se suben las fotos) y dura al menos un segundo para que se vea.
