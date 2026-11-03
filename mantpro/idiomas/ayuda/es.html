@@ -36,7 +36,18 @@
 <li><b>Atrasado</b> (rojo): se ha pasado el margen sin hacerlo. El aviso no se salta: sigue ahí hasta que se haga.</li>
 </ul>
 <p>Al marcarlo como hecho se crea un registro en el historial y la siguiente fecha se cuenta <b>desde el día en que se hizo de verdad</b>. Con el botón derecho puedes asignar o borrar varios avisos a la vez.</p>
-<p><b>📟 Por contador:</b> un aviso puede ir por las <b>horas de uso, ciclos o km</b> de una máquina en vez de (o además de) por fecha: «cambio de aceite cada 500 h, avisar 50 h antes». Marca <i>Por contador</i> al crearlo o editarlo, elige el contador y pon <b>Cada</b>, <b>Avisar antes</b> y, si quieres, la lectura a la que toca la <b>primera vez</b> (si no, la actual más «Cada»). Con <i>Además, como máximo con la frecuencia por fecha</i> toca <b>lo que antes llegue</b> («cada 500 h o cada año», para la máquina que se usa poco); sin marcarlo va solo por contador y no sale en el calendario. Sale en naranja dentro de la antelación y en rojo al pasarse; el tooltip dice cuándo se llegará al ritmo de uso actual. Al completarlo se pide la lectura de ese momento (opcional) y de ella se cuenta el siguiente; el trabajo queda ligado a la máquina.</p>
+<p><b>📟 Por contador:</b> un aviso puede ir por las <b>horas de uso, ciclos o km</b> de una máquina en vez de (o además de) por fecha: «cambio de aceite cada 500 h, avisar 50 h antes».</p>
+<ul>
+<li><b>Primero, el contador:</b> el aviso solo puede usar contadores que ya existan. Créalos antes en <i>Máquinas → 📟 Contadores</i> (solo administradores). El desplegable <i>Contador</i> del aviso lista los de todas las máquinas («Máquina — Nombre (unidad)»); si sale vacío es que todavía no hay ninguno, y el propio formulario lo avisa.</li>
+<li><b>Campos:</b> marca <i>Por contador</i> al crear o editar el aviso, elige el contador y rellena <b>Cada</b> (cada cuánto toca, en la unidad del contador: 500), <b>Avisar antes</b> (con cuánta antelación se pone naranja: 50) y, si quieres, <b>Primera vez a</b> (la lectura a la que toca la primera vez; vacío es «automático»: la lectura actual más «Cada»). Los números se escriben como siempre: «1.500» es 1500 y «6,5» es 6,5.</li>
+<li><b>Lo que antes llegue:</b> con <i>Además, como máximo con la frecuencia por fecha</i> el aviso conserva también su frecuencia (anual, mensual…) y toca lo que antes llegue («cada 500 h o cada año», para la máquina que se usa poco). Sin marcarlo va solo por contador: no sale en el calendario, pero sí cuenta en el Dashboard.</li>
+<li><b>Colores:</b> normal hasta entrar en la antelación, <b>naranja</b> dentro de ella y <b>rojo</b> al pasarse. La columna muestra lo que falta («1500 h (ahora 1440 h)») y el tooltip dice cuándo se llegará al ritmo de uso actual.</li>
+<li><b>Fecha estimada:</b> se calcula con el uso medio de los últimos 180 días, desde la última vez que el contador bajó (cambio o puesta a cero). Hacen falta al menos dos lecturas separadas por un día o más y que el contador suba; si no, no se puede estimar y no se muestra.</li>
+<li><b>Completarlo:</b> el diálogo pide la lectura de ese momento (opcional, junto al tiempo trabajado). De ella se cuenta el siguiente («cada 500 h» desde ahí), el trabajo queda ligado a la máquina y la lectura entra en el historial del contador. Si es menor que la anterior, pide confirmar (contador cambiado o puesto a cero).</li>
+<li><b>Deshacer:</b> desmarcar el completado o borrar el trabajo del historial vuelve al ciclo anterior; la lectura sigue en el historial del contador, pero deja de contar como inicio del ciclo.</li>
+<li><b>En el móvil</b> los avisos por contador salen igual, también sin conexión: el estado (naranja o rojo) tiene en cuenta las lecturas apuntadas en el móvil que aún no se han enviado al PC.</li>
+<li>Los cambios del aviso (contador, «Cada», «Avisar antes», «Primera vez a») y las lecturas quedan en el <i>Registro de cambios</i>.</li>
+</ul>
 
 <h2><a name="registrar"></a>📝 Registrar un trabajo</h2>
 <p>Para anotar un trabajo ya hecho: fecha, un resumen corto, los detalles, la máquina y las etiquetas (Urgente, Eléctrico, Mecánico, Preventivo, Avería u otras que escribas).</p>
@@ -77,7 +88,14 @@
 <li><b>🏷️ Etiquetas QR</b> genera un PDF de etiquetas (24 por folio A4, de 70 × 37 mm) para pegar en las máquinas. Al escanearlas con la app MantPro se abre la ficha de esa máquina.</li>
 <li><b>🔩 Repuestos:</b> debajo del árbol ves los artículos del almacén que lleva la máquina seleccionada, cuántos lleva, cuántos hay en stock (en rojo si está bajo mínimo) y dónde están. Añádelos con <b>➕ Añadir repuesto</b>; con doble clic vas al artículo en Stock. En el móvil aparecen en la ficha de la máquina, y en Stock de almacén cada artículo dice en qué máquinas se usa; también puedes asociarlo a sus máquinas al crearlo o editarlo.</li>
 <li><b>💶 Costes:</b> cuánto ha costado el mantenimiento de cada máquina, sumando sus submáquinas, por año: horas trabajadas, <b>mano de obra</b> (horas × coste de la hora) y <b>repuestos</b>, con el detalle de los artículos de la máquina elegida. Se exporta a Excel. El <b>coste de la hora</b> se pone ahí mismo (solo administradores); cada trabajo guarda la tarifa del momento en que se apuntó su tiempo. Los repuestos de la máquina salen los primeros al apuntar los usados en un trabajo, en el PC y en el móvil.</li>
-<li><b>📟 Contadores:</b> horas de uso, ciclos o km de la máquina seleccionada. Créalos con su unidad (solo administradores) y apunta sus lecturas aquí, en la ficha de la máquina en el móvil o al completar sus preventivos por contador. Muestra la última lectura, el uso medio por día y su historial de lecturas (un administrador puede borrar una mal puesta). La lectura que cuenta es la más reciente, así que un contador cambiado o puesto a cero sigue funcionando.</li>
+<li><b>📟 Contadores:</b> horas de uso, ciclos o km de la máquina seleccionada, para los preventivos por contador. Con la máquina elegida, pulsa <i>📟 Contadores</i>:
+<ul>
+<li><b>➕ Nuevo contador</b> (solo administradores): nombre («Horas de uso»), unidad («h») y, si la sabes, la lectura actual. Una máquina puede tener varios (horas y ciclos, por ejemplo). <b>✏️ Editar</b> cambia el nombre y la unidad.</li>
+<li><b>🗑️ Eliminar</b> borra el contador con todas sus lecturas. No se puede si algún aviso lo usa: antes cambia o borra esos avisos. Al borrar una máquina se borran sus contadores y los avisos que los usaban dejan de ir por contador.</li>
+<li><b>📟 Apuntar lectura</b> (quien puede registrar trabajos): anota el valor y la fecha; también se puede desde la ficha de la máquina en el móvil o al completar un preventivo por contador.</li>
+<li><b>📋 Lecturas</b> muestra el historial; un administrador puede borrar una mal puesta con <b>🗑️ Borrar lectura</b>.</li>
+</ul>
+Cada contador muestra su última lectura y el uso medio por día. La lectura que cuenta es la más reciente por fecha (no la mayor), así que un contador cambiado o puesto a cero sigue funcionando; si apuntas una menor que la anterior se pide confirmar.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Stock de almacén</h2>
@@ -131,7 +149,7 @@
 <li>En MantPro, el botón de <b>escanear</b> lee la etiqueta QR de una máquina y abre su ficha.</li>
 <li>La conexión con el PC va <b>cifrada</b>. Para vincular un móvil nuevo, actualiza antes su app: una app antigua no entiende el QR nuevo.</li>
 <li>Los avisos y pendientes con <b>☑️</b> llevan lista de comprobación: al completarlos se rellena en el móvil, también sin conexión.</li>
-<li>En la ficha de una máquina (al escanear su QR) están sus <b>📟 contadores</b>: pulsa <b>Apuntar</b> para anotar la lectura, también sin conexión. También salen sus preventivos por contador con lo que falta, y al completar uno de ellos se puede apuntar la lectura en el mismo paso.</li>
+<li>En la ficha de una máquina (al escanear su QR) están sus <b>📟 contadores</b> con su última lectura: pulsa <b>Apuntar</b> para anotar la lectura, también sin conexión (se ve al momento y se envía al PC al sincronizar; si el mismo envío se repite, no se duplica). También salen sus preventivos por contador con lo que falta y su estado, y al completar uno de ellos se puede apuntar la lectura en el mismo paso.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Seguridad y cifrado</h2>
