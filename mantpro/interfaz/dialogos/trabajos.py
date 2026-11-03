@@ -390,9 +390,10 @@ class CompleteDialog(QDialog):
 
 
 class AvisoEditDialog(QDialog):
-    def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None, checklist_id=None):
+    def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None, checklist_id=None,
+                 contador=None):
         super().__init__(parent)
-        self.setWindowTitle(t("title_editar_aviso")); self.resize(500, 560)
+        self.setWindowTitle(t("title_editar_aviso")); self.resize(540, 820)
         l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = _estilo_label_dialogo()
         l.addWidget(QLabel(t("lbl_titulo_aviso"), styleSheet=lbl_style)); self.titulo = QLineEdit(titulo); self.titulo.setMinimumHeight(35); l.addWidget(self.titulo)
         l.addWidget(QLabel(t("lbl_fecha_inicio"), styleSheet=lbl_style)); self.inicio = QDateEdit(); self.inicio.setCalendarPopup(True); self.inicio.setDisplayFormat("yyyy-MM-dd"); self.inicio.setMinimumHeight(35)
@@ -419,6 +420,10 @@ class AvisoEditDialog(QDialog):
         self.combo_checklist = QComboBox(); self.combo_checklist.setMinimumHeight(35)
         llenar_combo_plantillas(self.combo_checklist, checklist_id)
         l.addWidget(self.combo_checklist)
+        # Preventivo por contador (horas, ciclos, km), solo o «lo que antes llegue»
+        from .contadores import CamposContadorAviso
+        self.campos_contador = CamposContadorAviso(self, contador)
+        l.addWidget(self.campos_contador)
         l.addStretch()
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -432,6 +437,17 @@ class AvisoEditDialog(QDialog):
 
     def checklist_id(self):
         return self.combo_checklist.currentData()
+
+    def contador(self):
+        """Config del preventivo por contador, o None si es solo por fecha."""
+        return self.campos_contador.config()
+
+    def accept(self):
+        error = self.campos_contador.validar(self)
+        if error:
+            QMessageBox.warning(self, self.windowTitle(), error)
+            return
+        super().accept()
 
 
 class DialogoExportarPDF(QDialog):

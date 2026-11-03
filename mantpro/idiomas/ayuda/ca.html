@@ -36,6 +36,7 @@
 <li><b>Endarrerit</b> (vermell): ha passat el marge sense fer-lo. L'avís no se salta: continua allà fins que es faci.</li>
 </ul>
 <p>En marcar-lo com a fet es crea un registre a l'historial i la data següent es compta <b>des del dia en què es va fer de veritat</b>. Amb el botó dret pots assignar o esborrar diversos avisos alhora.</p>
+<p><b>📟 Per comptador:</b> un avís pot anar per les <b>hores d'ús, cicles o km</b> d'una màquina en lloc de (o a més de) per data: «canvi d'oli cada 500 h, avisa 50 h abans». Marca <i>Per comptador</i> en crear-lo o editar-lo, tria el comptador i posa <b>Cada</b>, <b>Avisa abans</b> i, si vols, la lectura a la qual toca la <b>primera vegada</b> (si no, l'actual més «Cada»). Amb <i>A més, com a màxim amb la freqüència per data</i> toca <b>el que arribi abans</b> («cada 500 h o cada any», per a la màquina que es fa servir poc); sense marcar-ho va només per comptador i no surt al calendari. Surt en taronja dins de l'antelació i en vermell en passar-se; el tooltip diu quan s'hi arribarà al ritme d'ús actual. En completar-lo es demana la lectura d'aquell moment (opcional) i des d'ella es compta el següent; el treball queda lligat a la màquina.</p>
 
 <h2><a name="registrar"></a>📝 Registrar un treball</h2>
 <p>Per anotar un treball ja fet: data, un resum curt, els detalls, la màquina i les etiquetes (Urgent, Elèctric, Mecànic, Preventiu, Avaria o altres que escriguis).</p>
@@ -76,6 +77,7 @@
 <li><b>🏷️ Etiquetes QR</b> genera un PDF d'etiquetes (24 per full A4, de 70 × 37 mm) per enganxar a les màquines. En escanejar-les amb l'app MantPro s'obre la fitxa d'aquella màquina.</li>
 <li><b>🔩 Recanvis:</b> a sota de l'arbre hi veus els articles del magatzem que porta la màquina seleccionada, quants en porta, quants n'hi ha en estoc (en vermell si és per sota del mínim) i on són. Afegeix-los amb <b>➕ Afegir recanvi</b>; amb doble clic vas a l'article a Estoc. Al mòbil apareixen a la fitxa de la màquina, i a Estoc de magatzem cada article diu en quines màquines s'utilitza; també el pots associar a les seves màquines en crear-lo o editar-lo.</li>
 <li><b>💶 Costos:</b> quant ha costat el manteniment de cada màquina, sumant-hi les submàquines, per any: hores treballades, <b>mà d'obra</b> (hores × cost de l'hora) i <b>recanvis</b>, amb el detall dels articles de la màquina triada. S'exporta a Excel. El <b>cost de l'hora</b> es posa allà mateix (només administradors); cada treball desa la tarifa del moment en què se'n va apuntar el temps. Els recanvis de la màquina surten primer en apuntar els utilitzats en un treball, al PC i al mòbil.</li>
+<li><b>📟 Comptadors:</b> hores d'ús, cicles o km de la màquina seleccionada. Crea'ls amb la seva unitat (només administradors) i apunta'n les lectures aquí, a la fitxa de la màquina al mòbil o en completar els seus preventius per comptador. Mostra l'última lectura, l'ús mitjà per dia i l'historial de lectures (un administrador pot esborrar-ne una de mal posada). La lectura que compta és la més recent, així que un comptador canviat o posat a zero continua funcionant.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Estoc de magatzem</h2>
@@ -129,6 +131,7 @@
 <li>A MantPro, el botó d'<b>escanejar</b> llegeix l'etiqueta QR d'una màquina i n'obre la fitxa.</li>
 <li>La connexió amb el PC va <b>xifrada</b>. Per vincular un mòbil nou, actualitza abans la seva app: una app antiga no entén el QR nou.</li>
 <li>Els avisos i pendents amb <b>☑️</b> porten llista de comprovació: en completar-los s'omple al mòbil, també sense connexió.</li>
+<li>A la fitxa d'una màquina (en escanejar-ne el QR) hi ha els seus <b>📟 comptadors</b>: prem <b>Apuntar</b> per anotar la lectura, també sense connexió. També hi surten els seus preventius per comptador amb el que falta, i en completar-ne un es pot apuntar la lectura en el mateix pas.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Seguretat i xifratge</h2>

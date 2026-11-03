@@ -174,6 +174,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🚦 Egiteke dauden lanen lehentasuna**: egiteke dagoen lan bakoitzak lehentasun bat du (Baxua, Ertaina, Altua edo Kritikoa) zein lehenago egin erabakitzeko, zerrendan bere kolorearekin; bere bildumari argazkiak ere gehi dakizkioke
 - **↩️ Egitekora itzuli**: lan bat oker osatu bada, klik batekin Egiteke atalera itzul daiteke historiatik (abisuarekin, makina lotuta bazuen, datu hori galduko bailitzateke), eta auditorian erregistratuta geratzen da
 - **🔁 Gogorarazleak**: Automatikoki errepikatzen diren mantentze-abisuak. Data pasatzen bada ez dira saltatzen: **Zain** (laranja) geratzen dira tartean, eta gero **Atzeratuta** (gorria) egin arte; hurrengo data lana benetan egin zen egunetik kontatzen da
+- **📟 Kontagailu bidezko prebentiboa**: makina baten **erabilera-orduen, zikloen edo km-en** araberako abisuak («olio-aldaketa 500 orduro, 50 h lehenago abisatu»), bakarrik edo dataren araberako maiztasun batekin batera (**lehenik iristen dena**: «500 orduro edo urtero»). Irakurketak PCan, mugikorreko makinaren fitxan (konexiorik gabe ere) eta prebentiboa osatzean idazten dira; irakurketa horretatik zenbatzen da hurrengoa, eta batez besteko erabileraren arabera noiz iritsiko den kalkulatzen da
 - **☑️ Egiaztapen-zerrendak**: txantiloi berrerabilgarriak («Konpresorearen hileko berrikuspena») ondo / gaizki / ez dagokio markatzen diren puntuekin eta unitate eta tarte zuzena duten irakurketekin (tartetik kanpo, «gaizki» automatikoki); abisuei eta zain dauden lanei esleitzen zaizkie eta osatzean betetzen dira, PCan edo mugikorrean (konexiorik gabe ere). Lanarekin gordetzen dira, historian ikusten dira eta PDF, Excel eta CSV esportazioetan agertzen dira
 - **📦 Biltegiko stockaren kontrola**: Apalategi, apal eta ataleko egitura konfiguragarria, materialen fitxa argazkiarekin, sarrerak/irteerak historiarekin eta gutxienekoaren azpiko stockaren alertak
 - **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta; gutxienekotik beherako stockaren fitxak ere badu bere botoia, alertan dauden materialak soilik esportatzeko
@@ -213,6 +214,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🔄 Atzeko planoan konektatuta**: aplikazioa irekita dagoen bitartean, atzeko planoan egon arren, ordenagailuarekin sinkronizatzen jarraitzen du eta jakinarazpen bat erakusten du («Ordenagailura konektatuta» / «Ordenagailuarekin konexiorik gabe») «Itxi» botoiarekin. Guztiz ixtean bateria gastatzeari uzten dio
 - **📶 Lehen sinkronizazioa aurrerapenarekin**: aurrerapen-barra datuak eta argazkiak deskargatzean, paraleloan deskargatuta azkarrago izan dadin
 - **🏷️ Makina eskaneatu**: eskaneatzeko botoiak makina baten QR etiketa irakurri eta haren fitxa irekitzen du, konexiorik gabe: non dagoen, azken lanak, bere **ordezko piezak** biltegiko stockarekin, eta hari lotutako lan bat erregistratzeko botoia
+- **📟 Makinaren kontagailuak**: makinaren fitxan bere kontagailuen irakurketak (orduak, zikloak, km) idazten dira konexiorik gabe, eta kontagailuaren araberako prebentiboak falta denarekin ikusten dira; bat osatzean, irakurketa urrats berean idazten da
 - **⬆️ Aplikaziotik eguneratu**: bertsio berri bat dagoenean, abisuak «Geroago» eta «Eguneratu» botoiak ditu; «Eguneratu» botoiak APKa deskargatzen du aurrerapen-barrarekin eta Androiden instalatzailea irekitzen du, GitHubetik pasatu gabe
 
 ### 📦 Stockaren mugikorreko aplikazioa (Android)
@@ -583,6 +585,11 @@ denboran zehar eramateko pentsatua.
   70 × 37 mm-ko 24 etiketekin (hautatutako makinarenak, bere azpimakinekin edo
   guztienak). MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen
   da
+- **📟 Kontagailuak**: «📟 Kontagailuak» botoiak hautatutako makinaren
+  erabilera-orduak, zikloak edo km-ak kudeatzen ditu (administratzaileak
+  sortzen ditu), azken irakurketarekin, eguneko batez besteko erabilerarekin
+  eta irakurketen historiarekin. Kontagailu bidezko prebentiboek hemendik
+  hartzen dituzte irakurketak
 - **🔍 Antzeko izenak**: makina bat sortzean edo izena aldatzean, maila berean
   izen bera edo oso antzekoa duen beste bat badagoen abisatzen du
 
@@ -823,8 +830,7 @@ Segurtasun-akatsetarako, ikus [SECURITY.md](SECURITY.md).
 Datozenak, datarik gabe eta ordena itxirik gabe:
 
 - **Hornitzaileak, prezioak eta erosketa-eskaerak** gutxienekotik beherako stocketik abiatuta
-- **Kontagailu bidezko prebentiboa** (erabilera-orduak, zikloak, km), dataz gain
-- **Lan egindako denbora eta sinadura** lana ixtean (mugikorrean ere)
+- **Sinadura** lana ixtean (mugikorrean ere)
 - **Makina bakoitzaren dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFn)
 - **Makinen kritikotasuna (ABC)**, mantentzean non inbertitu erabakitzeko
 - **Lan-eskaerak** ekoizpenetik edo beste sail batzuetatik, zain dagoen lan bat sortzen dutenak
@@ -833,7 +839,7 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
 - Hizkuntza gehiago (italiera, alemana…) eta iPhonerako aplikazioa
 
-Berriki egina: lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
+Berriki egina: kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

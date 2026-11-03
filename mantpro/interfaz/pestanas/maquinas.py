@@ -59,9 +59,11 @@ class PestanaMaquinas:
         b_contraer = QPushButton(tt("btn_contraer_todo", "⬆️ Contraer todo"))
         b_qr = QPushButton(tt("btn_etiquetas_qr", "🏷️ Etiquetas QR")); b_qr.clicked.connect(self._maquinas_etiquetas_qr)
         b_qr.setToolTip(tt("tt_etiquetas_qr", "PDF con etiquetas QR para pegar en las máquinas: al escanearlas con MantPro se abre su ficha."))
+        b_contadores = QPushButton(tt("btn_contadores", "📟 Contadores")); b_contadores.clicked.connect(self._maquina_contadores)
+        b_contadores.setToolTip(tt("tt_contadores", "Horas de uso, ciclos o km de la máquina seleccionada: sus lecturas y los preventivos por contador."))
         b_coste = QPushButton(tt("btn_costes_maquina", "💶 Costes")); b_coste.clicked.connect(self._maquinas_coste_repuestos)
         b_coste.setToolTip(tt("tt_costes_maquina", "Coste del mantenimiento de cada máquina por año: horas trabajadas, mano de obra y repuestos."))
-        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_qr, b_coste]: h_tools.addWidget(b)
+        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_contadores, b_qr, b_coste]: h_tools.addWidget(b)
         h_tools.addStretch()
         l.addLayout(h_tools)
 
@@ -578,6 +580,18 @@ class PestanaMaquinas:
             maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
             self.refrescar_arbol_maquinas()
             self._maquina_mostrar_foto_seleccionada()
+
+    def _maquina_contadores(self):
+        id_maquina, nombre = self._maquina_seleccionada()
+        if id_maquina is None:
+            QMessageBox.information(self, tt("btn_contadores", "📟 Contadores"),
+                                    tt("msg_elige_maquina", "Selecciona primero una máquina en la lista."))
+            return
+        from ..dialogos.contadores import DialogoContadores
+        dlg = DialogoContadores(self, id_maquina, nombre)
+        dlg.exec()
+        if dlg.cambiado:
+            self.refresh_avisos(); self.refresh_dashboard()
 
     def _maquinas_coste_repuestos(self):
         from ..dialogos.costes import DialogoCosteRepuestos

@@ -224,6 +224,13 @@ def olvidar_trabajo(tarea_id):
     con.execute("DELETE FROM trabajo_materiales WHERE tarea_id=?", (tarea_id,))
     con.commit()
     con.close()
+    # La lectura de contador apuntada al completarlo deja de marcar el inicio
+    # del ciclo de su preventivo (la lectura en sí sigue siendo válida)
+    from . import contadores
+    try:
+        contadores.olvidar_trabajo(tarea_id)
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------- costes

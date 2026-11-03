@@ -172,6 +172,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Priorité des tâches en attente** : chaque intervention en attente a une priorité (Basse, Moyenne, Haute ou Critique) pour décider laquelle traiter en premier, avec sa couleur dans la liste ; on peut aussi joindre des photos à sa collection
 - **↩️ Remettre en attente** : si une intervention a été terminée par erreur, elle peut revenir dans En attente d'un clic depuis l'historique (avec un avertissement si une machine y était associée, car cette information serait perdue), et cela est consigné dans l'audit
 - **🔁 Rappels** : rappels de maintenance qui se répètent automatiquement. Si la date passe, ils ne sont pas sautés : ils restent **En attente** (orange) pendant la marge puis **En retard** (rouge) jusqu'à ce qu'ils soient faits, et la date suivante est calculée à partir du jour où l'intervention a réellement été faite
+- **📟 Préventif par compteur** : rappels selon les **heures d'utilisation, cycles ou km** d'une machine («vidange toutes les 500 h, prévenir 50 h avant»), seuls ou avec une fréquence par date (**au premier des deux** : «toutes les 500 h ou chaque année»). Les relevés se saisissent sur le PC, dans la fiche de la machine sur le mobile (même hors connexion) et en terminant le préventif ; le suivant est compté à partir de ce relevé, et la date d'échéance est estimée selon l'utilisation moyenne
 - **☑️ Listes de contrôle** : modèles réutilisables (« Contrôle mensuel du compresseur ») avec des points marqués bon / pas bon / sans objet et des relevés avec leur unité et leur plage correcte (hors plage, « pas bon » automatiquement) ; attribués aux rappels et aux interventions en attente et remplis à leur clôture, sur le PC ou le mobile (même hors connexion). Enregistrés avec l'intervention, visibles dans l'historique et inclus dans les exports PDF, Excel et CSV
 - **📦 Gestion du stock du magasin** : structure configurable de rayonnages, tablettes et sections, fiche article avec photo, entrées/sorties avec historique et alertes de stock sous le minimum
 - **📄 Exporter le stock** : bouton « 📄 Exporter » dans l'onglet stock pour générer tout le magasin, une zone ou un rayonnage en PDF, CSV ou Excel, trié par emplacement ; l'onglet du stock sous le minimum a aussi son bouton pour n'exporter que les articles en alerte
@@ -211,6 +212,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **🔄 Connectée en arrière-plan** : tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser avec le PC et affiche une notification (« Connecté au PC » / « Pas de connexion avec le PC ») avec un bouton « Fermer ». Une fois complètement fermée, elle ne consomme plus de batterie
 - **📶 Première synchronisation avec progression** : barre de progression pendant le téléchargement des données et des photos, téléchargées en parallèle pour aller plus vite
 - **🏷️ Scanner la machine** : le bouton de scan lit l'étiquette QR d'une machine et ouvre sa fiche, sans connexion : son emplacement, ses dernières interventions, ses **pièces de rechange** avec le stock du magasin, et un bouton pour enregistrer une intervention déjà liée à elle
+- **📟 Compteurs de la machine** : la fiche de la machine permet de saisir les relevés de ses compteurs (heures, cycles, km) hors connexion et affiche ses préventifs par compteur avec ce qui reste ; en terminant l'un d'eux, le relevé se saisit dans la même étape
 - **⬆️ Mise à jour depuis l'application** : quand une nouvelle version existe, l'avis propose les boutons « Plus tard » et « Mettre à jour » ; « Mettre à jour » télécharge l'APK avec une barre de progression et ouvre l'installateur d'Android, sans passer par GitHub
 
 ### 📦 Application mobile de stock (Android)
@@ -591,6 +593,10 @@ interventions de chaque équipement dans le temps.
   feuilles A4 avec 24 étiquettes de 70 × 37 mm (de la machine sélectionnée,
   avec ses sous-machines, ou de toutes). En les scannant avec l'application
   MantPro, la fiche de la machine s'ouvre
+- **📟 Compteurs** : le bouton «📟 Compteurs» gère les heures d'utilisation,
+  cycles ou km de la machine sélectionnée (créés par un administrateur), avec
+  le dernier relevé, l'utilisation moyenne par jour et l'historique des
+  relevés. Les préventifs par compteur y prennent leurs relevés
 - **🔍 Noms similaires** : lors de la création ou du renommage d'une machine,
   avertit s'il en existe déjà une autre au même niveau avec un nom identique
   ou très similaire
@@ -839,8 +845,7 @@ sécurité, consultez [SECURITY.md](SECURITY.md).
 Ce qui arrive, sans dates et sans ordre figé :
 
 - **Fournisseurs, prix et bons de commande** à partir du stock sous le minimum
-- **Préventif par compteur** (heures de marche, cycles, km), en plus de par date
-- **Temps passé et signature** à la clôture d'une intervention (aussi sur le mobile)
+- **Signature** à la clôture d'une intervention (aussi sur le mobile)
 - **Documentation technique par machine** (manuels, plans et schémas en PDF)
 - **Criticité des machines (ABC)**, pour décider où investir en maintenance
 - **Demandes d'intervention** depuis la production ou d'autres services, qui créent une intervention en attente
@@ -849,7 +854,7 @@ Ce qui arrive, sans dates et sans ordre figé :
 - **Plusieurs sites ou usines** avec données et indicateurs par site
 - Plus de langues (italien, allemand…) et application iPhone
 
-Fait récemment : temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
+Fait récemment : préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

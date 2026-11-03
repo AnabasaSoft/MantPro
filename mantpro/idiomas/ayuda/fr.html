@@ -36,6 +36,7 @@
 <li><b>En retard</b> (rouge) : la marge est passée sans que ce soit fait. Le rappel n'est pas sauté : il reste là jusqu'à ce qu'il soit fait.</li>
 </ul>
 <p>En le marquant comme fait, un enregistrement est créé dans l'historique et la date suivante est calculée <b>à partir du jour où il a réellement été fait</b>. Avec le bouton droit de la souris, vous pouvez assigner ou supprimer plusieurs rappels à la fois.</p>
+<p><b>📟 Par compteur :</b> un rappel peut suivre les <b>heures d'utilisation, cycles ou km</b> d'une machine au lieu de (ou en plus de) la date : «vidange toutes les 500 h, prévenir 50 h avant». Cochez <i>Par compteur</i> en le créant ou en le modifiant, choisissez le compteur et indiquez <b>Tous les</b>, <b>Prévenir avant</b> et, si vous voulez, le relevé auquel il est dû la <b>première fois</b> (sinon, l'actuel plus «Tous les»). Avec <i>En plus, au plus tard selon la fréquence par date</i>, il est dû <b>au premier des deux</b> («toutes les 500 h ou chaque année», pour une machine peu utilisée) ; décoché, il suit uniquement le compteur et n'apparaît pas dans le calendrier. Il passe en orange dans la marge de prévenance et en rouge une fois dépassé ; l'info-bulle indique quand il sera atteint au rythme d'utilisation actuel. En le terminant, le relevé du moment est demandé (facultatif) et le suivant est compté à partir de lui ; le travail est lié à la machine.</p>
 
 <h2><a name="registrar"></a>📝 Enregistrer une intervention</h2>
 <p>Pour noter une intervention déjà réalisée : date, un bref résumé, les détails, la machine et les étiquettes (Urgent, Électrique, Mécanique, Préventif, Panne ou d'autres que vous saisissez).</p>
@@ -76,6 +77,7 @@
 <li><b>🏷️ Étiquettes QR</b> génère un PDF d'étiquettes (24 par feuille A4, de 70 × 37 mm) à coller sur les machines. En les scannant avec l'application MantPro, la fiche de la machine s'ouvre.</li>
 <li><b>🔩 Pièces de rechange :</b> sous l'arborescence, vous voyez les articles du magasin montés sur la machine sélectionnée, combien elle en porte, combien il y en a en stock (en rouge si sous le minimum) et où ils se trouvent. Ajoutez-les avec <b>➕ Ajouter une pièce</b> ; un double-clic ouvre l'article dans Stock. Sur le mobile, elles apparaissent dans la fiche de la machine, et dans Stock du magasin chaque article indique les machines qui l'utilisent ; vous pouvez aussi l'associer à ses machines en le créant ou en le modifiant.</li>
 <li><b>💶 Coûts :</b> combien a coûté la maintenance de chaque machine, sous-machines comprises, par année : heures travaillées, <b>main-d'œuvre</b> (heures × coût de l'heure) et <b>pièces</b>, avec le détail des articles de la machine choisie. Exportable vers Excel. Le <b>coût de l'heure</b> se règle au même endroit (administrateurs uniquement) ; chaque intervention garde le tarif en vigueur quand son temps a été noté. Les pièces de la machine apparaissent en premier quand on note celles utilisées dans une intervention, sur le PC comme sur le mobile.</li>
+<li><b>📟 Compteurs :</b> heures d'utilisation, cycles ou km de la machine sélectionnée. Créez-les avec leur unité (administrateurs uniquement) et saisissez les relevés ici, dans la fiche de la machine sur le mobile ou en terminant ses préventifs par compteur. Affiche le dernier relevé, l'utilisation moyenne par jour et l'historique des relevés (un administrateur peut supprimer un relevé erroné). Le relevé qui compte est le plus récent : un compteur changé ou remis à zéro continue de fonctionner.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Stock du magasin</h2>
@@ -129,6 +131,7 @@
 <li>Dans MantPro, le bouton <b>scanner</b> lit l'étiquette QR d'une machine et ouvre sa fiche.</li>
 <li>La connexion avec le PC est <b>chiffrée</b>. Pour associer un nouveau mobile, mettez d'abord son application à jour : une ancienne application ne comprend pas le nouveau QR.</li>
 <li>Les rappels et interventions marqués <b>☑️</b> ont une liste de contrôle : elle se remplit sur le mobile à leur clôture, même hors connexion.</li>
+<li>La fiche d'une machine (ouverte en scannant son QR) affiche ses <b>📟 compteurs</b> : touchez <b>Saisir</b> pour noter le relevé, même hors connexion. Ses préventifs par compteur y figurent aussi avec ce qui reste, et en terminant l'un d'eux on peut saisir le relevé dans la même étape.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Sécurité et chiffrement</h2>

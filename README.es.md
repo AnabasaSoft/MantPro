@@ -172,6 +172,7 @@ versiones estables. Los cambios de cada versión están en
 - **🚦 Prioridad de Pendientes**: cada trabajo pendiente tiene prioridad (Baja, Media, Alta o Crítica) para decidir cuál atacar primero, con su color en la lista; también se le pueden adjuntar fotos a su colección
 - **↩️ Revertir a Pendiente**: si un trabajo se completó por error, se puede devolver a Pendientes con un clic desde el historial (con aviso si tenía máquina vinculada, ya que se perdería ese dato), quedando registrado en la auditoría
 - **🔁 Recordatorios**: Avisos de mantenimiento que se repiten automáticamente. Si se pasa la fecha no se saltan: se quedan en **Pendiente** (naranja) mientras dura el margen y luego en **Atrasado** (rojo) hasta que se hacen, y la siguiente fecha se cuenta desde el día real en que se hizo el trabajo
+- **📟 Preventivo por Contador**: avisos por **horas de uso, ciclos o km** de una máquina («cambio de aceite cada 500 h, avisar 50 h antes»), solos o junto a una frecuencia por fecha (**lo que antes llegue**: «cada 500 h o cada año»). Las lecturas se apuntan en el PC, en la ficha de la máquina en el móvil (también sin conexión) y al completar el preventivo; desde esa lectura se cuenta el siguiente, y se estima cuándo se llegará según el uso medio
 - **☑️ Listas de comprobación**: plantillas reutilizables («Revisión mensual de compresor») con puntos que se marcan bien / mal / no aplica y lecturas con su unidad y su rango correcto (fuera de rango, «mal» automáticamente); se asignan a avisos y pendientes y se rellenan al completarlos, en el PC o en el móvil (también sin conexión). Se guardan con el trabajo, se ven en el historial y salen en las exportaciones a PDF, Excel y CSV
 - **📦 Control de Stock de Almacén**: Estructura de estanterías, baldas y secciones configurable, ficha de materiales con foto, entradas/salidas con historial y alertas de stock bajo mínimo
 - **📄 Exportar el Stock**: botón "📄 Exportar" en la pestaña de stock para sacar el almacén entero, una zona o una estantería a PDF, CSV o Excel, ordenado por ubicación; la pestaña de stock bajo mínimo también tiene su botón para exportar solo los materiales en alerta
@@ -211,6 +212,7 @@ versiones estables. Los cambios de cada versión están en
 - **🔄 Conectada en Segundo Plano**: mientras la app está abierta, aunque sea en segundo plano, sigue sincronizando con el PC y muestra una notificación («Conectado al PC» / «Sin conexión con el PC») con un botón «Cerrar». Al cerrarla del todo deja de gastar batería
 - **📶 Primera Sincronización con Progreso**: barra de progreso al descargar los datos y las fotos, con descarga en paralelo para que sea más rápida
 - **🏷️ Escanear la Máquina**: el botón de escanear lee la etiqueta QR de una máquina y abre su ficha, sin conexión: dónde está, sus últimos trabajos, sus **repuestos** con el stock del almacén, y un botón para registrar un trabajo ya vinculado a ella
+- **📟 Contadores de la Máquina**: en la ficha de la máquina se apuntan las lecturas de sus contadores (horas, ciclos, km) sin conexión y se ven sus preventivos por contador con lo que falta; al completar uno se apunta la lectura en el mismo paso
 - **⬆️ Actualizar desde la App**: cuando hay una versión nueva, el aviso tiene los botones «Después» y «Actualizar»; «Actualizar» descarga el APK con una barra de progreso y abre el instalador de Android, sin pasar por GitHub
 
 ### 📦 Aplicación Móvil de Stock (Android)
@@ -577,6 +579,10 @@ intervenciones de cada equipo a lo largo del tiempo.
   con 24 etiquetas de 70 × 37 mm (de la máquina seleccionada, con sus
   submáquinas o de todas). Al escanearlas con la app MantPro se abre la ficha
   de la máquina
+- **📟 Contadores**: el botón «📟 Contadores» gestiona las horas de uso, ciclos
+  o km de la máquina seleccionada (los crea un administrador), con su última
+  lectura, el uso medio por día y el historial de lecturas. Los preventivos
+  por contador toman de aquí sus lecturas
 - **🔍 Nombres parecidos**: al crear o renombrar una máquina, avisa si al mismo
   nivel ya hay otra con un nombre igual o muy parecido
 
@@ -815,8 +821,7 @@ La estructura del código y de la base de datos está en
 Lo que viene, sin fechas y sin un orden cerrado:
 
 - **Proveedores, precios y pedidos de compra** a partir del stock bajo mínimo
-- **Preventivo por contador** (horas de uso, ciclos, km), además de por fecha
-- **Tiempo trabajado y firma** al cerrar un trabajo (también en el móvil)
+- **Firma** al cerrar un trabajo (también en el móvil)
 - **Documentación técnica por máquina** (manuales, planos y esquemas en PDF)
 - **Criticidad de las máquinas (ABC)**, para decidir dónde invertir en mantenimiento
 - **Solicitudes de trabajo** desde producción u otros departamentos que crean un pendiente
@@ -825,7 +830,7 @@ Lo que viene, sin fechas y sin un orden cerrado:
 - **Varios centros o plantas** con datos e indicadores por centro
 - Más idiomas (italiano, alemán…) y app para iPhone
 
-Recién hecho: tiempo trabajado y coste de mano de obra en cada trabajo, repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
+Recién hecho: preventivos por contador (horas de uso, ciclos, km), tiempo trabajado y coste de mano de obra en cada trabajo, repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
 
 Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
 en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

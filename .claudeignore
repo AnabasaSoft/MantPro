@@ -1,0 +1,34 @@
+# Flutter / Dart
+build/
+.dart_tool/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+*.sock
+*.pb.go
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Bases de datos y Logs locales
+# *.sqlite
+# *.sqlite3
+# *.db
+*.log
+history.jsonl
+telemetry/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store

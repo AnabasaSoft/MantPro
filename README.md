@@ -169,6 +169,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Pending Job Priority**: each pending job has a priority (Low, Medium, High or Critical) to decide which one to tackle first, shown with its colour in the list; photos can also be added to its collection
 - **↩️ Revert to Pending**: if a job was completed by mistake, it can be sent back to Pending with one click from the history (with a warning if it had a linked machine, since that data would be lost), and it is recorded in the audit log
 - **🔁 Reminders**: Maintenance alerts that repeat automatically. If the date passes they are not skipped: they stay **Pending** (orange) during the margin and then **Overdue** (red) until done, and the next date is counted from the day the job was actually done
+- **📟 Counter-based Preventive Maintenance**: alerts by a machine's **hours of use, cycles or km** («oil change every 500 h, warn 50 h before»), alone or together with a date frequency (**whichever comes first**: «every 500 h or every year»). Readings are entered on the PC, in the machine's page on the phone (also offline) and when completing the task; the next one counts from that reading, and the date it will be reached is estimated from the average use
 - **☑️ Checklists**: reusable templates ("Monthly compressor inspection") with items marked OK / not OK / N/A and readings with their unit and correct range (out of range is marked not OK automatically); assigned to reminders and pending jobs and filled in when completing them, on the PC or the phone (also offline). Saved with the job, shown in the history and included in the PDF, Excel and CSV exports
 - **📦 Warehouse Stock Control**: Configurable structure of shelving units, shelves and sections, material records with photo, stock in/out with history and low-stock alerts
 - **📄 Stock Export**: "📄 Export" button in the stock tab to export the whole warehouse, a zone or a single shelving unit to PDF, CSV or Excel, sorted by location; the low stock tab also has its own button to export only the materials on alert
@@ -208,6 +209,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🔄 Connected in the Background**: while the app is open, even in the background, it keeps syncing with the PC and shows a notification (“Connected to the PC” / “No connection to the PC”) with a “Close” button. Once fully closed it stops using battery
 - **📶 First Sync with Progress**: progress bar while downloading the data and photos, downloaded in parallel so it is faster
 - **🏷️ Scan the Machine**: the scan button reads a machine's QR label and opens its page, offline: where it is, its latest jobs, its **spare parts** with the warehouse stock, and a button to register a job already linked to it
+- **📟 Machine Counters**: the machine's page lets you enter its counter readings (hours, cycles, km) offline and shows its counter-based preventive tasks with what is left; when completing one, the reading is entered in the same step
 - **⬆️ Update from the App**: when there is a new version, the notice has “Later” and “Update” buttons; “Update” downloads the APK with a progress bar and opens the Android installer, without going to GitHub
 
 ### 📦 Mobile Stock Application (Android)
@@ -570,6 +572,10 @@ on each piece of equipment over time.
   with 24 labels of 70 × 37 mm (for the selected machine, with its
   sub-machines, or for all of them). Scanning them with the MantPro app opens
   the machine's page
+- **📟 Counters**: the «📟 Counters» button manages the hours of use, cycles or
+  km of the selected machine (created by an administrator), with the last
+  reading, the average use per day and the reading history. Counter-based
+  preventive tasks take their readings from here
 - **🔍 Similar names**: when creating or renaming a machine, it warns if there
   is already another one at the same level with the same or a very similar
   name
@@ -803,8 +809,7 @@ The code and database structure is described in
 What's coming, without dates and in no fixed order:
 
 - **Suppliers, prices and purchase orders** based on low stock
-- **Meter-based preventive maintenance** (running hours, cycles, km), as well as date-based
-- **Time worked and sign-off** when closing a job (also on the phone)
+- **Sign-off** when closing a job (also on the phone)
 - **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
 - **Machine criticality (ABC)**, to decide where to invest maintenance
 - **Work requests** from production or other departments that create a pending job
@@ -813,7 +818,7 @@ What's coming, without dates and in no fixed order:
 - **Several sites or plants** with separate data and KPIs per site
 - More languages (Italian, German…) and an iPhone app
 
-Recently done: time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
+Recently done: counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

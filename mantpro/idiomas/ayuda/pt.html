@@ -36,6 +36,7 @@
 <li><b>Atrasado</b> (vermelho): a margem passou sem que fosse feito. O aviso não é pulado: continua ali até ser feito.</li>
 </ul>
 <p>Ao marcá-lo como feito, é criado um registro no histórico, e a próxima data é contada <b>a partir do dia em que foi realmente feito</b>. Com o botão direito do mouse você pode atribuir ou excluir vários avisos de uma vez.</p>
+<p><b>📟 Por contador:</b> um aviso pode seguir as <b>horas de uso, ciclos ou km</b> de uma máquina em vez da (ou além da) data: «troca de óleo a cada 500 h, avisar 50 h antes». Marque <i>Por contador</i> ao criá-lo ou editá-lo, escolha o contador e preencha <b>A cada</b>, <b>Avisar antes</b> e, se quiser, a leitura em que vence a <b>primeira vez</b> (senão, a atual mais «A cada»). Com <i>Além disso, no máximo com a frequência por data</i> vence <b>o que vier primeiro</b> («a cada 500 h ou a cada ano», para a máquina pouco usada); desmarcado, vai só por contador e não aparece no calendário. Fica laranja dentro da antecedência e vermelho ao passar; a dica diz quando será atingido no ritmo de uso atual. Ao concluí-lo, pede-se a leitura daquele momento (opcional) e o próximo conta a partir dela; o trabalho fica ligado à máquina.</p>
 
 <h2><a name="registrar"></a>📝 Registrar um serviço</h2>
 <p>Para anotar um serviço já feito: data, um resumo curto, os detalhes, a máquina e as tags (Urgente, Elétrico, Mecânico, Preventivo, Falha ou outras que você digitar).</p>
@@ -76,6 +77,7 @@
 <li><b>🏷️ Etiquetas QR</b> gera um PDF de etiquetas (24 por folha A4, de 70 × 37 mm) para colar nas máquinas. Ao escaneá-las com o aplicativo MantPro, abre-se a ficha daquela máquina.</li>
 <li><b>🔩 Peças de reposição:</b> abaixo da árvore você vê os itens do almoxarifado montados na máquina selecionada, quantos ela leva, quantos há em estoque (em vermelho se abaixo do mínimo) e onde estão. Adicione-os com <b>➕ Adicionar peça</b>; com clique duplo você vai ao item no Estoque. No celular aparecem na ficha da máquina, e no Estoque do almoxarifado cada item mostra em quais máquinas é usado; você também pode associá-lo às máquinas ao criá-lo ou editá-lo.</li>
 <li><b>💶 Custos:</b> quanto custou a manutenção de cada máquina, incluindo as submáquinas, por ano: horas trabalhadas, <b>mão de obra</b> (horas × custo da hora) e <b>peças</b>, com o detalhe dos itens da máquina escolhida. Pode ser exportado para Excel. O <b>custo da hora</b> é definido ali mesmo (somente administradores); cada serviço guarda a tarifa do momento em que seu tempo foi anotado. As peças da máquina aparecem primeiro ao anotar as usadas em um serviço, no PC e no celular.</li>
+<li><b>📟 Contadores:</b> horas de uso, ciclos ou km da máquina selecionada. Crie-os com a sua unidade (apenas administradores) e anote as leituras aqui, na ficha da máquina no celular ou ao concluir os preventivos por contador. Mostra a última leitura, o uso médio por dia e o histórico de leituras (um administrador pode excluir uma errada). A leitura que conta é a mais recente, por isso um contador trocado ou zerado continua funcionando.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Estoque do almoxarifado</h2>
@@ -129,6 +131,7 @@
 <li>No MantPro, o botão de <b>escanear</b> lê a etiqueta QR de uma máquina e abre a ficha dela.</li>
 <li>A conexão com o PC é <b>criptografada</b>. Para vincular um celular novo, atualize antes o aplicativo dele: um aplicativo antigo não entende o QR novo.</li>
 <li>Os avisos e serviços pendentes com <b>☑️</b> têm checklist: ao concluí-los, ele é preenchido no celular, também sem conexão.</li>
+<li>Na ficha de uma máquina (ao escanear o QR) estão os seus <b>📟 contadores</b>: toque em <b>Anotar</b> para registrar a leitura, também sem conexão. Também aparecem os preventivos por contador com o que falta, e ao concluir um deles dá para anotar a leitura no mesmo passo.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Segurança e criptografia</h2>

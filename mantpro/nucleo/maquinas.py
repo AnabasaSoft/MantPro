@@ -245,6 +245,10 @@ def borrar_maquina(id_maquina):
     con.execute(f"DELETE FROM maquinas WHERE id IN ({marcas})", ids)
     con.commit()
     con.close()
+    # Sus contadores y lecturas se van con ella; sus preventivos por contador
+    # pasan a ser solo por fecha.
+    from . import contadores
+    contadores.borrar_contadores_de_maquinas(ids)
 
 
 # ---------------------------------------------------------------- trabajos por máquina

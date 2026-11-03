@@ -36,6 +36,7 @@
 <li><b>Atrasado</b> (rojo): se ha pasado el margen sin hacerlo. El aviso no se salta: sigue ahí hasta que se haga.</li>
 </ul>
 <p>Al marcarlo como hecho se crea un registro en el historial y la siguiente fecha se cuenta <b>desde el día en que se hizo de verdad</b>. Con el botón derecho puedes asignar o borrar varios avisos a la vez.</p>
+<p><b>📟 Por contador:</b> un aviso puede ir por las <b>horas de uso, ciclos o km</b> de una máquina en vez de (o además de) por fecha: «cambio de aceite cada 500 h, avisar 50 h antes». Marca <i>Por contador</i> al crearlo o editarlo, elige el contador y pon <b>Cada</b>, <b>Avisar antes</b> y, si quieres, la lectura a la que toca la <b>primera vez</b> (si no, la actual más «Cada»). Con <i>Además, como máximo con la frecuencia por fecha</i> toca <b>lo que antes llegue</b> («cada 500 h o cada año», para la máquina que se usa poco); sin marcarlo va solo por contador y no sale en el calendario. Sale en naranja dentro de la antelación y en rojo al pasarse; el tooltip dice cuándo se llegará al ritmo de uso actual. Al completarlo se pide la lectura de ese momento (opcional) y de ella se cuenta el siguiente; el trabajo queda ligado a la máquina.</p>
 
 <h2><a name="registrar"></a>📝 Registrar un trabajo</h2>
 <p>Para anotar un trabajo ya hecho: fecha, un resumen corto, los detalles, la máquina y las etiquetas (Urgente, Eléctrico, Mecánico, Preventivo, Avería u otras que escribas).</p>
@@ -76,6 +77,7 @@
 <li><b>🏷️ Etiquetas QR</b> genera un PDF de etiquetas (24 por folio A4, de 70 × 37 mm) para pegar en las máquinas. Al escanearlas con la app MantPro se abre la ficha de esa máquina.</li>
 <li><b>🔩 Repuestos:</b> debajo del árbol ves los artículos del almacén que lleva la máquina seleccionada, cuántos lleva, cuántos hay en stock (en rojo si está bajo mínimo) y dónde están. Añádelos con <b>➕ Añadir repuesto</b>; con doble clic vas al artículo en Stock. En el móvil aparecen en la ficha de la máquina, y en Stock de almacén cada artículo dice en qué máquinas se usa; también puedes asociarlo a sus máquinas al crearlo o editarlo.</li>
 <li><b>💶 Costes:</b> cuánto ha costado el mantenimiento de cada máquina, sumando sus submáquinas, por año: horas trabajadas, <b>mano de obra</b> (horas × coste de la hora) y <b>repuestos</b>, con el detalle de los artículos de la máquina elegida. Se exporta a Excel. El <b>coste de la hora</b> se pone ahí mismo (solo administradores); cada trabajo guarda la tarifa del momento en que se apuntó su tiempo. Los repuestos de la máquina salen los primeros al apuntar los usados en un trabajo, en el PC y en el móvil.</li>
+<li><b>📟 Contadores:</b> horas de uso, ciclos o km de la máquina seleccionada. Créalos con su unidad (solo administradores) y apunta sus lecturas aquí, en la ficha de la máquina en el móvil o al completar sus preventivos por contador. Muestra la última lectura, el uso medio por día y su historial de lecturas (un administrador puede borrar una mal puesta). La lectura que cuenta es la más reciente, así que un contador cambiado o puesto a cero sigue funcionando.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Stock de almacén</h2>
@@ -129,6 +131,7 @@
 <li>En MantPro, el botón de <b>escanear</b> lee la etiqueta QR de una máquina y abre su ficha.</li>
 <li>La conexión con el PC va <b>cifrada</b>. Para vincular un móvil nuevo, actualiza antes su app: una app antigua no entiende el QR nuevo.</li>
 <li>Los avisos y pendientes con <b>☑️</b> llevan lista de comprobación: al completarlos se rellena en el móvil, también sin conexión.</li>
+<li>En la ficha de una máquina (al escanear su QR) están sus <b>📟 contadores</b>: pulsa <b>Apuntar</b> para anotar la lectura, también sin conexión. También salen sus preventivos por contador con lo que falta, y al completar uno de ellos se puede apuntar la lectura en el mismo paso.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Seguridad y cifrado</h2>

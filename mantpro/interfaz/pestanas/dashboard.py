@@ -85,7 +85,15 @@ class PestanaDashboard:
 
     def refresh_dashboard(self):
         avisos = self._avisos_visibles(); hoy = QDate.currentDate(); pendientes_reales = 0
+        from ...nucleo import contadores
+        por_contador = contadores.estados_avisos()
         for aid, tit, finicio, freq, dur, ult, *_ in avisos:
+            info = por_contador.get(aid)
+            # Por contador: cuenta si toca por contador (y no se ha hecho hoy);
+            # si además tiene fecha, también si toca por fecha (abajo)
+            if info and ult != hoy.toString("yyyy-MM-dd") and info["estado"] in ("PENDIENTE", "ATRASADO"):
+                pendientes_reales += 1; continue
+            if info and info["solo_contador"]: continue
             if not finicio: continue
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"

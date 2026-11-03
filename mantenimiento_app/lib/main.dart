@@ -41,6 +41,7 @@ import 'actualizador.dart';
 import 'servicio_conexion.dart';
 import 'conexion_segura.dart';
 import 'checklists.dart';
+import 'contadores.dart';
 
 
 // ==========================================================================
@@ -204,6 +205,19 @@ class AuthService {
     token = null; nombre = null; login = null; rol = null; roles = []; usuarioId = null;
     sesionNotifier.value = false;
   }
+}
+
+/// Envía las lecturas de contadores apuntadas sin conexión (ver contadores.dart).
+Future<void> sincronizarLecturas(String ip) async {
+  await enviarColaLecturas((campos) async {
+    try {
+      final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/lectura"), body: campos).timeout(const Duration(seconds: 5));
+      if (r.statusCode == 403) avisarSinPermisoTrabajos(tt('lbl_apuntar_lectura', 'Apuntar lectura'));
+      return r.statusCode;
+    } catch (_) {
+      return null;
+    }
+  });
 }
 
 /// Si el PC responde 401, el token ya no vale: cerramos sesión y volvemos al login.
@@ -493,6 +507,7 @@ Future<void> evaluarNotificacionesAvisos() async {
     try {
       final List<dynamic> d = json.decode(prefs.getString('avisos_cache')!);
       final hoy = DateTime.now();
+      final locales = await lecturasLocales();
 
       String? strComp = prefs.getString('avisos_cola_completados');
       List<dynamic> colaComp = strComp != null ? json.decode(strComp) : [];
@@ -505,7 +520,7 @@ Future<void> evaluarNotificacionesAvisos() async {
         // Recalculamos con la fecha de hoy del propio móvil (no la del último
         // sincronizado), así el aviso sigue siendo correcto aunque lleve
         // meses sin conectar con el PC.
-        recalcularAviso(a, hoy);
+        recalcularAviso(a, hoy, locales);
 
         String idStr = a.id.toString();
         bool marcadoListo = colaComp.any((x) => x['id'] == idStr);
@@ -1031,8 +1046,13 @@ class AvisoPC {
   int duracionDias;
   /// Plantilla de lista de comprobación asignada en el PC (null = sin lista).
   int? checklistId;
-  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId});
-  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0, checklistId: json['checklist_id']);
+  /// Preventivo por contador (horas, ciclos, km): contador_id, contador,
+  /// unidad, maquina_id, maquina, cada, antelacion, solo_contador, actual,
+  /// fecha_actual, proximo, estimada. null = solo por fecha.
+  Map<String, dynamic>? contador;
+  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId, this.contador});
+  factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0, checklistId: json['checklist_id'],
+      contador: json['contador'] is Map ? Map<String, dynamic>.from(json['contador']) : null);
 }
 
 /// Prioridad para ordenar avisos con los más urgentes primero:
@@ -1082,7 +1102,11 @@ DateTime _sumarMeses(DateTime d, int meses) {
 /// correcto y sigue disparando notificaciones aunque el móvil lleve meses sin
 /// sincronizar con el PC. Misma lógica (y mismo arreglo de "Diario") que en
 /// el PC.
-void recalcularAviso(AvisoPC a, DateTime hoy) {
+///
+/// Si es por contador, el estado sale además de la lectura más reciente que
+/// conozca el móvil ([locales]: las apuntadas sin enviar, ver
+/// lecturasLocales): toca lo que antes llegue, o solo el contador.
+void recalcularAviso(AvisoPC a, DateTime hoy, [Map<int, Map<String, dynamic>> locales = const {}]) {
   if (a.fechaInicioRaw == null || a.fechaInicioRaw!.isEmpty) return;
   DateTime fechaInicio;
   try { fechaInicio = _parseFechaYMD(a.fechaInicioRaw!); } catch (_) { return; }
@@ -1131,11 +1155,27 @@ void recalcularAviso(AvisoPC a, DateTime hoy) {
   else if (atrasado) { estado = "ATRASADO"; color = "red"; }
   else if (activo) { estado = "PENDIENTE"; color = "orange"; }
 
-  a.estado = estado;
-  a.color = color;
   a.rawInicio = _fmtFechaYMD(ocurrencia);
   a.rawFin = _fmtFechaYMD(finOcurrencia);
   a.rango = "${a.rawInicio} - ${a.rawFin}";
+
+  final c = a.contador;
+  if (c != null) {
+    final actual = (lecturaActual(c, locales)?['valor'] as num?)?.toDouble();
+    final porContador = estadoPorContador(c, actual);
+    final solo = c['solo_contador'] == true;
+    if (!completado) {
+      estado = solo ? porContador : peorEstado(estado, porContador);
+      color = {'ATRASADO': 'red', 'PENDIENTE': 'orange'}[estado] ?? 'blue';
+    }
+    final texto = textoProximoContador(c, actual);
+    a.rango = solo ? texto : "$texto · ${a.rango}";
+    // Para ordenar los solo por contador: los que tocan, delante; los
+    // futuros, por la fecha estimada de llegada (si la hay)
+    if (solo) a.rawInicio = estado == 'FUTURO' ? (c['estimada'] as String? ?? '9999-12-31') : _fmtFechaYMD(hoyDia);
+  }
+  a.estado = estado;
+  a.color = color;
 }
 
 // ==========================================
@@ -2371,7 +2411,8 @@ class _TabAvisosState extends State<TabAvisos> {
         // correctos y disparando notificaciones aunque pasen meses sin
         // conectar con el PC.
         final hoy = DateTime.now();
-        for (var a in cacheados) { recalcularAviso(a, hoy); }
+        final locales = await lecturasLocales();
+        for (var a in cacheados) { recalcularAviso(a, hoy, locales); }
 
         setState(() => _avisos = ordenarAvisosPendientesPrimero(cacheados));
       } catch (e) { /* */ }
@@ -2391,8 +2432,9 @@ class _TabAvisosState extends State<TabAvisos> {
     if (!mounted) return;
     setState(() => _cargando = true);
 
+    await sincronizarLecturas(_urlPC!);
     List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2424,6 +2466,10 @@ class _TabAvisosState extends State<TabAvisos> {
       if (res.statusCode == 200) {
         final List<dynamic> d = json.decode(res.body);
         final lista = d.map((x) => AvisoPC.fromJson(x)).toList();
+        // Con las lecturas que el móvil aún no haya podido enviar
+        final locales = await lecturasLocales();
+        if (locales.isNotEmpty) { final hoy = DateTime.now(); for (var a in lista) { recalcularAviso(a, hoy, locales); } }
+        if (!mounted) return;
         setState(() => _avisos = ordenarAvisosPendientesPrimero(lista));
         await prefs.setString('avisos_cache', res.body);
       }
@@ -2445,8 +2491,16 @@ class _TabAvisosState extends State<TabAvisos> {
     // Tiempo trabajado (opcional), en el mismo diálogo: se apunta al acabar
     final tiempoCtrl = TextEditingController();
     int personas = 1;
-    Widget campoTiempo(StateSetter setSt) => CampoTiempoTrabajo(controlador: tiempoCtrl, personas: personas,
-        alCambiarPersonas: (v) => setSt(() => personas = v));
+    // Por contador: lectura en el momento de hacerlo (opcional), en el mismo diálogo
+    final lecturaCtrl = TextEditingController();
+    final contador = a.contador;
+    double? lecturaPrevia;
+    if (contador != null) lecturaPrevia = (lecturaActual(contador, await lecturasLocales())?['valor'] as num?)?.toDouble();
+    if (!mounted) return;
+    Widget campoTiempo(StateSetter setSt) => Column(mainAxisSize: MainAxisSize.min, children: [
+      if (contador != null) ...[CampoLecturaContador(controlador: lecturaCtrl, contador: contador, actual: lecturaPrevia), const SizedBox(height: 10)],
+      CampoTiempoTrabajo(controlador: tiempoCtrl, personas: personas, alCambiarPersonas: (v) => setSt(() => personas = v)),
+    ]);
     if (lista.isEmpty) {
       final r = await showDialog<String>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(title: Text(t("lbl_confirmar")),
           content: Column(mainAxisSize: MainAxisSize.min, children: [Text(t("msg_marcar_q").replaceAll('{titulo}', a.titulo)), const SizedBox(height: 10), campoTiempo(setSt)]), actions: [
@@ -2464,6 +2518,7 @@ class _TabAvisosState extends State<TabAvisos> {
           if (_urlPC != null) ElevatedButton.icon(icon: const Icon(Icons.build, size: 16), onPressed: () => Navigator.pop(ctx, true), label: Text(t("btn_anadir_material")))]))) == true;
     }
     final minutos = leerDuracion(tiempoCtrl.text);
+    final lectura = contador != null ? leerNumero(lecturaCtrl.text) : null;
     List<Map<String, dynamic>> materiales = [];
     if (conRepuestos && mounted) {
       final elegidos = await pedirRepuestosUsados(context, _urlPC!);
@@ -2472,7 +2527,9 @@ class _TabAvisosState extends State<TabAvisos> {
     }
     setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
         if (materiales.isNotEmpty) 'materiales': json.encode(materiales),
-        if (minutos != null) 'minutos_trabajo': '$minutos', if (minutos != null) 'personas': '$personas'})); await _guardarColas(); _sincronizar();
+        if (minutos != null) 'minutos_trabajo': '$minutos', if (minutos != null) 'personas': '$personas',
+        if (lectura != null) ...{'lectura': '$lectura', 'lectura_uid': nuevoUidLectura(), 'lectura_contador': '${contador!['contador_id']}',
+          'lectura_fecha': DateTime.now().toIso8601String().substring(0, 19)}})); await _guardarColas(); _sincronizar();
   }
   Future<void> _descompletar(AvisoPC a) async {
     if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_deshecho")))); return; }
@@ -2496,7 +2553,7 @@ class _TabAvisosState extends State<TabAvisos> {
             String st = traducirEstadoAviso(a.estado); String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
             Color c = cl == 'red' ? Colors.redAccent : (cl == 'orange' ? Colors.orange : (cl == 'green' ? Colors.green : Colors.blue));
             Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red' || cl == 'orange') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
-            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:Icons.calendar_month), color: c, size: 24)), title: Text("${a.checklistId != null ? '☑️ ' : ''}${a.titulo}", style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
+            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:(a.contador != null ? Icons.speed : Icons.calendar_month)), color: c, size: 24)), title: Text("${a.checklistId != null ? '☑️ ' : ''}${a.titulo}", style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
           }))),
       ]),
       floatingActionButton: FloatingActionButton(mini: true, backgroundColor: p>0?Colors.white:Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : Icon(Icons.sync, color: p>0?Colors.orange:Colors.white), onPressed: _sincronizar),
@@ -3634,14 +3691,15 @@ class SincronizadorGlobal {
     await prefs.setString('cola_salida', json.encode(colaSalida));
     await prefs.setString('cola_revertir', json.encode(colaRevertir));
 
-    // 3. AVISOS
+    // 3. AVISOS (y antes, las lecturas de contadores apuntadas en las máquinas)
+    await sincronizarLecturas(ip);
     List<Map<String, String>> colaCompletados = [];
     String? cc = prefs.getString('avisos_cola_completados');
     if (cc != null) { colaCompletados = (json.decode(cc) as List<dynamic>).map((e) => Map<String, String>.from(e)).toList(); }
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
     List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     for (var id in ro) { colaRestaurar.remove(id); }
     for (var item in co) { colaCompletados.remove(item); }
@@ -3735,6 +3793,9 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
   List<Map<String, dynamic>> _trabajos = [];
   List<Registro> _locales = [];
   List<Map<String, dynamic>> _repuestos = [];
+  List<Map<String, dynamic>> _contadores = [];
+  Map<int, Map<String, dynamic>> _lecturasLocales = {};
+  List<AvisoPC> _preventivos = [];
 
   @override
   void initState() {
@@ -3765,8 +3826,24 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     List<Registro> locales = [];
     try { locales = (json.decode(prefs.getString('registros_pendientes') ?? '[]') as List).map((e) => Registro.fromJson(e)).toList(); } catch (_) {}
     final repuestos = await RepuestosCache.deMaquina(widget.maquinaId);
+    // Contadores (llegan con las máquinas) y sus preventivos, recalculados con
+    // las lecturas apuntadas en el móvil aunque no se hayan enviado
+    final lecturasSinEnviar = await lecturasLocales();
+    final contadoresMaq = List<Map<String, dynamic>>.from(
+        ((maquina?['contadores'] as List?) ?? []).map((e) => Map<String, dynamic>.from(e)));
+    final preventivos = <AvisoPC>[];
+    try {
+      final hoy = DateTime.now();
+      for (final x in json.decode(prefs.getString('avisos_cache') ?? '[]') as List) {
+        final a = AvisoPC.fromJson(x);
+        if (a.contador?['maquina_id'] == widget.maquinaId) { recalcularAviso(a, hoy, lecturasSinEnviar); preventivos.add(a); }
+      }
+    } catch (_) {}
     if (!mounted) return;
     setState(() {
+      _contadores = contadoresMaq;
+      _lecturasLocales = lecturasSinEnviar;
+      _preventivos = ordenarAvisosPendientesPrimero(preventivos);
       _repuestos = repuestos;
       _maquina = maquina;
       _superior = ruta.join(' > ');
@@ -3792,6 +3869,50 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     if (!mounted) return;
     await Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(
         urlPC: prefs.getString('pc_ip_url'), maquinaInicialId: widget.maquinaId, onSave: _guardarNuevo)));
+  }
+
+  /// Apunta una lectura del contador: al momento en el móvil (cola local) y
+  /// al PC en cuanto haya conexión.
+  Future<void> _apuntarLectura(Map<String, dynamic> c) async {
+    final actual = (lecturaActual(c, _lecturasLocales)?['valor'] as num?)?.toDouble();
+    final valor = await pedirLecturaContador(context, c, actual);
+    if (valor == null) return;
+    await apuntarLectura(c['id'] as int, valor);
+    await _cargar();
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('msg_lectura_guardada'))));
+    final prefs = await SharedPreferences.getInstance();
+    final ip = prefs.getString('pc_ip_url');
+    if (ip != null) { await sincronizarLecturas(ip); await MaquinasCache.sincronizar(ip); await _cargar(); }
+  }
+
+  Widget _filaContador(Map<String, dynamic> c) {
+    final l = lecturaActual(c, _lecturasLocales);
+    final u = c['unidad'] as String?;
+    final local = l?['local'] == true;
+    String fecha = '';
+    if (l?['fecha'] != null) {
+      try { final d = DateTime.parse(l!['fecha'] as String); fecha = '${_fmtFechaYMD(d)} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}'; } catch (_) {}
+    }
+    return ListTile(
+      dense: true,
+      leading: const Icon(Icons.speed),
+      title: Text('${c['nombre']}: ${l == null ? t('lbl_sin_lecturas') : conUnidad(l['valor'] as num?, u)}',
+          style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(local ? '$fecha · ${t('estado_pendiente_subir')}' : fecha),
+      trailing: TextButton.icon(icon: const Icon(Icons.edit_note), label: Text(t('btn_apuntar_lectura')),
+          onPressed: () => _apuntarLectura(c)),
+    );
+  }
+
+  Widget _filaPreventivo(AvisoPC a) {
+    final cl = a.color;
+    final c = cl == 'red' ? Colors.redAccent : (cl == 'orange' ? Colors.orange : (cl == 'green' ? Colors.green : Colors.blue));
+    return ListTile(
+      dense: true,
+      leading: Icon(cl == 'red' || cl == 'orange' ? Icons.warning_amber_rounded : Icons.speed, color: c),
+      title: Text(a.titulo),
+      subtitle: Text('${traducirEstadoAviso(a.estado)} · ${a.rango}', style: TextStyle(color: c)),
+    );
   }
 
   /// Un repuesto: cuántos lleva la máquina, cuántos hay en el almacén (en rojo
@@ -3847,6 +3968,18 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
                 label: Text(tt('btn_registrar_en_maquina', 'Registrar trabajo en esta máquina')),
                 onPressed: _registrarTrabajo,
               ),
+              if (_contadores.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(t('lbl_contadores_maquina'), style: Theme.of(context).textTheme.titleMedium),
+                const Divider(),
+                for (final c in _contadores) _filaContador(c),
+              ],
+              if (_preventivos.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(t('lbl_preventivos_contador'), style: Theme.of(context).textTheme.titleMedium),
+                const Divider(),
+                for (final a in _preventivos) _filaPreventivo(a),
+              ],
               if (_repuestos.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 Text(tt('lbl_repuestos_maquina', 'Repuestos'), style: Theme.of(context).textTheme.titleMedium),

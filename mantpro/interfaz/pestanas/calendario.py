@@ -55,8 +55,10 @@ class PestanaCalendario:
         elif "Día Libre" in ti: c = "#F48FB1" if oscuro else "#ad1457"
         self.lbl_info.setStyleSheet(f"font-weight:bold; font-size:16px; color:{c};"); self.lbl_info.setText(ti)
 
+        from ...nucleo import contadores
+        solo_contador = contadores.ids_solo_contador()   # sin fecha: no van al calendario
         for aid, tit, finicio, freq, dur, ult, *_ in self._avisos_visibles():
-            if not finicio: continue
+            if not finicio or aid in solo_contador: continue
             fi = QDate.fromString(finicio, "yyyy-MM-dd")
             if not freq: freq = "Anual"
             freq = idiomas.normalizar_frecuencia(freq)

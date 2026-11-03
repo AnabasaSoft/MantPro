@@ -171,6 +171,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Prioridade dos pendentes**: cada traballo pendente ten unha prioridade (Baixa, Media, Alta ou Crítica) para decidir cal atacar primeiro, coa súa cor na lista; tamén se lle poden achegar fotos á súa colección
 - **↩️ Reverter a pendente**: se un traballo se completou por erro, pódese devolver a Pendentes cun clic dende o historial (con aviso se tiña máquina vinculada, xa que se perdería ese dato), e queda rexistrado na auditoría
 - **🔁 Lembretes**: avisos de mantemento que se repiten automaticamente. Se pasa a data non se saltan: quedan en **Pendente** (laranxa) mentres dura a marxe e despois en **Atrasado** (vermello) ata que se fan, e a data seguinte cóntase dende o día real en que se fixo o traballo
+- **📟 Preventivo por contador**: avisos por **horas de uso, ciclos ou km** dunha máquina («cambio de aceite cada 500 h, avisar 50 h antes»), sós ou xunto a unha frecuencia por data (**o que antes chegue**: «cada 500 h ou cada ano»). As lecturas apúntanse no PC, na ficha da máquina no móbil (tamén sen conexión) e ao completar o preventivo; desde esa lectura cóntase o seguinte, e calcúlase cando se chegará segundo o uso medio
 - **☑️ Listas de comprobación**: modelos reutilizables («Revisión mensual do compresor») con puntos que se marcan ben / mal / non aplica e lecturas coa súa unidade e o seu rango correcto (fóra de rango, «mal» automaticamente); asígnanse a avisos e pendentes e énchense ao completalos, no PC ou no móbil (tamén sen conexión). Gárdanse co traballo, vense no historial e saen nas exportacións a PDF, Excel e CSV
 - **📦 Control do stock do almacén**: estrutura de andeis, baldas e seccións configurable, ficha de materiais con foto, entradas/saídas con historial e alertas de stock por baixo do mínimo
 - **📄 Exportar o stock**: botón "📄 Exportar" na lapela de stock para sacar o almacén enteiro, unha zona ou un andel a PDF, CSV ou Excel, ordenado por localización; a lapela de stock por baixo do mínimo tamén ten o seu botón para exportar só os materiais en alerta
@@ -210,6 +211,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🔄 Conectada en segundo plano**: mentres a app está aberta, aínda que sexa en segundo plano, segue sincronizando co PC e mostra unha notificación («Conectado ao PC» / «Sen conexión co PC») cun botón «Pechar». Ao pechala de todo deixa de gastar batería
 - **📶 Primeira sincronización con progreso**: barra de progreso ao descargar os datos e as fotos, con descarga en paralelo para que sexa máis rápida
 - **🏷️ Escanear a máquina**: o botón de escanear le a etiqueta QR dunha máquina e abre a súa ficha, sen conexión: onde está, os seus últimos traballos, os seus **recambios** co stock do almacén, e un botón para rexistrar un traballo xa vinculado a ela
+- **📟 Contadores da máquina**: na ficha da máquina apúntanse as lecturas dos seus contadores (horas, ciclos, km) sen conexión e vense os seus preventivos por contador co que falta; ao completar un, a lectura apúntase no mesmo paso
 - **⬆️ Actualizar dende a app**: cando hai unha versión nova, o aviso ten os botóns «Despois» e «Actualizar»; «Actualizar» descarga o APK cunha barra de progreso e abre o instalador de Android, sen pasar por GitHub
 
 ### 📦 Aplicación móbil de stock (Android)
@@ -576,6 +578,10 @@ intervencións de cada equipo ao longo do tempo.
 - **🏷️ Etiquetas QR**: o botón «🏷️ Etiquetas QR» xera un PDF de follas A4 con
   24 etiquetas de 70 × 37 mm (da máquina seleccionada, coas súas submáquinas
   ou de todas). Ao escanealas coa app MantPro ábrese a ficha da máquina
+- **📟 Contadores**: o botón «📟 Contadores» xestiona as horas de uso, ciclos
+  ou km da máquina seleccionada (créaos un administrador), coa última lectura,
+  o uso medio por día e o historial de lecturas. Os preventivos por contador
+  toman de aquí as súas lecturas
 - **🔍 Nomes parecidos**: ao crear ou renomear unha máquina, avisa se no mesmo
   nivel xa hai outra cun nome igual ou moi parecido
 
@@ -808,8 +814,7 @@ seguranza, mira [SECURITY.md](SECURITY.md).
 O que vén, sen datas e sen unha orde pechada:
 
 - **Provedores, prezos e pedidos de compra** a partir do stock baixo mínimo
-- **Preventivo por contador** (horas de uso, ciclos, km), ademais de por data
-- **Tempo traballado e sinatura** ao pechar un traballo (tamén no móbil)
+- **Sinatura** ao pechar un traballo (tamén no móbil)
 - **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir en mantemento
 - **Solicitudes de traballo** desde produción ou outros departamentos que crean un pendente
@@ -818,7 +823,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano, alemán…) e app para iPhone
 
-Feito hai pouco: tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

@@ -36,6 +36,7 @@
 <li><b>Overdue</b> (red): the margin has passed without doing it. The alert is not skipped: it stays there until it is done.</li>
 </ul>
 <p>Marking it as done creates a record in the history, and the next date is counted <b>from the day it was actually done</b>. With the right mouse button you can assign or delete several alerts at once.</p>
+<p><b>📟 By counter:</b> an alert can follow a machine's <b>hours of use, cycles or km</b> instead of (or as well as) the date: «oil change every 500 h, warn 50 h before». Tick <i>By counter</i> when creating or editing it, choose the counter and fill in <b>Every</b>, <b>Warn before</b> and, if you like, the reading at which it is due the <b>first time</b> (otherwise, the current one plus «Every»). With <i>Also, at most with the date frequency</i> it is due <b>whichever comes first</b> («every 500 h or every year», for a machine that is seldom used); unticked, it goes by counter only and is not shown in the calendar. It turns orange within the warning margin and red when overdue; the tooltip says when it will be reached at the current rate of use. When completing it, the reading at that moment is asked for (optional) and the next one counts from it; the job is linked to the machine.</p>
 
 <h2><a name="registrar"></a>📝 Logging a job</h2>
 <p>To record a job already done: date, a short summary, the details, the machine and the tags (Urgent, Electrical, Mechanical, Preventive, Breakdown or others you type).</p>
@@ -76,6 +77,7 @@
 <li><b>🏷️ QR labels</b> creates a PDF of labels (24 per A4 sheet, 70 × 37 mm) to stick on the machines. Scanning them with the MantPro app opens that machine's page.</li>
 <li><b>🔩 Spare parts:</b> below the tree you see the warehouse items fitted to the selected machine, how many it has, how many are in stock (in red if below the minimum) and where they are. Add them with <b>➕ Add spare part</b>; double-click to go to the item in Stock. On the phone they appear in the machine's page, and in Warehouse stock each item shows which machines use it; you can also link it to its machines when creating or editing it.</li>
 <li><b>💶 Costs:</b> how much the maintenance of each machine has cost, including its sub-machines, by year: hours worked, <b>labour</b> (hours × cost per hour) and <b>spare parts</b>, with the detail of the selected machine's items. It can be exported to Excel. The <b>cost per hour</b> is set right there (administrators only); each job keeps the rate in force when its time was noted. The machine's spare parts are listed first when noting the parts used in a job, on the PC and on the phone.</li>
+<li><b>📟 Counters:</b> hours of use, cycles or km of the selected machine. Create them with their unit (administrators only) and enter readings here, in the machine's page on the phone or when completing its counter-based preventive tasks. It shows the last reading, the average use per day and the reading history (an administrator can delete a wrong one). The reading that counts is the most recent one, so a replaced or reset counter keeps working.</li>
 </ul>
 
 <h2><a name="stock"></a>📦 Warehouse stock</h2>
@@ -129,6 +131,7 @@
 <li>In MantPro, the <b>scan</b> button reads a machine's QR label and opens its page.</li>
 <li>The connection with the PC is <b>encrypted</b>. To pair a new phone, update its app first: an old app does not understand the new QR code.</li>
 <li>Reminders and pending jobs marked <b>☑️</b> have a checklist: it is filled in on the phone when completing them, also offline.</li>
+<li>A machine's page (opened by scanning its QR code) shows its <b>📟 counters</b>: tap <b>Enter</b> to note the reading, also offline. Its counter-based preventive tasks are listed too, with what is left, and when completing one of them the reading can be entered in the same step.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Security and encryption</h2>

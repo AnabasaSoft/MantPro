@@ -24,7 +24,7 @@ from .conexion_bd import sqlite3, conectar
 import os
 import re
 
-from . import usuarios, almacen, maquinas, checklists
+from . import usuarios, almacen, maquinas, checklists, contadores
 from .rutas import DATA_DIR
 
 # Función auxiliar para conectar de forma SEGURA
@@ -91,6 +91,10 @@ class GestorBaseDatos:
         # pendientes, y lo rellenado en cada trabajo)
         checklists.configurar_db(self.db_name)
         checklists.inicializar()
+        # Contadores de las máquinas (horas, ciclos, km), sus lecturas y los
+        # preventivos por contador
+        contadores.configurar_db(self.db_name)
+        contadores.inicializar()
 
     def conectar(self):
         # timeout=20: igual que en almacen.py/usuarios.py/maquinas.py, para no
@@ -144,21 +148,32 @@ class GestorBaseDatos:
             return res[0] if res else None
         except: return None
 
-    def agregar_aviso(self, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None):
+    def agregar_aviso(self, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None,
+                      contador=None):
+        """[contador]: preventivo por contador (ver contadores.fijar_aviso), o None si es solo por fecha."""
         try:
             conn = self.conectar(); c = conn.cursor()
             c.execute('INSERT INTO avisos_recurrentes (titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, asignado_a, asignado_nombre, especialidad_id) VALUES (?,?,?,?,?,?,?,?)',
                       (titulo, fecha_inicio, frecuencia, duracion, "", asignado_a, asignado_nombre, especialidad_id))
             nuevo_id = c.lastrowid
-            conn.commit(); conn.close(); return nuevo_id
+            conn.commit(); conn.close()
+            if contador:
+                contadores.fijar_aviso(nuevo_id, contador)
+            return nuevo_id
         except Exception as e: return False
 
-    def actualizar_aviso(self, id_aviso, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None):
+    def actualizar_aviso(self, id_aviso, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None,
+                         contador=False):
+        """[contador]: False = no tocar su contador; None/{} = pasa a ser solo
+        por fecha; dict = preventivo por contador (ver contadores.fijar_aviso)."""
         try:
             conn = self.conectar(); c = conn.cursor()
             c.execute('UPDATE avisos_recurrentes SET titulo=?, fecha_inicio=?, frecuencia=?, duracion_dias=?, asignado_a=?, asignado_nombre=?, especialidad_id=? WHERE id=?',
                       (titulo, fecha_inicio, frecuencia, duracion, asignado_a, asignado_nombre, especialidad_id, id_aviso))
-            conn.commit(); conn.close(); return True
+            conn.commit(); conn.close()
+            if contador is not False:
+                contadores.fijar_aviso(id_aviso, contador)
+            return True
         except: return False
 
     def obtener_avisos(self):
@@ -378,12 +393,22 @@ def _foto_aviso(db, i):
     a = next((x for x in db.obtener_avisos() if x[0] == i), None)
     if not a:
         return {}
-    return {"titulo": a[1], "inicio": a[2], "frecuencia": a[3], "margen": a[4], "ultima": a[5] or "",
+    foto = {"titulo": a[1], "inicio": a[2], "frecuencia": a[3], "margen": a[4], "ultima": a[5] or "",
             "asignado": a[7] or "", "especialidad": _nombre_especialidad(a[8])}
+    cfg = contadores.estados_avisos().get(i)
+    if cfg:
+        u = cfg["unidad"]
+        foto.update({"contador": f"{cfg['contador']} — {cfg['maquina']}", "cada": contadores.con_unidad(cfg["cada"], u),
+                     "antelacion": contadores.con_unidad(cfg["antelacion"], u),
+                     "primera": contadores.con_unidad(cfg["primera"], u) if cfg["primera"] is not None else ""})
+        if cfg["solo_contador"]:   # sin límite por fecha: esos campos no cuentan
+            foto.update({"inicio": "", "frecuencia": "", "margen": ""})
+    return foto
 
 
 _ETIQ_AVISO = {"titulo": "Título", "inicio": "Fecha de inicio", "frecuencia": "Frecuencia", "margen": "Días de margen",
-               "asignado": "Asignado a", "especialidad": "Especialidad"}
+               "asignado": "Asignado a", "especialidad": "Especialidad", "contador": "Contador",
+               "cada": "Cada", "antelacion": "Avisar antes", "primera": "Primera vez a"}
 
 
 def _envolver_edicion(nombre_metodo, foto, etiquetas, categoria, accion="editar"):
@@ -438,6 +463,13 @@ _borrar_aviso_original = GestorBaseDatos.borrar_aviso
 def _borrar_aviso(self, i):
     antes = _foto_aviso(self, i)
     ok = _borrar_aviso_original(self, i)
+    if ok:
+        # Las lecturas apuntadas al completarlo se quedan (son del contador)
+        try:
+            with get_db_connection(self.db_name) as con:
+                con.execute("UPDATE lecturas_contador SET aviso_id=NULL WHERE aviso_id=?", (i,))
+        except Exception:
+            pass
     if ok and antes:
         usuarios.auditar("avisos", "borrar", antes.get("titulo", ""), cambios=usuarios.diferencias(antes, {}, _ETIQ_AVISO))
     return ok

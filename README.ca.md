@@ -172,6 +172,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Prioritat dels pendents**: cada treball pendent té una prioritat (Baixa, Mitjana, Alta o Crítica) per decidir quin atacar primer, amb el seu color a la llista; també s'hi poden adjuntar fotos a la seva col·lecció
 - **↩️ Revertir a pendent**: si un treball es va completar per error, es pot tornar a Pendents amb un clic des de l'historial (amb avís si tenia màquina vinculada, ja que es perdria aquesta dada), i queda registrat a l'auditoria
 - **🔁 Recordatoris**: avisos de manteniment que es repeteixen automàticament. Si es passa la data no se salten: queden en **Pendent** (taronja) mentre dura el marge i després en **Endarrerit** (vermell) fins que es fan, i la data següent es compta des del dia real en què es va fer el treball
+- **📟 Preventiu per comptador**: avisos per **hores d'ús, cicles o km** d'una màquina («canvi d'oli cada 500 h, avisa 50 h abans»), sols o juntament amb una freqüència per data (**el que arribi abans**: «cada 500 h o cada any»). Les lectures s'apunten al PC, a la fitxa de la màquina al mòbil (també sense connexió) i en completar el preventiu; des d'aquesta lectura es compta el següent, i s'estima quan s'hi arribarà segons l'ús mitjà
 - **☑️ Llistes de comprovació**: plantilles reutilitzables («Revisió mensual del compressor») amb punts que es marquen bé / malament / no s'aplica i lectures amb la seva unitat i el seu rang correcte (fora de rang, «malament» automàticament); s'assignen a avisos i pendents i s'omplen en completar-los, al PC o al mòbil (també sense connexió). Es desen amb el treball, es veuen a l'historial i surten a les exportacions a PDF, Excel i CSV
 - **📦 Control de l'estoc del magatzem**: estructura de prestatgeries, prestatges i seccions configurable, fitxa de materials amb foto, entrades/sortides amb historial i alertes d'estoc per sota del mínim
 - **📄 Exportar l'estoc**: botó "📄 Exportar" a la pestanya d'estoc per treure el magatzem sencer, una zona o una prestatgeria a PDF, CSV o Excel, ordenat per ubicació; la pestanya d'estoc per sota del mínim també té el seu botó per exportar només els materials en alerta
@@ -211,6 +212,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🔄 Connectada en segon pla**: mentre l'app és oberta, encara que sigui en segon pla, continua sincronitzant amb el PC i mostra una notificació («Connectat al PC» / «Sense connexió amb el PC») amb un botó «Tancar». En tancar-la del tot deixa de gastar bateria
 - **📶 Primera sincronització amb progrés**: barra de progrés en baixar les dades i les fotos, amb baixada en paral·lel perquè sigui més ràpida
 - **🏷️ Escanejar la màquina**: el botó d'escanejar llegeix l'etiqueta QR d'una màquina i n'obre la fitxa, sense connexió: on és, els seus últims treballs, els seus **recanvis** amb l'estoc del magatzem, i un botó per registrar un treball ja vinculat a ella
+- **📟 Comptadors de la màquina**: a la fitxa de la màquina s'apunten les lectures dels seus comptadors (hores, cicles, km) sense connexió i es veuen els seus preventius per comptador amb el que falta; en completar-ne un, la lectura s'apunta en el mateix pas
 - **⬆️ Actualitzar des de l'app**: quan hi ha una versió nova, l'avís té els botons «Després» i «Actualitzar»; «Actualitzar» baixa l'APK amb una barra de progrés i obre l'instal·lador d'Android, sense passar per GitHub
 
 ### 📦 Aplicació mòbil d'estoc (Android)
@@ -578,6 +580,10 @@ intervencions de cada equip al llarg del temps.
   24 etiquetes de 70 × 37 mm (de la màquina seleccionada, amb les seves
   submàquines o de totes). En escanejar-les amb l'app MantPro s'obre la fitxa
   de la màquina
+- **📟 Comptadors**: el botó «📟 Comptadors» gestiona les hores d'ús, cicles
+  o km de la màquina seleccionada (els crea un administrador), amb l'última
+  lectura, l'ús mitjà per dia i l'historial de lectures. Els preventius per
+  comptador en prenen les lectures
 - **🔍 Noms semblants**: en crear o reanomenar una màquina, avisa si al mateix
   nivell ja n'hi ha una altra amb un nom igual o molt semblant
 
@@ -814,8 +820,7 @@ seguretat, mira [SECURITY.md](SECURITY.md).
 El que ve, sense dates i sense un ordre tancat:
 
 - **Proveïdors, preus i comandes de compra** a partir de l'estoc sota mínim
-- **Preventiu per comptador** (hores d'ús, cicles, km), a més de per data
-- **Temps treballat i signatura** en tancar un treball (també al mòbil)
+- **Signatura** en tancar un treball (també al mòbil)
 - **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
 - **Criticitat de les màquines (ABC)**, per decidir on invertir en manteniment
 - **Sol·licituds de treball** des de producció o altres departaments que creen un pendent
@@ -824,7 +829,7 @@ El que ve, sense dates i sense un ordre tancat:
 - **Diversos centres o plantes** amb dades i indicadors per centre
 - Més idiomes (italià, alemany…) i app per a iPhone
 
-Fet fa poc: temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
+Fet fa poc: preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

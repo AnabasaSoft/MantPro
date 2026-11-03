@@ -171,6 +171,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🚦 Prioridade dos pendentes**: cada serviço pendente tem uma prioridade (Baixa, Média, Alta ou Crítica) para decidir qual atacar primeiro, com sua cor na lista; também é possível anexar fotos à coleção dele
 - **↩️ Reverter para pendente**: se um serviço foi concluído por engano, ele pode voltar para Pendentes com um clique a partir do histórico (com aviso se tinha máquina vinculada, já que esse dado se perderia), ficando registrado na auditoria
 - **🔁 Lembretes**: avisos de manutenção que se repetem automaticamente. Se a data passar, eles não são pulados: ficam **Pendentes** (laranja) durante a margem e depois **Atrasados** (vermelho) até serem feitos, e a próxima data é contada a partir do dia em que o serviço foi realmente feito
+- **📟 Preventiva por contador**: avisos por **horas de uso, ciclos ou km** de uma máquina («troca de óleo a cada 500 h, avisar 50 h antes»), sozinhos ou junto com uma frequência por data (**o que vier primeiro**: «a cada 500 h ou a cada ano»). As leituras são anotadas no PC, na ficha da máquina no celular (também sem conexão) e ao concluir a preventiva; o próximo conta a partir dessa leitura, e estima-se quando será atingido pelo uso médio
 - **☑️ Checklists**: modelos reutilizáveis («Revisão mensal do compressor») com itens marcados como OK / com problema / não se aplica e leituras com a unidade e a faixa correta (fora da faixa, «com problema» automaticamente); são atribuídos a avisos e serviços pendentes e preenchidos ao concluí-los, no PC ou no celular (também sem conexão). Ficam salvos com o serviço, aparecem no histórico e nas exportações em PDF, Excel e CSV
 - **📦 Controle do estoque do almoxarifado**: estrutura configurável de estantes, prateleiras e seções, ficha de materiais com foto, entradas/saídas com histórico e alertas de estoque abaixo do mínimo
 - **📄 Exportar o estoque**: botão "📄 Exportar" na aba de estoque para gerar o almoxarifado inteiro, uma zona ou uma estante em PDF, CSV ou Excel, ordenado por localização; a aba de estoque abaixo do mínimo também tem seu botão para exportar apenas os materiais em alerta
@@ -210,6 +211,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🔄 Conectado em segundo plano**: enquanto o aplicativo está aberto, mesmo em segundo plano, ele continua sincronizando com o PC e mostra uma notificação («Conectado ao PC» / «Sem conexão com o PC») com um botão «Fechar». Ao fechá-lo totalmente, ele para de gastar bateria
 - **📶 Primeira sincronização com progresso**: barra de progresso ao baixar os dados e as fotos, com download em paralelo para ser mais rápido
 - **🏷️ Escanear a máquina**: o botão de escanear lê a etiqueta QR de uma máquina e abre sua ficha, sem conexão: onde ela está, seus últimos serviços, suas **peças de reposição** com o estoque do almoxarifado, e um botão para registrar um serviço já vinculado a ela
+- **📟 Contadores da máquina**: na ficha da máquina anotam-se as leituras dos contadores (horas, ciclos, km) sem conexão e veem-se as preventivas por contador com o que falta; ao concluir uma, a leitura é anotada no mesmo passo
 - **⬆️ Atualizar pelo aplicativo**: quando há uma versão nova, o aviso tem os botões «Depois» e «Atualizar»; «Atualizar» baixa o APK com uma barra de progresso e abre o instalador do Android, sem passar pelo GitHub
 
 ### 📦 Aplicativo de estoque para celular (Android)
@@ -579,6 +581,10 @@ cada equipamento ao longo do tempo.
   24 etiquetas de 70 × 37 mm (da máquina selecionada, com suas submáquinas ou
   de todas). Ao escaneá-las com o aplicativo MantPro abre-se a ficha da
   máquina
+- **📟 Contadores**: o botão «📟 Contadores» gerencia as horas de uso, ciclos
+  ou km da máquina selecionada (criados por um administrador), com a última
+  leitura, o uso médio por dia e o histórico de leituras. As preventivas por
+  contador usam essas leituras
 - **🔍 Nomes parecidos**: ao criar ou renomear uma máquina, avisa se no mesmo
   nível já existe outra com um nome igual ou muito parecido
 
@@ -817,8 +823,7 @@ segurança, veja o [SECURITY.md](SECURITY.md).
 O que vem por aí, sem datas e sem uma ordem fechada:
 
 - **Fornecedores, preços e pedidos de compra** a partir do estoque abaixo do mínimo
-- **Preventiva por contador** (horas de uso, ciclos, km), além de por data
-- **Tempo trabalhado e assinatura** ao fechar um serviço (também no celular)
+- **Assinatura** ao fechar um serviço (também no celular)
 - **Documentação técnica por máquina** (manuais, desenhos e esquemas em PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir em manutenção
 - **Solicitações de serviço** da produção ou de outros departamentos que criam um serviço pendente
@@ -827,7 +832,7 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Várias unidades ou plantas** com dados e indicadores por unidade
 - Mais idiomas (italiano, alemão…) e aplicativo para iPhone
 
-Feito recentemente: tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
+Feito recentemente: preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

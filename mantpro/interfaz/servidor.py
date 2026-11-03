@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -339,9 +339,34 @@ class ServidorSincronizacion(QThread):
         @requiere_token
         def api_maquinas():
             try:
-                return jsonify(maquinas.listar_maquinas())
+                # Con sus contadores (horas, ciclos, km) y la última lectura,
+                # para apuntar lecturas desde la ficha de la máquina sin conexión
+                por_maquina = contadores.por_maquina()
+                return jsonify([{**m, "contadores": por_maquina.get(m["id"], [])} for m in maquinas.listar_maquinas()])
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/lectura', methods=['POST'])
+        @requiere_token
+        @requiere_tecnico
+        def api_lectura():
+            """Lectura de un contador apuntada en la ficha de la máquina del
+            móvil (quizá días antes, sin conexión). [uid] evita duplicarla si
+            el móvil la reenvía. Si el contador ya no existe, se responde ok
+            para que el móvil la quite de su cola."""
+            try:
+                contador_id = int(request.form.get('contador_id') or 0)
+                valor = contadores.numero_api(request.form.get('valor'))
+                if valor is None:
+                    return jsonify({"status": "error", "message": "valor"}), 400
+                nuevo = contadores.registrar_lectura(contador_id, valor, fecha=request.form.get('fecha'),
+                                                     usuario=g.usuario_mantpro, origen="movil",
+                                                     uid=request.form.get('uid') or None)
+                if nuevo:
+                    self.pendiente_actualizado.emit()
+                return jsonify({"status": "ok" if nuevo else "ignorado"})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/repuestos', methods=['GET'])
         @requiere_token
@@ -756,6 +781,7 @@ class ServidorSincronizacion(QThread):
 
                 lista_procesada = []
                 con_lista = checklists.checklists_de("aviso")
+                por_contador = contadores.estados_avisos()
                 hoy = datetime.now().date()
 
                 for aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre, especialidad_id in raw_avisos:
@@ -833,11 +859,22 @@ class ServidorSincronizacion(QThread):
                         estado = "FUTURO"
                         color_code = "blue"
 
+                    rango = f"{ocurrencia.strftime(idiomas.formato_fecha_corta_py())} - {fin_ocurrencia.strftime(idiomas.formato_fecha_corta_py())}"
+                    # Preventivo por contador: toca lo que antes llegue (o solo
+                    # el contador, si no tiene límite por fecha)
+                    info_contador = por_contador.get(aid)
+                    if info_contador:
+                        if not es_completado:
+                            estado = info_contador["estado"] if info_contador["solo_contador"] else contadores.peor(estado, info_contador["estado"])
+                            color_code = {"ATRASADO": "red", "PENDIENTE": "orange"}.get(estado, "blue")
+                        texto_c = contadores.texto_proximo(info_contador, idiomas.t("lbl_ahora"), idiomas.t("lbl_sin_lecturas"))
+                        rango = texto_c if info_contador["solo_contador"] else f"{texto_c} · {rango}"
+
                     lista_procesada.append({
                         "id": aid,
                         "titulo": tit,
                         "frecuencia": freq,
-                        "rango": f"{ocurrencia.strftime(idiomas.formato_fecha_corta_py())} - {fin_ocurrencia.strftime(idiomas.formato_fecha_corta_py())}",
+                        "rango": rango,
                         "estado": estado,
                         "color": color_code,
                         "raw_inicio": ocurrencia.strftime("%Y-%m-%d"),
@@ -850,7 +887,13 @@ class ServidorSincronizacion(QThread):
                         "ultima_completada": ult or "",
                         "asignado_a": asignado_a,
                         "asignado": asignado_nombre or "",
-                        "checklist_id": con_lista.get(aid)
+                        "checklist_id": con_lista.get(aid),
+                        # Preventivo por contador: lo justo para que el móvil
+                        # lo recalcule con las lecturas que apunte sin conexión
+                        "contador": ({k: info_contador[k] for k in (
+                            "contador_id", "contador", "unidad", "maquina_id", "maquina", "cada", "antelacion",
+                            "solo_contador", "actual", "fecha_actual", "proximo", "estimada")}
+                            if info_contador else None),
                     })
 
                 return jsonify(lista_procesada)
@@ -937,6 +980,12 @@ class ServidorSincronizacion(QThread):
                     self._descontar_materiales_trabajo(request, g.usuario_mantpro, f"Mantenimiento Preventivo: {titulo}",
                                                        tarea_id, fecha_final)
                     self._tiempo_trabajo(request, tarea_id)
+                    # Preventivo por contador: lectura en el momento de hacerlo
+                    # (desde ella se cuenta el siguiente) y trabajo ligado a la máquina
+                    contadores.registrar_completado(id_aviso, contadores.numero_api(request.form.get('lectura')) if request.form.get('lectura') else None,
+                                                    fecha=request.form.get('lectura_fecha') or fecha_final,
+                                                    usuario=g.usuario_mantpro, origen="movil", tarea_id=tarea_id,
+                                                    uid=request.form.get('lectura_uid') or None)
                 usuarios.auditar("avisos", "completar", titulo, detalle=f"Completado el {fecha_final}" + (
                     f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
                     + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
@@ -1151,6 +1200,8 @@ class ServidorSincronizacion(QThread):
 
                     # 4. Actualizar el aviso con la fecha histórica correcta
                     c.execute("UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?", (prev_fecha, id_aviso))
+                    conn.commit()
+                    contadores.deshacer_completado(id_aviso)
                     usuarios.auditar("avisos", "descompletar", titulo,
                                      detalle="Se borra del historial el preventivo apuntado",
                                      cambios=[{"campo": "Última vez completado", "antes": ult_fecha or "", "despues": prev_fecha or ""}])
