@@ -37,6 +37,11 @@ import 'i18n/strings.dart';
 
 const _canal = MethodChannel('mantpro/actualizador');
 
+/// Tiempo sin recibir nada tras el cual se da la conexión por cortada, y
+/// reintentos seguidos (sin avanzar nada) que se aguantan antes de rendirse.
+const _esperaMaxima = Duration(seconds: 30);
+const _maxReintentos = 8;
+
 /// Descarga [nombreApk] de la release ([datosRelease], el JSON de la API de
 /// GitHub) y lo instala. Si la release no trae ese APK o algo falla, ofrece
 /// abrir la página de la release como antes.
@@ -82,22 +87,55 @@ Future<void> descargarEInstalar(BuildContext context, Map<String, dynamic> datos
     if (await dir.exists()) await dir.delete(recursive: true); // APK de actualizaciones anteriores
     await dir.create(recursive: true);
     final fichero = File('${dir.path}/$nombreApk');
-    final respuesta = await cliente.send(http.Request('GET', Uri.parse(urlApk)));
-    if (respuesta.statusCode != 200) throw HttpException('HTTP ${respuesta.statusCode}');
-    final total = respuesta.contentLength ?? 0;
+    // Al bloquear el móvil o pasar la app a segundo plano, Android corta la
+    // conexión («Connection closed while receiving data»). En vez de fallar,
+    // se reanuda desde lo ya descargado (cabecera «Range») con unos cuantos
+    // reintentos, y una conexión parada sin datos también se da por cortada.
     var recibidos = 0;
-    final salida = fichero.openWrite();
-    try {
-      await for (final trozo in respuesta.stream) {
+    var total = 0;
+    var intentosSeguidos = 0;
+    while (!cancelado) {
+      final antes = recibidos;
+      try {
+        final peticion = http.Request('GET', Uri.parse(urlApk));
+        if (recibidos > 0) peticion.headers['Range'] = 'bytes=$recibidos-';
+        final respuesta = await cliente.send(peticion).timeout(_esperaMaxima);
+        if (respuesta.statusCode != 200 && respuesta.statusCode != 206) {
+          throw HttpException('HTTP ${respuesta.statusCode}');
+        }
+        // 200 al pedir desde la mitad: el servidor no reanuda, se empieza de nuevo
+        if (respuesta.statusCode == 200) recibidos = 0;
+        total = recibidos + (respuesta.contentLength ?? 0);
+        final salida = fichero.openWrite(mode: recibidos > 0 ? FileMode.append : FileMode.write);
+        try {
+          await for (final trozo in respuesta.stream.timeout(_esperaMaxima)) {
+            if (cancelado) break;
+            salida.add(trozo);
+            recibidos += trozo.length;
+            if (total > 0) progreso.value = recibidos / total;
+          }
+        } finally {
+          await salida.close();
+        }
+        if (cancelado || total == 0 || recibidos >= total) break;
+        throw const SocketException('Connection closed before the download finished');
+      } on HttpException {
+        rethrow; // respuesta de error del servidor: reintentar no ayuda
+      } catch (_) {
         if (cancelado) break;
-        salida.add(trozo);
-        recibidos += trozo.length;
-        if (total > 0) progreso.value = recibidos / total;
+        if (recibidos > antes) intentosSeguidos = 0; // hubo avance: el contador de fallos vuelve a cero
+        if (++intentosSeguidos > _maxReintentos) rethrow;
+        await Future.delayed(Duration(seconds: intentosSeguidos < 5 ? intentosSeguidos * 2 : 10));
       }
-    } finally {
-      await salida.close();
     }
     if (cancelado) return;
+    // Android no deja abrir el instalador desde segundo plano o con el móvil
+    // bloqueado: si terminó así, se espera a que la app vuelva a verse.
+    while (WidgetsBinding.instance.lifecycleState != null &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      if (cancelado) return;
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
     navegador.pop();
     final estado = await _canal.invokeMethod<String>('instalar', {'ruta': fichero.path});
     if (estado == 'permiso' && context.mounted) {
@@ -110,7 +148,7 @@ Future<void> descargarEInstalar(BuildContext context, Map<String, dynamic> datos
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         duration: const Duration(seconds: 10),
         // Con el motivo, para poder saber qué ha fallado
-        content: Text('${t('msg_error_descarga_actualizacion')}\n\n$e'),
+        content: Text('${t('msg_error_descarga_actualizacion')}\n\n${e.toString().split(', uri=').first}'),
         action: urlRelease.isEmpty ? null : SnackBarAction(
             label: t('btn_abrir_github'),
             onPressed: () => launchUrl(Uri.parse(urlRelease), mode: LaunchMode.externalApplication)),
