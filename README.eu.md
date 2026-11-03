@@ -504,6 +504,13 @@ modelo bera) berriro saioa hasten badu, gailu horren aurreko saioa automatikoki
 ezabatzen da berria sortzean, zerrendan beste saio solte bat bezala pilatuta
 geratu beharrean.
 
+Saioak jarduerarik ezean iraungitzen dira: telefonoak PCrekin konektatzen den
+bakoitzean bere saioa berritzen da, beraz aplikazioa erabiltzen duenak ez du
+berriro saioa hasi beharrik, eta **60 egunez konektatu gabe** egon ondoren
+berez ixten dira (galdutako telefono bat edo jada ez dagoen norbaitena).
+Administratzaileak epe hori aldatzen du (30 eta 365 egun artean) leiho berean.
+Telefonoak bidali gabe zuena ez da galtzen: berriro saioa hastean bidaltzen da.
+
 **Konexioa** zutabeak mugikor bakoitza une honetan **linean** dagoen eta azken
 kontaktua noiz izan zen adierazten du. Aplikazioek ordenagailuari segundo
 gutxitik behin abisatzen diote irekita dauden bitartean (atzeko planoan ere), eta

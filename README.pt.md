@@ -502,6 +502,13 @@ aberta (mesmo fabricante e modelo), a sessão anterior desse dispositivo é
 apagada automaticamente ao criar a nova, em vez de ficar acumulada como mais
 uma sessão solta na lista.
 
+As sessões expiram por inatividade: cada vez que o telemóvel liga ao PC a sua
+sessão é renovada, pelo que quem usa a app não tem de voltar a iniciar sessão,
+e fecham-se sozinhas após **60 dias sem ligar** (um telemóvel perdido ou de
+alguém que já não está). O administrador altera esse prazo (de 30 a 365 dias)
+na mesma janela. O que o telemóvel tivesse por enviar não se perde: é enviado
+ao voltar a iniciar sessão.
+
 A coluna **Conexão** indica se cada celular está **online** agora e quando foi
 seu último contato. Os aplicativos avisam o PC a cada poucos segundos enquanto
 estão abertos (também em segundo plano), e ao serem fechados totalmente avisam

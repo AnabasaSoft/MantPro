@@ -507,6 +507,13 @@ session ouverte (même fabricant et même modèle), l'ancienne session de cet
 appareil est supprimée automatiquement lors de la création de la nouvelle, au
 lieu de s'accumuler dans la liste.
 
+Les sessions expirent par inactivité : chaque fois que le mobile se connecte au
+PC, sa session est renouvelée, donc qui utilise l'app n'a pas à se reconnecter,
+et elles se ferment toutes seules après **60 jours sans connexion** (un mobile
+perdu ou celui de quelqu'un qui n'est plus là). L'administrateur modifie ce
+délai (de 30 à 365 jours) dans la même fenêtre. Ce que le mobile n'avait pas
+encore envoyé n'est pas perdu : cela part à la reconnexion.
+
 La colonne **Connexion** indique si chaque mobile est **en ligne** en ce moment
 et quand a eu lieu son dernier contact. Les applications se signalent au PC
 toutes les quelques secondes tant qu'elles sont ouvertes (y compris en

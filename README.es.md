@@ -501,6 +501,13 @@ una sesión abierta (mismo fabricante y modelo), la sesión anterior de ese
 dispositivo se borra automáticamente al crear la nueva, en vez de quedarse
 acumulada como una sesión suelta más en el listado.
 
+Las sesiones caducan por inactividad: cada vez que el móvil conecta con el PC su
+sesión se renueva, así que quien usa la app no tiene que volver a iniciar
+sesión, y se cierran solas tras **60 días sin conectar** (un móvil perdido o de
+alguien que ya no está). El administrador cambia ese plazo (de 30 a 365 días)
+en la misma ventana. Lo que el móvil tuviera sin enviar no se pierde: se envía
+al volver a iniciar sesión.
+
 La columna **Conexión** indica si cada móvil está **en línea** ahora mismo y
 cuándo fue su último contacto. Las apps avisan al PC cada pocos segundos
 mientras están abiertas (también en segundo plano), y al cerrarlas del todo

@@ -498,6 +498,13 @@ session (same manufacturer and model), that device's previous session is
 deleted automatically when the new one is created, instead of piling up as
 one more stray session in the list.
 
+Sessions expire through inactivity: every time the phone connects to the PC its
+session is renewed, so people who use the app never have to sign in again, and
+they close by themselves after **60 days without connecting** (a lost phone, or
+one belonging to someone who has left). The administrator can change that period
+(30 to 365 days) in the same window. Anything the phone had not yet sent is not
+lost: it is sent when signing in again.
+
 The **Connection** column shows whether each phone is **online** right now and
 when it was last in contact. The apps check in with the PC every few seconds
 while they are open (also in the background), and when fully closed they report

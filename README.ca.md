@@ -503,6 +503,13 @@ sessió oberta (mateix fabricant i model), la sessió anterior d'aquest
 dispositiu s'esborra automàticament en crear la nova, en lloc de quedar-se
 acumulada com una sessió solta més al llistat.
 
+Les sessions caduquen per inactivitat: cada cop que el mòbil connecta amb el PC
+la seva sessió es renova, així que qui fa servir l'app no ha de tornar a iniciar
+sessió, i es tanquen soles als **60 dies sense connectar** (un mòbil perdut o
+d'algú que ja no hi és). L'administrador canvia aquest termini (de 30 a 365
+dies) a la mateixa finestra. El que el mòbil tingués sense enviar no es perd:
+s'envia en tornar a iniciar sessió.
+
 La columna **Connexió** indica si cada mòbil està **en línia** ara mateix i quan
 va ser el seu últim contacte. Les apps avisen el PC cada pocs segons mentre són
 obertes (també en segon pla), i en tancar-les del tot avisen que es
