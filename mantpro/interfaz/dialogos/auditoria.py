@@ -88,6 +88,10 @@ _CAMPOS = {
     "Tiempo trabajado": "aud_f_tiempo", "Coste de la hora de trabajo": "aud_f_coste_hora",
     "Contador": "aud_f_contador", "Cada": "aud_f_cada", "Avisar antes": "aud_f_avisar_antes",
     "Primera vez a": "aud_f_primera", "Lectura": "aud_f_lectura", "Lecturas": "aud_f_lecturas",
+    "Copias automáticas": "aud_f_copias_automaticas", "Copia periódica": "aud_f_copia_periodica",
+    "Cada (horas)": "aud_f_cada_horas", "Copia tras recibir datos de un móvil": "aud_f_copia_tras_movil",
+    "Carpeta externa de las copias": "aud_f_carpeta_externa", "Copias recientes que se guardan": "aud_f_copias_recientes",
+    "Días con una copia diaria": "aud_f_dias_copia_diaria",
 }
 
 

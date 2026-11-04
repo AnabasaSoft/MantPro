@@ -259,15 +259,22 @@ class Temas:
         QMenu::separator { height: 1px; background: #7a7a7a; margin: 5px 8px; }
 
         /* ESTILO ESPECÍFICO PARA DIÁLOGOS DE ARCHIVOS (QFileDialog) */
+        /* Fondo gris medio: con el gris claro de antes, los iconos claros
+           de los temas oscuros del sistema (Breeze oscuro…) apenas se veían */
         QFileDialog QToolButton {
-            background-color: #cccccc;
-            color: black;
-            border: 1px solid #999;
+            background-color: #555555;
+            color: #e0e0e0;
+            border: 1px solid #6a6a6a;
             border-radius: 4px;
             margin: 2px;
         }
         QFileDialog QToolButton:hover {
-            background-color: #ffffff;
+            background-color: #666666;
+            border: 1px solid #3daee9;
+        }
+        QFileDialog QToolButton:disabled {
+            background-color: #3c3c3c;
+            border: 1px solid #4a4a4a;
         }
         QFileDialog QListView, QFileDialog QTreeView {
             background-color: #1e1e1e;

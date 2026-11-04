@@ -166,7 +166,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📱 Sincronització mòbil**: servidor integrat (s'engega automàticament) per sincronitzar amb l'aplicació mòbil mitjançant QR
 - **🔍 Sistema de cerca**: cerca avançada per dates, etiquetes i contingut
 - **👤 Filtre per tècnic**: filtra l'historial i les exportacions (PDF, CSV i Excel) per la persona que va fer el treball
-- **📦 Còpia i restauració**: còpia manual completa (BD + fotos) triant on desar-la, còpia automàtica incremental en tancar l'aplicació (vegeu [Còpies de seguretat](#-còpies-de-seguretat)), i restauració amb barra de progrés, amb el submenú `Arxiu > Restaurar` per triar entre qualsevol còpia manual o anar directament a les còpies automàtiques. Les còpies es poden **xifrar amb contrasenya** (`Arxiu > 🔒 Contrasenya de les còpies…`)
+- **📦 Còpia i restauració**: còpia manual completa (BD + fotos) triant on desar-la, còpia automàtica incremental en tancar, cada cert temps i després de rebre dades d'un mòbil, amb carpeta externa i prova de restauració (vegeu [Còpies de seguretat](#-còpies-de-seguretat)), i restauració amb barra de progrés, amb el submenú `Arxiu > Restaurar` per triar entre qualsevol còpia manual o anar directament a les còpies automàtiques. Les còpies es poden **xifrar amb contrasenya** (`Arxiu > 🔒 Contrasenya de les còpies…`)
 - **🏷️ Sistema d'etiquetes**: classificació amb etiquetes (Urgent, Elèctric, Mecànic, Preventiu)
 - **🔨 Tasques pendents**: gestió de treballs pendents (crear, completar, editar, eliminar) i **assignació a un tècnic concret**
 - **🚦 Prioritat dels pendents**: cada treball pendent té una prioritat (Baixa, Mitjana, Alta o Crítica) per decidir quin atacar primer, amb el seu color a la llista; també s'hi poden adjuntar fotos a la seva col·lecció
@@ -792,8 +792,14 @@ una clau de recuperació per apuntar-la. Ve desactivat.
 
 ## 💾 Còpies de seguretat
 
-MantPro fa una **còpia automàtica en tancar** (les bases de dades, i les fotos
-en ZIP incrementals per any) i permet fer una **còpia completa a mà** des
+MantPro fa **còpies automàtiques** (les bases de dades, i les fotos en ZIP
+incrementals per mes) en tancar, cada 2 hores mentre està obert si hi ha
+canvis, poc després de rebre dades d'un mòbil i en obrir-lo si van quedar
+canvis sense copiar. A `Arxiu > 🛡️ Còpies automàtiques…` es tria cada quant,
+quantes se'n guarden i una **carpeta externa** (NAS, disc USB,
+Nextcloud/Dropbox…) on també s'envia cada còpia. Després de cada còpia es
+**prova que es pot restaurar**, i la barra d'estat avisa si alguna cosa falla.
+També permet fer una **còpia completa a mà** des
 d'`Arxiu > Backup` i restaurar-la des d'`Arxiu > Restaurar`. `Eines` inclou
 a més netejar les fotos que ja no fa servir cap registre i esborrar els
 treballs més antics que un temps donat, sempre amb còpia prèvia.

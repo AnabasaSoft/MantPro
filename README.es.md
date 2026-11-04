@@ -166,7 +166,7 @@ versiones estables. Los cambios de cada versión están en
 - **📱 Sincronización Móvil**: Servidor integrado (arranca automáticamente) para sincronización con la app móvil vía QR
 - **🔍 Sistema de Búsqueda**: Búsqueda avanzada por fechas, tags y contenido
 - **👤 Filtro por Técnico**: Filtra el historial y las exportaciones (PDF, CSV y Excel) por la persona que hizo el trabajo
-- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar la app (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas. Las copias se pueden **cifrar con contraseña** (`Archivo > 🔒 Contraseña de las copias…`)
+- **📦 Backup/Restore**: copia manual completa (BD + fotos) eligiendo dónde guardarla, backup automático incremental al cerrar, cada cierto tiempo y tras recibir datos de un móvil, con carpeta externa y prueba de restauración (ver [Copias de Seguridad](#-copias-de-seguridad)), y restauración con barra de progreso, con submenú `Archivo > Restaurar` para elegir entre un backup manual cualquiera o ir directo a las copias automáticas. Las copias se pueden **cifrar con contraseña** (`Archivo > 🔒 Contraseña de las copias…`)
 - **🏷️ Sistema de Tags**: Categorización con etiquetas (Urgente, Eléctrico, Mecánico, Preventivo)
 - **🔨 Tareas Pendientes**: Gestión de trabajos pendientes (crear, completar, editar, eliminar) y **asignación a un técnico concreto**
 - **🚦 Prioridad de Pendientes**: cada trabajo pendiente tiene prioridad (Baja, Media, Alta o Crítica) para decidir cuál atacar primero, con su color en la lista; también se le pueden adjuntar fotos a su colección
@@ -793,8 +793,13 @@ desactivado.
 
 ## 💾 Copias de Seguridad
 
-MantPro hace una **copia automática al cerrar** (las bases de datos, y las fotos
-en ZIP incrementales por año) y permite hacer una **copia completa a mano**
+MantPro hace **copias automáticas** (las bases de datos, y las fotos en ZIP
+incrementales por mes) al cerrar, cada 2 horas mientras está abierto si hay
+cambios, al poco de recibir datos de un móvil y al abrir si quedaron cambios sin
+copiar. En `Archivo > 🛡️ Copias automáticas…` se elige cada cuánto, cuántas se
+guardan y una **carpeta externa** (NAS, disco USB, Nextcloud/Dropbox…) a la que
+se manda también cada copia. Después de cada copia se **prueba que se puede
+restaurar**, y la barra de estado avisa si algo falla. También permite hacer una **copia completa a mano**
 desde `Archivo > Backup` y restaurarla desde `Archivo > Restaurar`.
 `Herramientas` incluye además limpiar las fotos que ya no usa ningún registro y
 borrar los trabajos más antiguos que un tiempo dado, siempre con copia previa.

@@ -151,6 +151,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self._poblar_tabs()
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
+        self.iniciar_copias_automaticas()
 
         # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
         # Se dispara desde el punto de entrada (bloque __main__), una vez que la
@@ -202,6 +203,9 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         # dejaría la ventana abierta y obligaría a pulsar "Salir" dos veces).
         e.ignore()
 
+        # Que no empiece otra copia mientras se cierra (y esperar a la que esté en marcha)
+        self.parar_copias_automaticas()
+
         print("Iniciando limpieza de fotos...")
         self.limpiar_fotos_huerfanas(silencioso=True)
 
@@ -239,7 +243,11 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
 
     def _actividad_movil(self, pestanas, empieza):
         """Un móvil empieza o termina de enviar algo: subraya el título de las
-        pestañas afectadas con una barra de progreso mientras dura."""
+        pestañas afectadas con una barra de progreso mientras dura. Al
+        terminar, programa la copia de seguridad de después de un móvil (si
+        no ha cambiado nada, esa copia no se hace)."""
+        if not empieza:
+            self.programar_copia_tras_movil()
         barra = getattr(self, "barra_pestanas", None)
         if barra is None:
             return
@@ -390,6 +398,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             menu_restaurar = fm.addMenu(t("menu_restaurar"))
             menu_restaurar.addAction(QAction(tt("menu_restaurar_manual", "Restaurar..."), self, triggered=self.restaurar_backup))
             menu_restaurar.addAction(QAction(tt("menu_restaurar_auto", "Restaurar desde copia automática..."), self, triggered=self.restaurar_backup_auto))
+            fm.addAction(QAction(tt("menu_copias_automaticas", "🛡️ Copias automáticas…"), self, triggered=self.configurar_copias_automaticas))
             fm.addAction(QAction(tt("menu_contrasena_copias", "🔒 Contraseña de las copias…"), self, triggered=self.configurar_contrasena_copias))
             fm.addSeparator()
             fm.addAction(QAction(t("menu_importar"), self, triggered=self.importar_datos))

@@ -166,7 +166,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **📱 Synchronisation avec le mobile** : serveur intégré (démarrage automatique) pour se synchroniser avec l'application mobile via QR
 - **🔍 Moteur de recherche** : recherche avancée par dates, tags et contenu
 - **👤 Filtre par technicien** : filtrez l'historique et les exports (PDF, CSV et Excel) par la personne qui a réalisé l'intervention
-- **📦 Sauvegarde et restauration** : sauvegarde manuelle complète (BD + photos) en choisissant où l'enregistrer, sauvegarde automatique incrémentale à la fermeture de l'application (voir [Sauvegardes](#-sauvegardes)) et restauration avec barre de progression, avec le sous-menu `Fichier > ♻️ Restaurer` pour choisir n'importe quelle sauvegarde manuelle ou aller directement aux sauvegardes automatiques. Les sauvegardes peuvent être **chiffrées par mot de passe** (`Fichier > 🔒 Mot de passe des sauvegardes…`)
+- **📦 Sauvegarde et restauration** : sauvegarde manuelle complète (BD + photos) en choisissant où l'enregistrer, sauvegarde automatique incrémentale à la fermeture, à intervalles réguliers et après réception de données d'un mobile, avec dossier externe et test de restauration (voir [Sauvegardes](#-sauvegardes)) et restauration avec barre de progression, avec le sous-menu `Fichier > ♻️ Restaurer` pour choisir n'importe quelle sauvegarde manuelle ou aller directement aux sauvegardes automatiques. Les sauvegardes peuvent être **chiffrées par mot de passe** (`Fichier > 🔒 Mot de passe des sauvegardes…`)
 - **🏷️ Système de tags** : classement par étiquettes (Urgent, Électrique, Mécanique, Préventif)
 - **🔨 Tâches en attente** : gestion des interventions en attente (créer, terminer, modifier, supprimer) et **assignation à un technicien précis**
 - **🚦 Priorité des tâches en attente** : chaque intervention en attente a une priorité (Basse, Moyenne, Haute ou Critique) pour décider laquelle traiter en premier, avec sa couleur dans la liste ; on peut aussi joindre des photos à sa collection
@@ -815,8 +815,15 @@ C'est désactivé par défaut.
 
 ## 💾 Sauvegardes
 
-MantPro fait une **sauvegarde automatique à la fermeture** (les bases de
-données, et les photos dans des ZIP incrémentaux par année) et permet de faire
+MantPro fait des **sauvegardes automatiques** (les bases de données, et les
+photos dans des ZIP incrémentaux par mois) à la fermeture, toutes les 2 heures
+tant qu'il est ouvert s'il y a des modifications, peu après la réception de
+données d'un mobile et à l'ouverture s'il reste des modifications non
+sauvegardées. `Fichier > 🛡️ Sauvegardes automatiques…` permet de choisir la
+fréquence, le nombre conservé et un **dossier externe** (NAS, disque USB,
+Nextcloud/Dropbox…) où chaque sauvegarde est aussi envoyée. Après chaque
+sauvegarde, on **vérifie qu'elle peut être restaurée**, et la barre d'état
+prévient en cas de problème. Il permet aussi de faire
 une **sauvegarde complète manuelle** depuis `Fichier > Sauvegarde` et de la
 restaurer depuis `Fichier > Restaurer`. `Outils` permet aussi de supprimer les
 photos qu'aucun enregistrement n'utilise plus et d'effacer les interventions

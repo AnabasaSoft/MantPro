@@ -115,8 +115,9 @@ Cada contador mostra a súa última lectura e o uso medio por día. A lectura qu
 
 <h2><a name="archivo"></a>💾 Menú Ficheiro: copias, importar e exportar</h2>
 <ul>
-<li><b>💾 Backup:</b> copia completa (bases de datos e fotos) nun ZIP, onde ti escollas. Ademais, cada vez que se pecha o programa faise unha copia automática.</li>
+<li><b>💾 Backup:</b> copia completa (bases de datos e fotos) nun ZIP, onde ti escollas. Ademais, MantPro fai copias automáticas (ver máis abaixo).</li>
 <li><b>♻️ Restaurar:</b> recupera unha copia manual ou unha das automáticas. <b>Substitúe todos os datos actuais.</b></li>
+<li><b>🛡️ Copias automáticas…:</b> MantPro copia el só as bases de datos e as fotos novas no cartafol <code>backups_auto</code>: sempre ao pechar, cada 2 horas mentres está aberto (se houbo cambios), pouco despois de recibir datos dun móbil e ao abrilo se quedaron cambios sen copiar. Aquí escóllese cada canto e cantas copias se gardan (por defecto, as 10 últimas e unha por día dos últimos 14 días) e, moi recomendable, <b>un cartafol externo</b> (NAS, disco USB ou cartafol de Nextcloud/Dropbox/Google Drive) onde tamén se manda cada copia: unha copia no mesmo disco non serve se o disco falla. Despois de cada copia próbase que se pode restaurar (sen tocar os teus datos). Abaixo á dereita, na barra de estado, vese a data da última copia boa; se algo falla, sae «⚠️ Copias: revisar» en vermello. Para restaurar dende o cartafol externo, usa <i>Restaurar → Restaurar dende unha copia automática</i> e escolle unha copia dese cartafol.</li>
 <li><b>🔒 Contrasinal das copias…:</b> cifra as copias de seguranza (a manual, a automática e as previas) cun contrasinal, para que non se poidan abrir se saen do equipo (USB, NAS, nube). Neste equipo restáuranse sen pedilo; noutro, si. Se o esqueces, as copias cifradas non se poden recuperar.</li>
 <li><b>📥 Importar dende Excel/CSV…:</b> trae máquinas, artigos, avisos e usuarios dende unha folla de cálculo. Podes descargar un modelo e revisar unha vista previa fila a fila, e antes de importar gárdase unha copia de seguranza.</li>
 <li><b>📤 Exportar:</b> o historial a PDF (co logotipo da túa empresa, se o pos en <i>Opcións PDF</i>), CSV ou Excel, con filtro por técnico.</li>
@@ -171,6 +172,7 @@ Cada contador mostra a súa última lectura e o uso medio por día. A lectura qu
 <li><b>Alguén esqueceu o seu contrasinal:</b> un administrador pode restablecelo en <i>Ferramentas → 👥 Xestión de usuarios</i>.</li>
 <li><b>Non chega a notificación diaria ao móbil:</b> en Xiaomi, OPPO/Realme ou Huawei pon a app en <i>Batería → Sen restricións</i>.</li>
 <li><b>Equivoqueime ao restaurar ou importar:</b> no cartafol <code>backups_auto</code> están as copias previas.</li>
+<li><b>Abaixo á dereita sae «⚠️ Copias: revisar»:</b> a última copia automática fallou, non se puido restaurar na proba ou non se puido mandar ao cartafol externo (disco USB sen conectar, NAS apagado). Prémeo para ver o motivo, arránxao e preme <i>💾 Facer copia agora</i>.</li>
 <li><b>Ao abrir MantPro pide unha chave de recuperación:</b> as bases de datos están cifradas e o chaveiro do sistema xa non ten a súa chave (sistema reinstalado, outro usuario…). Escribe a chave que apuntaches ao activar o cifrado. Se non a tes, saca <code>mantenimiento.db</code> e <code>almacen.db</code> do cartafol de datos, abre MantPro e restaura unha copia.</li>
 <li><b>«Demasiados intentos fallidos»:</b> agarda o tempo que indica o aviso ou pídelle a un administrador que restableza o contrasinal.</li>
 <li><b>Ao restaurar pide un contrasinal:</b> a copia está cifrada co contrasinal das copias do equipo onde se fixo (ou cun anterior). Sen el non se pode restaurar.</li>

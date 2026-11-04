@@ -25,7 +25,6 @@ import os
 import shutil
 import re
 import zipfile
-from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer,
                                 Image as PDFImage, PageBreak)
@@ -38,6 +37,7 @@ from .. import idiomas
 from ..idiomas import t
 from .comun import tt
 from ..nucleo import usuarios
+from ..nucleo import copias
 from ..nucleo.fotos import _RE_GALERIA, fotos_galeria
 from ..nucleo.rutas import DATA_DIR
 from ..nucleo.seguridad import anadir_bd_a_zip
@@ -319,113 +319,43 @@ class GeneradorPDFThread(QThread):
 
 
 class BackupThread(QThread):
-    """Backup automático al cerrar la aplicación.
+    """Copia de seguridad automática en segundo plano (al cerrar, cada cierto
+    tiempo, tras recibir datos de un móvil, al arrancar o a mano desde
+    Archivo > Copias automáticas). Todo lo hace nucleo/copias.py; aquí solo
+    se lanza en un hilo y se avisa del progreso y del resultado.
 
-    Las fotos son inmutables una vez guardadas (solo se añaden o se borran las
-    huérfanas), así que en vez de reempaquetar todo el histórico cada vez que
-    se cierra la app, se mantienen unos ZIP incrementales por año (nombrados
-    "fotos_backup_<año>.zip"): cada cierre solo añade a su ZIP del año las
-    fotos que todavía no estén dentro, sin tocar ni recomprimir las que ya
-    estaban. Así el ZIP de años anteriores no vuelve a abrirse salvo que
-    aparezca una foto nueva de ese año, y el peso total queda repartido y
-    comprimido en vez de duplicado sin comprimir en una carpeta espejo.
-
-    La base de datos sí cambia en cada sesión, pero pesa poco, así que esa
-    parte se sigue empaquetando entera en un ZIP rotativo (sin comprimir,
-    para no gastar tiempo de CPU en algo que ya es rápido de por sí).
-    """
-    progreso = pyqtSignal(int, int)  # (archivos copiados, total a copiar)
+    Con [accion] = "probar" no hace copia: prueba la última (ver
+    copias.probar_ultima)."""
+    progreso = pyqtSignal(int, int)  # (fotos copiadas, total a copiar)
     resultado = pyqtSignal(bool, str)
+    terminado = pyqtSignal(dict)     # resultado completo de copias.hacer_copia
 
-    _RE_TIMESTAMP = re.compile(r"(\d{8})_\d{6}")
-
-    def __init__(self, carpeta_fotos, carpeta_backups_auto, db_name, db_almacen_name):
+    def __init__(self, carpeta_fotos, carpeta_backups_auto, db_name, db_almacen_name,
+                 motivo="cierre", solo_si_hay_cambios=False, config=None, accion="copia"):
         super().__init__()
         self.carpeta_fotos = carpeta_fotos
         self.carpeta_backups_auto = carpeta_backups_auto
-        self.db_name = db_name
-        self.db_almacen_name = db_almacen_name
-
-    def _anio_de_foto(self, nombre, ruta):
-        """El nombre de fichero lleva casi siempre una marca de tiempo
-        (pc_drag_20260115_..., app_20260115_..., maquina_20260115_...); si no
-        la lleva (fotos muy antiguas), se recurre a la fecha de modificación."""
-        m = self._RE_TIMESTAMP.search(nombre)
-        if m:
-            return m.group(1)[:4]
-        try:
-            return str(datetime.fromtimestamp(os.path.getmtime(ruta)).year)
-        except Exception:
-            return str(datetime.now().year)
+        self.rutas_bd = [db_name, db_almacen_name]
+        self.motivo = motivo
+        self.solo_si_hay_cambios = solo_si_hay_cambios
+        self.config = config
+        self.accion = accion
 
     def run(self):
         try:
-            # Con contraseña de copias, todo lo nuevo se guarda cifrado
-            clave = cifrado_copias.clave_actual()
-            os.makedirs(self.carpeta_backups_auto, exist_ok=True)
-            origen_archivos = os.listdir(self.carpeta_fotos) if os.path.exists(self.carpeta_fotos) else []
-
-            ya_respaldadas = set()
-            zips_existentes = {}
-            for f in os.listdir(self.carpeta_backups_auto):
-                if f.startswith("fotos_backup_") and f.endswith(".zip"):
-                    anio = f[len("fotos_backup_"):-len(".zip")]
-                    zips_existentes[anio] = os.path.join(self.carpeta_backups_auto, f)
-                    try:
-                        with zipfile.ZipFile(zips_existentes[anio], 'r') as zf:
-                            ya_respaldadas.update(cifrado_copias.nombre_real(n) for n in zf.namelist())
-                    except Exception:
-                        pass
-
-            pendientes_por_anio = {}
-            for nombre in origen_archivos:
-                if nombre in ya_respaldadas:
-                    continue
-                ruta_origen = os.path.join(self.carpeta_fotos, nombre)
-                if not os.path.isfile(ruta_origen):
-                    continue
-                anio = self._anio_de_foto(nombre, ruta_origen)
-                pendientes_por_anio.setdefault(anio, []).append(nombre)
-
-            total = sum(len(v) for v in pendientes_por_anio.values())
-            copiadas = 0
-            self.progreso.emit(0, total)
-            for anio, nombres in pendientes_por_anio.items():
-                ruta_zip = zips_existentes.get(anio, os.path.join(self.carpeta_backups_auto, f"fotos_backup_{anio}.zip"))
-                with zipfile.ZipFile(ruta_zip, 'a', zipfile.ZIP_DEFLATED, allowZip64=True) as zipf:
-                    existentes_zip = {cifrado_copias.nombre_real(n) for n in zipf.namelist()}
-                    for nombre in nombres:
-                        if nombre not in existentes_zip:
-                            cifrado_copias.escribir_entrada(zipf, os.path.join(self.carpeta_fotos, nombre), nombre, clave)
-                        copiadas += 1
-                        self.progreso.emit(copiadas, total)
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            nombre_zip = f"auto_backup_db_{timestamp}.zip"
-            ruta_zip = os.path.join(self.carpeta_backups_auto, nombre_zip)
-            # Copia consistente de cada base de datos (incluye lo que siga en
-            # el fichero -wal) en un ZIP temporal que solo se renombra al
-            # final: un corte a mitad no deja un ZIP roto con el nombre bueno.
-            temporal = ruta_zip + ".tmp"
-            with zipfile.ZipFile(temporal, 'w', zipfile.ZIP_STORED) as zipf:
-                for ruta_bd in (self.db_name, self.db_almacen_name):
-                    integridad = anadir_bd_a_zip(zipf, ruta_bd, clave)
-                    if integridad not in (None, "ok"):
-                        print(f"Aviso: {os.path.basename(ruta_bd)} no pasa la comprobación de integridad: {integridad}")
-            os.replace(temporal, ruta_zip)
-
-            backups = []
-            for f in os.listdir(self.carpeta_backups_auto):
-                ruta_completa = os.path.join(self.carpeta_backups_auto, f)
-                if os.path.isfile(ruta_completa) and f.startswith("auto_backup_db_") and f.endswith(".zip"):
-                    backups.append(ruta_completa)
-            backups.sort(key=os.path.getmtime)
-            while len(backups) > 3:
-                os.remove(backups.pop(0))
-
-            self.resultado.emit(True, "Auto-backup completado.")
-        except Exception as ex:
-            self.resultado.emit(False, str(ex))
+            if self.accion == "probar":
+                prueba = copias.probar_ultima(self.carpeta_backups_auto, self.rutas_bd, self.carpeta_fotos, self.config)
+                r = {"hecha": False, "ok": prueba["ok"], "error": "", "integridad": [],
+                     "destino_error": "", "prueba": prueba}
+            else:
+                r = copias.hacer_copia(self.carpeta_fotos, self.carpeta_backups_auto, self.rutas_bd,
+                                       self.motivo, self.progreso.emit, self.solo_si_hay_cambios, self.config)
+        except Exception as ex:   # no debería pasar: hacer_copia ya recoge los errores
+            r = {"hecha": True, "ok": False, "error": str(ex), "integridad": [], "destino_error": "", "prueba": None}
+        if r["integridad"]:
+            print(f"Aviso: bases de datos que no pasan la comprobación de integridad: {r['integridad']}")
+        self.terminado.emit(r)
+        self.resultado.emit(r["ok"], r["error"] or r["destino_error"])
 
 
 class BackupManualThread(QThread):

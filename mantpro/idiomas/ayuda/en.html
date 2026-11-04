@@ -115,8 +115,9 @@ Each counter shows its last reading and the average use per day. The reading tha
 
 <h2><a name="archivo"></a>💾 File menu: backups, import and export</h2>
 <ul>
-<li><b>💾 Backup:</b> a full copy (databases and photos) in a ZIP, wherever you choose. An automatic backup is also made every time the program closes.</li>
+<li><b>💾 Backup:</b> a full copy (databases and photos) in a ZIP, wherever you choose. MantPro also makes automatic backups (see below).</li>
 <li><b>♻️ Restore:</b> recovers a manual backup or one of the automatic ones. <b>It replaces all current data.</b></li>
+<li><b>🛡️ Automatic backups…:</b> MantPro backs up the databases and new photos on its own into the <code>backups_auto</code> folder: always when closing, every 2 hours while it is open (if there have been changes), shortly after receiving data from a phone, and when opening if there were changes left uncopied. Here you choose how often and how many backups are kept (by default, the last 10 and one per day for the last 14 days) and, highly recommended, <b>an external folder</b> (NAS, USB drive or a Nextcloud/Dropbox/Google Drive folder) where every backup is also sent: a backup on the same disk is useless if the disk fails. After each backup, MantPro tests that it can be restored (without touching your data). At the bottom right, in the status bar, you can see the date of the last good backup; if something fails, «⚠️ Backups: check» appears in red. To restore from the external folder, use <i>Restore → Restore from automatic backup</i> and pick a backup from that folder.</li>
 <li><b>🔒 Backup password…:</b> encrypts backups (manual, automatic and the ones made beforehand) with a password, so they cannot be opened if they leave the computer (USB, NAS, cloud). On this computer they are restored without asking for it; on another one, it is asked for. If you forget it, encrypted backups cannot be recovered.</li>
 <li><b>📥 Import from Excel/CSV…:</b> brings in machines, items, alerts and users from a spreadsheet. You can download a template and check a row-by-row preview, and a backup is saved before importing.</li>
 <li><b>📤 Export:</b> the history to PDF (with your company logo, if you add it in <i>PDF Options</i>), CSV or Excel, with a filter by technician.</li>
@@ -171,6 +172,7 @@ Each counter shows its last reading and the average use per day. The reading tha
 <li><b>Someone forgot their password:</b> an administrator can reset it in <i>Tools → 👥 User management</i>.</li>
 <li><b>The daily notification does not reach the phone:</b> on Xiaomi, OPPO/Realme or Huawei set the app to <i>Battery → No restrictions</i>.</li>
 <li><b>I made a mistake when restoring or importing:</b> the <code>backups_auto</code> folder holds the backups made beforehand.</li>
+<li><b>«⚠️ Backups: check» appears at the bottom right:</b> the last automatic backup failed, could not be restored in the test or could not be sent to the external folder (USB drive unplugged, NAS switched off). Click it to see why, fix it and click <i>💾 Back up now</i>.</li>
 <li><b>MantPro asks for a recovery key when opening:</b> the databases are encrypted and the system keyring no longer has their key (system reinstalled, another user…). Enter the key you wrote down when you turned encryption on. If you do not have it, move <code>mantenimiento.db</code> and <code>almacen.db</code> out of the data folder, open MantPro and restore a backup.</li>
 <li><b>«Too many failed attempts»:</b> wait for the time shown in the message or ask an administrator to reset the password.</li>
 <li><b>Restoring asks for a password:</b> the backup is encrypted with the backup password of the computer where it was made (or with an earlier one). It cannot be restored without it.</li>

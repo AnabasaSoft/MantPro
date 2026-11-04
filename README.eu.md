@@ -168,7 +168,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **📱 Mugikorreko sinkronizazioa**: Zerbitzari integratua (automatikoki abiarazten da) mugikorreko aplikazioarekin QR bidez sinkronizatzeko
 - **🔍 Bilaketa-sistema**: Bilaketa aurreratua datetan, etiketetan eta edukian
 - **👤 Teknikariaren araberako iragazkia**: Iragazi historia eta esportazioak (PDF, CSV eta Excel) lana egin zuen pertsonaren arabera
-- **📦 Babeskopia/Berrezartzea**: eskuzko babeskopia osoa (DB + argazkiak) non gorde aukeratuz, babeskopia automatiko inkrementala aplikazioa ixtean (ikusi [Babeskopiak](#-babeskopiak)), eta berrezartzea aurrerapen-barrarekin, `Fitxategia > Berrezarri` azpimenuarekin edozein eskuzko babeskopia aukeratzeko edo zuzenean kopia automatikoetara joateko. Babeskopiak **pasahitzarekin zifra daitezke** (`Fitxategia > 🔒 Babeskopien pasahitza…`)
+- **📦 Babeskopia/Berrezartzea**: eskuzko babeskopia osoa (DB + argazkiak) non gorde aukeratuz, babeskopia automatiko inkrementala ixtean, aldian behin eta mugikor batetik datuak jaso ondoren, kanpoko karpetarekin eta leheneratze-probarekin (ikusi [Babeskopiak](#-babeskopiak)), eta berrezartzea aurrerapen-barrarekin, `Fitxategia > Berrezarri` azpimenuarekin edozein eskuzko babeskopia aukeratzeko edo zuzenean kopia automatikoetara joateko. Babeskopiak **pasahitzarekin zifra daitezke** (`Fitxategia > 🔒 Babeskopien pasahitza…`)
 - **🏷️ Etiketa-sistema**: Etiketen bidezko sailkapena (Urgentea, Elektrikoa, Mekanikoa, Prebentiboa)
 - **🔨 Egiteke dauden zereginak**: Egiteke dauden lanen kudeaketa (sortu, osatu, editatu, ezabatu) eta **teknikari jakin bati esleitzea**
 - **🚦 Egiteke dauden lanen lehentasuna**: egiteke dagoen lan bakoitzak lehentasun bat du (Baxua, Ertaina, Altua edo Kritikoa) zein lehenago egin erabakitzeko, zerrendan bere kolorearekin; bere bildumari argazkiak ere gehi dakizkioke
@@ -801,8 +801,14 @@ berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator.
 
 ## 💾 Babeskopiak
 
-MantPro-k **babeskopia automatikoa egiten du ixtean** (datu-baseak, eta
-argazkiak urteko ZIP inkrementaletan) eta **babeskopia osoa eskuz** egiteko
+MantPro-k **kopia automatikoak** egiten ditu (datu-baseak, eta argazkiak
+hileko ZIP inkrementaletan) ixtean, 2 orduan behin irekita dagoen bitartean
+aldaketak badaude, mugikor batetik datuak jaso eta gutxira eta irekitzean
+kopiatu gabeko aldaketak geratu badira. `Fitxategia > 🛡️ Kopia automatikoak…`
+atalean aukeratzen da zenbatero, zenbat gorde eta **kanpoko karpeta bat** (NASa,
+USB diskoa, Nextcloud/Dropbox…) kopia bakoitza hara ere bidaltzeko. Kopia
+bakoitzaren ondoren **leheneratu daitekeela probatzen da**, eta egoera-barrak
+zerbaitek huts egiten badu abisatzen du. Gainera, **babeskopia osoa eskuz** egiteko
 aukera ematen du `Fitxategia > Babeskopia` aukeratik, eta `Fitxategia >
 Leheneratu` aukeratik leheneratzeko. `Tresnak` atalean, gainera, inongo
 erregistrok erabiltzen ez dituen argazkiak garbitu eta denbora jakin bat baino

@@ -165,7 +165,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **📱 Sincronização com o celular**: servidor integrado (inicia automaticamente) para sincronizar com o aplicativo do celular via QR
 - **🔍 Sistema de busca**: busca avançada por datas, tags e conteúdo
 - **👤 Filtro por técnico**: filtre o histórico e as exportações (PDF, CSV e Excel) pela pessoa que fez o serviço
-- **📦 Backup e restauração**: cópia manual completa (BD + fotos) escolhendo onde salvá-la, backup automático incremental ao fechar o aplicativo (veja [Cópias de segurança](#-cópias-de-segurança)) e restauração com barra de progresso, com o submenu `Arquivo > ♻️ Restaurar` para escolher entre qualquer backup manual ou ir direto às cópias automáticas. As cópias podem ser **criptografadas com senha** (`Arquivo > 🔒 Senha das cópias…`)
+- **📦 Backup e restauração**: cópia manual completa (BD + fotos) escolhendo onde salvá-la, backup automático incremental ao fechar, de tempos em tempos e após receber dados de um celular, com pasta externa e teste de restauração (veja [Cópias de segurança](#-cópias-de-segurança)) e restauração com barra de progresso, com o submenu `Arquivo > ♻️ Restaurar` para escolher entre qualquer backup manual ou ir direto às cópias automáticas. As cópias podem ser **criptografadas com senha** (`Arquivo > 🔒 Senha das cópias…`)
 - **🏷️ Sistema de tags**: classificação com etiquetas (Urgente, Elétrico, Mecânico, Preventivo)
 - **🔨 Tarefas pendentes**: gerenciamento de serviços pendentes (criar, concluir, editar, excluir) e **atribuição a um técnico específico**
 - **🚦 Prioridade dos pendentes**: cada serviço pendente tem uma prioridade (Baixa, Média, Alta ou Crítica) para decidir qual atacar primeiro, com sua cor na lista; também é possível anexar fotos à coleção dele
@@ -794,8 +794,14 @@ sistema e é mostrada uma chave de recuperação para você anotar. Vem desativa
 
 ## 💾 Cópias de segurança
 
-O MantPro faz uma **cópia automática ao fechar** (os bancos de dados, e as
-fotos em ZIP incrementais por ano) e permite fazer uma **cópia completa
+O MantPro faz **cópias automáticas** (os bancos de dados, e as fotos em ZIP
+incrementais por mês) ao fechar, a cada 2 horas enquanto está aberto se houver
+alterações, pouco depois de receber dados de um celular e ao abrir se ficaram
+alterações sem copiar. Em `Arquivo > 🛡️ Cópias automáticas…` você escolhe a
+frequência, quantas são guardadas e uma **pasta externa** (NAS, disco USB,
+Nextcloud/Dropbox…) para onde cada cópia também é enviada. Depois de cada cópia
+**testa-se se ela pode ser restaurada**, e a barra de status avisa se algo
+falhar. Também permite fazer uma **cópia completa
 manual** em `Arquivo > Backup` e restaurá-la em `Arquivo > Restaurar`.
 `Ferramentas` também permite limpar as fotos que nenhum registro usa mais e
 excluir os serviços mais antigos que um tempo definido, sempre com cópia

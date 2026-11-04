@@ -163,7 +163,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📱 Mobile Sync**: Built-in server (starts automatically) to sync with the mobile app via QR code
 - **🔍 Search**: Advanced search by date, tags and content
 - **👤 Filter by Technician**: Filter the history and exports (PDF, CSV and Excel) by the person who did the job
-- **📦 Backup/Restore**: full manual backup (database + photos) choosing where to save it, incremental automatic backup when closing the app (see [Backups](#-backups)), and restore with a progress bar, with a `File > Restore` submenu to pick any manual backup or go straight to the automatic ones. Backups can be **encrypted with a password** (`File > 🔒 Backup password…`)
+- **📦 Backup/Restore**: full manual backup (database + photos) choosing where to save it, incremental automatic backup when closing, every so often and after receiving data from a phone, with an external folder and a restore test (see [Backups](#-backups)), and restore with a progress bar, with a `File > Restore` submenu to pick any manual backup or go straight to the automatic ones. Backups can be **encrypted with a password** (`File > 🔒 Backup password…`)
 - **🏷️ Tags**: Categorisation with labels (Urgent, Electrical, Mechanical, Preventive)
 - **🔨 Pending Tasks**: Management of pending jobs (create, complete, edit, delete) and **assignment to a specific technician**
 - **🚦 Pending Job Priority**: each pending job has a priority (Low, Medium, High or Critical) to decide which one to tackle first, shown with its colour in the list; photos can also be added to its collection
@@ -781,8 +781,14 @@ to write down. It is off by default.
 
 ## 💾 Backups
 
-MantPro makes an **automatic backup when closing** (the databases, plus the
-photos in incremental ZIP files per year) and lets you make a **full manual
+MantPro makes **automatic backups** (the databases, plus the photos in
+incremental ZIP files per month) when closing, every 2 hours while it is open if
+there are changes, shortly after receiving data from a phone and when opening if
+there were changes left uncopied. In `File > 🛡️ Automatic backups…` you choose
+how often, how many are kept and an **external folder** (NAS, USB drive,
+Nextcloud/Dropbox…) where every backup is also sent. After each backup MantPro
+**tests that it can be restored**, and the status bar warns if something fails.
+It also lets you make a **full manual
 backup** from `File > Backup` and restore it from `File > Restore`. `Tools`
 also lets you clean up photos no longer used by any record and delete jobs
 older than a given time, always with a prior backup.

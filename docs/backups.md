@@ -5,23 +5,77 @@
 
 MantPro distinguishes between two kinds of backup, meant for different moments:
 
-## Automatic backup (when closing the app)
+## Automatic backup
 
-Every time the program is closed, a quick backup is made in the background
-with no user intervention, designed to stay unnoticeable even as the years go by:
+It is made on its own, with no user intervention, and is designed to stay
+unnoticeable even as the years go by. The logic lives in the engine
+(`mantpro/nucleo/copias.py`, no Qt), so that a future headless server can use
+it the same way.
 
-- **Databases**: `mantenimiento.db` and `almacen.db` are packed whole into a
-  ZIP (`auto_backup_db_<date>.zip`) every time, rotating and keeping only the
-  3 most recent.
+**When** (configured in `File > 🛡️ Automatic backups…`, administrators only):
+
+- Always **when closing** the application (with a progress window; the
+  application only actually closes once it has finished).
+- **Every so often while it is open** (every 2 hours by default), only if
+  there have been changes. Before, backups were only made on closing: if the
+  PC stayed on all day and the disk failed, the day was lost, including what
+  the phones had sent (and already removed from their queues).
+- **Shortly after receiving data from a phone** (10 minutes after the last
+  upload, so that one sync makes a single backup).
+- **When opening**, if there were changes left uncopied (the closing backup
+  failed or the application was killed).
+
+Backups made while the application is open run in the background, and there
+are never two at once. Whether there have been changes is worked out from the
+size and date of the databases (and their `-wal`) and the photos present.
+
+**What is saved** (`backups_auto` folder):
+
+- **Databases**: `mantenimiento.db` and `almacen.db` are packed whole
+  (consistent copy with SQLite's backup API and `integrity_check`) into a ZIP
+  (`auto_backup_db_<date>.zip`) every time. The **10 most recent are kept,
+  plus the last one of each of the last 14 days** (both numbers can be
+  configured). Before, only the last 3 were kept, which with backups every 2
+  hours would not even cover a day.
 - **Photos**: instead of recompressing the whole photo history on every
-  close, incremental ZIPs are kept per year (`fotos_backup_<year>.zip`):
-  each close only adds to the matching year's ZIP the photos that were not
-  already in it, without touching or recompressing those from previous
-  years. This way, closing time does not grow with how long the application
-  has been in use.
+  backup, incremental ZIPs are kept **per month**
+  (`fotos_backup_<year>-<month>.zip`): each backup only adds the photos that
+  were not already in any of them. Per month rather than per year, so that
+  the only one that changes (the current month's) is small when it is sent to
+  the external folder. The old per-year ZIPs (`fotos_backup_<year>.zip`) are
+  still valid: restoring reads every `fotos_backup_*.zip`. A photo received
+  less than 30 seconds ago (which may still be being written) is left for the
+  next backup.
 
-While this backup runs, a window with a progress bar holds the focus, and the
-application only actually closes once it has finished.
+**External folder** (optional): a backup on the same disk is useless if the
+disk dies. A folder on a NAS, a USB drive or a folder synced with the cloud
+(Nextcloud, Dropbox, Google Drive…) can be chosen. After each backup, the
+database ZIP and the photo ZIPs that have changed (comparing size and date)
+are sent there, to a temporary file renamed at the end, and the same rule on
+how many backups to keep is applied there (photo ZIPs are never deleted from
+the destination). The external folder has the same layout as `backups_auto`,
+so it can be restored from with `File > Restore > Restore from automatic
+backup...`. If the folder is on the same disk as the data, the dialog warns
+about it. The destination is behind an interface (`DestinoCarpeta`: check,
+list, upload, open and delete) so others (S3, SFTP…) can be added without
+touching the rest.
+
+**Restore test**: after each backup, MantPro checks that it can be restored,
+on this computer and in the external folder, without touching the real data:
+the databases are extracted from the backup to a temporary file (decrypting
+them if the backup is encrypted), opened, checked with `integrity_check` and
+their main table is read; it checks that every photo is in the photo ZIPs and
+reads 5 of them at random in full (checking the CRC or the encryption). It can
+also be run by hand (`🧪 Test restore now`).
+
+**Status and warnings**: the result is saved in `estado_copias.json`, in the
+data folder and outside the databases (restoring a backup does not wipe the
+backup record); the settings, in `config_copias.json`. The status bar shows
+"🛡️ Last backup: <date>", or "⚠️ Backups: check" in red if the last backup
+failed, if the restore test failed or if it could not be sent to the external
+folder (clicking it opens the dialog). Each problem is reported with a window
+once per session (an unplugged USB drive does not pop up every 2 hours).
+Settings changes are recorded in the change log.
 
 ## Manual backup (File menu)
 
@@ -33,7 +87,7 @@ and **"Restore from automatic backup..."**, which opens the `backups_auto`
 folder directly. In both cases, if the chosen ZIP is an automatic backup,
 the database is restored first and, with it restored, the photos that are
 needed are worked out and extracted only from the matching
-`fotos_backup_<year>.zip` files, instead of dumping them all. All three
+`fotos_backup_*.zip` files, instead of dumping them all. All three
 operations (backup and both restores) show their own progress bar with focus.
 
 ## Password-encrypted backups

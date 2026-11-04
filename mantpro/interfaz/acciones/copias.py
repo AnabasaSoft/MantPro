@@ -25,19 +25,20 @@ import re
 import zipfile
 from datetime import datetime
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QMessageBox, QDialog, QFileDialog, QProgressBar,
-                             QInputDialog, QLineEdit, QApplication)
-from PyQt6.QtCore import Qt
+                             QInputDialog, QLineEdit, QApplication, QPushButton)
+from PyQt6.QtCore import Qt, QTimer
 
 from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import DialogoTiempoGuardado
 from ..dialogos.sistema import DialogoContrasenaCopias, DialogoCifradoBD, DialogoClaveRecuperacion
-from ..hilos import BackupManualThread, RestoreManualThread, RecifrarCopiasThread
+from ..hilos import BackupThread, BackupManualThread, RestoreManualThread, RecifrarCopiasThread
+from ..dialogos.copias import DialogoCopiasAutomaticas, textos_problemas, fecha_hora
 from ...nucleo import usuarios, almacen
 from ...nucleo.fotos import fotos_galeria
 from ...nucleo.seguridad import anadir_bd_a_zip
-from ...nucleo import cifrado_copias, conexion_bd
+from ...nucleo import cifrado_copias, conexion_bd, copias
 
 class AccionesCopias:
     """Copias de seguridad, restauración, limpieza de fotos y borrado de trabajos antiguos.
@@ -485,3 +486,136 @@ class AccionesCopias:
                 except Exception:
                     pass
         except Exception as e: print(f"Error limpieza: {e}")
+
+    # =========================================================================
+    # COPIAS AUTOMÁTICAS MIENTRAS LA APLICACIÓN ESTÁ ABIERTA
+    # (la lógica está en nucleo/copias.py; aquí solo cuándo y los avisos)
+    # =========================================================================
+
+    _MINUTOS_TRAS_MOVIL = 10
+
+    def iniciar_copias_automaticas(self):
+        """Temporizadores de las copias automáticas e indicador de la barra de
+        estado. Se llama una vez, al crear la ventana."""
+        self.hilo_copia_fondo = None
+        self._avisos_copias_mostrados = set()
+        self.btn_estado_copias = QPushButton()
+        self.btn_estado_copias.setFlat(True)
+        self.btn_estado_copias.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_estado_copias.clicked.connect(self.configurar_copias_automaticas)
+        self.statusBar().addPermanentWidget(self.btn_estado_copias)
+        # Cada 5 minutos se mira si toca la copia periódica (mirar la hora de la
+        # última copia, y no un temporizador de 2 h, sigue valiendo tras
+        # suspender el equipo)
+        self.temporizador_copias = QTimer(self)
+        self.temporizador_copias.timeout.connect(self._tic_copias)
+        self.temporizador_copias.start(5 * 60 * 1000)
+        # Tras recibir datos de un móvil: se espera a que deje de enviar
+        self.temporizador_copia_movil = QTimer(self)
+        self.temporizador_copia_movil.setSingleShot(True)
+        self.temporizador_copia_movil.timeout.connect(lambda: self._lanzar_copia_fondo("movil"))
+        # Al arrancar: si quedaron cambios sin copiar (la copia del cierre
+        # falló o la aplicación se cerró de golpe), copia; si no, avisa de lo
+        # que quedara mal de la última vez (p. ej. la carpeta externa)
+        QTimer.singleShot(20 * 1000, self._copias_al_arrancar)
+        self.actualizar_indicador_copias()
+
+    def parar_copias_automaticas(self):
+        for nombre in ("temporizador_copias", "temporizador_copia_movil"):
+            temporizador = getattr(self, nombre, None)
+            if temporizador is not None:
+                temporizador.stop()
+        hilo = getattr(self, "hilo_copia_fondo", None)
+        if hilo is not None and hilo.isRunning():
+            hilo.wait()
+
+    def _rutas_bd(self):
+        return [self.db.db_name, self.db.db_almacen_name]
+
+    def _copias_al_arrancar(self):
+        if copias.hay_cambios_sin_copiar(self._rutas_bd(), self.carpeta_fotos):
+            self._lanzar_copia_fondo("arranque")
+        else:
+            self._avisar_problemas_copias()
+
+    def _tic_copias(self):
+        self.actualizar_indicador_copias()
+        if copias.toca_copia_periodica():
+            self._lanzar_copia_fondo("periodica")
+
+    def programar_copia_tras_movil(self):
+        """Un móvil ha terminado de mandar datos: copia al rato (si llegan más,
+        se vuelve a esperar, para hacer una sola copia por sincronización)."""
+        temporizador = getattr(self, "temporizador_copia_movil", None)
+        if temporizador is not None and copias.leer_config()["tras_movil"]:
+            temporizador.start(self._MINUTOS_TRAS_MOVIL * 60 * 1000)
+
+    def _lanzar_copia_fondo(self, motivo, config=None, accion="copia", al_terminar=None):
+        """Copia (o prueba) en segundo plano, sin ventana de progreso. Las
+        automáticas solo se hacen si ha habido cambios; las pedidas a mano,
+        siempre. Si ya hay una en marcha (o se está restaurando), no hace nada."""
+        ocupado = (self.hilo_copia_fondo is not None and self.hilo_copia_fondo.isRunning()) or \
+            (getattr(self, "hilo_restore", None) is not None and self.hilo_restore.isRunning())
+        if ocupado:
+            if al_terminar:
+                self.statusBar().showMessage(tt("msg_copia_en_marcha", "Ya hay una copia de seguridad en marcha."), 5000)
+                al_terminar(None)
+            return
+        if accion == "copia":
+            self.btn_estado_copias.setText(tt("lbl_indicador_copiando", "🛡️ Haciendo copia…"))
+        hilo = BackupThread(self.carpeta_fotos, self.carpeta_backups_auto, self.db.db_name, self.db.db_almacen_name,
+                            motivo=motivo, solo_si_hay_cambios=motivo not in ("manual", "cierre"),
+                            config=config, accion=accion)
+
+        def _terminado(resultado):
+            self.actualizar_indicador_copias()
+            if al_terminar:
+                al_terminar(resultado)
+            if al_terminar is None and resultado.get("hecha"):
+                # Pedida desde el diálogo, el resultado lo enseña el propio diálogo
+                self._avisar_problemas_copias()
+
+        hilo.terminado.connect(_terminado)
+        self.hilo_copia_fondo = hilo
+        hilo.start()
+
+    def _avisar_problemas_copias(self, solo_nuevos=True):
+        """Avisa de lo que va mal en las copias. Cada problema se avisa una vez
+        por sesión (si la carpeta externa sigue sin conectar, no salta cada 2
+        horas): luego se ve en el indicador de la barra de estado."""
+        textos = textos_problemas(copias.problemas(self.carpeta_backups_auto))
+        if solo_nuevos:
+            textos = [x for x in textos if x not in self._avisos_copias_mostrados]
+        if not textos:
+            return
+        self._avisos_copias_mostrados.update(textos)
+        QMessageBox.warning(self, tt("title_problema_copias", "Copias de seguridad"),
+                            "\n\n".join(textos) + "\n\n" + tt("msg_ver_copias_automaticas",
+                                                              "Más detalles en Archivo → Copias automáticas."))
+
+    def actualizar_indicador_copias(self):
+        boton = getattr(self, "btn_estado_copias", None)
+        if boton is None:
+            return
+        lista = copias.problemas(self.carpeta_backups_auto)
+        buena = copias.ultima_copia_buena(self.carpeta_backups_auto)
+        if lista:
+            boton.setText(tt("lbl_indicador_copias_problema", "⚠️ Copias: revisar"))
+            boton.setStyleSheet("color: #e74c3c; font-weight: bold;")
+            boton.setToolTip("\n\n".join(textos_problemas(lista)))
+        else:
+            cuando = fecha_hora(buena.isoformat()) if buena else "—"
+            boton.setText(tt("lbl_indicador_copias", "🛡️ Última copia: {fecha}").format(fecha=cuando))
+            boton.setStyleSheet("")
+            boton.setToolTip(tt("tip_indicador_copias", "Copias automáticas: pulsa para ver el estado y configurarlas"))
+        boton.setEnabled(usuarios.es_admin())
+
+    def configurar_copias_automaticas(self):
+        if not usuarios.es_admin():
+            return
+
+        def _lanzar(accion, config, al_terminar):
+            self._lanzar_copia_fondo("manual", config=config, accion=accion, al_terminar=al_terminar)
+
+        DialogoCopiasAutomaticas(self, self.carpeta_backups_auto, _lanzar).exec()
+        self.actualizar_indicador_copias()
