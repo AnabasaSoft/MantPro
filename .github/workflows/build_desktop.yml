@@ -80,6 +80,11 @@ jobs:
           grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.Windows"
+        # Traducciones de Qt (selector de ficheros, botones estándar, menú de copiar/pegar)
+        for q in qtbase_es.qm qtbase_ca.qm qtbase_fr.qm qtbase_pt_BR.qm; do
+          grep -q "$q" contenido.txt || { echo "::error::Falta $q en el ejecutable (los textos de Qt saldrían en inglés)"; exit 1; }
+        done
+        echo "El ejecutable lleva las traducciones de Qt"
         # Y todos los módulos de MantPro (si falta alguno, la app no arranca)
         python - << 'EOF'
         import pathlib, sys
@@ -208,6 +213,11 @@ jobs:
           grep -q "$m" contenido.txt || { echo "::error::Falta $m en el ejecutable"; exit 1; }
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.SecretService"
+        # Traducciones de Qt (selector de ficheros, botones estándar, menú de copiar/pegar)
+        for q in qtbase_es.qm qtbase_ca.qm qtbase_fr.qm qtbase_pt_BR.qm; do
+          grep -q "$q" contenido.txt || { echo "::error::Falta $q en el ejecutable (los textos de Qt saldrían en inglés)"; exit 1; }
+        done
+        echo "El ejecutable lleva las traducciones de Qt"
         # Y todos los módulos de MantPro (si falta alguno, la app no arranca)
         python - << 'EOF'
         import pathlib, sys

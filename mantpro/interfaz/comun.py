@@ -103,6 +103,22 @@ def abrir_url_externa(url):
     webbrowser.open(url)
 
 
+def _carpetas_traducciones_qt():
+    """Dónde buscar los qtbase_<idioma>.qm: la carpeta que dice Qt y, por si
+    en el ejecutable empaquetado (PyInstaller) no apunta bien, la que
+    PyInstaller descomprime junto al programa y la de PyQt6 en el entorno."""
+    carpetas = [QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)]
+    base_pyinstaller = getattr(sys, "_MEIPASS", None)
+    if base_pyinstaller:
+        carpetas.append(os.path.join(base_pyinstaller, "PyQt6", "Qt6", "translations"))
+    try:
+        import PyQt6
+        carpetas.append(os.path.join(os.path.dirname(PyQt6.__file__), "Qt6", "translations"))
+    except ImportError:
+        pass
+    return [c for c in carpetas if c and os.path.isdir(c)]
+
+
 def instalar_traductor_qt(app, codigo_idioma):
     """Traduce los textos propios de Qt (menú contextual de cortar/copiar/pegar,
     botones de QMessageBox, etc.) al idioma de la app. Sin esto, esos textos
@@ -123,11 +139,12 @@ def instalar_traductor_qt(app, codigo_idioma):
         _instalar(TraductorQtExtra(codigo_idioma, app))
         return
     traductor = QTranslator(app)
-    ruta_traducciones = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     # Qt trae el portugués de Brasil como "pt_BR", no como "pt".
     codigo_qt = {"pt": "pt_BR"}.get(codigo_idioma, codigo_idioma)
-    if traductor.load(f"qtbase_{codigo_qt}", ruta_traducciones):
-        _instalar(traductor)
+    for ruta_traducciones in _carpetas_traducciones_qt():
+        if traductor.load(f"qtbase_{codigo_qt}", ruta_traducciones):
+            _instalar(traductor)
+            break
     if codigo_idioma in COMPLEMENTOS:
         _instalar(TraductorQtExtra(codigo_idioma, app))
 
