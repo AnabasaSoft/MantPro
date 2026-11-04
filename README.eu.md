@@ -545,6 +545,10 @@ konfigurazioa. Aldaketa bakoitzak eragindako eremuak erakusten ditu
 **lehen → ondoren**. Kategoria, ekintza, erabiltzaile eta epearen arabera iragaz
 daiteke, testuz bilatu eta Excelera edo CSVra esportatu.
 
+### Biltegiaren berrikuspenen historia
+
+Egunero MantPro Stock-ek biltegiko ausazko 5 artikulu berrikustea proposatzen du. Aplikazioak **nork egin duen, noiz eta 5ak berrikusi dituen** jasotzen du, zenbatutako kopurua sistemak zioenarekin alderatuta (konexiorik gabe eginez gero ere: mugikorra berriro konektatzean bidaltzen da). Administratzaileek `Tresnak` > `📦 Biltegiaren berrikuspenen historia` atalean ikusten dute: ✅ osoa, ⚠️ osatu gabea edo ❌ berrikusi gabe, erabiltzaile, aldi eta egoeraren arabera iragaz daiteke eta Excel edo CSV formatuan esporta daiteke.
+
 ### Saioa mugikorrean
 
 Teknikariak behin hasten du saioa eta tokena gailuan gordeta geratzen da. Saioa

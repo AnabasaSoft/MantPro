@@ -549,6 +549,10 @@ Chaque modification affiche les champs concernés **avant → après**. On peut
 filtrer par catégorie, action, utilisateur et période, rechercher du texte et
 exporter vers Excel ou CSV.
 
+### Historique des vérifications du magasin
+
+Chaque jour, MantPro Stock propose de vérifier 5 articles du magasin au hasard. L'application enregistre **qui l'a fait, quand et s'il a vérifié les 5**, avec la quantité comptée par rapport à celle indiquée par le système (aussi hors connexion : envoyé à la reconnexion du mobile). Les administrateurs le voient dans `Outils` > `📦 Historique des vérifications du magasin` : ✅ complète, ⚠️ incomplète ou ❌ non vérifiée, avec filtres par utilisateur, période et état, et export vers Excel ou CSV.
+
 ### Session sur le mobile
 
 Le technicien se connecte une fois et le jeton reste enregistré sur

@@ -355,6 +355,11 @@ const String kStockColaNuevos = 'stock_cola_nuevos';
 const String kStockColaEdiciones = 'stock_cola_ediciones';
 const String kStockColaMovimientos = 'stock_cola_movimientos';
 const String kStockColaBorrados = 'stock_cola_borrados';
+// Revisión diaria del almacén (los 5 artículos al azar): la cola lleva una
+// entrada por revisión (clave 'uid'); 'stock_revision_hoy' guarda la de hoy
+// para poder seguirla si se sale y se vuelve a entrar el mismo día.
+const String kStockColaRevisiones = 'stock_cola_revisiones';
+const String kStockRevisionHoy = 'stock_revision_hoy';
 
 List<Map<String, dynamic>> leerColaMapas(SharedPreferences prefs, String key) {
   final s = prefs.getString(key);
@@ -842,6 +847,52 @@ class StockApi {
     bool sincronizado = false;
     try {
       sincronizado = await StockSincronizador.intentarEnviarInmediato(ip, kStockColaMovimientos, localId);
+    } catch (_) {}
+    // ignore: unawaited_futures
+    StockSincronizador.sincronizarTodo(ip, silencioso: true);
+    return sincronizado;
+  }
+
+  /// Revisión de hoy de esta persona, si ya se había empezado (null si no).
+  static Future<Map<String, dynamic>?> revisionDeHoy() async {
+    final prefs = await SharedPreferences.getInstance();
+    final texto = prefs.getString(kStockRevisionHoy);
+    if (texto == null) return null;
+    try {
+      final r = Map<String, dynamic>.from(json.decode(texto) as Map);
+      final ahora = DateTime.now();
+      final hoy = '${ahora.year.toString().padLeft(4, '0')}-${ahora.month.toString().padLeft(2, '0')}-${ahora.day.toString().padLeft(2, '0')}';
+      if (r['fecha'] != hoy || r['usuario'] != (AuthService.login ?? '')) return null;
+      return r;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Guarda la revisión diaria del almacén (quién la hace y cuáles de los
+  /// artículos propuestos lleva revisados). Igual que el resto de escrituras:
+  /// queda al momento en el móvil, en la cola, y se intenta enviar al PC en el
+  /// acto; sin conexión se reintenta al sincronizar. Se manda entera cada vez
+  /// (el PC la identifica por su 'uid', así que reenviarla no la duplica).
+  static Future<bool> guardarRevision(Map<String, dynamic> revision) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ahora = DateTime.now();
+    String dos(int n) => n.toString().padLeft(2, '0');
+    revision['actualizada'] =
+        '${ahora.year}-${dos(ahora.month)}-${dos(ahora.day)} ${dos(ahora.hour)}:${dos(ahora.minute)}:${dos(ahora.second)}';
+    revision['usuario'] = AuthService.login ?? '';
+    revision['dispositivo'] = await _nombreDispositivo();
+    await prefs.setString(kStockRevisionHoy, json.encode(revision));
+    final cola = leerColaMapas(prefs, kStockColaRevisiones);
+    cola.removeWhere((e) => e['uid'] == revision['uid']);
+    cola.add(Map<String, dynamic>.from(revision));
+    await prefs.setString(kStockColaRevisiones, json.encode(cola));
+    avisarCambioLocal();
+
+    final ip = await _ip();
+    bool sincronizado = false;
+    try {
+      sincronizado = await StockSincronizador.intentarEnviarRevision(ip, revision['uid'] as String);
     } catch (_) {}
     // ignore: unawaited_futures
     StockSincronizador.sincronizarTodo(ip, silencioso: true);

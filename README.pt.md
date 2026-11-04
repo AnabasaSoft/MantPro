@@ -541,6 +541,10 @@ cópias restauradas, importações e configurações. Cada alteração mostra os
 campos afetados **antes → depois**. É possível filtrar por categoria, ação,
 usuário e período, buscar por texto e exportar para Excel ou CSV.
 
+### Histórico de revisões do almoxarifado
+
+Todo dia o MantPro Stock sugere revisar 5 itens do almoxarifado aleatórios. O aplicativo registra **quem fez, quando e se revisou os 5**, com a quantidade contada em comparação com a que o sistema indicava (também se feito sem conexão: é enviado quando o celular reconecta). Os administradores veem em `Ferramentas` > `📦 Histórico de revisões do almoxarifado`: ✅ completa, ⚠️ incompleta ou ❌ não revisada, com filtros por usuário, período e estado, e exportação para Excel ou CSV.
+
 ### Sessão no celular
 
 O técnico entra uma vez e o token fica salvo no dispositivo. A sessão é

@@ -144,4 +144,7 @@ const Map<String, String> traduccionesPt = {
     "lbl_precio_unitario": "Preço unitário",
     "ph_precio": "sem preço",
     "msg_actualizaciones_codigo_fuente": "Versão de desenvolvimento (compilada a partir do código): não se procuram atualizações.",
+    "lbl_revision_progreso": "{n} de {total} revisados",
+    "msg_revision_completa": "✅ Revisão completa: você conferiu os {total} itens.",
+    "lbl_revision_stock": "Revisão do almoxarifado",
 };

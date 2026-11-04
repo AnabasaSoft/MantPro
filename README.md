@@ -535,6 +535,10 @@ unencrypted connection), backups restored, imports and settings. Each change
 shows the affected fields **before → after**. It can be filtered by category,
 action, user and period, searched by text and exported to Excel or CSV.
 
+### Warehouse check history
+
+Every day MantPro Stock suggests checking 5 random warehouse items. The app records **who did it, when and whether all 5 were checked**, with the quantity counted against what the system said (also if done offline: it is sent when the phone reconnects). Administrators see it in `Tools` > `📦 Warehouse check history`: ✅ complete, ⚠️ incomplete or ❌ not checked, filterable by user, period and status, exportable to Excel or CSV.
+
 ### Session on the phone
 
 The technician signs in once and the token is stored on the device. The

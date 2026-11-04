@@ -124,6 +124,49 @@ class StockSincronizador {
     }
   }
 
+  static Future<_ResultadoEnvio> _enviarRevision(String ip, Map<String, dynamic> item) async {
+    try {
+      final cuerpo = Map<String, dynamic>.from(item)..remove('usuario');
+      final res = await http.post(
+        Uri.parse('$esquemaPC://$ip/api/stock/revision'),
+        headers: {...AuthService.cabeceras(), 'Content-Type': 'application/json'},
+        body: json.encode(cuerpo),
+      ).timeout(const Duration(seconds: 10));
+      await comprobar401(res.statusCode);
+      // 400: el PC dice que la revisión no vale; reenviarla no serviría de nada.
+      if (res.statusCode == 200 || res.statusCode == 400) return _ResultadoEnvio.ok;
+      if (res.statusCode == 403) return _ResultadoEnvio.sinPermiso;
+      return _ResultadoEnvio.error;
+    } catch (e) {
+      if (ConexionPC.esErrorDeRed(e)) ConexionPC.marcarFallo();
+      return _ResultadoEnvio.error;
+    }
+  }
+
+  /// Quita de la cola la revisión [item] ya enviada, salvo que mientras tanto
+  /// se haya vuelto a guardar con más avance (entonces se queda para mandarla).
+  static Future<void> _quitarRevisionEnviada(SharedPreferences prefs, Map<String, dynamic> item) async {
+    final cola = leerColaMapas(prefs, kStockColaRevisiones);
+    cola.removeWhere((e) => e['uid'] == item['uid'] && e['actualizada'] == item['actualizada']);
+    await prefs.setString(kStockColaRevisiones, json.encode(cola));
+  }
+
+  /// Intenta enviar ya la revisión [uid], justo después de guardarla.
+  static Future<bool> intentarEnviarRevision(String ip, String uid) async {
+    if (!await ConexionPC.accesible(ip)) return false;
+    if (!AuthService.autenticado) await AuthService.cargar();
+    if (!AuthService.autenticado) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final item = leerColaMapas(prefs, kStockColaRevisiones).where((e) => e['uid'] == uid).firstOrNull;
+    if (item == null) return true;
+    final resultado = await _enviarRevision(ip, item);
+    if (resultado != _ResultadoEnvio.error) await _quitarRevisionEnviada(prefs, item);
+    if (resultado == _ResultadoEnvio.sinPermiso) {
+      _avisarSinPermiso(tt('lbl_revision_stock', 'Revisión del almacén'));
+    }
+    return resultado == _ResultadoEnvio.ok;
+  }
+
   /// Añade una descripción a [permisoDenegadoNotifier] para que la app avise
   /// al usuario de que un cambio pendiente se ha descartado por falta de
   /// permisos, en vez de dejarlo desaparecer en silencio de la cola.
@@ -251,6 +294,16 @@ class StockSincronizador {
       colaMovimientos.remove(item);
     }
     await prefs.setString(kStockColaMovimientos, json.encode(colaMovimientos));
+
+    // 3b. Revisiones diarias del almacén
+    for (final item in leerColaMapas(prefs, kStockColaRevisiones)) {
+      final resultado = await _enviarRevision(ip, item);
+      if (ConexionPC.sinConexion) break;
+      if (resultado != _ResultadoEnvio.error) await _quitarRevisionEnviada(prefs, item);
+      if (resultado == _ResultadoEnvio.sinPermiso) {
+        _avisarSinPermiso(tt('lbl_revision_stock', 'Revisión del almacén'));
+      }
+    }
 
     // 4. Borrados
     final colaBorrados = leerColaIds(prefs, kStockColaBorrados);

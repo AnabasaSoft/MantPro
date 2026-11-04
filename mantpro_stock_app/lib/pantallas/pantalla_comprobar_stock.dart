@@ -41,6 +41,9 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
   final Map<int, TextEditingController> _controladores = {};
   final Set<int> _guardando = {};
   final Set<int> _confirmados = {};
+  // Revisión de hoy (quién, qué artículos y cuáles lleva revisados): se guarda
+  // en el móvil y se envía al PC cada vez que avanza.
+  Map<String, dynamic> _revision = {};
 
   @override
   void initState() {
@@ -56,24 +59,92 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
     super.dispose();
   }
 
+  String _fechaDeHoy() {
+    final h = DateTime.now();
+    return '${h.year.toString().padLeft(4, '0')}-${h.month.toString().padLeft(2, '0')}-${h.day.toString().padLeft(2, '0')}';
+  }
+
+  Map<String, dynamic> _lineaNueva(Articulo a) => {
+        'material_id': a.id,
+        'codigo': a.codigo,
+        'nombre': a.nombre,
+        'ubicacion': a.ubicacion,
+        'unidad': a.unidad,
+        'cantidad_sistema': a.stockActual,
+        'cantidad_contada': null,
+        'revisado': false,
+        'fecha_revision': '',
+      };
+
+  Map<String, dynamic>? _lineaDe(int materialId) {
+    for (final l in (_revision['lineas'] as List)) {
+      if (l['material_id'] == materialId) return l as Map<String, dynamic>;
+    }
+    return null;
+  }
+
   Future<void> _cargar() async {
     setState(() { _cargando = true; _error = null; });
     try {
       final materiales = await StockApi.obtenerMateriales();
-      // Semilla basada en el día de hoy: la selección es al azar, pero se
-      // mantiene igual si se entra varias veces el mismo día y cambia sola
-      // al día siguiente, sin tener que guardar nada en el servidor.
-      final hoy = DateTime.now();
-      final semilla = hoy.year * 10000 + hoy.month * 100 + hoy.day;
-      final lista = List<Articulo>.from(materiales)..shuffle(Random(semilla));
-      _seleccionados = lista.take(5).toList();
+      final previa = await StockApi.revisionDeHoy();
+      if (previa != null) {
+        // Ya se había empezado hoy: se sigue con los mismos artículos y lo
+        // ya revisado (los que se hayan borrado desde entonces se quitan).
+        final porId = {for (final m in materiales) m.id: m};
+        final lineas = (previa['lineas'] as List).where((l) => porId.containsKey(l['material_id'])).toList();
+        previa['lineas'] = lineas;
+        _revision = previa;
+        _seleccionados = [for (final l in lineas) porId[l['material_id']]!];
+        for (final l in lineas) {
+          if (l['revisado'] == true) _confirmados.add(l['material_id'] as int);
+        }
+      }
+      if (previa == null || (_revision['lineas'] as List).isEmpty) {
+        // Semilla basada en el día de hoy: la selección es al azar, pero se
+        // mantiene igual si se entra varias veces el mismo día y cambia sola
+        // al día siguiente, sin tener que guardar nada en el servidor.
+        final hoy = DateTime.now();
+        final semilla = hoy.year * 10000 + hoy.month * 100 + hoy.day;
+        final lista = List<Articulo>.from(materiales)..shuffle(Random(semilla));
+        _seleccionados = lista.take(5).toList();
+        _confirmados.clear();
+        _revision = {
+          'uid': '${_fechaDeHoy()}-${DateTime.now().microsecondsSinceEpoch}',
+          'fecha': _fechaDeHoy(),
+          'lineas': [for (final a in _seleccionados) _lineaNueva(a)],
+        };
+        // Queda constancia de que se ha abierto la revisión aunque luego no
+        // se llegue a revisar nada (0 de 5).
+        if (_seleccionados.isNotEmpty) await StockApi.guardarRevision(_revision);
+      }
       for (final a in _seleccionados) {
-        _controladores[a.id] = TextEditingController(text: formatearCantidad(a.stockActual));
+        final linea = _lineaDe(a.id);
+        final contada = (linea != null && linea['revisado'] == true) ? linea['cantidad_contada'] as num? : null;
+        _controladores[a.id] = TextEditingController(
+            text: formatearCantidad(contada?.toDouble() ?? a.stockActual));
       }
     } catch (e) {
       _error = e.toString();
     }
     if (mounted) setState(() => _cargando = false);
+  }
+
+  /// Apunta en la revisión que [a] está revisado con [contada] y la guarda
+  /// (y la manda al PC si hay conexión).
+  Future<void> _marcarRevisado(Articulo a, double contada) async {
+    final linea = _lineaDe(a.id);
+    if (linea != null) {
+      final h = DateTime.now();
+      String dos(int n) => n.toString().padLeft(2, '0');
+      linea['cantidad_contada'] = contada;
+      linea['revisado'] = true;
+      linea['fecha_revision'] =
+          '${h.year}-${dos(h.month)}-${dos(h.day)} ${dos(h.hour)}:${dos(h.minute)}:${dos(h.second)}';
+    }
+    try {
+      await StockApi.guardarRevision(_revision);
+    } catch (_) {}
   }
 
   Future<void> _confirmar(Articulo a) async {
@@ -86,7 +157,8 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
     }
     final delta = nuevaCantidad - a.stockActual;
     if (delta == 0) {
-      setState(() => _confirmados.add(a.id));
+      await _marcarRevisado(a, nuevaCantidad);
+      if (mounted) setState(() => _confirmados.add(a.id));
       return;
     }
     setState(() => _guardando.add(a.id));
@@ -97,6 +169,7 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
         cantidad: delta.abs(),
         motivo: tt('motivo_comprobacion_stock', 'Comprobación de stock'),
       );
+      await _marcarRevisado(a, nuevaCantidad);
       if (!mounted) return;
       setState(() => _confirmados.add(a.id));
     } catch (e) {
@@ -125,10 +198,40 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
                               'Comprueba la cantidad real de estos materiales y corrígela si hace falta.'),
                           style: const TextStyle(color: Colors.grey),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
+                        _construirProgreso(),
+                        const SizedBox(height: 12),
                         ..._seleccionados.map(_construirFila),
                       ],
                     ),
+    );
+  }
+
+  /// «2 de 5 revisados» y, al llegar al total, el aviso de revisión completa.
+  Widget _construirProgreso() {
+    final total = _seleccionados.length;
+    final hechos = _confirmados.length;
+    final completa = total > 0 && hechos >= total;
+    return Card(
+      color: completa ? Colors.green.withOpacity(0.15) : null,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            tt('lbl_revision_progreso', '{n} de {total} revisados')
+                .replaceAll('{n}', '$hechos')
+                .replaceAll('{total}', '$total'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(value: total == 0 ? 0 : hechos / total),
+          if (completa) ...[
+            const SizedBox(height: 8),
+            Text(tt('msg_revision_completa', '✅ Revisión completa: has comprobado los {total} artículos.')
+                .replaceAll('{total}', '$total')),
+          ],
+        ]),
+      ),
     );
   }
 

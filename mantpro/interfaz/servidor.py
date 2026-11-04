@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -1447,6 +1447,28 @@ class ServidorSincronizacion(QThread):
                     return jsonify({"status": "error", "error": error, "message": mensaje}), 400
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok"})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+
+        @self.app.route('/api/stock/revision', methods=['POST'])
+        @requiere_token
+        @requiere_almacen
+        def api_stock_revision():
+            """Revisión diaria del almacén (los 5 artículos al azar): la manda
+            el móvil entera cada vez que avanza; se identifica por su `uid`,
+            así que reenviarla no la duplica. Queda a nombre de quien tiene la
+            sesión, diga lo que diga el móvil."""
+            try:
+                usuario = g.usuario_mantpro
+                datos = request.get_json(silent=True)
+                if not isinstance(datos, dict):
+                    return jsonify({"status": "error", "message": "Datos no válidos."}), 400
+                datos.setdefault("dispositivo", (usuario.get("dispositivo") or "") if isinstance(usuario, dict) else "")
+                ok, resultado = revisiones_almacen.guardar_revision(datos, usuario['id'], usuario['nombre'])
+                if not ok:
+                    estado = 403 if resultado == "revision_de_otro_usuario" else 400
+                    return jsonify({"status": "error", "error": resultado, "message": "Revisión no válida."}), estado
+                return jsonify({"status": "ok", "id": resultado})
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
         # -------------------------------------------------------------------

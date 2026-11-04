@@ -155,4 +155,7 @@ const Map<String, String> traduccionesEu = {
     "lbl_precio_unitario": "Unitateko prezioa",
     "ph_precio": "prezio gabe",
     "msg_actualizaciones_codigo_fuente": "Garapen-bertsioa (iturburu-kodetik konpilatua): ez da eguneratzerik bilatzen.",
+    "lbl_revision_progreso": "{total} artikuluetatik {n} berrikusi dira",
+    "msg_revision_completa": "✅ Berrikuspena osatu da: artikulu guztiak ({total}) egiaztatu dituzu.",
+    "lbl_revision_stock": "Biltegiaren berrikuspena",
 };

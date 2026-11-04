@@ -540,6 +540,10 @@ importacións e configuración. Cada cambio mostra os campos afectados
 **antes → despois**. Pódese filtrar por categoría, acción, usuario e período,
 buscar por texto e exportar a Excel ou CSV.
 
+### Historial de revisións do almacén
+
+Cada día MantPro Stock propón revisar 5 artigos do almacén ao chou. A aplicación anota **quen o fixo, cando e se revisou os 5**, coa cantidade contada fronte á que dicía o sistema (tamén se se fai sen conexión: envíase ao reconectar o móbil). Os administradores velo en `Ferramentas` > `📦 Historial de revisións do almacén`: ✅ completa, ⚠️ incompleta ou ❌ sen revisar, con filtros por usuario, período e estado, e exportación a Excel ou CSV.
+
 ### Sesión no móbil
 
 O técnico inicia sesión unha vez e o token queda gardado no dispositivo. A

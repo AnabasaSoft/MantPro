@@ -155,4 +155,7 @@ const Map<String, String> traduccionesEs = {
     "lbl_precio_unitario": "Precio unitario",
     "ph_precio": "sin precio",
     "msg_actualizaciones_codigo_fuente": "Versión de desarrollo (compilada desde el código): no se buscan actualizaciones.",
+    "lbl_revision_progreso": "{n} de {total} revisados",
+    "msg_revision_completa": "✅ Revisión completa: has comprobado los {total} artículos.",
+    "lbl_revision_stock": "Revisión del almacén",
 };

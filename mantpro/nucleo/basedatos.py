@@ -84,6 +84,9 @@ class GestorBaseDatos:
         # Tiempo trabajado en cada trabajo y coste de la hora
         from . import mano_obra
         mano_obra.inicializar()
+        # Control de las revisiones diarias del almacén (quién, cuándo, si revisó los 5)
+        from . import revisiones_almacen
+        revisiones_almacen.inicializar()
         # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
         maquinas.configurar_db(self.db_name)
         maquinas.inicializar()

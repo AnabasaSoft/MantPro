@@ -42,6 +42,14 @@ class AccionesUsuarios:
         from ..dialogos.auditoria import DialogoRegistroCambios
         DialogoRegistroCambios(self).exec()
 
+    def ver_revisiones_almacen(self):
+        """Herramientas → Historial de revisiones del almacén (solo administradores):
+        quién hizo cada día la revisión de los 5 artículos y si los revisó todos."""
+        if not usuarios.es_admin():
+            return
+        from ..dialogos.revisiones_almacen import DialogoRevisionesAlmacen
+        DialogoRevisionesAlmacen(self).exec()
+
     def gestionar_usuarios(self):
         if not usuarios.es_admin():
             QMessageBox.warning(self, t("title_error"),

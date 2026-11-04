@@ -542,6 +542,10 @@ configuració. Cada canvi mostra els camps afectats **abans → després**. Es p
 filtrar per categoria, acció, usuari i període, cercar per text i exportar a
 Excel o CSV.
 
+### Historial de revisions del magatzem
+
+Cada dia MantPro Stock proposa revisar 5 articles del magatzem a l'atzar. L'aplicació anota **qui ho ha fet, quan i si ha revisat els 5**, amb la quantitat comptada davant la que deia el sistema (també si es fa sense connexió: s'envia en tornar a connectar el mòbil). Els administradors ho veuen a `Eines` > `📦 Historial de revisions del magatzem`: ✅ completa, ⚠️ incompleta o ❌ sense revisar, amb filtres per usuari, període i estat, i exportació a Excel o CSV.
+
 ### Sessió al mòbil
 
 El tècnic inicia sessió una vegada i el testimoni queda desat al dispositiu. La
