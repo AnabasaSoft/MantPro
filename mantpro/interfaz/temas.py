@@ -28,6 +28,112 @@ import tempfile
 
 from .comun import _estilo_zona_arrastre
 
+def _iconos_del_tema(oscuro):
+    """Pone los iconos de Qt (los botones de los selectores de ficheros y
+    carpetas: atrás, subir, nueva carpeta, vista…) a juego con el tema de
+    MantPro y no con el del sistema: con un tema de iconos oscuro en el
+    sistema (iconos blancos), los temas claro y retro los dejaban blanco
+    sobre blanco, y al revés. Sirve para los iconos de carpetas y ficheros;
+    los de los botones los dibuja MantPro (ver _estilo_con_iconos), porque
+    sin estos temas de iconos (Windows) no habría forma de elegir su color.
+    Devuelve True si ha encontrado el tema de iconos."""
+    from PyQt6.QtGui import QIcon
+    if not hasattr(_iconos_del_tema, "original"):
+        _iconos_del_tema.original = QIcon.themeName()
+    # Según la plataforma (offscreen, ejecutable empaquetado…), Qt no siempre
+    # busca en las carpetas de iconos estándar: se añaden las que falten
+    rutas = list(QIcon.themeSearchPaths())
+    datos = os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
+    for carpeta in [os.path.expanduser("~/.local/share/icons"), os.path.expanduser("~/.icons")] + \
+            [os.path.join(d, "icons") for d in datos.split(os.pathsep) if d]:
+        if carpeta not in rutas and os.path.isdir(carpeta):
+            rutas.append(carpeta)
+    candidatos = ("breeze-dark",) if oscuro else ("breeze", "Adwaita")
+    for nombre in candidatos:
+        for carpeta in rutas:
+            if os.path.isfile(os.path.join(carpeta, nombre, "index.theme")):
+                if rutas != QIcon.themeSearchPaths():
+                    QIcon.setThemeSearchPaths(rutas)
+                QIcon.setThemeName(nombre)
+                return True
+    # Sin el tema que toca: el del sistema, tal cual (Qt usa los suyos si no hay)
+    QIcon.setThemeName(_iconos_del_tema.original)
+    return False
+
+
+def _dibujar_icono(clave, color):
+    """Icono de los botones de los selectores de ficheros, dibujado aquí en
+    [color] (no depende de los iconos del sistema: en Windows, o con un tema
+    de iconos oscuro en Linux, salían blancos sobre fondo claro). Se dibuja
+    en una rejilla de 24 × 24 y se guarda a varios tamaños."""
+    from PyQt6.QtGui import QIcon, QPixmap, QPainter, QPen, QColor, QPainterPath
+    from PyQt6.QtCore import Qt, QPointF, QRectF
+    icono = QIcon()
+    for lado in (16, 22, 24, 32, 48, 64):
+        pixmap = QPixmap(lado, lado)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pixmap)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.scale(lado / 24, lado / 24)
+        pluma = QPen(QColor(color), 2)
+        pluma.setCapStyle(Qt.PenCapStyle.RoundCap); pluma.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pluma)
+
+        def linea(*puntos):
+            camino = QPainterPath(QPointF(*puntos[0]))
+            for punto in puntos[1:]:
+                camino.lineTo(QPointF(*punto))
+            p.drawPath(camino)
+
+        if clave == "atras":
+            linea((19, 12), (5, 12)); linea((11, 6), (5, 12), (11, 18))
+        elif clave == "adelante":
+            linea((5, 12), (19, 12)); linea((13, 6), (19, 12), (13, 18))
+        elif clave == "subir":
+            linea((12, 19), (12, 5)); linea((6, 11), (12, 5), (18, 11))
+        elif clave == "nueva_carpeta":
+            linea((3, 19), (3, 6), (9, 6), (11, 8), (21, 8), (21, 19), (3, 19))
+            linea((12, 11), (12, 17)); linea((9, 14), (15, 14))
+        elif clave == "vista_lista":     # iconos en cuadrícula
+            for x, y in ((4, 4), (14, 4), (4, 14), (14, 14)):
+                p.drawRoundedRect(QRectF(x, y, 6, 6), 1, 1)
+        elif clave == "vista_detalle":   # filas con detalle
+            for y in (6, 12, 18):
+                p.drawPoint(QPointF(4, y)); linea((8, y), (20, y))
+        p.end()
+        icono.addPixmap(pixmap)
+    return icono
+
+
+def _estilo_con_iconos(color):
+    """Estilo Fusion con los iconos de los botones de los selectores de
+    ficheros (atrás, adelante, subir, nueva carpeta y las dos vistas)
+    dibujados por MantPro en [color], a juego con el tema."""
+    from PyQt6.QtWidgets import QProxyStyle, QStyle
+
+    claves = {QStyle.StandardPixmap.SP_ArrowBack: "atras", QStyle.StandardPixmap.SP_ArrowLeft: "atras",
+              QStyle.StandardPixmap.SP_ArrowForward: "adelante", QStyle.StandardPixmap.SP_ArrowRight: "adelante",
+              QStyle.StandardPixmap.SP_FileDialogToParent: "subir", QStyle.StandardPixmap.SP_ArrowUp: "subir",
+              QStyle.StandardPixmap.SP_FileDialogNewFolder: "nueva_carpeta",
+              QStyle.StandardPixmap.SP_FileDialogListView: "vista_lista",
+              QStyle.StandardPixmap.SP_FileDialogDetailedView: "vista_detalle"}
+
+    class EstiloMantPro(QProxyStyle):
+        _cache = {}
+
+        def standardIcon(self, icono, opcion=None, widget=None):
+            clave = claves.get(icono)
+            if clave is None:
+                return super().standardIcon(icono, opcion, widget)
+            if (clave, color) not in self._cache:
+                self._cache[(clave, color)] = _dibujar_icono(clave, color)
+            return self._cache[(clave, color)]
+
+    estilo = EstiloMantPro(QStyleFactory.create("Fusion"))
+    _estilo_con_iconos.actual = estilo   # que Python no lo libere mientras Qt lo usa
+    return estilo
+
+
 def _flechas(color):
     """Rutas de dos PNG pequeños (flecha abajo y arriba) del color indicado,
     para los desplegables y los campos numéricos de los temas claro y
@@ -116,7 +222,8 @@ class Temas:
 
     def _aplicar_tema_retro(self):
         """Estilo clásico inspirado en Windows 98 / 2000."""
-        QApplication.setStyle(QStyleFactory.create("Fusion"))
+        QApplication.setStyle(_estilo_con_iconos("#000000"))
+        _iconos_del_tema(oscuro=False)
         from PyQt6.QtGui import QPalette, QColor
         pal = QPalette()
         # Fondo gris clásico
@@ -178,7 +285,8 @@ class Temas:
 
     def _aplicar_tema_claro(self):
         """Tema claro moderno."""
-        QApplication.setStyle(QStyleFactory.create("Fusion"))
+        QApplication.setStyle(_estilo_con_iconos("#333333"))
+        _iconos_del_tema(oscuro=False)
         from PyQt6.QtGui import QPalette, QColor
         pal = QPalette()
         pal.setColor(QPalette.ColorRole.Window, QColor(243, 243, 243))
@@ -239,9 +347,13 @@ class Temas:
 
     def _aplicar_tema_oscuro(self):
         """Tema oscuro original de MantPro."""
-        QApplication.setStyle(QStyleFactory.create("Fusion"))
+        QApplication.setStyle(_estilo_con_iconos("#e0e0e0"))
         # Limpiar la paleta retro si venimos de ella
         QApplication.instance().setPalette(QApplication.style().standardPalette())
+        # Botones de los selectores de ficheros: gris medio, con sus iconos
+        # dibujados en claro (ver _estilo_con_iconos)
+        _iconos_del_tema(oscuro=True)
+        boton_fichero = ("#555555", "#e0e0e0", "#6a6a6a", "#666666", "#3c3c3c", "#4a4a4a")
         self.setStyleSheet("""
         QMainWindow, QWidget { background-color: #2b2b2b; color: #e0e0e0; font-family: "Segoe UI", sans-serif; font-size: 14px; }
         QTabWidget::pane { border: 1px solid #444; background: #2b2b2b; border-radius: 4px; }
@@ -259,25 +371,23 @@ class Temas:
         QMenu::separator { height: 1px; background: #7a7a7a; margin: 5px 8px; }
 
         /* ESTILO ESPECÍFICO PARA DIÁLOGOS DE ARCHIVOS (QFileDialog) */
-        /* Fondo gris medio: con el gris claro de antes, los iconos claros
-           de los temas oscuros del sistema (Breeze oscuro…) apenas se veían */
         QFileDialog QToolButton {
-            background-color: #555555;
-            color: #e0e0e0;
-            border: 1px solid #6a6a6a;
+            background-color: %s;
+            color: %s;
+            border: 1px solid %s;
             border-radius: 4px;
             margin: 2px;
         }
         QFileDialog QToolButton:hover {
-            background-color: #666666;
+            background-color: %s;
             border: 1px solid #3daee9;
         }
         QFileDialog QToolButton:disabled {
-            background-color: #3c3c3c;
-            border: 1px solid #4a4a4a;
+            background-color: %s;
+            border: 1px solid %s;
         }
         QFileDialog QListView, QFileDialog QTreeView {
             background-color: #1e1e1e;
             color: #e0e0e0;
         }
-        """)
+        """ % boton_fichero)
