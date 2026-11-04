@@ -26,7 +26,7 @@ import os
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QTabWidget,
                              QMessageBox, QHeaderView, QDialog, QAbstractItemView, QFileDialog,
                              QProgressBar)
-from PyQt6.QtCore import Qt, QSettings
+from PyQt6.QtCore import Qt, QSettings, QTimer
 from PyQt6.QtGui import QAction, QActionGroup, QIcon
 
 from .. import idiomas
@@ -152,6 +152,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
         self.iniciar_copias_automaticas()
+        QTimer.singleShot(6000, self.avisar_dias_sin_revision_almacen)
 
         # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
         # Se dispara desde el punto de entrada (bloque __main__), una vez que la

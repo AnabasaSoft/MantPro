@@ -551,7 +551,7 @@ exporter vers Excel ou CSV.
 
 ### Historique des vérifications du magasin
 
-Chaque jour, MantPro Stock propose de vérifier 5 articles du magasin au hasard. L'application enregistre **qui l'a fait, quand et s'il a vérifié les 5**, avec la quantité comptée par rapport à celle indiquée par le système (aussi hors connexion : envoyé à la reconnexion du mobile). Les administrateurs le voient dans `Outils` > `📦 Historique des vérifications du magasin` : ✅ complète, ⚠️ incomplète ou ❌ non vérifiée, avec filtres par utilisateur, période et état, et export vers Excel ou CSV.
+Chaque jour, MantPro Stock propose de vérifier 5 articles du magasin au hasard. L'application enregistre **qui l'a fait, quand et s'il a vérifié les 5**, avec la quantité comptée par rapport à celle indiquée par le système (aussi hors connexion : envoyé à la reconnexion du mobile). Les administrateurs le voient dans `Outils` > `📦 Historique des vérifications du magasin` : ✅ complète, ⚠️ incomplète ou ❌ non vérifiée, avec filtres par utilisateur, période et état, et export vers Excel ou CSV. Si, parmi les 7 derniers jours ouvrés, un jour est passé sans aucune vérification, MantPro prévient les administrateurs à l'ouverture (et l'affiche en rouge dans l'historique), et l'historique indique **quels téléphones ont fait des vérifications** et la date de la dernière de chacun.
 
 ### Session sur le mobile
 

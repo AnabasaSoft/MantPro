@@ -235,3 +235,59 @@ def usuarios_con_revisiones():
         WHERE usuario_id IS NOT NULL GROUP BY usuario_id ORDER BY nombre COLLATE NOCASE""").fetchall()
     con.close()
     return [(f["usuario_id"], f["nombre"]) for f in filas]
+
+
+# ------------------------------------------------- días sin revisión y móviles
+
+def dias_sin_revision(dias=7, hoy=None, festivos=()):
+    """Días laborables de los últimos [dias] días en los que nadie revisó ni
+    un solo artículo, de más antiguo a más reciente ('AAAA-MM-DD').
+
+    No cuenta el día de hoy (aún no ha acabado), ni sábados, domingos y los
+    [festivos] que se pasen (conjunto de 'AAAA-MM-DD'). Tampoco cuenta nada
+    anterior a la primera revisión guardada: quien aún no usa la comprobación
+    diaria no recibe avisos, y quien la empieza no arrastra días de antes."""
+    hoy = hoy or datetime.now().date()
+    con = almacen._conn()
+    primera = con.execute("SELECT MIN(fecha) FROM revisiones_stock").fetchone()[0]
+    if not primera:
+        con.close()
+        return []
+    con_revision = {f[0] for f in con.execute("""
+        SELECT DISTINCT r.fecha FROM revisiones_stock r
+        JOIN revisiones_stock_lineas l ON l.revision_id = r.id
+        WHERE l.revisado = 1 AND r.fecha >= ?""",
+        ((hoy - timedelta(days=int(dias))).strftime("%Y-%m-%d"),))}
+    con.close()
+    festivos = set(festivos or ())
+    faltan = []
+    for atras in range(int(dias), 0, -1):
+        dia = hoy - timedelta(days=atras)
+        texto = dia.strftime("%Y-%m-%d")
+        if texto < primera or dia.weekday() >= 5 or texto in festivos:
+            continue
+        if texto not in con_revision:
+            faltan.append(texto)
+    return faltan
+
+
+def moviles_que_revisan(dias=30, hoy=None):
+    """Móviles desde los que se han hecho revisiones en los últimos [dias]
+    días: [{dispositivo, usuario_nombre, ultima_fecha, revisiones}], el que
+    revisó más recientemente primero. `usuario_nombre` es el de la última
+    revisión de ese móvil."""
+    hoy = hoy or datetime.now().date()
+    desde = (hoy - timedelta(days=int(dias))).strftime("%Y-%m-%d")
+    con = almacen._conn()
+    filas = con.execute("""
+        SELECT r.dispositivo, r.usuario_nombre, r.fecha FROM revisiones_stock r
+        WHERE r.fecha >= ? AND r.dispositivo != ''
+        ORDER BY r.fecha DESC, r.actualizada DESC, r.id DESC""", (desde,)).fetchall()
+    con.close()
+    por_movil = {}
+    for f in filas:
+        m = por_movil.setdefault(f["dispositivo"], {"dispositivo": f["dispositivo"],
+                                                    "usuario_nombre": f["usuario_nombre"],
+                                                    "ultima_fecha": f["fecha"], "revisiones": 0})
+        m["revisiones"] += 1
+    return list(por_movil.values())

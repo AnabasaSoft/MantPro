@@ -543,7 +543,7 @@ usuário e período, buscar por texto e exportar para Excel ou CSV.
 
 ### Histórico de revisões do almoxarifado
 
-Todo dia o MantPro Stock sugere revisar 5 itens do almoxarifado aleatórios. O aplicativo registra **quem fez, quando e se revisou os 5**, com a quantidade contada em comparação com a que o sistema indicava (também se feito sem conexão: é enviado quando o celular reconecta). Os administradores veem em `Ferramentas` > `📦 Histórico de revisões do almoxarifado`: ✅ completa, ⚠️ incompleta ou ❌ não revisada, com filtros por usuário, período e estado, e exportação para Excel ou CSV.
+Todo dia o MantPro Stock sugere revisar 5 itens do almoxarifado aleatórios. O aplicativo registra **quem fez, quando e se revisou os 5**, com a quantidade contada em comparação com a que o sistema indicava (também se feito sem conexão: é enviado quando o celular reconecta). Os administradores veem em `Ferramentas` > `📦 Histórico de revisões do almoxarifado`: ✅ completa, ⚠️ incompleta ou ❌ não revisada, com filtros por usuário, período e estado, e exportação para Excel ou CSV. Se em algum dos últimos 7 dias úteis ninguém fez a revisão, o MantPro avisa os administradores ao abrir (e mostra-o a vermelho no histórico), e o histórico indica **que celulares fizeram revisões** e quando foi a última de cada um.
 
 ### Sessão no celular
 

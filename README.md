@@ -537,7 +537,7 @@ action, user and period, searched by text and exported to Excel or CSV.
 
 ### Warehouse check history
 
-Every day MantPro Stock suggests checking 5 random warehouse items. The app records **who did it, when and whether all 5 were checked**, with the quantity counted against what the system said (also if done offline: it is sent when the phone reconnects). Administrators see it in `Tools` > `📦 Warehouse check history`: ✅ complete, ⚠️ incomplete or ❌ not checked, filterable by user, period and status, exportable to Excel or CSV.
+Every day MantPro Stock suggests checking 5 random warehouse items. The app records **who did it, when and whether all 5 were checked**, with the quantity counted against what the system said (also if done offline: it is sent when the phone reconnects). Administrators see it in `Tools` > `📦 Warehouse check history`: ✅ complete, ⚠️ incomplete or ❌ not checked, filterable by user, period and status, exportable to Excel or CSV. If any working day in the last 7 went by with no check at all, MantPro warns administrators when it opens (and shows it in red in the history), and the history lists **which phones have done checks** and when each one last did.
 
 ### Session on the phone
 

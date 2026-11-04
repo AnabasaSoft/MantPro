@@ -36,6 +36,33 @@ from ..comun import tt
 from ...nucleo import revisiones_almacen as rev
 
 
+VENTANA_AVISO_DIAS = 7       # días hacia atrás que mira el aviso de «sin revisión»
+VENTANA_MOVILES_DIAS = 30    # días hacia atrás de la lista de móviles que revisan
+
+
+def texto_dias_sin_revision(festivos=()):
+    """Aviso de los días laborables sin ninguna revisión del almacén, o ""
+    si no falta ninguno."""
+    faltan = rev.dias_sin_revision(VENTANA_AVISO_DIAS, festivos=festivos)
+    if not faltan:
+        return ""
+    return tt("rev_aviso_dias", "Sin revisión del almacén en los últimos {n} días (laborables): {dias}.").format(
+        n=VENTANA_AVISO_DIAS, dias=", ".join(formato_fecha_localizada(d) for d in faltan))
+
+
+def texto_moviles():
+    """Móviles que han hecho revisiones, con quién las hizo y cuándo fue la
+    última, o "" si ninguno ha revisado en el periodo."""
+    moviles = rev.moviles_que_revisan(VENTANA_MOVILES_DIAS)
+    if not moviles:
+        return ""
+    lineas = [tt("rev_moviles_linea", "{movil} ({usuario}) · última: {fecha} · {n} revisiones").format(
+        movil=m["dispositivo"], usuario=m["usuario_nombre"] or "—",
+        fecha=formato_fecha_localizada(m["ultima_fecha"]), n=m["revisiones"]) for m in moviles]
+    return tt("rev_moviles_titulo", "📱 Móviles que han revisado en los últimos {n} días:").format(
+        n=VENTANA_MOVILES_DIAS) + "\n" + "\n".join(lineas)
+
+
 def nombres_estado():
     return {
         rev.ESTADO_COMPLETA: tt("rev_estado_completa", "✅ Completa"),
@@ -70,7 +97,7 @@ def _actividad(texto):
 
 
 class DialogoRevisionesAlmacen(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, festivos=()):
         super().__init__(parent)
         self.setWindowTitle(tt("rev_titulo", "Historial de revisiones del almacén"))
         self.resize(1050, 680)
@@ -98,6 +125,15 @@ class DialogoRevisionesAlmacen(QDialog):
         l.addLayout(f)
         self.lbl_resumen = QLabel(); self.lbl_resumen.setWordWrap(True)
         l.addWidget(self.lbl_resumen)
+        aviso = texto_dias_sin_revision(festivos)
+        if aviso:
+            lbl_aviso = QLabel("⚠️ " + aviso); lbl_aviso.setWordWrap(True)
+            lbl_aviso.setStyleSheet("color: #e74c3c; font-weight: bold;")
+            l.addWidget(lbl_aviso)
+        moviles = texto_moviles()
+        if moviles:
+            lbl_moviles = QLabel(moviles); lbl_moviles.setWordWrap(True)
+            l.addWidget(lbl_moviles)
 
         # --- revisiones y detalle de la seleccionada
         split = QSplitter(Qt.Orientation.Vertical)

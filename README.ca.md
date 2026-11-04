@@ -544,7 +544,7 @@ Excel o CSV.
 
 ### Historial de revisions del magatzem
 
-Cada dia MantPro Stock proposa revisar 5 articles del magatzem a l'atzar. L'aplicació anota **qui ho ha fet, quan i si ha revisat els 5**, amb la quantitat comptada davant la que deia el sistema (també si es fa sense connexió: s'envia en tornar a connectar el mòbil). Els administradors ho veuen a `Eines` > `📦 Historial de revisions del magatzem`: ✅ completa, ⚠️ incompleta o ❌ sense revisar, amb filtres per usuari, període i estat, i exportació a Excel o CSV.
+Cada dia MantPro Stock proposa revisar 5 articles del magatzem a l'atzar. L'aplicació anota **qui ho ha fet, quan i si ha revisat els 5**, amb la quantitat comptada davant la que deia el sistema (també si es fa sense connexió: s'envia en tornar a connectar el mòbil). Els administradors ho veuen a `Eines` > `📦 Historial de revisions del magatzem`: ✅ completa, ⚠️ incompleta o ❌ sense revisar, amb filtres per usuari, període i estat, i exportació a Excel o CSV. Si en algun dels últims 7 dies laborables no es va fer cap revisió, MantPro avisa els administradors en obrir (i ho marca en vermell a l'historial), i l'historial indica **quins mòbils han fet revisions** i quan va ser l'última de cadascun.
 
 ### Sessió al mòbil
 
