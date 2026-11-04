@@ -73,7 +73,7 @@ const Map<String, String> traduccionesGl = {
     "prioridad_media": "Media",
     "prioridad_alta": "Alta",
     "prioridad_critica": "Crítica",
-    "lbl_estado_planta": "Estado Planta",
+    "lbl_estado_planta": "Estado da planta",
     "lbl_pendientes": "Pendentes",
     "lbl_registros_mes": "Rexistros Mes",
     "lbl_avisos_config": "Avisos Config.",
