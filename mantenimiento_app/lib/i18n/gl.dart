@@ -130,6 +130,8 @@ const Map<String, String> traduccionesGl = {
     "login_entrar": "ENTRAR",
     "login_vacio": "Introduce usuario e contrasinal.",
     "login_error": "Usuario ou contrasinal incorrectos.",
+    "login_movil_adjudicado": "Este móbil está adxudicado a {nombre}.",
+    "login_movil_de": "Móbil adxudicado a {nombre}",
     "login_sin_conexion": "Non se puido conectar co PC. Comproba a WiFi e que MantPro estea aberto.",
     "login_sin_pc": "Primeiro vincula o móbil co PC escaneando o QR.",
     "login_pc_no_vinculado": "Sen PC vinculado",

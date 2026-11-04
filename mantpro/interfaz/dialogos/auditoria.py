@@ -85,6 +85,7 @@ _CAMPOS = {
     "Región superior (festivos)": "aud_f_region_superior", "Idioma": "aud_f_idioma",
     "Precio unitario": "aud_f_precio", "Moneda": "aud_f_moneda",
     "Días sin conectar": "aud_f_dias_sin_conectar",
+    "Móvil adjudicado a": "aud_f_movil_adjudicado",
     "Tiempo trabajado": "aud_f_tiempo", "Coste de la hora de trabajo": "aud_f_coste_hora",
     "Contador": "aud_f_contador", "Cada": "aud_f_cada", "Avisar antes": "aud_f_avisar_antes",
     "Primera vez a": "aud_f_primera", "Lectura": "aud_f_lectura", "Lecturas": "aud_f_lecturas",

@@ -391,6 +391,35 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _oculta = true;
   String? _error;
 
+  String? _usuarioRelleno;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAdjudicado();
+  }
+
+  /// Si el móvil está adjudicado a un técnico, le deja puesto su usuario:
+  /// primero lo guardado (sin conexión) y luego lo que diga el PC.
+  Future<void> _cargarAdjudicado() async {
+    await AuthService.cargarAdjudicado();
+    if (mounted) _rellenarUsuario();
+    if (widget.ip != null) {
+      await AuthService.consultarAdjudicado(widget.ip!);
+      if (mounted) _rellenarUsuario();
+    }
+  }
+
+  void _rellenarUsuario() {
+    final adj = AuthService.movilAdjudicado;
+    setState(() {
+      if (_usuario.text.isEmpty || _usuario.text == _usuarioRelleno) {
+        _usuario.text = adj?['login'] ?? '';
+      }
+      _usuarioRelleno = adj?['login'];
+    });
+  }
+
   @override
   void dispose() {
     _usuario.dispose();
@@ -435,6 +464,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: tema.textTheme.bodySmall,
                   textAlign: TextAlign.center,
                 ),
+                if (AuthService.movilAdjudicado != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    tt('login_movil_de', 'Móvil adjudicado a {nombre}')
+                        .replaceAll('{nombre}', AuthService.movilAdjudicado!['nombre']!),
+                    style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.primary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: 28),
                 TextField(
                   controller: _usuario,

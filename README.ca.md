@@ -496,7 +496,7 @@ sessions obertes al mòbil de tots els usuaris, amb el model del dispositiu,
 quan es va iniciar, quan caduca i si continua activa o ja ha caducat. Es poden
 seleccionar una o diverses files alhora i revocar-les, cosa que tanca la sessió
 d'aquell mòbil sense necessitat de desactivar l'usuari sencer (que tancaria
-*tots* els seus dispositius de cop).
+*tots* els seus dispositius de cop). **Mòbil adjudicat a un tècnic**: amb `📲 Adjudicar mòbil a un tècnic…` el mòbil només deixa iniciar sessió al seu tècnic (els administradors, sempre) i l'app li emplena l'usuari; val per a MantPro i MantPro Stock alhora, de manera que el mateix tècnic pot usar les dues apps al mateix mòbil.
 
 Si un usuari torna a iniciar sessió des d'un dispositiu amb què ja tenia una
 sessió oberta (mateix fabricant i model), la sessió anterior d'aquest

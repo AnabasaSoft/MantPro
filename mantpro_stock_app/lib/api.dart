@@ -22,7 +22,9 @@ import 'conexion_segura.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
@@ -147,6 +149,27 @@ Future<String> _nombreDispositivo() async {
   return 'Android';
 }
 
+const _canalMovil = MethodChannel('mantpro/movil');
+
+/// Identificador del móvil, el mismo para MantPro y MantPro Stock (ANDROID_ID,
+/// por canal nativo): así el PC sabe que las dos apps están en el mismo móvil
+/// y puede adjudicárselo a un técnico. Si no hay forma de leerlo, se genera
+/// uno aleatorio y se guarda para esta instalación.
+Future<String> _idMovil() async {
+  try {
+    final id = await _canalMovil.invokeMethod<String>('idMovil');
+    if (id != null && id.isNotEmpty) return id;
+  } catch (_) {}
+  final prefs = await SharedPreferences.getInstance();
+  var propio = prefs.getString('movil_id_propio');
+  if (propio == null) {
+    final azar = Random.secure();
+    propio = 'i-${List.generate(16, (_) => azar.nextInt(16).toRadixString(16)).join()}';
+    await prefs.setString('movil_id_propio', propio);
+  }
+  return propio;
+}
+
 class AuthService {
   static String? token;
   static String? nombre;
@@ -201,6 +224,44 @@ class AuthService {
   static Map<String, String> cabeceras() =>
       token != null ? {'Authorization': 'Bearer $token'} : {};
 
+  /// Técnico al que el administrador ha adjudicado este móvil ({login, nombre}), o null.
+  static Map<String, String>? movilAdjudicado;
+
+  static Future<void> _guardarAdjudicado(SharedPreferences prefs, dynamic datos) async {
+    if (datos is Map && datos['login'] != null) {
+      movilAdjudicado = {'login': '${datos['login']}', 'nombre': '${datos['nombre'] ?? datos['login']}'};
+      await prefs.setString('movil_adj_login', movilAdjudicado!['login']!);
+      await prefs.setString('movil_adj_nombre', movilAdjudicado!['nombre']!);
+    } else {
+      movilAdjudicado = null;
+      await prefs.remove('movil_adj_login');
+      await prefs.remove('movil_adj_nombre');
+    }
+  }
+
+  /// Lee lo último que se supo del técnico de este móvil (vale sin conexión).
+  static Future<void> cargarAdjudicado() async {
+    final prefs = await SharedPreferences.getInstance();
+    final l = prefs.getString('movil_adj_login');
+    movilAdjudicado = l == null ? null : {'login': l, 'nombre': prefs.getString('movil_adj_nombre') ?? l};
+  }
+
+  /// Pregunta al PC, sin sesión, a quién está adjudicado el móvil. Sin conexión
+  /// se queda lo guardado.
+  static Future<void> consultarAdjudicado(String ip) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$esquemaPC://$ip/api/movil/adjudicado'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'dispositivo_id': await _idMovil()}),
+      ).timeout(const Duration(seconds: 4));
+      final datos = json.decode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 && datos['status'] == 'ok') {
+        await _guardarAdjudicado(await SharedPreferences.getInstance(), datos['movil_adjudicado']);
+      }
+    } catch (_) {}
+  }
+
   static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
     try {
       final res = await http.post(
@@ -210,6 +271,7 @@ class AuthService {
           'login': usuario,
           'password': password,
           'dispositivo': '${await _nombreDispositivo()} (Stock)',
+          'dispositivo_id': await _idMovil(),
         }),
       ).timeout(const Duration(seconds: 10));
 
@@ -229,12 +291,17 @@ class AuthService {
         await prefs.setString('auth_login', login ?? '');
         await prefs.setString('auth_rol', rol ?? 'tecnico');
         await prefs.setStringList('auth_roles', roles);
+        await _guardarAdjudicado(prefs, datos['movil_adjudicado']);
         sesionNotifier.value = true;
         return null;
       }
       if (datos['error'] == 'bloqueado') {
         return tt('login_bloqueado', 'Demasiados intentos fallidos. Espera {min} minutos y vuelve a probar.')
             .replaceAll('{min}', '${datos['minutos'] ?? 15}');
+      }
+      if (datos['error'] == 'movil_adjudicado') {
+        return tt('login_movil_adjudicado', 'Este móvil está adjudicado a {nombre}.')
+            .replaceAll('{nombre}', '${datos['tecnico'] ?? ''}');
       }
       if (datos['error'] == 'credenciales') return tt('login_error', 'Usuario o contraseña incorrectos.');
       return datos['message'] ?? tt('login_error', 'Usuario o contraseña incorrectos.');

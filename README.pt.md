@@ -495,7 +495,7 @@ todas as sessões abertas no celular de todos os usuários, com o modelo do
 dispositivo, quando começou, quando expira e se continua ativa ou já expirou.
 É possível selecionar uma ou várias linhas e revogá-las, o que encerra a sessão
 daquele celular sem precisar desativar o usuário inteiro (o que encerraria
-*todos* os dispositivos dele de uma vez).
+*todos* os dispositivos dele de uma vez). **Celular atribuído a um técnico**: com `📲 Atribuir celular a um técnico…` o celular só deixa iniciar sessão ao seu técnico (os administradores, sempre) e o app preenche-lhe o usuário; vale para o MantPro e o MantPro Stock ao mesmo tempo, por isso o mesmo técnico pode usar os dois apps no mesmo celular.
 
 Se um usuário entrar de novo por um dispositivo em que já tinha uma sessão
 aberta (mesmo fabricante e modelo), a sessão anterior desse dispositivo é

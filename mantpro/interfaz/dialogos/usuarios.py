@@ -28,7 +28,7 @@ si esa función no está disponible, se usa el literal en español.
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QMessageBox, QTableWidget, QTableWidgetItem, QComboBox,
-    QCheckBox, QHeaderView, QAbstractItemView, QDialogButtonBox, QWidget
+    QCheckBox, QHeaderView, QAbstractItemView, QDialogButtonBox, QWidget, QInputDialog
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap
@@ -673,7 +673,7 @@ class DialogoSesiones(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.tabla = QTableWidget(0, 9)
+        self.tabla = QTableWidget(0, 10)
         self.tabla.setHorizontalHeaderLabels([
             t("sesiones_col_usuario", "Usuario"),
             t("sesiones_col_dispositivo", "Dispositivo"),
@@ -683,6 +683,7 @@ class DialogoSesiones(QDialog):
             t("sesiones_col_conexion", "Conexión"),
             t("sesiones_col_ultimo_contacto", "Último contacto"),
             t("sesiones_col_cifrado", "Cifrado"),
+            t("sesiones_col_adjudicado", "Móvil de"),
             "token",
         ])
         self.tabla.setColumnHidden(self.COL_TOKEN, True)
@@ -728,15 +729,21 @@ class DialogoSesiones(QDialog):
         acciones = QHBoxLayout()
         boton_actualizar = QPushButton(t("sesiones_actualizar", "🔄 Actualizar"))
         boton_revocar = QPushButton(t("sesiones_revocar", "🚫 Revocar sesión"))
+        boton_adjudicar = QPushButton(t("sesiones_adjudicar", "📲 Adjudicar móvil a un técnico…"))
+        boton_adjudicar.setToolTip(t("tt_sesiones_adjudicar",
+            "El móvil solo deja iniciar sesión a su técnico (también en MantPro Stock) y la app le rellena el usuario. "
+            "Los administradores pueden entrar siempre."))
         boton_cerrar = QPushButton(t("cerrar", "Cerrar"))
         acciones.addWidget(boton_actualizar)
         acciones.addWidget(boton_revocar)
+        acciones.addWidget(boton_adjudicar)
         acciones.addStretch()
         acciones.addWidget(boton_cerrar)
         layout.addLayout(acciones)
 
         boton_actualizar.clicked.connect(self.refrescar)
         boton_revocar.clicked.connect(self._revocar)
+        boton_adjudicar.clicked.connect(self._adjudicar)
         boton_cerrar.clicked.connect(self.accept)
 
         self.refrescar()
@@ -747,7 +754,7 @@ class DialogoSesiones(QDialog):
         self._temporizador.timeout.connect(self._actualizar_conexion)
         self._temporizador.start(5000)
 
-    COL_CONEXION, COL_ULTIMO_CONTACTO, COL_CIFRADO, COL_TOKEN = 5, 6, 7, 8
+    COL_CONEXION, COL_ULTIMO_CONTACTO, COL_CIFRADO, COL_ADJUDICADO, COL_TOKEN = 5, 6, 7, 8, 9
 
     @staticmethod
     def _texto_cifrado(s):
@@ -804,6 +811,7 @@ class DialogoSesiones(QDialog):
                 QTableWidgetItem(self._texto_conexion(s)),
                 _ItemFecha(s.get("ultimo_contacto")),
                 QTableWidgetItem(self._texto_cifrado(s)),
+                QTableWidgetItem(s.get("adjudicado_nombre") or "—"),
                 QTableWidgetItem(s["token"]),
             ]
             for col, item in enumerate(columnas):
@@ -871,6 +879,40 @@ class DialogoSesiones(QDialog):
                 t("sesiones_selecciona", "Selecciona una sesión de la lista."))
             return []
         return [self.tabla.item(fila, self.COL_TOKEN).text() for fila in filas]
+
+    def _adjudicar(self):
+        """Adjudica el móvil de la fila seleccionada a un técnico (o lo deja
+        libre). Vale para las dos apps: comparten el identificador del móvil."""
+        filas = sorted({i.row() for i in self.tabla.selectedItems()})
+        if not filas:
+            QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
+                                    t("msg_adjudicar_elige", "Selecciona primero una sesión del móvil."))
+            return
+        token = self.tabla.item(filas[0], self.COL_TOKEN).text()
+        s = next((x for x in usuarios.listar_sesiones() if x["token"] == token), None)
+        if s is None:
+            return
+        if not s.get("dispositivo_id"):
+            QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
+                                    t("msg_adjudicar_sin_id",
+                                      "Este móvil aún no manda su identificador: actualiza la app y que vuelva a iniciar sesión."))
+            return
+        nadie = t("adjudicar_nadie", "— Nadie (móvil libre) —")
+        tecnicos = usuarios.listar_usuarios(incluir_inactivos=False)
+        opciones = [nadie] + [f"{u['nombre']} ({u['login']})" for u in tecnicos]
+        actual = 0
+        for i, u in enumerate(tecnicos, 1):
+            if u["id"] == s.get("adjudicado_id"):
+                actual = i
+        elegido, ok = QInputDialog.getItem(
+            self, t("sesiones_adjudicar_titulo", "Adjudicar móvil"),
+            t("sesiones_adjudicar_texto", "Técnico al que se adjudica «{movil}»:").format(movil=s.get("dispositivo") or "—"),
+            opciones, actual, False)
+        if not ok:
+            return
+        indice = opciones.index(elegido)
+        usuarios.adjudicar_movil(s["dispositivo_id"], tecnicos[indice - 1]["id"] if indice else None)
+        self.refrescar()
 
     def _revocar(self):
         tokens = self._tokens_seleccionados()

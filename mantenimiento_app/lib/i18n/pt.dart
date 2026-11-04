@@ -150,6 +150,8 @@ const Map<String, String> traduccionesPt = {
   "login_entrar": "ENTRAR",
   "login_vacio": "Informe usuário e senha.",
   "login_error": "Usuário ou senha incorretos.",
+  "login_movil_adjudicado": "Este celular está atribuído a {nombre}.",
+  "login_movil_de": "Celular atribuído a {nombre}",
   "login_sin_conexion": "Não foi possível conectar ao PC. Verifique o Wi-Fi e se o MantPro está aberto.",
   "login_sin_pc": "Primeiro vincule o celular ao PC escaneando o QR.",
   "login_pc_no_vinculado": "Nenhum PC vinculado",

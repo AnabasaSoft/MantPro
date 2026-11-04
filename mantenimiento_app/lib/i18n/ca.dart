@@ -130,6 +130,8 @@ const Map<String, String> traduccionesCa = {
     "login_entrar": "ENTRAR",
     "login_vacio": "Introdueix usuari i contrasenya.",
     "login_error": "Usuari o contrasenya incorrectes.",
+    "login_movil_adjudicado": "Aquest mòbil està adjudicat a {nombre}.",
+    "login_movil_de": "Mòbil adjudicat a {nombre}",
     "login_sin_conexion": "No s'ha pogut connectar amb el PC. Comprova la WiFi i que MantPro estigui obert.",
     "login_sin_pc": "Primer vincula el mòbil amb el PC escanejant el QR.",
     "login_pc_no_vinculado": "Sense PC vinculat",

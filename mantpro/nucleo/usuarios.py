@@ -192,6 +192,18 @@ def inicializar():
     # cifrar (0, app antigua) o no se sabe aún (NULL). Ver sesiones_sin_cifrar.
     if "cifrada" not in _columnas(con, "sesiones"):
         cur.execute("ALTER TABLE sesiones ADD COLUMN cifrada INTEGER")
+    # Identificador propio del móvil (el mismo para MantPro y MantPro Stock en
+    # el mismo teléfono) y los móviles adjudicados a un técnico.
+    if "dispositivo_id" not in _columnas(con, "sesiones"):
+        cur.execute("ALTER TABLE sesiones ADD COLUMN dispositivo_id TEXT")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS moviles (
+            dispositivo_id TEXT PRIMARY KEY,
+            modelo         TEXT NOT NULL DEFAULT '',
+            usuario_id     INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+            visto          TEXT NOT NULL
+        )
+    """)
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS auditoria (
@@ -668,8 +680,11 @@ def borrar_especialidad(especialidad_id):
 
 # ---------------------------------------------------------------- sesiones (móvil)
 
-def crear_token(usuario_id, dispositivo=None):
+def crear_token(usuario_id, dispositivo=None, dispositivo_id=None):
     token = secrets.token_urlsafe(32)
+    dispositivo_id = limpiar_dispositivo_id(dispositivo_id)
+    if dispositivo_id:
+        registrar_movil(dispositivo_id, dispositivo)
     ahora = datetime.now()
     con = _conn()
     if dispositivo:
@@ -681,11 +696,12 @@ def crear_token(usuario_id, dispositivo=None):
             (usuario_id, dispositivo),
         )
     con.execute(
-        "INSERT INTO sesiones (token, usuario_id, dispositivo, creado, expira) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO sesiones (token, usuario_id, dispositivo, creado, expira, dispositivo_id) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         (token, usuario_id, dispositivo or "",
          ahora.isoformat(timespec="seconds"),
-         (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds")),
+         (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"),
+         dispositivo_id),
     )
     con.commit()
     con.close()
@@ -736,9 +752,12 @@ def listar_sesiones():
     """Todas las sesiones de dispositivos de todos los usuarios, con el estado calculado."""
     con = _conn()
     filas = con.execute(
-        "SELECT s.token, s.dispositivo, s.creado, s.expira, s.ultimo_contacto, s.cifrada, "
-        "u.id AS usuario_id, u.login, u.nombre "
+        "SELECT s.token, s.dispositivo, s.creado, s.expira, s.ultimo_contacto, s.cifrada, s.dispositivo_id, "
+        "u.id AS usuario_id, u.login, u.nombre, "
+        "m.usuario_id AS adjudicado_id, ua.nombre AS adjudicado_nombre "
         "FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id "
+        "LEFT JOIN moviles m ON m.dispositivo_id = s.dispositivo_id AND s.dispositivo_id != '' "
+        "LEFT JOIN usuarios ua ON ua.id = m.usuario_id "
         "ORDER BY s.creado DESC"
     ).fetchall()
     con.close()
@@ -1091,6 +1110,89 @@ def borrar_especialidad(especialidad_id):
     auditar("usuarios", "borrar", f"Especialidad «{anterior}»",
             detalle="Se quita a los usuarios, pendientes y avisos que la tenían")
     return resultado
+
+
+def limpiar_dispositivo_id(valor):
+    """Identificador del móvil tal como lo manda la app (letras, cifras y
+    «-_.:»; hasta 64), o None si falta o no vale."""
+    valor = (valor or "").strip() if isinstance(valor, str) else ""
+    if not valor or len(valor) > 64 or not all(c.isalnum() or c in "-_.:" for c in valor):
+        return None
+    return valor
+
+
+def registrar_movil(dispositivo_id, modelo=None):
+    """Anota (o actualiza) que este móvil ha conectado. El modelo se guarda sin
+    el « (Stock)» que MantPro Stock añade a su nombre, para que las dos apps del
+    mismo teléfono lo llamen igual."""
+    modelo = (modelo or "").replace(" (Stock)", "").strip()[:120]
+    con = _conn()
+    con.execute(
+        "INSERT INTO moviles (dispositivo_id, modelo, visto) VALUES (?, ?, ?) "
+        "ON CONFLICT(dispositivo_id) DO UPDATE SET modelo = CASE WHEN excluded.modelo != '' "
+        "THEN excluded.modelo ELSE moviles.modelo END, visto = excluded.visto",
+        (dispositivo_id, modelo, datetime.now().isoformat(timespec="seconds")))
+    con.commit()
+    con.close()
+
+
+def movil_adjudicado(dispositivo_id):
+    """{id, login, nombre} del técnico al que está adjudicado el móvil, o None
+    si no lo está (o su usuario está dado de baja)."""
+    dispositivo_id = limpiar_dispositivo_id(dispositivo_id)
+    if not dispositivo_id:
+        return None
+    con = _conn()
+    fila = con.execute(
+        "SELECT u.id, u.login, u.nombre FROM moviles m JOIN usuarios u ON u.id = m.usuario_id "
+        "WHERE m.dispositivo_id = ? AND u.activo = 1", (dispositivo_id,)).fetchone()
+    con.close()
+    return dict(fila) if fila else None
+
+
+def movil_permite_a(usuario, dispositivo_id):
+    """(True, None) si [usuario] puede iniciar sesión en ese móvil, o
+    (False, adjudicado) si está adjudicado a otro técnico. Los administradores
+    pueden entrar en cualquiera (para probar o ayudar); un móvil sin
+    adjudicar o que no manda identificador no restringe a nadie."""
+    adjudicado = movil_adjudicado(dispositivo_id)
+    if adjudicado is None or adjudicado["id"] == usuario["id"] or es_admin(usuario):
+        return True, None
+    return False, adjudicado
+
+
+def adjudicar_movil(dispositivo_id, usuario_id):
+    """Adjudica el móvil a un técnico (usuario_id None: lo deja libre). Queda
+    en el registro de cambios. Las sesiones abiertas no se tocan."""
+    dispositivo_id = limpiar_dispositivo_id(dispositivo_id)
+    if not dispositivo_id:
+        return False
+    con = _conn()
+    fila = con.execute("SELECT modelo, usuario_id FROM moviles WHERE dispositivo_id = ?", (dispositivo_id,)).fetchone()
+    if fila is None:
+        con.close()
+        return False
+    def nombre(uid):
+        u = con.execute("SELECT nombre FROM usuarios WHERE id = ?", (uid,)).fetchone() if uid else None
+        return u[0] if u else ""
+    antes, despues = nombre(fila["usuario_id"]), nombre(usuario_id)
+    con.execute("UPDATE moviles SET usuario_id = ? WHERE dispositivo_id = ?", (usuario_id, dispositivo_id))
+    con.commit()
+    con.close()
+    if antes != despues:
+        auditar("seguridad", "configurar", fila["modelo"] or dispositivo_id,
+                cambios=[{"campo": "Móvil adjudicado a", "antes": antes, "despues": despues}])
+    return True
+
+
+def dispositivo_id_de_token(token):
+    try:
+        con = _conn()
+        fila = con.execute("SELECT dispositivo_id FROM sesiones WHERE token = ?", (token,)).fetchone()
+        con.close()
+        return (fila[0] or None) if fila else None
+    except sqlite3.Error:
+        return None
 
 
 def dispositivo_de_token(token):

@@ -109,6 +109,8 @@ const Map<String, String> traduccionesEu = {
     "login_entrar": "SARTU",
     "login_vacio": "Sartu erabiltzailea eta pasahitza.",
     "login_error": "Erabiltzailea edo pasahitza okerra.",
+    "login_movil_adjudicado": "Mugikor hau {nombre}(r)i esleituta dago.",
+    "login_movil_de": "Mugikorra esleituta: {nombre}",
     "login_sin_conexion": "Ezin izan da PCarekin konektatu. Egiaztatu WiFia eta MantPro irekita dagoela.",
     "login_sin_pc": "Lehenik lotu mugikorra PCarekin QR kodea eskaneatuz.",
     "login_pc_no_vinculado": "PCrik lotu gabe",

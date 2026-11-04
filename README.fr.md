@@ -500,7 +500,7 @@ toutes les sessions mobiles ouvertes de tous les utilisateurs, avec le modèle
 de l'appareil, sa date d'ouverture, sa date d'expiration et si elle est
 toujours active ou déjà expirée. On peut sélectionner une ou plusieurs lignes
 et les révoquer, ce qui ferme la session de ce mobile sans devoir désactiver
-tout l'utilisateur (ce qui fermerait *tous* ses appareils d'un coup).
+tout l'utilisateur (ce qui fermerait *tous* ses appareils d'un coup). **Téléphone attribué à un technicien** : avec `📲 Attribuer le téléphone à un technicien…`, le téléphone ne laisse ouvrir une session qu'à son technicien (les administrateurs, toujours) et l'application pré-remplit son identifiant ; cela vaut pour MantPro et MantPro Stock à la fois, le même technicien peut donc utiliser les deux applications sur le même téléphone.
 
 Si un utilisateur se reconnecte depuis un appareil où il avait déjà une
 session ouverte (même fabricant et même modèle), l'ancienne session de cet

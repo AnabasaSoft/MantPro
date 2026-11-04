@@ -234,11 +234,28 @@ class ServidorSincronizacion(QThread):
                                 "message": "Usuario o contraseña incorrectos."}), 401
             seguridad.LOGIN_RED_USUARIO.acierto(clave_usuario)
             seguridad.LOGIN_RED_IP.acierto(clave_ip)
-            token = usuarios.crear_token(usuario['id'], dispositivo)
+            dispositivo_id = usuarios.limpiar_dispositivo_id(datos.get('dispositivo_id'))
+            # Móvil adjudicado a un técnico: solo entra él (o un administrador)
+            permitido, adjudicado = usuarios.movil_permite_a(usuario, dispositivo_id)
+            if not permitido:
+                return jsonify({"status": "error", "error": "movil_adjudicado",
+                                "tecnico": adjudicado["nombre"], "login": adjudicado["login"],
+                                "message": f"Este móvil está adjudicado a {adjudicado['nombre']}."}), 403
+            token = usuarios.crear_token(usuario['id'], dispositivo, dispositivo_id)
             return jsonify({"status": "ok", "token": token, "usuario": {
                 "id": usuario['id'], "login": usuario['login'],
                 "nombre": usuario['nombre'], "rol": usuario['rol'],
-                "roles": usuario['roles']}})
+                "roles": usuario['roles']},
+                "movil_adjudicado": usuarios.movil_adjudicado(dispositivo_id)})
+
+        @self.app.route('/api/movil/adjudicado', methods=['POST'])
+        def api_movil_adjudicado():
+            # Sin sesión: la pantalla de acceso de la app pregunta a quién está
+            # adjudicado el móvil para rellenar el usuario. Solo devuelve el
+            # nombre y el usuario del técnico, y solo si se conoce el móvil.
+            datos = request.get_json(silent=True) or {}
+            return jsonify({"status": "ok",
+                            "movil_adjudicado": usuarios.movil_adjudicado(datos.get('dispositivo_id'))})
 
         @self.app.route('/api/logout', methods=['POST'])
         @requiere_token
@@ -249,7 +266,9 @@ class ServidorSincronizacion(QThread):
         @self.app.route('/api/yo', methods=['GET'])
         @requiere_token
         def api_yo():
-            return jsonify({"status": "ok", "usuario": g.usuario_mantpro})
+            return jsonify({"status": "ok", "usuario": g.usuario_mantpro,
+                            "movil_adjudicado": usuarios.movil_adjudicado(
+                                usuarios.dispositivo_id_de_token(_token_peticion()))})
 
         @self.app.route('/api/desconectar', methods=['POST'])
         @requiere_token

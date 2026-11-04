@@ -497,7 +497,7 @@ guztien mugikorreko saio ireki guztiak zerrendatzen ditu, gailuaren
 modeloarekin, noiz hasi zen, noiz iraungitzen den eta oraindik aktibo dagoen
 ala iraungita dagoen. Errenkada bat edo batzuk aldi berean hauta daitezke eta
 baliogabetu, eta horrek mugikor horren saioa ixten du erabiltzaile osoa
-desaktibatu beharrik gabe (horrek haren gailu *guztiak* batera itxiko lituzke).
+desaktibatu beharrik gabe (horrek haren gailu *guztiak* batera itxiko lituzke). **Teknikari esleitutako mugikorra**: `📲 Mugikorra teknikari bati esleitu…` erabiliz, mugikorrak bere teknikariari soilik uzten dio saioa hasten (administratzaileei beti) eta aplikazioak erabiltzailea betetzen dio; MantPro eta MantPro Stock-i batera dagokie, beraz teknikari berak bi aplikazioak erabil ditzake mugikor berean.
 
 Erabiltzaile batek lehendik saio irekia zuen gailu batetik (fabrikatzaile eta
 modelo bera) berriro saioa hasten badu, gailu horren aurreko saioa automatikoki

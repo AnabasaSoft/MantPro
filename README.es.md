@@ -494,7 +494,7 @@ todas las sesiones abiertas en el móvil de todos los usuarios, con el modelo
 del dispositivo, cuándo se inició, cuándo expira y si sigue activa o ya
 expiró. Se pueden seleccionar una o varias filas a la vez y revocarlas, lo que
 cierra la sesión de ese móvil sin necesidad de desactivar al usuario entero
-(que cerraría *todos* sus dispositivos de golpe).
+(que cerraría *todos* sus dispositivos de golpe). **Móvil adjudicado a un técnico**: con `📲 Adjudicar móvil a un técnico…` el móvil solo deja iniciar sesión a su técnico (los administradores, siempre) y la app le rellena el usuario; vale para MantPro y MantPro Stock a la vez, así que el mismo técnico puede usar las dos apps en el mismo móvil.
 
 Si un usuario vuelve a iniciar sesión desde un dispositivo con el que ya tenía
 una sesión abierta (mismo fabricante y modelo), la sesión anterior de ese

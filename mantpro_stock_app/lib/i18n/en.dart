@@ -36,6 +36,8 @@ const Map<String, String> traduccionesEn = {
     "login_entrar": "SIGN IN",
     "login_vacio": "Enter your user and password.",
     "login_error": "Wrong user or password.",
+    "login_movil_adjudicado": "This phone is assigned to {nombre}.",
+    "login_movil_de": "Phone assigned to {nombre}",
     "login_sin_conexion": "Could not reach the PC. Check the WiFi and that MantPro is running.",
     "login_sin_pc": "Link the phone to the PC first by scanning the QR code.",
     "login_pc_no_vinculado": "No PC linked",

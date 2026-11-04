@@ -491,7 +491,7 @@ session for every user, with the device model, when it started, when it
 expires and whether it is still active or already expired. You can select one
 or several rows at once and revoke them, which closes the session on that
 phone without having to deactivate the whole user (which would close *all*
-their devices in one go).
+their devices in one go). **Phone assigned to a technician**: with `📲 Assign phone to a technician…` the phone only lets its technician sign in (administrators always can) and the app pre-fills their username; it applies to MantPro and MantPro Stock at once, so the same technician can use both apps on the same phone.
 
 If a user signs in again from a device on which they already had an open
 session (same manufacturer and model), that device's previous session is

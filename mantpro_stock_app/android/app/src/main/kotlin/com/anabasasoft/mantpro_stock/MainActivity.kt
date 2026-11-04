@@ -41,6 +41,15 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "mantpro/movil")
+            .setMethodCallHandler { llamada, resultado ->
+                if (llamada.method == "idMovil") {
+                    // El mismo ANDROID_ID para MantPro y MantPro Stock (misma firma)
+                    resultado.success(Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID))
+                } else {
+                    resultado.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "mantpro/actualizador")
             .setMethodCallHandler { llamada, resultado ->
                 if (llamada.method == "instalar") {

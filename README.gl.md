@@ -494,7 +494,7 @@ as sesións abertas no móbil de todos os usuarios, co modelo do dispositivo,
 cando se iniciou, cando caduca e se segue activa ou xa caducou. Pódense
 seleccionar unha ou varias filas á vez e revogalas, o que pecha a sesión dese
 móbil sen necesidade de desactivar o usuario enteiro (que pecharía *todos* os
-seus dispositivos de golpe).
+seus dispositivos de golpe). **Móbil adxudicado a un técnico**: con `📲 Adxudicar móbil a un técnico…` o móbil só deixa iniciar sesión ao seu técnico (os administradores, sempre) e a app énchelle o usuario; vale para MantPro e MantPro Stock á vez, así que o mesmo técnico pode usar as dúas apps no mesmo móbil.
 
 Se un usuario volve iniciar sesión dende un dispositivo co que xa tiña unha
 sesión aberta (mesmo fabricante e modelo), a sesión anterior dese dispositivo

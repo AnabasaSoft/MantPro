@@ -21,6 +21,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -91,6 +92,27 @@ Future<String> _nombreDispositivo() async {
   return 'Android';
 }
 
+const _canalMovil = MethodChannel('mantpro/movil');
+
+/// Identificador del móvil, el mismo para MantPro y MantPro Stock (ANDROID_ID,
+/// por canal nativo): así el PC sabe que las dos apps están en el mismo móvil
+/// y puede adjudicárselo a un técnico. Si no hay forma de leerlo, se genera
+/// uno aleatorio y se guarda para esta instalación.
+Future<String> _idMovil() async {
+  try {
+    final id = await _canalMovil.invokeMethod<String>('idMovil');
+    if (id != null && id.isNotEmpty) return id;
+  } catch (_) {}
+  final prefs = await SharedPreferences.getInstance();
+  var propio = prefs.getString('movil_id_propio');
+  if (propio == null) {
+    final azar = Random.secure();
+    propio = 'i-${List.generate(16, (_) => azar.nextInt(16).toRadixString(16)).join()}';
+    await prefs.setString('movil_id_propio', propio);
+  }
+  return propio;
+}
+
 class AuthService {
   static String? token;
   static String? nombre;
@@ -143,6 +165,44 @@ class AuthService {
   static Map<String, String> cabeceras() =>
       token != null ? {'Authorization': 'Bearer $token'} : {};
 
+  /// Técnico al que el administrador ha adjudicado este móvil ({login, nombre}), o null.
+  static Map<String, String>? movilAdjudicado;
+
+  static Future<void> _guardarAdjudicado(SharedPreferences prefs, dynamic datos) async {
+    if (datos is Map && datos['login'] != null) {
+      movilAdjudicado = {'login': '${datos['login']}', 'nombre': '${datos['nombre'] ?? datos['login']}'};
+      await prefs.setString('movil_adj_login', movilAdjudicado!['login']!);
+      await prefs.setString('movil_adj_nombre', movilAdjudicado!['nombre']!);
+    } else {
+      movilAdjudicado = null;
+      await prefs.remove('movil_adj_login');
+      await prefs.remove('movil_adj_nombre');
+    }
+  }
+
+  /// Lee lo último que se supo del técnico de este móvil (vale sin conexión).
+  static Future<void> cargarAdjudicado() async {
+    final prefs = await SharedPreferences.getInstance();
+    final l = prefs.getString('movil_adj_login');
+    movilAdjudicado = l == null ? null : {'login': l, 'nombre': prefs.getString('movil_adj_nombre') ?? l};
+  }
+
+  /// Pregunta al PC, sin sesión, a quién está adjudicado el móvil. Sin conexión
+  /// se queda lo guardado.
+  static Future<void> consultarAdjudicado(String ip) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$esquemaPC://$ip/api/movil/adjudicado'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'dispositivo_id': await _idMovil()}),
+      ).timeout(const Duration(seconds: 4));
+      final datos = json.decode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 && datos['status'] == 'ok') {
+        await _guardarAdjudicado(await SharedPreferences.getInstance(), datos['movil_adjudicado']);
+      }
+    } catch (_) {}
+  }
+
   static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
     try {
       final res = await http.post(
@@ -152,6 +212,7 @@ class AuthService {
           'login': usuario,
           'password': password,
           'dispositivo': await _nombreDispositivo(),
+          'dispositivo_id': await _idMovil(),
         }),
       ).timeout(const Duration(seconds: 10));
 
@@ -171,12 +232,17 @@ class AuthService {
         await prefs.setString('auth_login', login ?? '');
         await prefs.setString('auth_rol', rol ?? 'tecnico');
         await prefs.setStringList('auth_roles', roles);
+        await _guardarAdjudicado(prefs, datos['movil_adjudicado']);
         sesionNotifier.value = true;
         return null;
       }
       if (datos['error'] == 'bloqueado') {
         return tt('login_bloqueado', 'Demasiados intentos fallidos. Espera {min} minutos y vuelve a probar.')
             .replaceAll('{min}', '${datos['minutos'] ?? 15}');
+      }
+      if (datos['error'] == 'movil_adjudicado') {
+        return tt('login_movil_adjudicado', 'Este móvil está adjudicado a {nombre}.')
+            .replaceAll('{nombre}', '${datos['tecnico'] ?? ''}');
       }
       if (datos['error'] == 'credenciales') return tt('login_error', 'Usuario o contraseña incorrectos.');
       return datos['message'] ?? tt('login_error', 'Usuario o contraseña incorrectos.');
@@ -380,6 +446,35 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _oculta = true;
   String? _error;
 
+  String? _usuarioRelleno;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAdjudicado();
+  }
+
+  /// Si el móvil está adjudicado a un técnico, le deja puesto su usuario:
+  /// primero lo guardado (sin conexión) y luego lo que diga el PC.
+  Future<void> _cargarAdjudicado() async {
+    await AuthService.cargarAdjudicado();
+    if (mounted) _rellenarUsuario();
+    if (widget.ip != null) {
+      await AuthService.consultarAdjudicado(widget.ip!);
+      if (mounted) _rellenarUsuario();
+    }
+  }
+
+  void _rellenarUsuario() {
+    final adj = AuthService.movilAdjudicado;
+    setState(() {
+      if (_usuario.text.isEmpty || _usuario.text == _usuarioRelleno) {
+        _usuario.text = adj?['login'] ?? '';
+      }
+      _usuarioRelleno = adj?['login'];
+    });
+  }
+
   @override
   void dispose() {
     _usuario.dispose();
@@ -424,6 +519,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: tema.textTheme.bodySmall,
                   textAlign: TextAlign.center,
                 ),
+                if (AuthService.movilAdjudicado != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    tt('login_movil_de', 'Móvil adjudicado a {nombre}')
+                        .replaceAll('{nombre}', AuthService.movilAdjudicado!['nombre']!),
+                    style: tema.textTheme.bodyMedium?.copyWith(color: tema.colorScheme.primary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: 28),
                 TextField(
                   controller: _usuario,
