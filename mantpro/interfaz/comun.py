@@ -25,6 +25,7 @@ import sys
 import os
 from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtCore import QSettings, QTranslator, QLibraryInfo
+from .qt_traducciones_extra import COMPLEMENTOS, TRADUCCIONES, TraductorQtExtra
 
 from ..idiomas import t
 from ..nucleo import almacen, maquinas
@@ -106,14 +107,29 @@ def instalar_traductor_qt(app, codigo_idioma):
     """Traduce los textos propios de Qt (menú contextual de cortar/copiar/pegar,
     botones de QMessageBox, etc.) al idioma de la app. Sin esto, esos textos
     siempre salen en inglés aunque el resto de la interfaz esté en español.
-    El euskara no tiene traducción oficial en Qt, así que se queda en inglés."""
+    El euskera y el gallego no tienen traducción oficial en Qt: para ellos se
+    usan las traducciones escritas a mano de qt_traducciones_extra.py.
+    Se puede llamar de nuevo al cambiar de idioma con la app abierta: retira
+    antes el traductor anterior, para que no se quede el idioma viejo."""
+    for anterior in getattr(app, "_traductores_qt", []):
+        app.removeTranslator(anterior)
+    app._traductores_qt = []  # también evita que el GC los destruya
+
+    def _instalar(traductor):
+        app.installTranslator(traductor)
+        app._traductores_qt.append(traductor)
+
+    if codigo_idioma in TRADUCCIONES:
+        _instalar(TraductorQtExtra(codigo_idioma, app))
+        return
     traductor = QTranslator(app)
     ruta_traducciones = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     # Qt trae el portugués de Brasil como "pt_BR", no como "pt".
     codigo_qt = {"pt": "pt_BR"}.get(codigo_idioma, codigo_idioma)
     if traductor.load(f"qtbase_{codigo_qt}", ruta_traducciones):
-        app.installTranslator(traductor)
-        app._traductor_qt = traductor  # evitar que el GC lo destruya
+        _instalar(traductor)
+    if codigo_idioma in COMPLEMENTOS:
+        _instalar(TraductorQtExtra(codigo_idioma, app))
 
 
 def _estilo_zona_arrastre(activo=False):

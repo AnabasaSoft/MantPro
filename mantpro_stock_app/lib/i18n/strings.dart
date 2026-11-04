@@ -37,7 +37,7 @@ import 'fr.dart';
 // Cómo añadir un idioma nuevo:
 //   1. Copia es.dart a <codigo>.dart y tradúcelo.
 //   2. Impórtalo aquí y añádelo a _traducciones y a idiomasDisponibles.
-//   3. Corre `python3 verificar_idiomas.py` (desde la raíz del proyecto) para
+//   3. Corre `python3 herramientas/verificar_idiomas.py` (desde la raíz del proyecto) para
 //      comprobar que no falta ninguna clave.
 //   4. Ya aparece automáticamente en el selector de idioma.
 

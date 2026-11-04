@@ -35,7 +35,7 @@ from .acciones.copias import AccionesCopias
 from .acciones.exportar import AccionesExportar
 from .acciones.importacion import AccionesImportacion
 from .acciones.usuarios import AccionesUsuarios
-from .comun import abrir_url_externa, resource_path, tt
+from .comun import abrir_url_externa, instalar_traductor_qt, resource_path, tt
 from .dialogos.ayuda import DialogoAyuda
 from .dialogos.sistema import (DialogoPuertoServidor, DialogoQR, DialogoSeleccionPais,
                                DialogoSeleccionRegion)
@@ -515,6 +515,8 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         if codigo == idiomas.get_idioma():
             return
         idiomas.set_idioma(codigo)
+        # Textos propios de Qt (selector de ficheros, tooltips, botones estándar)
+        instalar_traductor_qt(QApplication.instance(), codigo)
         self.db.set_config("idioma", codigo)
         self.recargar_interfaz_completa()
 
