@@ -28,7 +28,15 @@ from ...idiomas import t
 from ..comun import tt
 from ..dialogos.estadisticas import DialogoEstadisticasTecnicos
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking
-from ...nucleo import maquinas
+from ...nucleo import maquinas, consumos, costes
+
+def _importe_corto(valor):
+    """Importe abreviado para las barras del gráfico mensual: «850», «1,2k»."""
+    if valor >= 1000:
+        texto = f"{valor / 1000:.1f}k"
+        return texto if idiomas.get_idioma() == "en" else texto.replace(".", ",")
+    return f"{valor:.0f}"
+
 
 class PestanaDashboard:
     """Pestaña «Dashboard»: indicadores y gráficos.
@@ -56,6 +64,12 @@ class PestanaDashboard:
         self.card_mttr = QGroupBox(tt("lbl_mttr_global", "MTTR medio")); self.card_mttr.setStyleSheet(style_card_pequena)
         l_c5 = QVBoxLayout(); self.lbl_mttr_global = QLabel("--"); self.lbl_mttr_global.setAlignment(Qt.AlignmentFlag.AlignCenter)
         l_c5.addWidget(self.lbl_mttr_global); self.card_mttr.setLayout(l_c5); h_cards.addWidget(self.card_mttr)
+        self.card_coste_mes = QGroupBox(tt("lbl_coste_mes", "Coste del mes")); self.card_coste_mes.setStyleSheet(style_card_pequena)
+        l_c6 = QVBoxLayout(); self.lbl_coste_mes = QLabel("--"); self.lbl_coste_mes.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        l_c6.addWidget(self.lbl_coste_mes); self.card_coste_mes.setLayout(l_c6); h_cards.addWidget(self.card_coste_mes)
+        self.card_coste_anio = QGroupBox(tt("lbl_coste_anio", "Coste del año")); self.card_coste_anio.setStyleSheet(style_card_pequena)
+        l_c7 = QVBoxLayout(); self.lbl_coste_anio = QLabel("--"); self.lbl_coste_anio.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        l_c7.addWidget(self.lbl_coste_anio); self.card_coste_anio.setLayout(l_c7); h_cards.addWidget(self.card_coste_anio)
         l.addLayout(h_cards)
         h_split = QHBoxLayout()
         v_list = QVBoxLayout()
@@ -81,7 +95,30 @@ class PestanaDashboard:
         self.lbl_mec, self.bar_mec = crear_barra(f"⚙️ {t('tag_mecanico')}", "#e67e22"); layout_stats.addWidget(self.lbl_mec); layout_stats.addWidget(self.bar_mec)
         self.lbl_prev, self.bar_prev = crear_barra(f"🛡️ {t('tag_preventivo')}", "#27ae60"); layout_stats.addWidget(self.lbl_prev); layout_stats.addWidget(self.bar_prev)
         self.lbl_urg, self.bar_urg = crear_barra(f"🚨 {t('tag_urgente')}", "#c0392b"); layout_stats.addWidget(self.lbl_urg); layout_stats.addWidget(self.bar_urg)
-        layout_stats.addStretch(); self.group_stats.setLayout(layout_stats); v_stats.addWidget(self.group_stats); h_split.addLayout(v_stats, 20); l.addLayout(h_split); self.tab_dashboard.setLayout(l)
+        layout_stats.addStretch(); self.group_stats.setLayout(layout_stats); v_stats.addWidget(self.group_stats); h_split.addLayout(v_stats, 20); l.addLayout(h_split)
+        h_costes = QHBoxLayout()
+        v_rank_coste = QVBoxLayout()
+        v_rank_coste.addWidget(QLabel(tt("lbl_ranking_maquinas_coste", "Máquinas con más coste (año actual)")))
+        self.grafico_ranking_coste = GraficoBarrasRanking(color="#8e44ad", formato_valor=self._importe_largo); v_rank_coste.addWidget(self.grafico_ranking_coste)
+        h_costes.addLayout(v_rank_coste, 50)
+        v_mes_coste = QVBoxLayout()
+        v_mes_coste.addWidget(QLabel(tt("lbl_coste_por_mes", "Coste de mantenimiento por mes")))
+        self.grafico_coste_mes = GraficoBarrasMensual(color="#16a085", formato_valor=_importe_corto); v_mes_coste.addWidget(self.grafico_coste_mes)
+        h_costes.addLayout(v_mes_coste, 50)
+        l.addLayout(h_costes); self.tab_dashboard.setLayout(l)
+
+    @staticmethod
+    def _importe_largo(valor):
+        return consumos.formato_importe(valor, consumos.moneda())
+
+    def _refrescar_costes(self):
+        r = costes.resumen()
+        # «≥» avisa de que a algún repuesto u hora le falta el precio y el total se queda corto
+        marca = "≥ " if r["sin_precio"] else ""
+        self.lbl_coste_mes.setText(marca + self._importe_largo(r["mes"]))
+        self.lbl_coste_anio.setText(marca + self._importe_largo(r["anio"]))
+        self.grafico_ranking_coste.establecer_datos(r["ranking"])
+        self.grafico_coste_mes.establecer_datos(r["por_mes"])
 
     def refresh_dashboard(self):
         avisos = self._avisos_visibles(); hoy = QDate.currentDate(); pendientes_reales = 0
@@ -120,6 +157,7 @@ class PestanaDashboard:
         self.lbl_count_regs.setText(str(count_mes)); self.lbl_count_regs.setStyleSheet("color: #3daee9; font-size: 32px; font-weight: bold;")
         self.grafico_ranking_averias.establecer_datos(maquinas.ranking_trabajos())
         self.grafico_averias_mes.establecer_datos(maquinas.averias_por_mes())
+        self._refrescar_costes()
         indicadores = maquinas.indicadores_fiabilidad_global()
         mtbf = indicadores["mtbf_dias"]
         self.lbl_mtbf_global.setText(f"{mtbf:.0f} {tt('lbl_dias_abrev', 'días')}" if mtbf is not None else "--")

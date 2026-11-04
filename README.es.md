@@ -157,7 +157,7 @@ versiones estables. Los cambios de cada versión están en
 - **📋 Registro de Cambios**: quién cambió qué, cuándo y desde dónde (PC o móvil) en trabajos, pendientes, avisos, listas de comprobación, máquinas, almacén, usuarios, seguridad y configuración, con cada campo antes → después; filtros, buscador y exportación a Excel/CSV (solo administradores)
 - **🔐 Sesiones de Dispositivos**: lista los móviles vinculados a cada usuario, con su modelo real, y permite revocar una o varias sesiones concretas sin desactivar al usuario entero (solo administradores). Al volver a iniciar sesión desde el mismo dispositivo, su sesión anterior se sustituye automáticamente en vez de acumularse
 - **🛡️ Seguridad**: sincronización con los móviles cifrada por HTTPS (el certificado del PC queda fijado por el QR), **bases de datos cifradas** opcionales (SQLCipher, con la clave en el llavero del sistema) y **copias de seguridad cifradas con contraseña**, intentos de inicio de sesión limitados contra la fuerza bruta, fotos recibidas de los móviles comprobadas y copias consistentes con comprobación de integridad
-- **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas
+- **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas, más el coste de mantenimiento del mes y del año, las máquinas con más coste y el coste por mes
 - **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia". Los iconos de los selectores de ficheros y carpetas se dibujan a juego con cada tema, así que se ven bien aunque el tema de iconos del sistema sea oscuro o no haya ninguno (Windows)
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
 - **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después y una **colección de fotos** adicional por trabajo; se pueden borrar varios registros a la vez
@@ -846,7 +846,7 @@ Lo que viene, sin fechas y sin un orden cerrado:
 - **Varios centros o plantas** con datos e indicadores por centro
 - Más idiomas (italiano, alemán…) y app para iPhone
 
-Recién hecho: preventivos por contador (horas de uso, ciclos, km), tiempo trabajado y coste de mano de obra en cada trabajo, repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
+Recién hecho: coste de mantenimiento en el Dashboard, preventivos por contador (horas de uso, ciclos, km), tiempo trabajado y coste de mano de obra en cada trabajo, repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
 
 Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
 en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

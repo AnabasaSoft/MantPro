@@ -154,7 +154,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📋 Change Log**: who changed what, when and from where (PC or phone) for jobs, pending jobs, reminders, checklists, machines, warehouse, users, security and settings, with each field before → after; filters, search and export to Excel/CSV (administrators only)
 - **🔐 Device Sessions**: lists the phones linked to each user, with their real model, and lets you revoke one or several specific sessions without deactivating the whole user (administrators only). When someone signs in again from the same device, their previous session is replaced automatically instead of piling up
 - **🛡️ Security**: phone sync encrypted with HTTPS (the PC's certificate is pinned by the QR code), optional **encrypted databases** (SQLCipher, key in the system keyring) and **password-encrypted backups**, sign-in attempts limited against brute force, photos received from phones checked, and consistent backups with an integrity check
-- **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries
+- **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries, plus the maintenance cost of the month and the year, the machines with the highest cost and the cost per month
 - **🎨 Visual Themes**: choose between dark mode (default), light mode or a retro style inspired by Windows 98, from the "Appearance" menu. The icons in the file and folder pickers are drawn to match each theme, so they look right even if the system icon theme is dark or there is none (Windows)
 - **📅 Interactive Calendar**: View and manage maintenance tasks with colour codes (public holidays, vacations, days with tasks)
 - **📝 Full History**: record of every job carried out, with before/after photos and an extra **photo collection** per job; several records can be deleted at once
@@ -835,7 +835,7 @@ What's coming, without dates and in no fixed order:
 - **Several sites or plants** with separate data and KPIs per site
 - More languages (Italian, German…) and an iPhone app
 
-Recently done: counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
+Recently done: maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

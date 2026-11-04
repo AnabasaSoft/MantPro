@@ -134,18 +134,20 @@ class GraficoBarrasRanking(_GraficoBase):
     depender de ninguna librería de gráficos externa), para un ranking ya
     ordenado de mayor a menor."""
 
-    def __init__(self, parent=None, color="#c0392b", color_texto=None, color_fondo=None):
+    def __init__(self, parent=None, color="#c0392b", color_texto=None, color_fondo=None, formato_valor=None):
         super().__init__(parent, color_texto, color_fondo, altura_minima=160)
         self._color = QColor(color)
+        # Función valor → texto (p. ej. para importes); sin ella, str(valor)
+        self._formato_valor = formato_valor or str
 
     def _dibujar(self, painter):
         maximo = max(valor for _, valor in self._datos) or 1
         ancho, alto = self.width(), self.height()
         alto_fila = alto / len(self._datos)
         ancho_etiqueta = 130
-        ancho_valor = 30
         painter.setFont(QFont(painter.font().family(), 9))
         metrica = painter.fontMetrics()
+        ancho_valor = max(30, max(metrica.horizontalAdvance(self._formato_valor(v)) for _, v in self._datos) + 8)
         for i, (etiqueta, valor) in enumerate(self._datos):
             y = i * alto_fila
             painter.setPen(self._color_texto)
@@ -164,16 +166,17 @@ class GraficoBarrasRanking(_GraficoBase):
 
             painter.setPen(self._color_texto)
             painter.drawText(QRectF(x_barra + ancho_disponible + 4, y, ancho_valor, alto_fila),
-                              Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, str(valor))
+                              Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, self._formato_valor(valor))
 
 
 class GraficoBarrasMensual(_GraficoBase):
     """Gráfica de barras verticales (evolución mes a mes) dibujada a mano con
     QPainter, sin depender de ninguna librería de gráficos externa."""
 
-    def __init__(self, parent=None, color="#c0392b", color_texto=None, color_fondo=None):
+    def __init__(self, parent=None, color="#c0392b", color_texto=None, color_fondo=None, formato_valor=None):
         super().__init__(parent, color_texto, color_fondo, altura_minima=160)
         self._color = QColor(color)
+        self._formato_valor = formato_valor or str
 
     def establecer_datos(self, datos):
         """datos: lista de tuplas ('YYYY-MM', valor), en orden cronológico."""
@@ -198,7 +201,7 @@ class GraficoBarrasMensual(_GraficoBase):
                 ancho_barra = max(ancho_col * 0.5, 4)
                 painter.drawRoundedRect(QRectF(x + (ancho_col - ancho_barra) / 2, y_barra, ancho_barra, alto_barra), 2, 2)
                 painter.setPen(self._color_texto)
-                painter.drawText(QRectF(x, y_barra - 14, ancho_col, 14), Qt.AlignmentFlag.AlignCenter, str(valor))
+                painter.drawText(QRectF(x, y_barra - 14, ancho_col, 14), Qt.AlignmentFlag.AlignCenter, self._formato_valor(valor))
             painter.setPen(self._color_texto)
             etiqueta_mes = f"{mes[5:7]}/{mes[2:4]}"
             painter.drawText(QRectF(x, alto_util + 2, ancho_col, 18), Qt.AlignmentFlag.AlignCenter, etiqueta_mes)

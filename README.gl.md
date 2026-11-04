@@ -156,7 +156,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📋 Rexistro de cambios**: quen cambiou que, cando e desde onde (PC ou móbil) en traballos, pendentes, avisos, listas de comprobación, máquinas, almacén, usuarios, seguranza e configuración, con cada campo antes → despois; filtros, buscador e exportación a Excel/CSV (só administradores)
 - **🔐 Sesións de dispositivos**: lista os móbiles vinculados a cada usuario, co seu modelo real, e permite revogar unha ou varias sesións concretas sen desactivar o usuario enteiro (só administradores). Ao volver iniciar sesión dende o mesmo dispositivo, a sesión anterior substitúese automaticamente en vez de acumularse
 - **🛡️ Seguranza**: sincronización cos móbiles cifrada por HTTPS (o certificado do PC queda fixado polo QR), **bases de datos cifradas** opcionais (SQLCipher, coa chave no chaveiro do sistema) e **copias de seguranza cifradas con contrasinal**, intentos de inicio de sesión limitados contra a forza bruta, fotos recibidas dos móbiles comprobadas e copias consistentes con comprobación de integridade
-- **📊 Panel con KPI e gráficos**: tarxetas de avisos pendentes, tarefas por facer, rexistros do mes e MTBF/MTTR medios de toda a planta, ademais de gráficos das máquinas con máis avarías e de avarías por mes, debuxados sen depender de bibliotecas externas
+- **📊 Panel con KPI e gráficos**: tarxetas de avisos pendentes, tarefas por facer, rexistros do mes e MTBF/MTTR medios de toda a planta, ademais de gráficos das máquinas con máis avarías e de avarías por mes, debuxados sen depender de bibliotecas externas, ademais do custo de mantemento do mes e do ano, das máquinas con máis custo e do custo por mes
 - **🎨 Temas visuais**: escolle entre modo escuro (por defecto), claro ou un estilo retro inspirado en Windows 98, dende o menú "Aparencia". As iconas dos selectores de ficheiros e cartafoles debúxanse a xogo con cada tema, así que se ven ben aínda que o tema de iconas do sistema sexa escuro ou non haxa ningún (Windows)
 - **📅 Calendario interactivo**: visualiza e xestiona as tarefas de mantemento con códigos de cor (festivos, vacacións, días con tarefas)
 - **📝 Historial completo**: rexistro histórico de todas as intervencións feitas, con fotos de antes/despois e unha **colección de fotos** adicional por traballo; pódense borrar varios rexistros á vez
@@ -840,7 +840,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano, alemán…) e app para iPhone
 
-Feito hai pouco: preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

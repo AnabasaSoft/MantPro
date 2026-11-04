@@ -157,7 +157,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📋 Registre de canvis**: qui va canviar què, quan i des d'on (PC o mòbil) en treballs, pendents, avisos, llistes de comprovació, màquines, magatzem, usuaris, seguretat i configuració, amb cada camp abans → després; filtres, cercador i exportació a Excel/CSV (només administradors)
 - **🔐 Sessions de dispositius**: llista els mòbils vinculats a cada usuari, amb el seu model real, i permet revocar una o diverses sessions concretes sense desactivar l'usuari sencer (només administradors). En tornar a iniciar sessió des del mateix dispositiu, la sessió anterior se substitueix automàticament en lloc d'acumular-se
 - **🛡️ Seguretat**: sincronització amb els mòbils xifrada per HTTPS (el certificat del PC queda fixat pel QR), **bases de dades xifrades** opcionals (SQLCipher, amb la clau al clauer del sistema) i **còpies de seguretat xifrades amb contrasenya**, intents d'inici de sessió limitats contra la força bruta, fotos rebudes dels mòbils comprovades i còpies consistents amb comprovació d'integritat
-- **📊 Tauler amb KPI i gràfics**: targetes d'avisos pendents, tasques per fer, registres del mes i MTBF/MTTR mitjans de tota la planta, a més de gràfics de les màquines amb més avaries i d'avaries per mes, dibuixats sense dependre de biblioteques externes
+- **📊 Tauler amb KPI i gràfics**: targetes d'avisos pendents, tasques per fer, registres del mes i MTBF/MTTR mitjans de tota la planta, a més de gràfics de les màquines amb més avaries i d'avaries per mes, dibuixats sense dependre de biblioteques externes, a més del cost de manteniment del mes i de l'any, de les màquines amb més cost i del cost per mes
 - **🎨 Temes visuals**: tria entre mode fosc (per defecte), clar o un estil retro inspirat en Windows 98, des del menú "Aparença". Les icones dels selectors de fitxers i carpetes es dibuixen a joc amb cada tema, de manera que es veuen bé encara que el tema d'icones del sistema sigui fosc o no n'hi hagi cap (Windows)
 - **📅 Calendari interactiu**: visualitza i gestiona les tasques de manteniment amb codis de color (festius, vacances, dies amb tasques)
 - **📝 Historial complet**: registre històric de totes les intervencions fetes, amb fotos d'abans/després i una **col·lecció de fotos** addicional per treball; es poden esborrar diversos registres alhora
@@ -846,7 +846,7 @@ El que ve, sense dates i sense un ordre tancat:
 - **Diversos centres o plantes** amb dades i indicadors per centre
 - Més idiomes (italià, alemany…) i app per a iPhone
 
-Fet fa poc: preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
+Fet fa poc: cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

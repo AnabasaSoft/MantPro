@@ -159,7 +159,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **📋 Aldaketen erregistroa**: nork zer aldatu zuen, noiz eta nondik (PC edo mugikorra) lanetan, zain dauden lanetan, abisuetan, egiaztapen-zerrendetan, makinetan, biltegian, erabiltzaileetan, segurtasunean eta konfigurazioan, eremu bakoitza lehen → ondoren; iragazkiak, bilatzailea eta Excel/CSV esportazioa (administratzaileentzat bakarrik)
 - **🔐 Gailuen saioak**: erabiltzaile bakoitzari lotutako mugikorrak zerrendatzen ditu, haien benetako modeloarekin, eta saio jakin bat edo batzuk baliogabetzeko aukera ematen du erabiltzaile osoa desaktibatu gabe (administratzaileak soilik). Gailu beretik berriro saioa hastean, aurreko saioa automatikoki ordezten da, pilatu beharrean
 - **🛡️ Segurtasuna**: mugikorrekiko sinkronizazioa HTTPS bidez zifratuta (PCaren ziurtagiria QRaren bidez finkatuta), aukerako **datu-base zifratuak** (SQLCipher, gakoa sistemaren gako-sortan) eta **pasahitzarekin zifratutako babeskopiak**, saio-hasierako saiakerak mugatuta indar gordinaren aurka, mugikorretatik jasotako argazkiak egiaztatuta eta babeskopia koherenteak osotasun-egiaztapenarekin
-- **📊 Aginte-panela KPI eta grafikoekin**: egiteke dauden abisuen, egiteko zereginen, hilabeteko erregistroen eta lantegi osoko batez besteko MTBF/MTTRren txartelak, gehi matxura gehien dituzten makinen eta hilabeteko matxuren grafikoak, kanpoko liburutegirik gabe marraztuak
+- **📊 Aginte-panela KPI eta grafikoekin**: egiteke dauden abisuen, egiteko zereginen, hilabeteko erregistroen eta lantegi osoko batez besteko MTBF/MTTRren txartelak, gehi matxura gehien dituzten makinen eta hilabeteko matxuren grafikoak, kanpoko liburutegirik gabe marraztuak, gehi hilabeteko eta urteko mantentze-lanen kostua, kostu handiena duten makinak eta hilabeteko kostua
 - **🎨 Gai bisualak**: aukeratu modu ilun (lehenetsia), argi edo Windows 98an inspiratutako estilo retro baten artean, "Itxura" menutik. Fitxategi- eta karpeta-hautatzaileetako ikonoak gai bakoitzaren arabera marrazten dira, eta ondo ikusten dira sistemaren ikono-gaia iluna izan arren edo bat ere ez egon arren (Windows)
 - **📅 Egutegi interaktiboa**: Ikusi eta kudeatu mantentze-zereginak kolore-kodeekin (jaiegunak, oporrak, zereginak dituzten egunak)
 - **📝 Historia osoa**: Egindako lan guztien erregistro historikoa, aurreko/ondorengo argazkiekin eta lan bakoitzeko **argazki bilduma** gehigarri batekin; hainbat erregistro batera ezaba daitezke
@@ -856,7 +856,7 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
 - Hizkuntza gehiago (italiera, alemana…) eta iPhonerako aplikazioa
 
-Berriki egina: kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
+Berriki egina: mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki
