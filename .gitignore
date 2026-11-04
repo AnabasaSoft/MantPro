@@ -82,3 +82,6 @@ clave_copias.json
 clave_bd.json
 conversion_bd_pendiente.json
 *.db.convirtiendo
+
+# Scripts de uso interno (verificador de idiomas, pruebas de regresión…)
+herramientas/
