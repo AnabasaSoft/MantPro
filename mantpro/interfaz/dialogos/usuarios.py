@@ -807,6 +807,13 @@ class DialogoSesiones(QDialog):
 
     def _actualizar_conexion(self):
         por_token = {s["token"]: s for s in usuarios.listar_sesiones()}
+        # Si ha entrado o salido alguna sesión (p. ej. el móvil ha vuelto a
+        # iniciar sesión y su fila antigua ya no existe), se recarga la tabla
+        # entera para que las acciones no trabajen con filas obsoletas.
+        tokens_tabla = {self.tabla.item(f, self.COL_TOKEN).text() for f in range(self.tabla.rowCount())}
+        if tokens_tabla != set(por_token):
+            self.refrescar()
+            return
         # Sin reordenar a mitad del recorrido si se ordenó por esta columna
         self.tabla.setSortingEnabled(False)
         for fila in range(self.tabla.rowCount()):
@@ -911,6 +918,11 @@ class DialogoSesiones(QDialog):
         token = self.tabla.item(filas[0], self.COL_TOKEN).text()
         s = next((x for x in usuarios.listar_sesiones() if x["token"] == token), None)
         if s is None:
+            # La sesión ya no existe (el móvil ha iniciado otra): se recarga
+            # la tabla y se avisa, en vez de no hacer nada.
+            self.refrescar()
+            QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
+                                    t("msg_adjudicar_elige", "Selecciona primero una sesión del móvil."))
             return
         if not s.get("dispositivo_id"):
             QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
