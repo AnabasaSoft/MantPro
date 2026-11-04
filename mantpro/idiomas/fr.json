@@ -329,6 +329,8 @@
   "usuarios_cambiar_rol": "🎚 Changer le rôle",
   "usuarios_cambiar_especialidad": "🔧 Spécialité",
   "usuarios_activar": "🚫 Activer / Désactiver",
+  "usuarios_borrar": "🗑️ Supprimer l'utilisateur",
+  "usuarios_confirmar_borrar": "Supprimer l'utilisateur «{nombre}» ?\n\nIl disparaîtra de la liste et ne pourra plus se connecter, mais son nom restera dans les travaux, listes et registres où il apparaît déjà. Si vous voulez seulement bloquer l'accès, il vaut mieux le désactiver.",
   "usuarios_selecciona": "Sélectionnez un utilisateur dans la liste.",
   "especialidades_titulo": "Spécialités",
   "especialidades_col_nombre": "Nom",

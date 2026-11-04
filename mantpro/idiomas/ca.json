@@ -329,6 +329,8 @@
   "usuarios_cambiar_rol": "🎚 Canviar rol",
   "usuarios_cambiar_especialidad": "🔧 Especialitat",
   "usuarios_activar": "🚫 Activar / Desactivar",
+  "usuarios_borrar": "🗑️ Esborrar usuari",
+  "usuarios_confirmar_borrar": "Voleu esborrar l'usuari «{nombre}»?\n\nDeixarà d'existir a la llista i no podrà tornar a entrar, però el seu nom es conservarà en els treballs, llistats i registres on ja apareix. Si només voleu impedir-li l'accés, és millor desactivar-lo.",
   "usuarios_selecciona": "Selecciona un usuari de la llista.",
   "especialidades_titulo": "Especialitats",
   "especialidades_col_nombre": "Nom",

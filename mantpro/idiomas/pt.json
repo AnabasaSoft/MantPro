@@ -329,6 +329,8 @@
   "usuarios_cambiar_rol": "🎚 Alterar função",
   "usuarios_cambiar_especialidad": "🔧 Especialidade",
   "usuarios_activar": "🚫 Ativar / Desativar",
+  "usuarios_borrar": "🗑️ Apagar utilizador",
+  "usuarios_confirmar_borrar": "Apagar o utilizador «{nombre}»?\n\nDeixará de existir na lista e não poderá voltar a entrar, mas o seu nome será mantido nos trabalhos, listagens e registos onde já aparece. Se só pretende impedir o acesso, é melhor desativá-lo.",
   "usuarios_selecciona": "Selecione um usuário da lista.",
   "especialidades_titulo": "Especialidades",
   "especialidades_col_nombre": "Nome",

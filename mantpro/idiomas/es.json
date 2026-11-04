@@ -329,6 +329,8 @@
   "usuarios_cambiar_rol": "🎚 Cambiar rol",
   "usuarios_cambiar_especialidad": "🔧 Especialidad",
   "usuarios_activar": "🚫 Activar / Desactivar",
+  "usuarios_borrar": "🗑️ Borrar usuario",
+  "usuarios_confirmar_borrar": "¿Borrar al usuario «{nombre}»?\n\nDejará de existir en la lista y no podrá volver a entrar, pero su nombre se conservará en los trabajos, listados y registros donde ya aparece. Si solo quieres impedirle el acceso, es mejor desactivarlo.",
   "usuarios_selecciona": "Selecciona un usuario de la lista.",
   "especialidades_titulo": "Especialidades",
   "especialidades_col_nombre": "Nombre",

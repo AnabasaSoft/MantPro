@@ -428,12 +428,14 @@ class DialogoGestionUsuarios(QDialog):
         boton_rol = QPushButton(t("usuarios_cambiar_rol", "🎚 Cambiar rol"))
         boton_especialidad = QPushButton(t("usuarios_cambiar_especialidad", "🔧 Especialidad"))
         boton_estado = QPushButton(t("usuarios_activar", "🚫 Activar / Desactivar"))
+        boton_borrar = QPushButton(t("usuarios_borrar", "🗑️ Borrar usuario"))
         boton_gestionar_especialidades = QPushButton(t("especialidades_titulo", "Especialidades") + "...")
         boton_cerrar = QPushButton(t("cerrar", "Cerrar"))
         acciones.addWidget(boton_reset)
         acciones.addWidget(boton_rol)
         acciones.addWidget(boton_especialidad)
         acciones.addWidget(boton_estado)
+        acciones.addWidget(boton_borrar)
         acciones.addStretch()
         acciones.addWidget(boton_gestionar_especialidades)
         acciones.addWidget(boton_cerrar)
@@ -444,6 +446,7 @@ class DialogoGestionUsuarios(QDialog):
         boton_rol.clicked.connect(self._cambiar_rol)
         boton_especialidad.clicked.connect(self._cambiar_especialidad)
         boton_estado.clicked.connect(self._alternar_estado)
+        boton_borrar.clicked.connect(self._borrar_usuario)
         boton_gestionar_especialidades.clicked.connect(self._gestionar_especialidades)
         boton_cerrar.clicked.connect(self.accept)
 
@@ -646,6 +649,23 @@ class DialogoGestionUsuarios(QDialog):
             return
         actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
         ok, mensaje = usuarios.actualizar_usuario(uid, activo=not actual["activo"])
+        if not ok:
+            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        self.refrescar()
+
+    def _borrar_usuario(self):
+        uid = self._seleccionado()
+        if uid is None:
+            return
+        actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
+        if actual is None:
+            return
+        respuesta = QMessageBox.question(
+            self, t("aviso", "Aviso"),
+            t("usuarios_confirmar_borrar", "¿Borrar al usuario «{nombre}»?").format(nombre=actual["nombre"]))
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        ok, mensaje = usuarios.borrar_usuario(uid)
         if not ok:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
         self.refrescar()

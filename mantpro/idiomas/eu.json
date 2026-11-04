@@ -329,6 +329,8 @@
   "usuarios_cambiar_rol": "🎚 Aldatu rola",
   "usuarios_cambiar_especialidad": "🔧 Espezialitatea",
   "usuarios_activar": "🚫 Gaitu / Desgaitu",
+  "usuarios_borrar": "🗑️ Erabiltzailea ezabatu",
+  "usuarios_confirmar_borrar": "«{nombre}» erabiltzailea ezabatu nahi duzu?\n\nZerrendatik desagertuko da eta ezingo da berriro sartu, baina bere izena lanetan, zerrendetan eta dagoeneko agertzen den erregistroetan geratuko da. Sarbidea eragotzi nahi baduzu soilik, hobe da desgaitzea.",
   "usuarios_selecciona": "Hautatu erabiltzaile bat zerrendatik.",
   "especialidades_titulo": "Espezialitateak",
   "especialidades_col_nombre": "Izena",

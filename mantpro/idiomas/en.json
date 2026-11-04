@@ -328,6 +328,8 @@
   "usuarios_cambiar_rol": "🎚 Change role",
   "usuarios_cambiar_especialidad": "🔧 Specialty",
   "usuarios_activar": "🚫 Enable / Disable",
+  "usuarios_borrar": "🗑️ Delete user",
+  "usuarios_confirmar_borrar": "Delete user «{nombre}»?\n\nThey will be removed from the list and will no longer be able to sign in, but their name will remain in the jobs, lists and records where it already appears. If you only want to block access, disabling the user is better.",
   "usuarios_selecciona": "Select a user from the list.",
   "especialidades_titulo": "Specialties",
   "especialidades_col_nombre": "Name",

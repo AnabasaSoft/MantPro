@@ -1088,6 +1088,33 @@ def cambiar_password(usuario_id, password_nueva, password_actual=None, forzar=Fa
     return ok, mensaje
 
 
+def borrar_usuario(usuario_id):
+    """Borra el usuario de la lista. Su nombre se conserva en los trabajos,
+    movimientos de almacén, revisiones, lecturas de contadores y registro de
+    cambios, porque todos guardan una copia del nombre (usuario_nombre) y no
+    dependen de que la fila exista. Devuelve (ok, mensaje)."""
+    if SESION_ACTUAL and SESION_ACTUAL.get("id") == usuario_id:
+        return False, "No puedes borrar tu propio usuario."
+    foto = _foto_usuario(usuario_id)
+    if not foto:
+        return False, "Usuario no encontrado."
+    con = _conn()
+    if _es_ultimo_admin(con, usuario_id):
+        con.close()
+        return False, "Debe quedar al menos un administrador activo."
+    # Las claves foráneas no están activas en esta conexión: se limpia a mano.
+    con.execute("DELETE FROM sesiones WHERE usuario_id = ?", (usuario_id,))
+    con.execute("DELETE FROM usuario_roles WHERE usuario_id = ?", (usuario_id,))
+    con.execute("DELETE FROM usuario_especialidades WHERE usuario_id = ?", (usuario_id,))
+    con.execute("UPDATE moviles SET usuario_id = NULL WHERE usuario_id = ?", (usuario_id,))
+    con.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+    con.commit()
+    con.close()
+    auditar("usuarios", "borrar", _objeto_usuario(foto),
+            cambios=diferencias(foto, {}, _ETIQUETAS_USUARIO), objeto_id=usuario_id)
+    return True, "Usuario borrado."
+
+
 def crear_especialidad(nombre):
     ok, resultado = _crear_especialidad_sin_registro(nombre)
     if ok:
