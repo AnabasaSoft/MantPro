@@ -256,7 +256,7 @@ def main():
     else:
         servidor_instancia = escuchar_otras_instancias(app)
 
-    dlg_login = DialogoLogin(ruta_logo=ruta_logo if os.path.exists(ruta_logo) else None)
+    dlg_login = DialogoLogin(ruta_logo=ruta_icono if os.path.exists(ruta_icono) else None)
     if dlg_login.exec() != QDialog.DialogCode.Accepted:
         sys.exit(0)
 

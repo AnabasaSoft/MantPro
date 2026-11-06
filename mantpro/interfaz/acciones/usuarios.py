@@ -129,7 +129,7 @@ class AccionesUsuarios:
         usuarios.SESION_ACTUAL = None
         self.hide()
 
-        ruta_logo = resource_path(os.path.join("recursos", "AnabasaSoft.png"))
+        ruta_logo = resource_path(os.path.join("recursos", "icono.png"))
         dlg_login = DialogoLogin(ruta_logo=ruta_logo if os.path.exists(ruta_logo) else None)
         if dlg_login.exec() != QDialog.DialogCode.Accepted:
             self.close()

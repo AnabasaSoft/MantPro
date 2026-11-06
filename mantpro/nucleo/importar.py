@@ -41,7 +41,7 @@ from . import almacen, usuarios
 from .. import idiomas
 from ..idiomas import t
 
-TIPOS = ("maquinas", "articulos", "avisos", "usuarios")
+TIPOS = ("maquinas", "articulos", "avisos", "usuarios", "pendientes", "historial")
 
 # (campo, obligatorio) de cada tipo, en el orden en que salen en el asistente
 # y en la plantilla. La etiqueta visible de cada campo es t("imp_campo_<campo>").
@@ -53,6 +53,10 @@ CAMPOS = {
     "avisos": [("titulo", True), ("fecha_inicio", True), ("frecuencia", True), ("margen", False),
                ("tecnico", False), ("especialidad", False), ("ultima", False)],
     "usuarios": [("login", True), ("nombre", True), ("roles", False), ("especialidad", False)],
+    "pendientes": [("titulo", True), ("detalles", False), ("prioridad", False), ("tecnico", False),
+                   ("especialidad", False)],
+    "historial": [("fecha", True), ("titulo", True), ("detalles", False), ("etiquetas", False),
+                  ("maquina", False), ("tecnico", False), ("horas_paro", False), ("minutos_trabajo", False)],
 }
 
 MARGEN_POR_DEFECTO = 5  # igual que el alta de avisos en la pestaña Avisos
@@ -86,6 +90,27 @@ _SINONIMOS = {
     ("usuarios", "login"): ["login", "user", "username", "usuario", "erabiltzailea", "usuari", "usuario"],
     ("usuarios", "nombre"): ["nombre", "name", "nombre completo", "full name", "izena", "nom", "nome"],
     ("usuarios", "roles"): ["rol", "role", "roles", "perfil", "profile"],
+    ("pendientes", "titulo"): ["pendiente", "tarea", "task", "title", "todo", "to do", "pending", "zain dagoena",
+                               "pendent", "pendente", "en attente"],
+    ("pendientes", "detalles"): ["detalle", "details", "detail", "notas", "observaciones", "comentarios",
+                                 "descripcion", "description", "xehetasunak"],
+    ("pendientes", "prioridad"): ["priority", "urgencia", "lehentasuna", "prioritat", "prioridade", "priorite"],
+    ("pendientes", "tecnico"): ["tecnico", "asignado", "asignado a", "technician", "assigned to", "responsable"],
+    ("historial", "fecha"): ["fecha", "date", "data", "dia", "day", "eguna", "data del treball"],
+    ("historial", "titulo"): ["trabajo", "tarea", "titulo", "work", "task", "title", "job", "lana", "treball",
+                              "trabalho", "travail", "intervencion", "descripcion corta"],
+    ("historial", "detalles"): ["detalle", "details", "detail", "notas", "observaciones", "comentarios",
+                                "descripcion", "description", "xehetasunak"],
+    ("historial", "etiquetas"): ["etiquetas", "tags", "tipo", "type", "categoria", "category", "etiketak",
+                                 "etiquetes", "etiquetas", "etiquettes"],
+    ("historial", "maquina"): ["maquina", "equipo", "activo", "machine", "equipment", "asset", "makina",
+                               "maquina nom", "equipement"],
+    ("historial", "tecnico"): ["tecnico", "hecho por", "realizado por", "technician", "done by", "autor",
+                               "author", "teknikaria", "tecnic", "technicien"],
+    ("historial", "horas_paro"): ["paro", "horas paro", "horas de paro", "parada", "downtime", "stop hours",
+                                  "geldialdia", "aturada", "parada horas"],
+    ("historial", "minutos_trabajo"): ["minutos", "tiempo", "minutos trabajados", "tiempo trabajado", "minutes",
+                                       "time spent", "worked minutes", "minutuak", "minuts", "minutos de trabajo"],
 }
 
 _CLAVES_FRECUENCIA = ("freq_diario", "freq_semanal", "freq_mensual", "freq_trimestral",
@@ -212,6 +237,25 @@ def _frecuencia(v):
         candidatos = {normalizar(x) for x in _traducciones_de(clave)} | set(_SINONIMOS_FRECUENCIA[clave])
         if n in candidatos:
             return idiomas.TRADUCCIONES["es"][clave]
+    return None
+
+
+_SINONIMOS_PRIORIDAD = {
+    "Baja": ["baja", "low", "baixa", "faible", "behea", "bassa", "1"],
+    "Media": ["media", "medium", "normal", "mitjana", "media", "moyenne", "ertaina", "2"],
+    "Alta": ["alta", "high", "haute", "altua", "elevada", "3"],
+    "Crítica": ["critica", "critical", "urgente", "urgent", "kritikoa", "critique", "4"],
+}
+
+
+def _prioridad(v):
+    """Prioridad canónica ('Baja', 'Media', 'Alta' o 'Crítica', como se guarda
+    en la BD) de lo escrito en cualquier idioma, o None si no se reconoce."""
+    n = normalizar(texto_celda(v))
+    for canonica, sinonimos in _SINONIMOS_PRIORIDAD.items():
+        clave = {"Baja": "baja", "Media": "media", "Alta": "alta", "Crítica": "critica"}[canonica]
+        if n in {normalizar(x) for x in _traducciones_de(f"prioridad_{clave}")} | set(sinonimos):
+            return canonica
     return None
 
 
@@ -446,7 +490,7 @@ def resumen(resultados):
 # hojas en el Excel: así un aviso puede asignarse a un técnico que se crea en
 # la hoja de usuarios del mismo fichero, y una especialidad creada en una hoja
 # ya existe al llegar a la siguiente.
-ORDEN_IMPORTACION = ("usuarios", "maquinas", "articulos", "avisos")
+ORDEN_IMPORTACION = ("usuarios", "maquinas", "articulos", "avisos", "pendientes", "historial")
 
 
 def procesar(tipo, filas, mapeo, modo="saltar", aplicar=False, usuario_id=None, usuario_nombre=None):
@@ -480,7 +524,8 @@ def procesar_varias(hojas, modo="saltar", aplicar=False, usuario_id=None, usuari
     adjuntar(con, almacen.RUTA_DB, "alm")
     con.execute("PRAGMA foreign_keys = ON")
     clases = {"maquinas": _ImportadorMaquinas, "articulos": _ImportadorArticulos,
-              "avisos": _ImportadorAvisos, "usuarios": _ImportadorUsuarios}
+              "avisos": _ImportadorAvisos, "usuarios": _ImportadorUsuarios,
+              "pendientes": _ImportadorPendientes, "historial": _ImportadorHistorial}
     resultados = [None] * len(hojas)
     passwords = []
     try:
@@ -915,6 +960,153 @@ class _ImportadorAvisos(_Importador):
         r.mensajes = avisos
 
 
+class _ImportadorPendientes(_ImportadorAvisos):
+    """Pendientes: se identifican por su título (sin distinguir mayúsculas)."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.pendientes = {_clave(f["titulo"]): f["id"] for f in self.con.execute("SELECT id, titulo FROM pendientes")}
+
+    def fila(self, r, celda):
+        titulo = texto_celda(celda("titulo"))
+        detalles = texto_celda(celda("detalles"))
+        avisos = []
+        prioridad = None
+        texto_prioridad = texto_celda(celda("prioridad"))
+        if texto_prioridad:
+            prioridad = _prioridad(texto_prioridad)
+            if prioridad is None:
+                avisos.append(t("imp_aviso_prioridad_desconocida").format(valor=texto_prioridad))
+        asignado_a = asignado_nombre = None
+        tecnico = texto_celda(celda("tecnico"))
+        if tecnico:
+            u = next((u for u in self.usuarios if _clave(u["login"]) == _clave(tecnico)), None) or \
+                next((u for u in self.usuarios if _clave(u["nombre"]) == _clave(tecnico)), None)
+            if u:
+                asignado_a, asignado_nombre = u["id"], u["nombre"]
+            else:
+                avisos.append(t("imp_aviso_tecnico_no_existe").format(nombre=tecnico))
+
+        self._repetida(_clave(titulo), r)
+        existente = self.pendientes.get(_clave(titulo))
+        if existente and self.modo != "actualizar":
+            r.estado = "saltar"
+            r.mensajes = [t("imp_ya_existe")]
+            return
+        nombre_esp = texto_celda(celda("especialidad"))
+        especialidad_id = self._especialidad(nombre_esp, avisos) if nombre_esp else None
+
+        if existente is None:
+            self.con.execute(
+                "INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (titulo, detalles, asignado_a, asignado_nombre, prioridad or "Media", especialidad_id))
+            r.estado = "crear"
+        else:
+            cambios = {}
+            if detalles:
+                cambios["detalles"] = detalles
+            if prioridad:
+                cambios["prioridad"] = prioridad
+            if asignado_a is not None:
+                cambios["asignado_a"], cambios["asignado_nombre"] = asignado_a, asignado_nombre
+            if especialidad_id is not None:
+                cambios["especialidad_id"] = especialidad_id
+            if cambios:
+                asignaciones = ", ".join(f"{k}=?" for k in cambios)
+                self.con.execute(f"UPDATE pendientes SET {asignaciones} WHERE id=?", (*cambios.values(), existente))
+            r.estado = "actualizar"
+        r.mensajes = avisos
+
+
+class _ImportadorHistorial(_Importador):
+    """Trabajos del historial. Se identifican por fecha + título: lo que ya
+    está en el historial se salta (no tiene sentido «actualizar» un trabajo
+    hecho). El técnico que ya no existe como usuario se guarda solo con su
+    nombre, igual que los trabajos «Históricos» anteriores al sistema de
+    usuarios; sin técnico queda como «Histórico»."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.usuarios = [dict(f) for f in self.con.execute("SELECT id, login, nombre FROM usuarios")]
+        self.maquinas = [dict(f) for f in self.con.execute("SELECT id, nombre, padre_id FROM maquinas")]
+        self.existentes = {(f["fecha"], _clave(f["descripcion"]))
+                           for f in self.con.execute("SELECT fecha, descripcion FROM tareas")}
+
+    def _maquina(self, texto):
+        """Id de la máquina por su nombre o por su ruta «Línea 1 > Horno»;
+        None si no existe. Lanza _ErrorFila si el nombre es ambiguo."""
+        tramos = [x.strip() for x in texto.split(">") if x.strip()]
+        candidatas = [m for m in self.maquinas if _clave(m["nombre"]) == _clave(tramos[-1])]
+        if len(tramos) > 1:
+            por_id = {m["id"]: m for m in self.maquinas}
+            def ruta_ok(m):
+                actual = m
+                for tramo in reversed(tramos[:-1]):
+                    actual = por_id.get(actual["padre_id"])
+                    if actual is None or _clave(actual["nombre"]) != _clave(tramo):
+                        return False
+                return True
+            candidatas = [m for m in candidatas if ruta_ok(m)]
+        if len(candidatas) > 1:
+            raise _ErrorFila(t("imp_err_maquina_varias").format(nombre=texto))
+        return candidatas[0]["id"] if candidatas else None
+
+    def _decimal(self, valor, campo):
+        try:
+            n = _numero(valor)
+        except ValueError:
+            raise _ErrorFila(t("imp_err_numero").format(campo=etiqueta_campo(campo), valor=texto_celda(valor)))
+        if n is not None and n < 0:
+            raise _ErrorFila(t("imp_err_negativo_historial").format(campo=etiqueta_campo(campo)))
+        return n
+
+    def fila(self, r, celda):
+        try:
+            fecha = _fecha(celda("fecha"))
+        except ValueError:
+            raise _ErrorFila(t("imp_err_fecha").format(campo=etiqueta_campo("fecha"), valor=texto_celda(celda("fecha"))))
+        titulo = texto_celda(celda("titulo"))
+        detalles = texto_celda(celda("detalles"))
+        descripcion = titulo + (f"\n{detalles}" if detalles else "")
+        horas_paro = self._decimal(celda("horas_paro"), "horas_paro")
+        minutos = self._decimal(celda("minutos_trabajo"), "minutos_trabajo")
+        avisos = []
+
+        texto_maquina = texto_celda(celda("maquina"))
+        maquina_id = None
+        if texto_maquina:
+            maquina_id = self._maquina(texto_maquina)
+            if maquina_id is None:
+                avisos.append(t("imp_aviso_maquina_no_existe").format(nombre=texto_maquina))
+
+        usuario_id = None
+        usuario_nombre = None
+        tecnico = texto_celda(celda("tecnico"))
+        if tecnico:
+            u = next((u for u in self.usuarios if _clave(u["login"]) == _clave(tecnico)), None) or \
+                next((u for u in self.usuarios if _clave(u["nombre"]) == _clave(tecnico)), None)
+            usuario_id, usuario_nombre = (u["id"], u["nombre"]) if u else (None, tecnico)
+
+        self._repetida((fecha, _clave(descripcion)), r)
+        if (fecha, _clave(descripcion)) in self.existentes:
+            r.estado = "saltar"
+            r.mensajes = [t("imp_ya_existe")]
+            return
+        cur = self.con.execute(
+            "INSERT INTO tareas (fecha, descripcion, tags, raw_desc, usuario_id, usuario_nombre, maquina_id, horas_paro) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (fecha, descripcion, texto_celda(celda("etiquetas")) or "General", detalles,
+             usuario_id, usuario_nombre, maquina_id, horas_paro))
+        if minutos:
+            from . import mano_obra
+            self.con.execute("UPDATE tareas SET minutos_trabajo=?, personas=1, coste_hora=? WHERE id=?",
+                             (int(round(minutos)), mano_obra.coste_hora(), cur.lastrowid))
+        self.existentes.add((fecha, _clave(descripcion)))
+        r.estado = "crear"
+        r.mensajes = avisos
+
+
 class _ImportadorUsuarios(_ImportadorAvisos):
     def __init__(self, *args):
         super().__init__(*args)
@@ -990,6 +1182,13 @@ def _ejemplos(t=t):
                    "tecnico": "jperez", "especialidad": t("imp_ej_especialidad"), "ultima": None},
         "usuarios": {"login": "jperez", "nombre": "Juan Pérez", "roles": t("rol_tecnico"),
                      "especialidad": t("imp_ej_especialidad")},
+        "pendientes": {"titulo": t("imp_ej_pendiente"), "detalles": t("imp_ej_pendiente_detalles"),
+                       "prioridad": t("prioridad_alta"), "tecnico": "jperez",
+                       "especialidad": t("imp_ej_especialidad")},
+        "historial": {"fecha": date(date.today().year - 1, 3, 12), "titulo": t("imp_ej_trabajo"),
+                      "detalles": t("imp_ej_trabajo_detalles"), "etiquetas": t("imp_ej_etiquetas"),
+                      "maquina": t("imp_ej_maquina_padre") + " > " + t("imp_ej_maquina"), "tecnico": "jperez",
+                      "horas_paro": 2, "minutos_trabajo": 90},
     }
 
 
@@ -1014,7 +1213,7 @@ def generar_plantilla(ruta):
     hoja = libro.add_worksheet(re.sub(r"[\[\]:*?/\\]", "", t("imp_hoja_instrucciones"))[:31])
     hoja.set_column(0, 0, 110)
     hoja.write(0, 0, t("imp_instr_titulo"), negrita)
-    for i in range(1, 8):
+    for i in range(1, 9):
         hoja.write(i + 1, 0, t(f"imp_instr_{i}"), texto)
 
     ejemplos = _ejemplos()
@@ -1031,7 +1230,9 @@ def generar_plantilla(ruta):
                 h.write(1, j, valor, ejemplo)
             if campo == "frecuencia":
                 h.data_validation(1, j, 2000, j, {"validate": "list", "source": [t(c) for c in reversed(_CLAVES_FRECUENCIA)]})
-            elif campo in ("fecha_inicio", "ultima"):
+            elif campo == "prioridad":
+                h.data_validation(1, j, 2000, j, {"validate": "list", "source": [t(f"prioridad_{c}") for c in ("baja", "media", "alta", "critica")]})
+            elif campo in ("fecha_inicio", "ultima", "fecha"):
                 h.set_column(j, j, 22, libro.add_format({"num_format": "yyyy-mm-dd"}))
             elif campo == "roles":
                 h.data_validation(1, j, 2000, j, {"validate": "list", "error_type": "information",
