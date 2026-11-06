@@ -2603,7 +2603,7 @@ class _TabAvisosState extends State<TabAvisos> {
     if (!mounted) return;
     Widget campoTiempo(StateSetter setSt) => Column(mainAxisSize: MainAxisSize.min, children: [
       if (contador != null) ...[CampoLecturaContador(controlador: lecturaCtrl, contador: contador, actual: lecturaPrevia), const SizedBox(height: 10)],
-      CampoTiempoTrabajo(controlador: tiempoCtrl, personas: personas, alCambiarPersonas: (v) => setSt(() => personas = v)),
+      CampoTiempoTrabajo(controlador: tiempoCtrl, personas: personas, alCambiarPersonas: (v) => setSt(() => personas = v), ayudaVacio: t('msg_tiempo_aviso_opcional')),
     ]);
     if (lista.isEmpty) {
       final r = await showDialog<String>(context: context, builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(title: Text(t("lbl_confirmar")),

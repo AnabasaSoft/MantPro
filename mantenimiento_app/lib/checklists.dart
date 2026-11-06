@@ -346,7 +346,9 @@ class CampoTiempoTrabajo extends StatefulWidget {
   final TextEditingController controlador;
   final int personas;
   final ValueChanged<int> alCambiarPersonas;
-  const CampoTiempoTrabajo({super.key, required this.controlador, required this.personas, required this.alCambiarPersonas});
+  /// Nota que se muestra bajo el campo mientras está vacío (p. ej. «opcional»).
+  final String? ayudaVacio;
+  const CampoTiempoTrabajo({super.key, required this.controlador, required this.personas, required this.alCambiarPersonas, this.ayudaVacio});
   @override
   State<CampoTiempoTrabajo> createState() => _CampoTiempoTrabajoState();
 }
@@ -366,7 +368,8 @@ class _CampoTiempoTrabajoState extends State<CampoTiempoTrabajo> {
           labelText: t('lbl_tiempo_trabajado'),
           hintText: t('ph_tiempo_trabajado'),
           prefixIcon: const Icon(Icons.timer_outlined),
-          helperText: malo ? t('msg_tiempo_no_valido') : (minutos != null ? textoDuracion(minutos) : null),
+          helperText: malo ? t('msg_tiempo_no_valido') : (minutos != null ? textoDuracion(minutos) : (texto.isEmpty ? widget.ayudaVacio : null)),
+          helperMaxLines: 2,
           helperStyle: TextStyle(color: malo ? Colors.red : null),
         ),
       )),

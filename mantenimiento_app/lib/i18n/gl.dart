@@ -231,6 +231,7 @@ const Map<String, String> traduccionesGl = {
     // --- Tiempo trabajado ---
     "lbl_tiempo_trabajado": "Tempo traballado",
     "ph_tiempo_trabajado": "p. ex. 1:30 ou 1,5",
+    "msg_tiempo_aviso_opcional": "Opcional: déixao baleiro se só foi unha comprobación",
     "msg_tiempo_no_valido": "non se entende",
     "msg_actualizaciones_codigo_fuente": "Versión de desenvolvemento (compilada desde o código): non se buscan actualizacións.",
     "btn_apuntar_lectura": "Apuntar",

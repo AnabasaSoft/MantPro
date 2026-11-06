@@ -230,6 +230,7 @@ const Map<String, String> traduccionesEu = {
     // --- Tiempo trabajado ---
     "lbl_tiempo_trabajado": "Lan egindako denbora",
     "ph_tiempo_trabajado": "adib. 1:30 edo 1,5",
+    "msg_tiempo_aviso_opcional": "Aukerakoa: utzi hutsik egiaztapen hutsa izan bada",
     "msg_tiempo_no_valido": "ez da ulertzen",
     "msg_actualizaciones_codigo_fuente": "Garapen-bertsioa (iturburu-kodetik konpilatua): ez da eguneratzerik bilatzen.",
     "btn_apuntar_lectura": "Idatzi",
