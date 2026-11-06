@@ -325,7 +325,7 @@ class PestanaStock:
         if hasattr(self, "btn_configurar_almacen"):
             self.btn_configurar_almacen.setVisible(usuarios.es_admin())
         if hasattr(self, "btn_proveedores"):
-            self.btn_proveedores.setVisible(usuarios.puede_gestionar_almacen())
+            self.btn_proveedores.setVisible(usuarios.es_admin())
         self.refresh_historial_stock()
         self.refresh_stock_alertas()
 
@@ -534,8 +534,9 @@ class PestanaStock:
                                                usuarios.id_actual(), usuarios.nombre_actual(),
                                                precio=d["precio"] if usuarios.es_admin() else None)
             almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
-            proveedores.fijar_proveedor_habitual(nuevo_id, d["proveedor_id"])
-            pedidos.fijar_parametros(nuevo_id, d["stock_objetivo"], d["multiplo_pedido"])
+            if usuarios.es_admin():   # proveedores y datos de pedido: solo administradores
+                proveedores.fijar_proveedor_habitual(nuevo_id, d["proveedor_id"])
+                pedidos.fijar_parametros(nuevo_id, d["stock_objetivo"], d["multiplo_pedido"])
             self.refresh_stock()
 
     def stock_editar_material(self):
@@ -558,8 +559,9 @@ class PestanaStock:
                                          usuarios.id_actual(), usuarios.nombre_actual(),
                                          precio=d["precio"], cambiar_precio=usuarios.es_admin())
             almacen.fijar_maquinas_de_material(material_id, d["repuestos"])
-            proveedores.fijar_proveedor_habitual(material_id, d["proveedor_id"])
-            pedidos.fijar_parametros(material_id, d["stock_objetivo"], d["multiplo_pedido"])
+            if usuarios.es_admin():
+                proveedores.fijar_proveedor_habitual(material_id, d["proveedor_id"])
+                pedidos.fijar_parametros(material_id, d["stock_objetivo"], d["multiplo_pedido"])
             self.refresh_stock()
 
     def stock_borrar_material(self, ids=None):
@@ -603,7 +605,7 @@ class PestanaStock:
             self.refresh_stock()
 
     def stock_gestionar_proveedores(self):
-        if not usuarios.puede_gestionar_almacen(): return
+        if not usuarios.es_admin(): return
         from ..dialogos.proveedores import DialogoProveedores
         DialogoProveedores(self).exec()
 

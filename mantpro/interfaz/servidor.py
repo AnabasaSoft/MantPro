@@ -59,6 +59,16 @@ def primer_puerto_libre(desde):
     return desde
 
 
+# Datos de compras (proveedor habitual, objetivo y múltiplo de pedido): solo los ve un
+# administrador. Al resto, la API se los quita de los artículos.
+_CAMPOS_DE_COMPRAS = ("proveedor_id", "proveedor_nombre", "stock_objetivo", "multiplo_pedido")
+
+
+def _quitar_datos_de_compras(material):
+    for campo in _CAMPOS_DE_COMPRAS:
+        material.pop(campo, None)
+
+
 class ServidorSincronizacion(QThread):
     registro_recibido = pyqtSignal(str, str, str, str, str)
     pendiente_actualizado = pyqtSignal()
@@ -1337,16 +1347,22 @@ class ServidorSincronizacion(QThread):
         def api_stock_materiales():
             filtro = request.args.get('q') or None
             materiales = almacen.listar_materiales(filtro)
+            admin = usuarios.es_admin(g.usuario_mantpro)
             for m in materiales:
                 m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+                if not admin:
+                    _quitar_datos_de_compras(m)
             return jsonify({"status": "ok", "materiales": materiales})
 
         @self.app.route('/api/stock/bajo_minimo', methods=['GET'])
         @requiere_token
         def api_stock_bajo_minimo():
             materiales = almacen.materiales_bajo_minimo()
+            admin = usuarios.es_admin(g.usuario_mantpro)
             for m in materiales:
                 m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+                if not admin:
+                    _quitar_datos_de_compras(m)
             return jsonify({"status": "ok", "materiales": materiales})
 
         @self.app.route('/api/stock/material/<int:material_id>', methods=['GET'])
@@ -1357,17 +1373,22 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": "Material no encontrado"}), 404
             material["ubicacion"] = almacen.obtener_ubicacion_texto(material.get("seccion_id"))
             material["movimientos"] = almacen.obtener_movimientos(material_id, limite=20)
-            habitual = proveedores.proveedor_habitual(material_id)
-            material["proveedor_nombre"] = habitual["nombre"] if habitual else None
+            # Proveedores, precios por proveedor y datos de pedido: solo para administradores
             if usuarios.es_admin(g.usuario_mantpro):
+                habitual = proveedores.proveedor_habitual(material_id)
+                material["proveedor_nombre"] = habitual["nombre"] if habitual else None
                 material["precios_proveedores"] = proveedores.resumen_precios(material_id)
+            else:
+                _quitar_datos_de_compras(material)
             return jsonify({"status": "ok", "material": material})
 
         @self.app.route('/api/stock/proveedores', methods=['GET'])
         @requiere_token
         def api_stock_proveedores():
-            """Catálogo de proveedores (solo lectura desde el móvil: se
-            gestiona en el PC). Cada artículo trae su `proveedor_id`."""
+            """Catálogo de proveedores, solo para administradores (se gestiona
+            en el PC). Cada artículo trae su `proveedor_id`."""
+            if not usuarios.es_admin(g.usuario_mantpro):
+                return jsonify({"status": "error", "message": "Solo un administrador puede ver los proveedores."}), 403
             return jsonify({"status": "ok", "proveedores": proveedores.listar_proveedores()})
 
         @self.app.route('/api/stock/material', methods=['POST'])
@@ -1394,7 +1415,7 @@ class ServidorSincronizacion(QThread):
                     usuario['id'], usuario['nombre'],
                     # Los precios solo los pone un administrador
                     precio=consumos.numero(datos.get('precio')) if usuarios.es_admin(usuario) else None)
-                if datos.get('proveedor_id'):
+                if datos.get('proveedor_id') and usuarios.es_admin(usuario):
                     proveedores.fijar_proveedor_habitual(material_id, datos.get('proveedor_id'))
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "id": material_id, "foto": filename or None})
@@ -1436,7 +1457,7 @@ class ServidorSincronizacion(QThread):
                     precio=consumos.numero(datos.get('precio')),
                     cambiar_precio='precio' in datos and usuarios.es_admin(usuario))
                 # Solo si la app manda el proveedor habitual (las anteriores no lo conocen)
-                if 'proveedor_id' in datos:
+                if 'proveedor_id' in datos and usuarios.es_admin(usuario):
                     ok, error = proveedores.fijar_proveedor_habitual(material_id, datos.get('proveedor_id') or None)
                     if not ok:
                         return jsonify({"status": "error", "error": error, "message": "Proveedor no válido."}), 400
@@ -1482,18 +1503,17 @@ class ServidorSincronizacion(QThread):
                     mensaje = ("No hay stock suficiente para esta salida."
                                if error == "stock_insuficiente" else "Material no encontrado")
                     return jsonify({"status": "error", "error": error, "message": mensaje}), 400
-                # Entrada con proveedor (y precio): queda en el historial de precios. El
-                # movimiento ya está hecho, así que un proveedor que ya no existe no lo
-                # deshace: solo se avisa en la respuesta. El precio, como siempre, solo
-                # lo apunta un administrador (el resto deja constancia del proveedor).
+                # Entrada con proveedor (y precio): queda en el historial de precios. Solo
+                # para administradores (un no admin que lo mande se ignora). El movimiento
+                # ya está hecho, así que un proveedor que ya no existe no lo deshace: solo
+                # se avisa en la respuesta.
                 compra = None
-                if tipo == 'entrada' and datos.get('proveedor_id'):
-                    es_admin = usuarios.es_admin(usuario)
-                    precio = consumos.numero(datos.get('precio')) if es_admin else None
+                if tipo == 'entrada' and datos.get('proveedor_id') and usuarios.es_admin(usuario):
+                    precio = consumos.numero(datos.get('precio'))
                     compra, error_compra = proveedores.registrar_precio(
                         material_id, datos.get('proveedor_id'), precio, cantidad, datos.get('fecha'),
                         datos.get('referencia', ''), '', usuario['nombre'])
-                    if compra and precio is not None and es_admin and datos.get('actualizar_precio') == '1':
+                    if compra and precio is not None and datos.get('actualizar_precio') == '1':
                         proveedores.fijar_precio_articulo(material_id, precio, usuario['id'], usuario['nombre'])
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "compra_registrada": bool(compra)})

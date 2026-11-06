@@ -582,16 +582,19 @@ class DialogoEditarMaterial(QDialog):
         self.campo_multiplo.setPlaceholderText(tt("ped_ph_multiplo", "sin múltiplo"))
         self.campo_multiplo.setToolTip(tt("ped_tt_multiplo", "Si solo se compra en cajas o lotes (p. ej. de 10), escríbelo aquí: la cantidad sugerida se redondea hacia arriba a ese múltiplo."))
         v5.addWidget(self.campo_multiplo); h_ped.addLayout(v5)
-        l.addLayout(h_ped)
         self.lbl_sugerida = QLabel(); self.lbl_sugerida.setWordWrap(True)
-        l.addWidget(self.lbl_sugerida)
+        # Todo lo de compras y pedidos (proveedores, precios, objetivo, múltiplo) solo
+        # lo ven y usan los administradores: para el resto ni se muestra.
+        if usuarios.es_admin():
+            l.addLayout(h_ped)
+            l.addWidget(self.lbl_sugerida)
         self.campo_objetivo.textChanged.connect(self._actualizar_sugerida)
         self.campo_multiplo.textChanged.connect(self._actualizar_sugerida)
         self.spin_minimo.valueChanged.connect(self._actualizar_sugerida)
         self.campo_unidad.textChanged.connect(self._actualizar_sugerida)
 
         # Proveedor habitual (el catálogo se gestiona desde el botón Proveedores)
-        l.addWidget(QLabel(tt("prov_lbl_habitual", "Proveedor habitual")))
+        etiqueta_habitual = QLabel(tt("prov_lbl_habitual", "Proveedor habitual"))
         self.combo_proveedor = QComboBox()
         self.combo_proveedor.addItem(tt("prov_sin_proveedor", "— Sin proveedor —"), None)
         for prov in proveedores.listar_proveedores():
@@ -600,7 +603,9 @@ class DialogoEditarMaterial(QDialog):
             idx = self.combo_proveedor.findData(material["proveedor_id"])
             if idx >= 0:
                 self.combo_proveedor.setCurrentIndex(idx)
-        l.addWidget(self.combo_proveedor)
+        if usuarios.es_admin():
+            l.addWidget(etiqueta_habitual)
+            l.addWidget(self.combo_proveedor)
         # Historial de precios por proveedor (solo administradores y con el artículo ya creado)
         if not self.es_nuevo and usuarios.es_admin():
             btn_precios = QPushButton(tt("prov_btn_precios", "💶 Precios por proveedor…"))
@@ -905,11 +910,11 @@ class DialogoMovimientoStock(QDialog):
         self.campo_motivo.setPlaceholderText(ph)
         l.addWidget(self.campo_motivo)
 
-        # En una entrada se puede apuntar a quién se compró y a cuánto: queda en el
-        # historial de precios del artículo. El precio solo lo ve y apunta un administrador.
+        # En una entrada, un administrador puede apuntar a quién se compró y a cuánto:
+        # queda en el historial de precios del artículo.
         self.combo_proveedor = None
         self.campo_precio_compra = None
-        if tipo == "entrada":
+        if tipo == "entrada" and usuarios.es_admin():
             self.resize(380, 360)
             l.addWidget(QLabel(tt("prov_lbl_comprado_a", "Comprado a (opcional)")))
             self.combo_proveedor = QComboBox()
@@ -921,11 +926,10 @@ class DialogoMovimientoStock(QDialog):
                 if idx >= 0:
                     self.combo_proveedor.setCurrentIndex(idx)
             l.addWidget(self.combo_proveedor)
-            if usuarios.es_admin():
-                l.addWidget(QLabel(tt("prov_lbl_precio_compra", "Precio unitario de esta compra") + f" ({consumos.moneda()})"))
-                self.campo_precio_compra = QLineEdit()
-                self.campo_precio_compra.setPlaceholderText(tt("ph_precio", "sin precio"))
-                l.addWidget(self.campo_precio_compra)
+            l.addWidget(QLabel(tt("prov_lbl_precio_compra", "Precio unitario de esta compra") + f" ({consumos.moneda()})"))
+            self.campo_precio_compra = QLineEdit()
+            self.campo_precio_compra.setPlaceholderText(tt("ph_precio", "sin precio"))
+            l.addWidget(self.campo_precio_compra)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
