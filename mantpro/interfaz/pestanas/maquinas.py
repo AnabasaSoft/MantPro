@@ -36,7 +36,7 @@ from ..dialogos.maquinas import DialogoEditarMaquina, DialogoRepuestoMaquina
 from ..widgets.fotos import VisorFoto
 from ..widgets.graficos import GraficoCircularTrabajos
 from ..widgets.ordenables import _ItemArbolOrdenable, _ItemTablaOrdenable
-from ...nucleo import almacen, etiquetas, maquinas
+from ...nucleo import almacen, etiquetas, maquinas, usuarios
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaMaquinas:
@@ -64,6 +64,7 @@ class PestanaMaquinas:
         b_coste = QPushButton(tt("btn_costes_maquina", "💶 Costes")); b_coste.clicked.connect(self._maquinas_coste_repuestos)
         b_coste.setToolTip(tt("tt_costes_maquina", "Coste del mantenimiento de cada máquina por año: horas trabajadas, mano de obra y repuestos."))
         for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_contadores, b_qr, b_coste]: h_tools.addWidget(b)
+        self.btn_costes_maquina = b_coste   # solo lo ve un administrador (se actualiza al refrescar)
         h_tools.addStretch()
         l.addLayout(h_tools)
 
@@ -392,6 +393,8 @@ class PestanaMaquinas:
         self.lbl_indicadores_maquina.setText("<br>".join(partes))
 
     def refrescar_arbol_maquinas(self):
+        if hasattr(self, "btn_costes_maquina"):
+            self.btn_costes_maquina.setVisible(usuarios.es_admin())   # los costes: solo administradores
         item_actual = self.arbol_maquinas.currentItem()
         id_seleccionado = item_actual.data(0, Qt.ItemDataRole.UserRole)["id"] if item_actual else None
         self.arbol_maquinas.setSortingEnabled(False)
@@ -594,6 +597,7 @@ class PestanaMaquinas:
             self.refresh_avisos(); self.refresh_dashboard()
 
     def _maquinas_coste_repuestos(self):
+        if not usuarios.es_admin(): return
         from ..dialogos.costes import DialogoCosteRepuestos
         id_maquina, _nombre = self._maquina_seleccionada()
         DialogoCosteRepuestos(self, self.db, id_maquina).exec()

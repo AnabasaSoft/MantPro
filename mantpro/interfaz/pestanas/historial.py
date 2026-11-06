@@ -89,7 +89,8 @@ class PestanaHistorial:
                 desc_visual = "🔩 " + desc_visual
                 desc_limpia += "\n\n🔩 " + tt("lbl_repuestos_usados", "🔩 Materiales usados").replace("🔩", "").strip() + ":\n" + "\n".join(
                     f"• {m['cantidad']:g} {m['unidad'] or ''} {m['nombre']}".replace("  ", " ") for m in mats)
-                desc_limpia += f"\n{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" + \
+                if usuarios.es_admin():
+                    desc_limpia += f"\n{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" + \
                     (" *" if sin_precio else "")
 
             oscuro = self._tema_actual == "oscuro"

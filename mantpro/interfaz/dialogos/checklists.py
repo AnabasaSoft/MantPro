@@ -525,10 +525,13 @@ def texto_repuestos_export(mats, moneda):
     """Repuestos usados en una celda (CSV y Excel) o en el PDF."""
     if not mats:
         return "-"
-    from ...nucleo import consumos
+    from ...nucleo import consumos, usuarios
+    ver_precios = usuarios.es_admin()   # precios e importes: solo para administradores
     lineas = [f"• {m['cantidad']:g} {m.get('unidad') or ''} {m['nombre']}".replace("  ", " ") +
-              (f" — {consumos.formato_importe(m['importe'], moneda)}" if m.get("importe") is not None else "")
+              (f" — {consumos.formato_importe(m['importe'], moneda)}" if ver_precios and m.get("importe") is not None else "")
               for m in mats]
+    if not ver_precios:
+        return "\n".join(lineas)
     importe, sin_precio = consumos.coste(mats)
     lineas.append(f"{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" +
                   (f" ({tt('lbl_sin_precio_algunos', '(hay artículos sin precio)').strip('()')})" if sin_precio else ""))
@@ -540,8 +543,8 @@ def texto_tiempo_export(t, moneda):
     """«1 h 30 min × 2 — 54,00 €» (o «-» si no hay tiempo apuntado)."""
     if not t:
         return "-"
-    from ...nucleo import consumos, mano_obra
+    from ...nucleo import consumos, mano_obra, usuarios
     texto = mano_obra.texto_tiempo(t)
-    if t.get("importe") is not None:
+    if t.get("importe") is not None and usuarios.es_admin():   # el coste: solo administradores
         texto += f" — {consumos.formato_importe(t['importe'], moneda)}"
     return texto

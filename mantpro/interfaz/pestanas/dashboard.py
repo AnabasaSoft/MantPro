@@ -28,7 +28,7 @@ from ...idiomas import t
 from ..comun import tt
 from ..dialogos.estadisticas import DialogoEstadisticasTecnicos
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking
-from ...nucleo import maquinas, consumos, costes
+from ...nucleo import maquinas, consumos, costes, usuarios
 
 def _importe_corto(valor):
     """Importe abreviado para las barras del gráfico mensual: «850», «1,2k»."""
@@ -98,11 +98,13 @@ class PestanaDashboard:
         layout_stats.addStretch(); self.group_stats.setLayout(layout_stats); v_stats.addWidget(self.group_stats); h_split.addLayout(v_stats, 20); l.addLayout(h_split)
         h_costes = QHBoxLayout()
         v_rank_coste = QVBoxLayout()
-        v_rank_coste.addWidget(QLabel(tt("lbl_ranking_maquinas_coste", "Máquinas con más coste (año actual)")))
+        self.lbl_titulo_ranking_coste = QLabel(tt("lbl_ranking_maquinas_coste", "Máquinas con más coste (año actual)"))
+        v_rank_coste.addWidget(self.lbl_titulo_ranking_coste)
         self.grafico_ranking_coste = GraficoBarrasRanking(color="#8e44ad", formato_valor=self._importe_largo); v_rank_coste.addWidget(self.grafico_ranking_coste)
         h_costes.addLayout(v_rank_coste, 50)
         v_mes_coste = QVBoxLayout()
-        v_mes_coste.addWidget(QLabel(tt("lbl_coste_por_mes", "Coste de mantenimiento por mes")))
+        self.lbl_titulo_coste_mes = QLabel(tt("lbl_coste_por_mes", "Coste de mantenimiento por mes"))
+        v_mes_coste.addWidget(self.lbl_titulo_coste_mes)
         self.grafico_coste_mes = GraficoBarrasMensual(color="#16a085", formato_valor=_importe_corto); v_mes_coste.addWidget(self.grafico_coste_mes)
         h_costes.addLayout(v_mes_coste, 50)
         l.addLayout(h_costes); self.tab_dashboard.setLayout(l)
@@ -112,6 +114,13 @@ class PestanaDashboard:
         return consumos.formato_importe(valor, consumos.moneda())
 
     def _refrescar_costes(self):
+        # Los costes (repuestos y mano de obra) solo los ve un administrador
+        ver = usuarios.es_admin()
+        for w in (self.card_coste_mes, self.card_coste_anio, self.lbl_titulo_ranking_coste, self.grafico_ranking_coste,
+                  self.lbl_titulo_coste_mes, self.grafico_coste_mes):
+            w.setVisible(ver)
+        if not ver:
+            return
         r = costes.resumen()
         # «≥» avisa de que a algún repuesto u hora le falta el precio y el total se queda corto
         marca = "≥ " if r["sin_precio"] else ""

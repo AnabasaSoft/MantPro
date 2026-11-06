@@ -59,9 +59,9 @@ def primer_puerto_libre(desde):
     return desde
 
 
-# Datos de compras (proveedor habitual, objetivo y múltiplo de pedido): solo los ve un
+# Datos de compras (precio, proveedor habitual, objetivo y múltiplo de pedido): solo los ve un
 # administrador. Al resto, la API se los quita de los artículos.
-_CAMPOS_DE_COMPRAS = ("proveedor_id", "proveedor_nombre", "stock_objetivo", "multiplo_pedido")
+_CAMPOS_DE_COMPRAS = ("precio", "proveedor_id", "proveedor_nombre", "stock_objetivo", "multiplo_pedido")
 
 
 def _quitar_datos_de_compras(material):

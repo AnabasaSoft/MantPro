@@ -29,7 +29,7 @@ from PyQt6.QtCore import Qt
 
 from ...idiomas import t
 from ..comun import tt
-from ...nucleo import almacen, consumos
+from ...nucleo import almacen, consumos, usuarios
 
 
 def _fmt_cantidad(v):
@@ -62,6 +62,7 @@ class DialogoElegirRepuesto(QDialog):
         self.tabla = QTableWidget(0, 4)
         self.tabla.setHorizontalHeaderLabels([tt("aud_f_codigo", "Código"), tt("lbl_material", "Artículo"),
                                               tt("lbl_stock_col", "Stock"), tt("lbl_precio_unitario", "Precio unitario")])
+        self.tabla.setColumnHidden(3, not usuarios.es_admin())   # el precio solo lo ve un administrador
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -141,6 +142,8 @@ class RepuestosUsadosWidget(QGroupBox):
         self.tabla = QTableWidget(0, 4)
         self.tabla.setHorizontalHeaderLabels([tt("lbl_material", "Artículo"), tt("lbl_cantidad", "Cantidad"),
                                               tt("lbl_precio_unitario", "Precio unitario"), tt("lbl_importe", "Importe")])
+        if not usuarios.es_admin():   # precios e importes: solo los ve un administrador
+            self.tabla.setColumnHidden(2, True); self.tabla.setColumnHidden(3, True)
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.verticalHeader().setVisible(False)
@@ -199,7 +202,7 @@ class RepuestosUsadosWidget(QGroupBox):
                       consumos.formato_importe(importe, self.moneda) if importe is not None else "—"]
             for col, valor in enumerate(celdas):
                 self.tabla.setItem(i, col, QTableWidgetItem(valor))
-        if self._filas:
+        if self._filas and usuarios.es_admin():
             texto = tt("lbl_coste_material", "Coste de material") + f": <b>{consumos.formato_importe(total, self.moneda)}</b>"
             if sin_precio:
                 texto += " " + tt("lbl_sin_precio_algunos", "(hay artículos sin precio)")

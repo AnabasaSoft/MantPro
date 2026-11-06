@@ -566,7 +566,9 @@ class DialogoEditarMaterial(QDialog):
         if not usuarios.es_admin():
             self.campo_precio.setEnabled(False)
             self.campo_precio.setToolTip(tt("tt_precio_solo_admin", "Solo un administrador puede cambiar los precios."))
-        v3.addWidget(self.campo_precio); h_um.addLayout(v3)
+        v3.addWidget(self.campo_precio)
+        if usuarios.es_admin():   # el precio solo lo ve y cambia un administrador
+            h_um.addLayout(v3)
         l.addLayout(h_um)
 
         # Punto de pedido: hasta dónde se llena al pedir y en qué múltiplos se compra
