@@ -14,11 +14,12 @@
 <h2><a name="sesion"></a>👤 Session, users and permissions</h2>
 <p>Everyone signs in with their own user, and every job is signed with whoever did it. A user can have one or more roles:</p>
 <ul>
-<li><b>Administrator:</b> can do everything, including managing users, configuring the warehouse and editing or deleting any record.</li>
+<li><b>Administrator:</b> can do everything, including managing users, configuring the warehouse and editing or deleting any record. It is the only role that sees prices, costs and everything about purchasing (suppliers and orders).</li>
 <li><b>Technician:</b> logs jobs and completes pending jobs and alerts. Can only edit or delete their own records.</li>
 <li><b>Warehouse:</b> manages items and stock movements from the MantPro Stock app.</li>
 </ul>
 <p>In the <i>Session</i> menu you can <b>switch user</b> or <b>log out</b> without closing the program. You change your password in <i>Tools → 🔑 Change my password</i>.</p>
+<p>An administrator creates, edits, deactivates and <b>deletes</b> users in <i>Tools → 👥 User management</i>. Deleting a user closes their sessions and releases their assigned phone, but <b>their name is kept</b> in the jobs, warehouse movements and records they made. You cannot delete yourself or the last administrator.</p>
 
 <h2><a name="dashboard"></a>📊 Dashboard</h2>
 <p>An overview at a glance: pending alerts, tasks to do, records this month and the reliability indicators for the whole plant (<b>MTBF</b>, mean time between failures, and <b>MTTR</b>, mean time to repair). Below you will find the machines with the most jobs, breakdowns per month and how jobs are split by type.</p>
@@ -60,7 +61,7 @@
 
 <p><b>🔩 Materials used:</b> note the warehouse items you used (the selected machine's parts are listed first). They are taken out of stock and saved with the job and their price. Also when completing a pending job and, to correct them, when editing the job in the history: the stock is adjusted automatically. The cost per machine is in <i>Machines → 💶 Spare parts cost</i>; each item's price is in its record, and the currency in <i>Warehouse stock → ⚙️ Configure warehouse</i>. The cost is only visible to administrators.</p>
 
-<p><b>⏱️ Time worked:</b> how long the job took (1:30, 1.5 or 90 min) and how many people. <b>It is noted afterwards</b>, once you are back: there is no stopwatch. Also when completing a pending job or a reminder and, if forgotten, when editing the job in the history. It is used for the labour cost and for each technician's hours in the statistics.</p>
+<p><b>⏱️ Time worked:</b> how long the job took (1:30, 1.5 or 90 min) and how many people. <b>It is noted afterwards</b>, once you are back: there is no stopwatch. Also when completing a pending job or a reminder and, if forgotten, when editing the job in the history. It is used for the labour cost and for each technician's hours in the statistics. It is optional: if it was only a check, leave it empty.</p>
 
 <h2><a name="historial"></a>📋 History</h2>
 <p>All the jobs done, organised by years and months. You can filter by technician and by type (jobs and breakdowns, or preventive alerts).</p>
@@ -117,7 +118,7 @@ Each counter shows its last reading and the average use per day. The reading tha
 <p>Stock is shown in <b>red</b> when it is below the minimum and in <b>green</b> when it is above it.</p>
 
 <h2><a name="bajo_minimo"></a>⚠️ Low stock</h2>
-<p>Items out of stock or below their minimum (quantity in red) and those <b>right at the minimum</b> (quantity without colour), to keep an eye on them. The tab title counts only those below. From here you can go to the item, record a stock in or export the list to place the order; when exporting you choose whether to include those right at the minimum.</p>
+<p>Items out of stock or below their minimum (quantity in red) and those <b>right at the minimum</b> (quantity without colour), to keep an eye on them. The tab title counts only those below. From here you can go to the item, record a stock in or export the list to place the order; when exporting you choose whether to include those right at the minimum. If you are an administrator, the <b>🛒 Suggested order…</b> button works out what to order (discounting what is already ordered) and creates the orders; see <i>🛒 Orders</i> in “Warehouse stock”.</p>
 
 <h2><a name="archivo"></a>💾 File menu: backups, import and export</h2>
 <ul>
@@ -158,6 +159,8 @@ Each counter shows its last reading and the average use per day. The reading tha
 <li>The connection with the PC is <b>encrypted</b>. To pair a new phone, update its app first: an old app does not understand the new QR code.</li>
 <li>Reminders and pending jobs marked <b>☑️</b> have a checklist: it is filled in on the phone when completing them, also offline.</li>
 <li>A machine's page (opened by scanning its QR code) shows its <b>📟 counters</b> with their last reading: tap <b>Enter</b> to note the reading, also offline (it shows at once and is sent to the PC when syncing; if the same upload is repeated, it is not duplicated). Its counter-based preventive tasks are listed too, with what is left and their status, and when completing one of them the reading can be entered in the same step.</li>
+<li>If the phone is <b>assigned to a technician</b> (see “Security and encryption”), the login screen already shows their user and says who it is assigned to; nobody else can log in, except an administrator.</li>
+<li><b>MantPro Stock is only for stock control</b>: the price of items is only seen and changed by an administrator, and suppliers, prices by supplier and orders are managed only on the PC.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Security and encryption</h2>
@@ -184,4 +187,9 @@ Each counter shows its last reading and the average use per day. The reading tha
 <li><b>MantPro asks for a recovery key when opening:</b> the databases are encrypted and the system keyring no longer has their key (system reinstalled, another user…). Enter the key you wrote down when you turned encryption on. If you do not have it, move <code>mantenimiento.db</code> and <code>almacen.db</code> out of the data folder, open MantPro and restore a backup.</li>
 <li><b>«Too many failed attempts»:</b> wait for the time shown in the message or ask an administrator to reset the password.</li>
 <li><b>Restoring asks for a password:</b> the backup is encrypted with the backup password of the computer where it was made (or with an earlier one). It cannot be restored without it.</li>
+<li><b>“This phone is assigned to …”:</b> the phone is reserved for a technician and only they (or an administrator) can log in. To release or change it, an administrator uses <i>Tools → 🔐 Device sessions → 📲 Assign phone to a technician…</i> and chooses another technician or “Nobody (free phone)”.</li>
+<li><b>I cannot see prices, costs, suppliers or orders:</b> only administrators see them, on the PC and in the apps. Ask an administrator to check it.</li>
+<li><b>WhatsApp does not open the supplier's chat:</b> their phone must include the international prefix (e.g. <code>+34 600 000 000</code>). Fix it in <i>🏭 Suppliers</i>; without a prefix, WhatsApp may not recognise it.</li>
+<li><b>An item does not appear in the suggested order:</b> only items below their minimum that have a minimum stock or a target appear, and not if what is already ordered covers the shortfall. Items without a usual supplier appear without a supplier: choose one before creating the orders.</li>
+<li><b>I recorded a stock entry and the order did not go down:</b> the entry only deducts the open orders of that item (not cancelled or already received ones), first those of the supplier indicated and then the oldest. Inventory adjustments do not deduct orders, and “mark as received” does not change the stock.</li>
 </ul>

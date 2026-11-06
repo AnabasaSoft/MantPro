@@ -14,11 +14,12 @@
 <h2><a name="sesion"></a>👤 Sesión, usuarios e permisos</h2>
 <p>Cada persoa entra co seu propio usuario, e cada traballo queda asinado con quen o fixo. Un usuario pode ter un ou varios roles:</p>
 <ul>
-<li><b>Administrador:</b> pode facer todo, incluído xestionar usuarios, configurar o almacén e modificar ou borrar calquera rexistro.</li>
+<li><b>Administrador:</b> pode facer todo, incluído xestionar usuarios, configurar o almacén e modificar ou borrar calquera rexistro. É o único que ve os prezos, os custos e todo o relativo a compras (provedores e pedidos).</li>
 <li><b>Técnico:</b> rexistra traballos e completa pendentes e avisos. Só pode modificar ou borrar os seus propios rexistros.</li>
 <li><b>Almacén:</b> xestiona artigos e movementos de stock dende a app MantPro Stock.</li>
 </ul>
 <p>No menú <i>Sesión</i> podes <b>cambiar de usuario</b> ou <b>pechar sesión</b> sen saír do programa. O teu contrasinal cámbiase en <i>Ferramentas → 🔑 Cambiar o meu contrasinal</i>.</p>
+<p>Un administrador crea, edita, desactiva e <b>borra</b> usuarios en <i>Ferramentas → 👥 Xestión de usuarios</i>. Ao borrar un usuario péchanselle as sesións e solta o seu móbil adxudicado, pero <b>o seu nome consérvase</b> nos traballos, movementos de almacén e rexistros que fixo. Non se pode borrar un mesmo nin o último administrador.</p>
 
 <h2><a name="dashboard"></a>📊 Dashboard</h2>
 <p>Resumo dunha ollada: avisos pendentes, tarefas por facer, rexistros do mes e os indicadores de fiabilidade de toda a planta (<b>MTBF</b>, tempo medio entre avarías, e <b>MTTR</b>, tempo medio de reparación). Debaixo verás as máquinas con máis traballos, as avarías por mes e o reparto de traballos por tipo.</p>
@@ -60,7 +61,7 @@
 
 <p><b>🔩 Materiais usados:</b> apunta os artigos do almacén que usaches (saen primeiro os recambios da máquina escollida). Descóntanse do stock e quedan co traballo e o seu prezo. Tamén ao completar un pendente e, para corrixilos, ao editar o traballo no historial: o stock axústase só. O custo por máquina está en <i>Máquinas → 💶 Custo de recambios</i>; o prezo de cada artigo, na súa ficha, e a moeda, en <i>Stock de almacén → ⚙️ Configurar almacén</i>. O custo só o ven os administradores.</p>
 
-<p><b>⏱️ Tempo traballado:</b> canto durou o traballo (1:30, 1,5 ou 90 min) e cantas persoas. <b>Apúntase despois</b>, ao volver: non hai cronómetro. Tamén ao completar un pendente ou un aviso e, se se esquece, ao editar o traballo no historial. Serve para o custo de man de obra e para as horas de cada técnico nas estatísticas.</p>
+<p><b>⏱️ Tempo traballado:</b> canto durou o traballo (1:30, 1,5 ou 90 min) e cantas persoas. <b>Apúntase despois</b>, ao volver: non hai cronómetro. Tamén ao completar un pendente ou un aviso e, se se esquece, ao editar o traballo no historial. Serve para o custo de man de obra e para as horas de cada técnico nas estatísticas. É opcional: se só foi unha comprobación, déixao baleiro.</p>
 
 <h2><a name="historial"></a>📋 Historial</h2>
 <p>Todos os traballos realizados, organizados por anos e meses. Podes filtrar por técnico e por tipo (traballos e avarías, ou avisos preventivos).</p>
@@ -117,7 +118,7 @@ Cada contador mostra a súa última lectura e o uso medio por día. A lectura qu
 <p>O stock vese en <b>vermello</b> se está por baixo do mínimo e en <b>verde</b> se está por riba.</p>
 
 <h2><a name="bajo_minimo"></a>⚠️ Stock por baixo do mínimo</h2>
-<p>Os artigos sen stock ou por baixo do seu mínimo (cantidade en vermello) e os que están <b>xusto no mínimo</b> (cantidade sen cor), para telos vixiados. O título da lapela conta só os que están por baixo. Dende aquí podes ir ao artigo, rexistrar unha entrada ou exportar a lista para facer o pedido; ao exportar escolles se incluír ou non os que están xusto no mínimo.</p>
+<p>Os artigos sen stock ou por baixo do seu mínimo (cantidade en vermello) e os que están <b>xusto no mínimo</b> (cantidade sen cor), para telos vixiados. O título da lapela conta só os que están por baixo. Dende aquí podes ir ao artigo, rexistrar unha entrada ou exportar a lista para facer o pedido; ao exportar escolles se incluír ou non os que están xusto no mínimo. Se es administrador, o botón <b>🛒 Pedido suxerido…</b> calcula que pedir (descontando o que xa está pedido) e crea os pedidos; mira <i>🛒 Pedidos</i> en «Stock de almacén».</p>
 
 <h2><a name="archivo"></a>💾 Menú Ficheiro: copias, importar e exportar</h2>
 <ul>
@@ -158,6 +159,8 @@ Cada contador mostra a súa última lectura e o uso medio por día. A lectura qu
 <li>A conexión co PC vai <b>cifrada</b>. Para vincular un móbil novo, actualiza antes a súa app: unha app antiga non entende o QR novo.</li>
 <li>Os avisos e pendentes con <b>☑️</b> levan lista de comprobación: ao completalos énchese no móbil, tamén sen conexión.</li>
 <li>Na ficha dunha máquina (ao escanear o seu QR) están os seus <b>📟 contadores</b> coa súa última lectura: preme <b>Apuntar</b> para anotar a lectura, tamén sen conexión (vese ao momento e envíase ao PC ao sincronizar; se o mesmo envío se repite, non se duplica). Tamén saen os seus preventivos por contador co que falta e o seu estado, e ao completar un deles pódese apuntar a lectura no mesmo paso.</li>
+<li>Se o móbil está <b>adxudicado a un técnico</b> (ver «Seguranza e cifrado»), a pantalla de acceso xa leva o seu usuario e avisa de a quen está adxudicado; outro usuario non pode entrar, salvo un administrador.</li>
+<li><b>MantPro Stock é só de control de stock</b>: o prezo dos artigos só o ve e o cambia un administrador, e os provedores, os prezos por provedor e os pedidos xestiónanse unicamente no PC.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Seguranza e cifrado</h2>
@@ -184,4 +187,9 @@ Cada contador mostra a súa última lectura e o uso medio por día. A lectura qu
 <li><b>Ao abrir MantPro pide unha chave de recuperación:</b> as bases de datos están cifradas e o chaveiro do sistema xa non ten a súa chave (sistema reinstalado, outro usuario…). Escribe a chave que apuntaches ao activar o cifrado. Se non a tes, saca <code>mantenimiento.db</code> e <code>almacen.db</code> do cartafol de datos, abre MantPro e restaura unha copia.</li>
 <li><b>«Demasiados intentos fallidos»:</b> agarda o tempo que indica o aviso ou pídelle a un administrador que restableza o contrasinal.</li>
 <li><b>Ao restaurar pide un contrasinal:</b> a copia está cifrada co contrasinal das copias do equipo onde se fixo (ou cun anterior). Sen el non se pode restaurar.</li>
+<li><b>«Este móbil está adxudicado a …»:</b> o móbil está reservado a un técnico e só el (ou un administrador) pode entrar. Para liberalo ou cambialo, un administrador usa <i>Ferramentas → 🔐 Sesións de dispositivos → 📲 Adxudicar móbil a un técnico…</i> e escolle outro técnico ou «Ninguén (móbil libre)».</li>
+<li><b>Non vexo prezos, custos, provedores nin pedidos:</b> só os ven os administradores, no PC e nas apps. Pídelle a un administrador que o consulte.</li>
+<li><b>WhatsApp non abre o chat co provedor:</b> o seu teléfono debe levar o prefixo internacional (p. ex. <code>+34 600 000 000</code>). Corríxeo en <i>🏭 Provedores</i>; sen prefixo, WhatsApp pode non recoñecelo.</li>
+<li><b>Un artigo non sae no pedido suxerido:</b> só saen os que están por debaixo do mínimo e teñen stock mínimo ou obxectivo, e non se o xa pedido cobre a falta. Os que non teñen provedor habitual saen sen provedor: escolle un antes de crear os pedidos.</li>
+<li><b>Fixen unha entrada de stock e o pedido non baixou:</b> a entrada só desconta os pedidos abertos dese artigo (non os cancelados nin os xa recibidos), primeiro os do provedor indicado e despois o máis antigo. Os axustes de inventario non descontan pedidos, e «marcar recibido» non cambia o stock.</li>
 </ul>

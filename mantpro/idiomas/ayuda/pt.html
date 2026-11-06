@@ -14,11 +14,12 @@
 <h2><a name="sesion"></a>👤 Sessão, usuários e permissões</h2>
 <p>Cada pessoa entra com seu próprio usuário, e cada serviço fica assinado por quem o fez. Um usuário pode ter uma ou várias funções:</p>
 <ul>
-<li><b>Administrador:</b> pode fazer tudo, inclusive gerenciar usuários, configurar o almoxarifado e alterar ou excluir qualquer registro.</li>
+<li><b>Administrador:</b> pode fazer tudo, inclusive gerenciar usuários, configurar o almoxarifado e alterar ou excluir qualquer registro. É o único que vê os preços, os custos e tudo o que diz respeito a compras (fornecedores e encomendas).</li>
 <li><b>Técnico:</b> registra serviços e conclui pendentes e avisos. Só pode alterar ou excluir os próprios registros.</li>
 <li><b>Almoxarifado:</b> gerencia itens e movimentações de estoque pelo aplicativo MantPro Stock.</li>
 </ul>
 <p>No menu <i>Sessão</i> você pode <b>trocar de usuário</b> ou <b>encerrar a sessão</b> sem sair do programa. Sua senha é alterada em <i>Ferramentas → 🔑 Alterar minha senha</i>.</p>
+<p>Um administrador cria, edita, desativa e <b>apaga</b> usuários em <i>Ferramentas → 👥 Gerenciamento de usuários</i>. Ao apagar um usuário, as suas sessões são fechadas e o celular atribuído é libertado, mas <b>o seu nome é conservado</b> nos trabalhos, movimentos de almoxarifado e registos que fez. Não é possível apagar a si próprio nem o último administrador.</p>
 
 <h2><a name="dashboard"></a>📊 Painel</h2>
 <p>Um resumo rápido: avisos pendentes, tarefas a fazer, registros do mês e os indicadores de confiabilidade de toda a planta (<b>MTBF</b>, tempo médio entre falhas, e <b>MTTR</b>, tempo médio de reparo). Abaixo você verá as máquinas com mais serviços, as falhas por mês e a distribuição dos serviços por tipo.</p>
@@ -60,7 +61,7 @@
 
 <p><b>🔩 Materiais usados:</b> anote os itens do almoxarifado que você usou (as peças da máquina escolhida aparecem primeiro). Elas são descontadas do estoque e ficam salvas com o serviço e o preço. Também ao concluir um serviço pendente e, para corrigi-las, ao editar o serviço no histórico: o estoque é ajustado sozinho. O custo por máquina está em <i>Máquinas → 💶 Custo de peças</i>; o preço de cada item, na ficha dele, e a moeda, em <i>Estoque do almoxarifado → ⚙️ Configurar almoxarifado</i>. O custo só é visto pelos administradores.</p>
 
-<p><b>⏱️ Tempo trabalhado:</b> quanto durou o serviço (1:30, 1,5 ou 90 min) e quantas pessoas. <b>É anotado depois</b>, ao voltar: não há cronômetro. Também ao concluir um serviço pendente ou um aviso e, se for esquecido, ao editar o serviço no histórico. Serve para o custo de mão de obra e para as horas de cada técnico nas estatísticas.</p>
+<p><b>⏱️ Tempo trabalhado:</b> quanto durou o serviço (1:30, 1,5 ou 90 min) e quantas pessoas. <b>É anotado depois</b>, ao voltar: não há cronômetro. Também ao concluir um serviço pendente ou um aviso e, se for esquecido, ao editar o serviço no histórico. Serve para o custo de mão de obra e para as horas de cada técnico nas estatísticas. É opcional: se foi apenas uma verificação, deixe em branco.</p>
 
 <h2><a name="historial"></a>📋 Histórico</h2>
 <p>Todos os serviços realizados, organizados por anos e meses. Você pode filtrar por técnico e por tipo (serviços e falhas, ou avisos preventivos).</p>
@@ -117,7 +118,7 @@ Cada contador mostra a sua última leitura e o uso médio por dia. A leitura que
 <p>O estoque aparece em <b>vermelho</b> se estiver abaixo do mínimo e em <b>verde</b> se estiver acima.</p>
 
 <h2><a name="bajo_minimo"></a>⚠️ Estoque abaixo do mínimo</h2>
-<p>Os itens sem estoque ou abaixo do mínimo (quantidade em vermelho) e os que estão <b>exatamente no mínimo</b> (quantidade sem cor), para ficar de olho neles. O título da aba conta só os que estão abaixo. Daqui você pode ir ao item, registrar uma entrada ou exportar a lista para fazer o pedido; ao exportar, você escolhe se inclui ou não os que estão exatamente no mínimo.</p>
+<p>Os itens sem estoque ou abaixo do mínimo (quantidade em vermelho) e os que estão <b>exatamente no mínimo</b> (quantidade sem cor), para ficar de olho neles. O título da aba conta só os que estão abaixo. Daqui você pode ir ao item, registrar uma entrada ou exportar a lista para fazer o pedido; ao exportar, você escolhe se inclui ou não os que estão exatamente no mínimo. Se for administrador, o botão <b>🛒 Encomenda sugerida…</b> calcula o que encomendar (descontando o que já está encomendado) e cria as encomendas; veja <i>🛒 Encomendas</i> em «Estoque do almoxarifado».</p>
 
 <h2><a name="archivo"></a>💾 Menu Arquivo: cópias, importar e exportar</h2>
 <ul>
@@ -158,6 +159,8 @@ Cada contador mostra a sua última leitura e o uso médio por dia. A leitura que
 <li>A conexão com o PC é <b>criptografada</b>. Para vincular um celular novo, atualize antes o aplicativo dele: um aplicativo antigo não entende o QR novo.</li>
 <li>Os avisos e serviços pendentes com <b>☑️</b> têm checklist: ao concluí-los, ele é preenchido no celular, também sem conexão.</li>
 <li>Na ficha de uma máquina (ao escanear o QR) estão os seus <b>📟 contadores</b> com a última leitura: toque em <b>Anotar</b> para registrar a leitura, também sem conexão (aparece logo e é enviada ao PC ao sincronizar; se o mesmo envio se repetir, não é duplicada). Também aparecem os preventivos por contador com o que falta e o seu estado, e ao concluir um deles dá para anotar a leitura no mesmo passo.</li>
+<li>Se o celular está <b>atribuído a um técnico</b> (veja «Segurança e criptografia»), o ecrã de acesso já traz o seu usuário e avisa a quem está atribuído; nenhum outro usuário pode entrar, exceto um administrador.</li>
+<li><b>O MantPro Stock é apenas de controlo de estoque</b>: o preço dos artigos só é visto e alterado por um administrador, e os fornecedores, os preços por fornecedor e as encomendas são geridos unicamente no PC.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Segurança e criptografia</h2>
@@ -184,4 +187,9 @@ Cada contador mostra a sua última leitura e o uso médio por dia. A leitura que
 <li><b>Ao abrir, o MantPro pede uma chave de recuperação:</b> os bancos de dados estão criptografados e o chaveiro do sistema não tem mais a chave deles (sistema reinstalado, outro usuário…). Digite a chave que você anotou ao ativar a criptografia. Se não a tiver, tire <code>mantenimiento.db</code> e <code>almacen.db</code> da pasta de dados, abra o MantPro e restaure uma cópia.</li>
 <li><b>«Muitas tentativas erradas»:</b> espere o tempo indicado no aviso ou peça a um administrador para redefinir a senha.</li>
 <li><b>Ao restaurar, pede uma senha:</b> a cópia está criptografada com a senha das cópias do computador onde foi feita (ou com uma anterior). Sem ela não é possível restaurar.</li>
+<li><b>«Este celular está atribuído a …»:</b> o celular está reservado a um técnico e só ele (ou um administrador) pode entrar. Para o libertar ou alterar, um administrador usa <i>Ferramentas → 🔐 Sessões de dispositivos → 📲 Atribuir celular a um técnico…</i> e escolhe outro técnico ou «Ninguém (celular livre)».</li>
+<li><b>Não vejo preços, custos, fornecedores nem encomendas:</b> só os administradores os veem, no PC e nas apps. Peça a um administrador que consulte.</li>
+<li><b>O WhatsApp não abre a conversa com o fornecedor:</b> o seu telefone deve ter o indicativo internacional (p. ex. <code>+351 600 000 000</code>). Corrija-o em <i>🏭 Fornecedores</i>; sem indicativo, o WhatsApp pode não o reconhecer.</li>
+<li><b>Um artigo não aparece na encomenda sugerida:</b> só aparecem os que estão abaixo do mínimo e têm estoque mínimo ou objetivo, e não se o já encomendado cobre a falta. Os que não têm fornecedor habitual aparecem sem fornecedor: escolha um antes de criar as encomendas.</li>
+<li><b>Dei uma entrada de estoque e a encomenda não desceu:</b> a entrada só desconta as encomendas abertas desse artigo (não as canceladas nem as já recebidas), primeiro as do fornecedor indicado e depois a mais antiga. Os ajustes de inventário não descontam encomendas, e «marcar como recebida» não altera o estoque.</li>
 </ul>

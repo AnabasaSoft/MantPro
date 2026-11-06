@@ -14,11 +14,12 @@
 <h2><a name="sesion"></a>👤 Sessió, usuaris i permisos</h2>
 <p>Cada persona entra amb el seu propi usuari, i cada treball queda signat amb qui el va fer. Un usuari pot tenir un o diversos rols:</p>
 <ul>
-<li><b>Administrador:</b> pot fer-ho tot, inclòs gestionar usuaris, configurar el magatzem i modificar o esborrar qualsevol registre.</li>
+<li><b>Administrador:</b> pot fer-ho tot, inclòs gestionar usuaris, configurar el magatzem i modificar o esborrar qualsevol registre. És l'únic que veu els preus, els costos i tot el que fa referència a compres (proveïdors i comandes).</li>
 <li><b>Tècnic:</b> registra treballs i completa pendents i avisos. Només pot modificar o esborrar els seus propis registres.</li>
 <li><b>Magatzem:</b> gestiona articles i moviments d'estoc des de l'app MantPro Stock.</li>
 </ul>
 <p>Al menú <i>Sessió</i> pots <b>canviar d'usuari</b> o <b>tancar sessió</b> sense sortir del programa. La teva contrasenya es canvia a <i>Eines → 🔑 Canviar la meva contrasenya</i>.</p>
+<p>Un administrador crea, edita, desactiva i <b>esborra</b> usuaris a <i>Eines → 👥 Gestió d'usuaris</i>. En esborrar un usuari se li tanquen les sessions i s'allibera el seu mòbil adjudicat, però <b>el seu nom es conserva</b> als treballs, moviments de magatzem i registres que va fer. No es pot esborrar un mateix ni l'últim administrador.</p>
 
 <h2><a name="dashboard"></a>📊 Dashboard</h2>
 <p>Resum d'un cop d'ull: avisos pendents, tasques per fer, registres del mes i els indicadors de fiabilitat de tota la planta (<b>MTBF</b>, temps mitjà entre avaries, i <b>MTTR</b>, temps mitjà de reparació). A sota hi veuràs les màquines amb més treballs, les avaries per mes i el repartiment de treballs per tipus.</p>
@@ -60,7 +61,7 @@
 
 <p><b>🔩 Materials utilitzats:</b> apunta els articles del magatzem que has fet servir (surten primer els recanvis de la màquina triada). Es descompten de l'estoc i queden amb el treball i el seu preu. També en completar un pendent i, per corregir-los, en editar el treball a l'historial: l'estoc s'ajusta sol. El cost per màquina és a <i>Màquines → 💶 Cost de recanvis</i>; el preu de cada article, a la seva fitxa, i la moneda, a <i>Estoc de magatzem → ⚙️ Configura el magatzem</i>. El cost només el veuen els administradors.</p>
 
-<p><b>⏱️ Temps treballat:</b> quant va durar el treball (1:30, 1,5 o 90 min) i quantes persones. <b>S'apunta després</b>, en tornar: no hi ha cronòmetre. També en completar un pendent o un avís i, si s'oblida, en editar el treball a l'historial. Serveix per al cost de mà d'obra i per a les hores de cada tècnic a les estadístiques.</p>
+<p><b>⏱️ Temps treballat:</b> quant va durar el treball (1:30, 1,5 o 90 min) i quantes persones. <b>S'apunta després</b>, en tornar: no hi ha cronòmetre. També en completar un pendent o un avís i, si s'oblida, en editar el treball a l'historial. Serveix per al cost de mà d'obra i per a les hores de cada tècnic a les estadístiques. És opcional: si només ha estat una comprovació, deixa-ho buit.</p>
 
 <h2><a name="historial"></a>📋 Historial</h2>
 <p>Tots els treballs realitzats, organitzats per anys i mesos. Pots filtrar per tècnic i per tipus (treballs i avaries, o avisos preventius).</p>
@@ -117,7 +118,7 @@ Cada comptador mostra la seva última lectura i l'ús mitjà per dia. La lectura
 <p>L'estoc es veu en <b>vermell</b> si està per sota del mínim i en <b>verd</b> si està per sobre.</p>
 
 <h2><a name="bajo_minimo"></a>⚠️ Estoc per sota del mínim</h2>
-<p>Els articles sense estoc o per sota del seu mínim (quantitat en vermell) i els que estan <b>just al mínim</b> (quantitat sense color), per tenir-los vigilats. El títol de la pestanya només compta els que estan per sota. Des d'aquí pots anar a l'article, registrar una entrada o exportar la llista per fer la comanda; en exportar tries si incloure o no els que estan just al mínim.</p>
+<p>Els articles sense estoc o per sota del seu mínim (quantitat en vermell) i els que estan <b>just al mínim</b> (quantitat sense color), per tenir-los vigilats. El títol de la pestanya només compta els que estan per sota. Des d'aquí pots anar a l'article, registrar una entrada o exportar la llista per fer la comanda; en exportar tries si incloure o no els que estan just al mínim. Si ets administrador, el botó <b>🛒 Comanda suggerida…</b> calcula què demanar (descomptant el que ja està demanat) i crea les comandes; mira <i>🛒 Comandes</i> a «Estoc de magatzem».</p>
 
 <h2><a name="archivo"></a>💾 Menú Arxiu: còpies, importar i exportar</h2>
 <ul>
@@ -158,6 +159,8 @@ Cada comptador mostra la seva última lectura i l'ús mitjà per dia. La lectura
 <li>La connexió amb el PC va <b>xifrada</b>. Per vincular un mòbil nou, actualitza abans la seva app: una app antiga no entén el QR nou.</li>
 <li>Els avisos i pendents amb <b>☑️</b> porten llista de comprovació: en completar-los s'omple al mòbil, també sense connexió.</li>
 <li>A la fitxa d'una màquina (en escanejar-ne el QR) hi ha els seus <b>📟 comptadors</b> amb la seva última lectura: prem <b>Apuntar</b> per anotar la lectura, també sense connexió (es veu a l'instant i s'envia al PC en sincronitzar; si el mateix enviament es repeteix, no es duplica). També hi surten els seus preventius per comptador amb el que falta i el seu estat, i en completar-ne un es pot apuntar la lectura en el mateix pas.</li>
+<li>Si el mòbil està <b>adjudicat a un tècnic</b> (vegeu «Seguretat i xifratge»), la pantalla d'accés ja porta el seu usuari i avisa de a qui està adjudicat; cap altre usuari pot entrar, tret d'un administrador.</li>
+<li><b>MantPro Stock és només de control d'estoc</b>: el preu dels articles només el veu i el canvia un administrador, i els proveïdors, els preus per proveïdor i les comandes es gestionen únicament al PC.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Seguretat i xifratge</h2>
@@ -184,4 +187,9 @@ Cada comptador mostra la seva última lectura i l'ús mitjà per dia. La lectura
 <li><b>En obrir MantPro demana una clau de recuperació:</b> les bases de dades estan xifrades i el clauer del sistema ja no en té la clau (sistema reinstal·lat, un altre usuari…). Escriu la clau que vas apuntar en activar el xifratge. Si no la tens, treu <code>mantenimiento.db</code> i <code>almacen.db</code> de la carpeta de dades, obre MantPro i restaura una còpia.</li>
 <li><b>«Massa intents fallits»:</b> espera el temps que indica l'avís o demana a un administrador que restableixi la contrasenya.</li>
 <li><b>En restaurar demana una contrasenya:</b> la còpia està xifrada amb la contrasenya de les còpies de l'equip on es va fer (o amb una d'anterior). Sense ella no es pot restaurar.</li>
+<li><b>«Aquest mòbil està adjudicat a …»:</b> el mòbil està reservat a un tècnic i només ell (o un administrador) pot entrar. Per alliberar-lo o canviar-lo, un administrador fa servir <i>Eines → 🔐 Sessions de dispositius → 📲 Adjudicar mòbil a un tècnic…</i> i tria un altre tècnic o «Ningú (mòbil lliure)».</li>
+<li><b>No veig preus, costos, proveïdors ni comandes:</b> només els veuen els administradors, al PC i a les apps. Demana a un administrador que ho consulti.</li>
+<li><b>WhatsApp no obre el xat amb el proveïdor:</b> el seu telèfon ha de dur el prefix internacional (p. ex. <code>+34 600 000 000</code>). Corregeix-lo a <i>🏭 Proveïdors</i>; sense prefix, WhatsApp potser no el reconeix.</li>
+<li><b>Un article no surt a la comanda suggerida:</b> només surten els que estan per sota del mínim i tenen estoc mínim o objectiu, i no si el que ja està demanat cobreix la falta. Els que no tenen proveïdor habitual surten sense proveïdor: tria'n un abans de crear les comandes.</li>
+<li><b>He fet una entrada d'estoc i la comanda no ha baixat:</b> l'entrada només descompta les comandes obertes d'aquest article (no les cancel·lades ni les ja rebudes), primer les del proveïdor indicat i després la més antiga. Els ajustos d'inventari no descompten comandes, i «marca com a rebuda» no canvia l'estoc.</li>
 </ul>

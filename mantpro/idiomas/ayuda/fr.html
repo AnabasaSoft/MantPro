@@ -14,11 +14,12 @@
 <h2><a name="sesion"></a>👤 Session, utilisateurs et droits</h2>
 <p>Chaque personne se connecte avec son propre utilisateur, et chaque intervention est signée par la personne qui l'a faite. Un utilisateur peut avoir un ou plusieurs rôles :</p>
 <ul>
-<li><b>Administrateur :</b> peut tout faire, y compris gérer les utilisateurs, configurer le magasin et modifier ou supprimer n'importe quel enregistrement.</li>
+<li><b>Administrateur :</b> peut tout faire, y compris gérer les utilisateurs, configurer le magasin et modifier ou supprimer n'importe quel enregistrement. C'est le seul rôle qui voit les prix, les coûts et tout ce qui concerne les achats (fournisseurs et commandes).</li>
 <li><b>Technicien :</b> enregistre des interventions et termine les tâches en attente et les rappels. Ne peut modifier ou supprimer que ses propres enregistrements.</li>
 <li><b>Magasin :</b> gère les articles et les mouvements de stock depuis l'application MantPro Stock.</li>
 </ul>
 <p>Dans le menu <i>Session</i>, vous pouvez <b>changer d'utilisateur</b> ou <b>vous déconnecter</b> sans quitter le programme. Votre mot de passe se change dans <i>Outils → 🔑 Changer mon mot de passe</i>.</p>
+<p>Un administrateur crée, modifie, désactive et <b>supprime</b> des utilisateurs dans <i>Outils → 👥 Gestion des utilisateurs</i>. Supprimer un utilisateur ferme ses sessions et libère son téléphone attribué, mais <b>son nom est conservé</b> dans les travaux, les mouvements de magasin et les enregistrements qu'il a faits. On ne peut pas se supprimer soi-même ni supprimer le dernier administrateur.</p>
 
 <h2><a name="dashboard"></a>📊 Tableau de bord</h2>
 <p>Un résumé en un coup d'œil : rappels en attente, tâches à faire, enregistrements du mois et indicateurs de fiabilité de toute l'usine (<b>MTBF</b>, temps moyen entre pannes, et <b>MTTR</b>, temps moyen de réparation). En dessous, vous verrez les machines avec le plus d'interventions, les pannes par mois et la répartition des interventions par type.</p>
@@ -60,7 +61,7 @@
 
 <p><b>🔩 Matériel utilisé :</b> notez les articles du magasin que vous avez utilisés (les pièces de la machine choisie apparaissent en premier). Ils sortent du stock et sont enregistrés avec l'intervention et leur prix. Aussi à la clôture d'une intervention en attente et, pour les corriger, en modifiant l'intervention dans l'historique : le stock s'ajuste tout seul. Le coût par machine est dans <i>Machines → 💶 Coût des pièces</i> ; le prix de chaque article, dans sa fiche, et la devise dans <i>Stock du magasin → ⚙️ Configurer le magasin</i>. Le coût n'est visible que par les administrateurs.</p>
 
-<p><b>⏱️ Temps passé :</b> combien de temps a duré l'intervention (1:30, 1,5 ou 90 min) et combien de personnes. <b>On le note après</b>, au retour : il n'y a pas de chronomètre. Aussi à la clôture d'une intervention en attente ou d'un rappel et, en cas d'oubli, en modifiant l'intervention dans l'historique. Il sert au coût de main-d'œuvre et aux heures de chaque technicien dans les statistiques.</p>
+<p><b>⏱️ Temps passé :</b> combien de temps a duré l'intervention (1:30, 1,5 ou 90 min) et combien de personnes. <b>On le note après</b>, au retour : il n'y a pas de chronomètre. Aussi à la clôture d'une intervention en attente ou d'un rappel et, en cas d'oubli, en modifiant l'intervention dans l'historique. Il sert au coût de main-d'œuvre et aux heures de chaque technicien dans les statistiques. C'est facultatif : s'il ne s'agissait que d'une vérification, laissez vide.</p>
 
 <h2><a name="historial"></a>📋 Historique</h2>
 <p>Toutes les interventions réalisées, classées par années et par mois. Vous pouvez filtrer par technicien et par type (interventions et pannes, ou rappels préventifs).</p>
@@ -117,7 +118,7 @@ Chaque compteur affiche son dernier relevé et l'utilisation moyenne par jour. L
 <p>Le stock apparaît en <b>rouge</b> s'il est sous le minimum et en <b>vert</b> s'il est au-dessus.</p>
 
 <h2><a name="bajo_minimo"></a>⚠️ Stock sous le minimum</h2>
-<p>Les articles en rupture ou sous leur minimum (quantité en rouge) et ceux qui sont <b>pile au minimum</b> (quantité sans couleur), pour les surveiller. Le titre de l'onglet ne compte que ceux qui sont en dessous. D'ici, vous pouvez aller à l'article, enregistrer une entrée ou exporter la liste pour passer commande ; à l'export, vous choisissez d'inclure ou non ceux qui sont pile au minimum.</p>
+<p>Les articles en rupture ou sous leur minimum (quantité en rouge) et ceux qui sont <b>pile au minimum</b> (quantité sans couleur), pour les surveiller. Le titre de l'onglet ne compte que ceux qui sont en dessous. D'ici, vous pouvez aller à l'article, enregistrer une entrée ou exporter la liste pour passer commande ; à l'export, vous choisissez d'inclure ou non ceux qui sont pile au minimum. Si vous êtes administrateur, le bouton <b>🛒 Commande suggérée…</b> calcule quoi commander (en déduisant ce qui est déjà commandé) et crée les commandes ; voir <i>🛒 Commandes</i> dans « Stock du magasin ».</p>
 
 <h2><a name="archivo"></a>💾 Menu Fichier : sauvegardes, importer et exporter</h2>
 <ul>
@@ -158,6 +159,8 @@ Chaque compteur affiche son dernier relevé et l'utilisation moyenne par jour. L
 <li>La connexion avec le PC est <b>chiffrée</b>. Pour associer un nouveau mobile, mettez d'abord son application à jour : une ancienne application ne comprend pas le nouveau QR.</li>
 <li>Les rappels et interventions marqués <b>☑️</b> ont une liste de contrôle : elle se remplit sur le mobile à leur clôture, même hors connexion.</li>
 <li>La fiche d'une machine (ouverte en scannant son QR) affiche ses <b>📟 compteurs</b> avec leur dernier relevé : touchez <b>Saisir</b> pour noter le relevé, même hors connexion (il s'affiche aussitôt et part vers le PC à la synchronisation ; si le même envoi se répète, il n'est pas dupliqué). Ses préventifs par compteur y figurent aussi, avec ce qui reste et leur état, et en terminant l'un d'eux on peut saisir le relevé dans la même étape.</li>
+<li>Si le téléphone est <b>attribué à un technicien</b> (voir « Sécurité et chiffrement »), l'écran de connexion affiche déjà son utilisateur et indique à qui il est attribué ; aucun autre utilisateur ne peut se connecter, sauf un administrateur.</li>
+<li><b>MantPro Stock sert uniquement au contrôle du stock</b> : le prix des articles n'est vu et modifié que par un administrateur, et les fournisseurs, les prix par fournisseur et les commandes se gèrent uniquement sur le PC.</li>
 </ul>
 
 <h2><a name="seguridad"></a>🛡️ Sécurité et chiffrement</h2>
@@ -184,4 +187,9 @@ Chaque compteur affiche son dernier relevé et l'utilisation moyenne par jour. L
 <li><b>À l'ouverture, MantPro demande une clé de récupération :</b> les bases de données sont chiffrées et le trousseau du système n'a plus leur clé (système réinstallé, autre utilisateur…). Saisissez la clé notée lors de l'activation du chiffrement. Sans elle, sortez <code>mantenimiento.db</code> et <code>almacen.db</code> du dossier de données, ouvrez MantPro et restaurez une sauvegarde.</li>
 <li><b>« Trop de tentatives échouées » :</b> attendez le temps indiqué ou demandez à un administrateur de réinitialiser le mot de passe.</li>
 <li><b>La restauration demande un mot de passe :</b> la sauvegarde est chiffrée avec le mot de passe des sauvegardes de l'ordinateur où elle a été faite (ou avec un ancien). Sans lui, elle ne peut pas être restaurée.</li>
+<li><b>« Ce téléphone est attribué à … » :</b> le téléphone est réservé à un technicien et lui seul (ou un administrateur) peut se connecter. Pour le libérer ou le changer, un administrateur utilise <i>Outils → 🔐 Sessions des appareils → 📲 Attribuer le téléphone à un technicien…</i> et choisit un autre technicien ou « Personne (téléphone libre) ».</li>
+<li><b>Je ne vois ni prix, ni coûts, ni fournisseurs, ni commandes :</b> seuls les administrateurs les voient, sur le PC et dans les applications. Demandez à un administrateur de les consulter.</li>
+<li><b>WhatsApp n'ouvre pas la discussion avec le fournisseur :</b> son téléphone doit comporter l'indicatif international (p. ex. <code>+33 6 00 00 00 00</code>). Corrigez-le dans <i>🏭 Fournisseurs</i> ; sans indicatif, WhatsApp peut ne pas le reconnaître.</li>
+<li><b>Un article n'apparaît pas dans la commande suggérée :</b> seuls apparaissent ceux sous leur minimum qui ont un stock minimum ou cible, et pas si ce qui est déjà commandé couvre le manque. Ceux sans fournisseur habituel apparaissent sans fournisseur : choisissez-en un avant de créer les commandes.</li>
+<li><b>J'ai enregistré une entrée de stock et la commande n'a pas diminué :</b> l'entrée ne déduit que les commandes ouvertes de cet article (pas les annulées ni les déjà reçues), d'abord celles du fournisseur indiqué puis la plus ancienne. Les ajustements d'inventaire ne déduisent pas de commandes, et « marquer comme reçue » ne change pas le stock.</li>
 </ul>
