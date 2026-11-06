@@ -1286,5 +1286,19 @@
   "prov_msg_confirmar_borrar_apunte": "Supprimer cette entrée de l'historique des prix ?",
   "prov_msg_confirmar_usar_precio": "Définir {precio} comme prix de l'article ? Cela modifiera le coût des travaux à partir de maintenant.",
   "prov_msg_sin_precios": "Aucun prix n'a encore été enregistré pour cet article.",
-  "prov_msg_sin_precio_sel": "L'entrée sélectionnée n'a pas de prix."
+  "prov_msg_sin_precio_sel": "L'entrée sélectionnée n'a pas de prix.",
+  "ped_lbl_objetivo": "Stock cible",
+  "ped_ph_objetivo": "vide = minimum × {factor}",
+  "ped_tt_objetivo": "Jusqu'où l'on veut remplir l'article à la commande. Si le champ est vide, on utilise le stock minimum multiplié par le facteur configuré dans le magasin.",
+  "ped_lbl_multiplo": "Multiple de commande",
+  "ped_ph_multiplo": "sans multiple",
+  "ped_tt_multiplo": "S'il ne s'achète qu'en cartons ou en lots (p. ex. de 10), indiquez-le ici : la quantité suggérée est arrondie au multiple supérieur.",
+  "ped_lbl_sugerida": "Avec le stock actuel, il serait suggéré de commander : {n} {unidad}",
+  "ped_lbl_no_pedir": "Avec le stock actuel, il n'est pas nécessaire de commander.",
+  "ped_lbl_sin_calculo": "Sans stock minimum ni stock cible : impossible de calculer quoi commander.",
+  "ped_lbl_factor": "Cible par défaut : stock minimum ×",
+  "ped_tt_factor": "Pour les articles sans stock cible propre, la cible est leur stock minimum multiplié par ce nombre.",
+  "aud_f_objetivo": "Stock cible",
+  "aud_f_multiplo": "Multiple de commande",
+  "aud_f_factor_objetivo": "Cible par défaut (× minimum)"
 }

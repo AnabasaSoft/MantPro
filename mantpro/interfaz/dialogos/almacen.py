@@ -34,7 +34,7 @@ from ...idiomas import t
 from ... import idiomas
 from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, maquinas, consumos, usuarios, proveedores
+from ...nucleo import almacen, maquinas, consumos, usuarios, proveedores, pedidos
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -136,6 +136,18 @@ class DialogoConfigurarAlmacen(QDialog):
         self.campo_moneda.editingFinished.connect(lambda: consumos.fijar_moneda(self.campo_moneda.text()))
         hm.addWidget(self.campo_moneda); hm.addStretch()
         l.addLayout(hm)
+
+        # Objetivo por defecto de los artículos sin stock objetivo propio (para el pedido sugerido)
+        hf = QHBoxLayout()
+        etiqueta_factor = QLabel(tt("ped_lbl_factor", "Objetivo por defecto: stock mínimo ×") )
+        etiqueta_factor.setToolTip(tt("ped_tt_factor", "Para los artículos sin stock objetivo propio, el objetivo es su stock mínimo multiplicado por este número."))
+        hf.addWidget(etiqueta_factor)
+        self.spin_factor = QDoubleSpinBox(); self.spin_factor.setRange(0.1, 100); self.spin_factor.setDecimals(1)
+        self.spin_factor.setSingleStep(0.5); self.spin_factor.setValue(pedidos.factor_objetivo())
+        self.spin_factor.setToolTip(etiqueta_factor.toolTip())
+        self.spin_factor.editingFinished.connect(lambda: pedidos.fijar_factor_objetivo(self.spin_factor.value()))
+        hf.addWidget(self.spin_factor); hf.addStretch()
+        l.addLayout(hf)
 
         self.arbol = QTreeWidget(); self.arbol.setHeaderHidden(True)
         self.arbol.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -522,7 +534,7 @@ class DialogoEditarMaterial(QDialog):
         self.ruta_foto_seleccionada = ""
         self.foto_nombre_existente = material.get("foto") if material else None
         self.setWindowTitle(tt("title_nuevo_material", "Nuevo material") if self.es_nuevo else tt("title_editar_material", "Editar material"))
-        self.resize(500, 760)
+        self.resize(500, 800)
         l = QVBoxLayout()
 
         l.addWidget(QLabel(tt("lbl_codigo", "Código (opcional)")))
@@ -557,6 +569,27 @@ class DialogoEditarMaterial(QDialog):
         v3.addWidget(self.campo_precio); h_um.addLayout(v3)
         l.addLayout(h_um)
 
+        # Punto de pedido: hasta dónde se llena al pedir y en qué múltiplos se compra
+        h_ped = QHBoxLayout()
+        v4 = QVBoxLayout(); v4.addWidget(QLabel(tt("ped_lbl_objetivo", "Stock objetivo")))
+        self.campo_objetivo = QLineEdit(self._texto_numero(material.get("stock_objetivo")) if material else "")
+        self.campo_objetivo.setPlaceholderText(tt("ped_ph_objetivo", "vacío = mínimo × {factor}").format(
+            factor=self._texto_numero(pedidos.factor_objetivo())))
+        self.campo_objetivo.setToolTip(tt("ped_tt_objetivo", "Hasta cuánto se quiere llenar el artículo al pedirlo. Si lo dejas vacío se usa el stock mínimo multiplicado por el factor configurado en el almacén."))
+        v4.addWidget(self.campo_objetivo); h_ped.addLayout(v4)
+        v5 = QVBoxLayout(); v5.addWidget(QLabel(tt("ped_lbl_multiplo", "Múltiplo de pedido")))
+        self.campo_multiplo = QLineEdit(self._texto_numero(material.get("multiplo_pedido")) if material else "")
+        self.campo_multiplo.setPlaceholderText(tt("ped_ph_multiplo", "sin múltiplo"))
+        self.campo_multiplo.setToolTip(tt("ped_tt_multiplo", "Si solo se compra en cajas o lotes (p. ej. de 10), escríbelo aquí: la cantidad sugerida se redondea hacia arriba a ese múltiplo."))
+        v5.addWidget(self.campo_multiplo); h_ped.addLayout(v5)
+        l.addLayout(h_ped)
+        self.lbl_sugerida = QLabel(); self.lbl_sugerida.setWordWrap(True)
+        l.addWidget(self.lbl_sugerida)
+        self.campo_objetivo.textChanged.connect(self._actualizar_sugerida)
+        self.campo_multiplo.textChanged.connect(self._actualizar_sugerida)
+        self.spin_minimo.valueChanged.connect(self._actualizar_sugerida)
+        self.campo_unidad.textChanged.connect(self._actualizar_sugerida)
+
         # Proveedor habitual (el catálogo se gestiona desde el botón Proveedores)
         l.addWidget(QLabel(tt("prov_lbl_habitual", "Proveedor habitual")))
         self.combo_proveedor = QComboBox()
@@ -578,6 +611,7 @@ class DialogoEditarMaterial(QDialog):
             l.addWidget(QLabel(tt("lbl_stock_inicial", "Stock inicial")))
             self.spin_inicial = QDoubleSpinBox(); self.spin_inicial.setRange(0, 999999); self.spin_inicial.setDecimals(2)
             l.addWidget(self.spin_inicial)
+            self.spin_inicial.valueChanged.connect(self._actualizar_sugerida)
 
         l.addWidget(QLabel(tt("lbl_ubicacion", "Ubicación")))
         self.combo_estanteria = QComboBox(); self.combo_balda = QComboBox(); self.combo_seccion = QComboBox()
@@ -630,6 +664,7 @@ class DialogoEditarMaterial(QDialog):
             self._preseleccionar_ubicacion(material["seccion_id"])
 
         self._actualizar_preview_inicial()
+        self._actualizar_sugerida()
 
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
@@ -641,6 +676,26 @@ class DialogoEditarMaterial(QDialog):
         scroll.setWidget(contenido)
         externo = QVBoxLayout(); externo.addWidget(scroll, 1); externo.addWidget(b)
         self.setLayout(externo)
+
+    @staticmethod
+    def _texto_numero(valor):
+        return "" if valor is None else f"{valor:g}".replace(".", ",")
+
+    def _actualizar_sugerida(self, *_):
+        """Avisa de cuánto se sugeriría pedir ahora con los valores del formulario."""
+        stock = self.spin_inicial.value() if self.es_nuevo else (self.material.get("stock_actual") or 0)
+        m = {"stock_actual": stock, "stock_minimo": self.spin_minimo.value(),
+             "stock_objetivo": self.campo_objetivo.text(), "multiplo_pedido": self.campo_multiplo.text()}
+        if pedidos.objetivo_efectivo(m) is None:
+            texto = tt("ped_lbl_sin_calculo", "Sin stock mínimo ni objetivo: no se puede calcular qué pedir.")
+        else:
+            n = pedidos.cantidad_sugerida(m)
+            if n > 0:
+                texto = tt("ped_lbl_sugerida", "Con el stock actual se sugeriría pedir: {n} {unidad}").format(
+                    n=self._texto_numero(n), unidad=self.campo_unidad.text().strip()).strip()
+            else:
+                texto = tt("ped_lbl_no_pedir", "Con el stock actual no hace falta pedir.")
+        self.lbl_sugerida.setText(texto)
 
     def _ver_precios_proveedor(self):
         from .proveedores import DialogoPreciosProveedor
@@ -819,6 +874,8 @@ class DialogoEditarMaterial(QDialog):
             "stock_minimo": self.spin_minimo.value(),
             "precio": consumos.numero(self.campo_precio.text()),
             "proveedor_id": self.combo_proveedor.currentData(),
+            "stock_objetivo": self.campo_objetivo.text().strip(),
+            "multiplo_pedido": self.campo_multiplo.text().strip(),
             "stock_inicial": self.spin_inicial.value() if self.es_nuevo else 0,
             "seccion_id": _seccion_destino(self.combo_seccion.currentData(), self.combo_balda.currentData()),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,

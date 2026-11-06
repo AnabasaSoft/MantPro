@@ -44,7 +44,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen, maquinas, proveedores, consumos
+from ...nucleo import usuarios, almacen, maquinas, proveedores, consumos, pedidos
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -535,6 +535,7 @@ class PestanaStock:
                                                precio=d["precio"] if usuarios.es_admin() else None)
             almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
             proveedores.fijar_proveedor_habitual(nuevo_id, d["proveedor_id"])
+            pedidos.fijar_parametros(nuevo_id, d["stock_objetivo"], d["multiplo_pedido"])
             self.refresh_stock()
 
     def stock_editar_material(self):
@@ -558,6 +559,7 @@ class PestanaStock:
                                          precio=d["precio"], cambiar_precio=usuarios.es_admin())
             almacen.fijar_maquinas_de_material(material_id, d["repuestos"])
             proveedores.fijar_proveedor_habitual(material_id, d["proveedor_id"])
+            pedidos.fijar_parametros(material_id, d["stock_objetivo"], d["multiplo_pedido"])
             self.refresh_stock()
 
     def stock_borrar_material(self, ids=None):

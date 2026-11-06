@@ -1286,5 +1286,19 @@
   "prov_msg_confirmar_borrar_apunte": "Voleu esborrar aquest apunt de l'historial de preus?",
   "prov_msg_confirmar_usar_precio": "Voleu posar {precio} com a preu de l'article? Canviarà el cost dels treballs a partir d'ara.",
   "prov_msg_sin_precios": "Encara no hi ha preus apuntats per a aquest article.",
-  "prov_msg_sin_precio_sel": "L'apunt seleccionat no té preu."
+  "prov_msg_sin_precio_sel": "L'apunt seleccionat no té preu.",
+  "ped_lbl_objetivo": "Estoc objectiu",
+  "ped_ph_objetivo": "buit = mínim × {factor}",
+  "ped_tt_objetivo": "Fins a quant es vol omplir l'article en demanar-lo. Si ho deixes buit, s'usa l'estoc mínim multiplicat pel factor configurat al magatzem.",
+  "ped_lbl_multiplo": "Múltiple de comanda",
+  "ped_ph_multiplo": "sense múltiple",
+  "ped_tt_multiplo": "Si només es compra en caixes o lots (p. ex. de 10), escriu-ho aquí: la quantitat suggerida s'arrodoneix cap amunt a aquest múltiple.",
+  "ped_lbl_sugerida": "Amb l'estoc actual se suggeriria demanar: {n} {unidad}",
+  "ped_lbl_no_pedir": "Amb l'estoc actual no cal demanar.",
+  "ped_lbl_sin_calculo": "Sense estoc mínim ni objectiu: no es pot calcular què demanar.",
+  "ped_lbl_factor": "Objectiu per defecte: estoc mínim ×",
+  "ped_tt_factor": "Per als articles sense estoc objectiu propi, l'objectiu és el seu estoc mínim multiplicat per aquest número.",
+  "aud_f_objetivo": "Estoc objectiu",
+  "aud_f_multiplo": "Múltiple de comanda",
+  "aud_f_factor_objetivo": "Objectiu per defecte (× mínim)"
 }

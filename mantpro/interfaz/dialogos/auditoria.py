@@ -95,6 +95,8 @@ _CAMPOS = {
     "Días con una copia diaria": "aud_f_dias_copia_diaria",
     "Contacto": "aud_f_contacto", "Teléfono": "aud_f_telefono", "Correo": "aud_f_correo",
     "Proveedor habitual": "aud_f_proveedor_habitual",
+    "Stock objetivo": "aud_f_objetivo", "Múltiplo de pedido": "aud_f_multiplo",
+    "Objetivo por defecto (× mínimo)": "aud_f_factor_objetivo",
 }
 
 

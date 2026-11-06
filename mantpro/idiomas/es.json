@@ -1286,5 +1286,19 @@
   "prov_msg_confirmar_borrar_apunte": "¿Borrar este apunte del historial de precios?",
   "prov_msg_confirmar_usar_precio": "¿Poner {precio} como precio del artículo? Cambiará el coste de los trabajos a partir de ahora.",
   "prov_msg_sin_precios": "Aún no hay precios apuntados para este artículo.",
-  "prov_msg_sin_precio_sel": "El apunte seleccionado no tiene precio."
+  "prov_msg_sin_precio_sel": "El apunte seleccionado no tiene precio.",
+  "ped_lbl_objetivo": "Stock objetivo",
+  "ped_ph_objetivo": "vacío = mínimo × {factor}",
+  "ped_tt_objetivo": "Hasta cuánto se quiere llenar el artículo al pedirlo. Si lo dejas vacío se usa el stock mínimo multiplicado por el factor configurado en el almacén.",
+  "ped_lbl_multiplo": "Múltiplo de pedido",
+  "ped_ph_multiplo": "sin múltiplo",
+  "ped_tt_multiplo": "Si solo se compra en cajas o lotes (p. ej. de 10), escríbelo aquí: la cantidad sugerida se redondea hacia arriba a ese múltiplo.",
+  "ped_lbl_sugerida": "Con el stock actual se sugeriría pedir: {n} {unidad}",
+  "ped_lbl_no_pedir": "Con el stock actual no hace falta pedir.",
+  "ped_lbl_sin_calculo": "Sin stock mínimo ni objetivo: no se puede calcular qué pedir.",
+  "ped_lbl_factor": "Objetivo por defecto: stock mínimo ×",
+  "ped_tt_factor": "Para los artículos sin stock objetivo propio, el objetivo es su stock mínimo multiplicado por este número.",
+  "aud_f_objetivo": "Stock objetivo",
+  "aud_f_multiplo": "Múltiplo de pedido",
+  "aud_f_factor_objetivo": "Objetivo por defecto (× mínimo)"
 }

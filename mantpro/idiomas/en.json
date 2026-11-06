@@ -1286,5 +1286,19 @@
   "prov_msg_confirmar_borrar_apunte": "Delete this entry from the price history?",
   "prov_msg_confirmar_usar_precio": "Set {precio} as the item's price? It will change the cost of jobs from now on.",
   "prov_msg_sin_precios": "No prices have been recorded for this item yet.",
-  "prov_msg_sin_precio_sel": "The selected entry has no price."
+  "prov_msg_sin_precio_sel": "The selected entry has no price.",
+  "ped_lbl_objetivo": "Target stock",
+  "ped_ph_objetivo": "empty = minimum × {factor}",
+  "ped_tt_objetivo": "How much stock you want to have after ordering. If left empty, the minimum stock multiplied by the factor set in the warehouse settings is used.",
+  "ped_lbl_multiplo": "Order multiple",
+  "ped_ph_multiplo": "no multiple",
+  "ped_tt_multiplo": "If it is only bought in boxes or lots (e.g. of 10), enter it here: the suggested quantity is rounded up to that multiple.",
+  "ped_lbl_sugerida": "With the current stock, the suggested order would be: {n} {unidad}",
+  "ped_lbl_no_pedir": "With the current stock there is no need to order.",
+  "ped_lbl_sin_calculo": "No minimum stock or target: the order quantity cannot be calculated.",
+  "ped_lbl_factor": "Default target: minimum stock ×",
+  "ped_tt_factor": "For items without their own target stock, the target is their minimum stock multiplied by this number.",
+  "aud_f_objetivo": "Target stock",
+  "aud_f_multiplo": "Order multiple",
+  "aud_f_factor_objetivo": "Default target (× minimum)"
 }
