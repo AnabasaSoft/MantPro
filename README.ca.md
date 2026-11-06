@@ -184,7 +184,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📖 Ajuda integrada**: `Ajuda > 📖 Instruccions` obre un manual complet per apartats (primers passos, usuaris, cada pestanya, menús, apps del mòbil i problemes freqüents), amb índex i cercador, en els 7 idiomes. Amb **F1** s'obre directament a l'apartat de la pestanya on ets
 - **👥 Estadístiques per tècnic**: botó al Dashboard amb els treballs de cada tècnic per any i mes, avaries, preventius, hores d'aturada i pendents assignats ara mateix, amb gràfic de barres; filtrable per tipus (tots, treballs i avaries o manteniment preventiu) i exportable a PDF (amb logotip) i Excel
 - **🔩 Recanvis per màquina**: quins articles del magatzem porta cada màquina i quants, amb el seu estoc i ubicació, i a quines màquines s'utilitza cada article (vegeu [Maquinària](#-maquinària))
-- **💶 Recanvis utilitzats i el seu cost**: en registrar, completar o editar un treball s'hi apunten els recanvis utilitzats (es proposen primer els de la màquina); surten de l'estoc i queden desats amb el treball i el preu d'aquell moment, així que el cost no canvia encara que després canviï el preu. En corregir-los s'ajusta l'estoc. Cada article pot tenir preu unitari (moneda configurable). `Màquines > 💶 Cost de recanvis` mostra el cost per màquina, amb les submàquines, per any i exportable a Excel; l'historial, el PDF, l'Excel i el CSV els inclouen
+- **💶 Recanvis utilitzats i el seu cost**: en registrar, completar o editar un treball s'hi apunten els recanvis utilitzats (es proposen primer els de la màquina); surten de l'estoc i queden desats amb el treball i el preu d'aquell moment, així que el cost no canvia encara que després canviï el preu. En corregir-los s'ajusta l'estoc. Cada article pot tenir preu unitari (moneda configurable). `Màquines > 💶 Cost de recanvis` mostra el cost per màquina, amb les submàquines, per any i exportable a Excel; l'historial, el PDF, l'Excel i el CSV els inclouen Els costos només els veuen els administradors.
 - **⏱️ Temps treballat**: quant va durar cada treball i quantes persones, **apuntat després** (sense cronòmetre: en una avaria primer s'arregla), al PC o al mòbil, també en completar avisos i pendents, i corregible a l'historial. Amb un cost de l'hora intern (només administradors; cada treball desa la tarifa del moment), `Màquines > 💶 Costos` mostra hores, mà d'obra, recanvis i total per màquina, i les estadístiques per tècnic inclouen les seves hores
 - **🏷️ Etiquetes QR per màquina**: PDF d'etiquetes per enganxar a les màquines; en escanejar-les amb l'app MantPro s'obre la fitxa de la màquina
 - **🔍 Avís de repetits**: en crear o reanomenar una màquina, o en crear o editar un article, avisa si ja n'hi ha un altre amb el mateix codi o un nom igual o molt semblant (per exemple «Extractor de fins» / «Extracció de fins»), sense avisar quan només canvia el número («Lora 1» / «Lora 2»)
@@ -837,7 +837,7 @@ seguretat, mira [SECURITY.md](SECURITY.md).
 
 El que ve, sense dates i sense un ordre tancat:
 
-- **Proveïdors, preus i comandes de compra** a partir de l'estoc sota mínim
+- **Compres**: rebre les comandes amb entrada automàtica a l'estoc i preu real, i avisar de les comandes sense enviar
 - **Signatura** en tancar un treball (també al mòbil)
 - **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
 - **Criticitat de les màquines (ABC)**, per decidir on invertir en manteniment

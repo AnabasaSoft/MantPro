@@ -183,7 +183,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📖 Axuda integrada**: `Axuda > 📖 Instrucións` abre un manual completo por apartados (primeiros pasos, usuarios, cada lapela, menús, apps do móbil e problemas frecuentes), con índice e buscador, nos 7 idiomas. Con **F1** ábrese directamente no apartado da lapela na que esteas
 - **👥 Estatísticas por técnico**: botón no Dashboard cos traballos de cada técnico por ano e mes, avarías, preventivos, horas de parada e pendentes asignados agora mesmo, con gráfico de barras; filtrable por tipo (todos, traballos e avarías ou mantemento preventivo) e exportable a PDF (con logotipo) e Excel
 - **🔩 Recambios por máquina**: que artigos do almacén leva cada máquina e cantos, co seu stock e localización, e en que máquinas se usa cada artigo (ver [Maquinaria](#-maquinaria))
-- **💶 Recambios usados e o seu custo**: ao rexistrar, completar ou editar un traballo apúntanse os recambios usados (propóñense primeiro os da máquina); saen do stock e quedan gardados co traballo e o prezo dese momento, así que o custo non cambia aínda que despois cambie o prezo. Ao corrixilos axústase o stock. Cada artigo pode ter prezo unitario (moeda configurable). `Máquinas > 💶 Custo de recambios` mostra o custo por máquina, coas súas submáquinas, por ano e exportable a Excel; o historial, o PDF, o Excel e o CSV inclúenos
+- **💶 Recambios usados e o seu custo**: ao rexistrar, completar ou editar un traballo apúntanse os recambios usados (propóñense primeiro os da máquina); saen do stock e quedan gardados co traballo e o prezo dese momento, así que o custo non cambia aínda que despois cambie o prezo. Ao corrixilos axústase o stock. Cada artigo pode ter prezo unitario (moeda configurable). `Máquinas > 💶 Custo de recambios` mostra o custo por máquina, coas súas submáquinas, por ano e exportable a Excel; o historial, o PDF, o Excel e o CSV inclúenos Os custos só os ven os administradores.
 - **⏱️ Tempo traballado**: canto durou cada traballo e cantas persoas, **apuntado despois** (sen cronómetro: nunha avaría primeiro arránxase), no PC ou no móbil, tamén ao completar avisos e pendentes, e corrixible no historial. Cun custo da hora interno (só administradores; cada traballo garda a tarifa do momento), `Máquinas > 💶 Custos` mostra horas, man de obra, recambios e total por máquina, e as estatísticas por técnico inclúen as súas horas
 - **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para pegar nas máquinas; ao escanealas coa app MantPro ábrese a ficha da máquina
 - **🔍 Aviso de repetidos**: ao crear ou renomear unha máquina, ou ao crear ou editar un artigo, avisa se xa hai outro co mesmo código ou un nome igual ou moi parecido (por exemplo «Extractor de finos» / «Extracción de finos»), sen avisar cando só cambia o número («Lora 1» / «Lora 2»)
@@ -831,7 +831,7 @@ seguranza, mira [SECURITY.md](SECURITY.md).
 
 O que vén, sen datas e sen unha orde pechada:
 
-- **Provedores, prezos e pedidos de compra** a partir do stock baixo mínimo
+- **Compras**: recibir os pedidos con entrada automática no stock e prezo real, e avisar dos pedidos sen enviar
 - **Sinatura** ao pechar un traballo (tamén no móbil)
 - **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir en mantemento

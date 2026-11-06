@@ -184,7 +184,7 @@ versiones estables. Los cambios de cada versión están en
 - **📖 Ayuda integrada**: `Ayuda > 📖 Instrucciones` abre un manual completo por apartados (primeros pasos, usuarios, cada pestaña, menús, apps del móvil y problemas frecuentes), con índice y buscador, en los 7 idiomas. Con **F1** se abre directamente en el apartado de la pestaña en la que estás
 - **👥 Estadísticas por Técnico**: botón en el Dashboard con los trabajos de cada técnico por año y mes, averías, preventivos, horas de parada y pendientes asignados ahora mismo, con gráfico de barras; filtrable por tipo (todos, trabajos y averías o mantenimiento preventivo) y exportable a PDF (con logo) y Excel
 - **🔩 Repuestos por Máquina**: qué artículos del almacén lleva cada máquina y cuántos, con su stock y ubicación, y en qué máquinas se usa cada artículo (ver [Maquinaria](#-maquinaria))
-- **💶 Repuestos Usados y su Coste**: al registrar, completar o editar un trabajo se apuntan los repuestos usados (se proponen primero los de la máquina); salen del stock y quedan guardados con el trabajo y el precio de ese momento, así que el coste no cambia aunque luego cambie el precio. Al corregirlos se ajusta el stock. Cada artículo puede tener precio unitario (moneda configurable). `Máquinas > 💶 Coste de repuestos` muestra el coste por máquina, con sus submáquinas, por año y exportable a Excel; el historial, el PDF, el Excel y el CSV los incluyen
+- **💶 Repuestos Usados y su Coste**: al registrar, completar o editar un trabajo se apuntan los repuestos usados (se proponen primero los de la máquina); salen del stock y quedan guardados con el trabajo y el precio de ese momento, así que el coste no cambia aunque luego cambie el precio. Al corregirlos se ajusta el stock. Cada artículo puede tener precio unitario (moneda configurable). `Máquinas > 💶 Coste de repuestos` muestra el coste por máquina, con sus submáquinas, por año y exportable a Excel; el historial, el PDF, el Excel y el CSV los incluyen Los costes solo los ven los administradores.
 - **⏱️ Tiempo Trabajado**: cuánto duró cada trabajo y cuántas personas, **apuntado después** (sin cronómetro: en una avería primero se arregla), en el PC o en el móvil, también al completar avisos y pendientes, y corregible en el historial. Con un coste de la hora interno (solo administradores; cada trabajo guarda la tarifa del momento), `Máquinas > 💶 Costes` muestra horas, mano de obra, repuestos y total por máquina, y las estadísticas por técnico incluyen sus horas
 - **🏷️ Etiquetas QR por Máquina**: PDF de etiquetas para pegar en las máquinas; al escanearlas con la app MantPro se abre la ficha de la máquina
 - **🔍 Aviso de Repetidos**: al crear o renombrar una máquina, o al crear o editar un artículo, avisa si ya hay otro con el mismo código o un nombre igual o muy parecido (por ejemplo «Extractor de finos» / «Extracción de finos»), sin avisar cuando solo cambia el número («Lora 1» / «Lora 2»)
@@ -837,7 +837,7 @@ La estructura del código y de la base de datos está en
 
 Lo que viene, sin fechas y sin un orden cerrado:
 
-- **Proveedores, precios y pedidos de compra** a partir del stock bajo mínimo
+- **Compras**: recibir los pedidos con entrada automática en stock y precio real, y avisar de los pedidos sin enviar
 - **Firma** al cerrar un trabajo (también en el móvil)
 - **Documentación técnica por máquina** (manuales, planos y esquemas en PDF)
 - **Criticidad de las máquinas (ABC)**, para decidir dónde invertir en mantenimiento

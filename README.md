@@ -181,7 +181,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📖 Built-in Help**: `Help > 📖 Instructions` opens a full manual by section (getting started, users, each tab, menus, mobile apps and common problems), with an index and search box, in all 7 languages. **F1** opens it directly at the section of the tab you are on
 - **👥 Statistics by Technician**: button on the Dashboard showing each technician's jobs by year and month, breakdowns, preventive jobs, downtime hours and pending jobs assigned right now, with a bar chart; can be filtered by type (all, work orders and breakdowns, or preventive maintenance) and exported to PDF (with logo) and Excel
 - **🔩 Spare Parts per Machine**: which warehouse items each machine has fitted and how many, with their stock and location, and which machines use each item (see [Machinery](#-machinery))
-- **💶 Spare Parts Used and Cost**: when logging, completing or editing a job you note the spare parts used (the machine's own parts are offered first); they come out of stock and are saved with the job and the price at that moment, so the cost does not change if the price changes later. Correcting them adjusts the stock. Each item can have a unit price (configurable currency). `Machines > 💶 Spare parts cost` shows the cost per machine, including sub-machines, by year, exportable to Excel; the history, PDF, Excel and CSV include them
+- **💶 Spare Parts Used and Cost**: when logging, completing or editing a job you note the spare parts used (the machine's own parts are offered first); they come out of stock and are saved with the job and the price at that moment, so the cost does not change if the price changes later. Correcting them adjusts the stock. Each item can have a unit price (configurable currency). `Machines > 💶 Spare parts cost` shows the cost per machine, including sub-machines, by year, exportable to Excel; the history, PDF, Excel and CSV include them Costs are only visible to administrators.
 - **⏱️ Time Worked**: how long each job took and how many people, **noted afterwards** (no stopwatch: in a breakdown you go and fix it first), on the PC or the phone, also when completing reminders and pending jobs, and it can be corrected in the history. With an internal cost per hour (administrators only; each job keeps the rate in force), `Machines > 💶 Costs` shows hours, labour, spare parts and total per machine, and the statistics by technician include their hours
 - **🏷️ QR Labels per Machine**: PDF of labels to stick on the machines; scanning them with the MantPro app opens the machine's page
 - **🔍 Duplicate Warning**: when creating or renaming a machine, or creating or editing an item, it warns if there is already another one with the same code or the same or a very similar name (e.g. “Fines extractor” / “Fines extraction”), without warning when only the number changes (“Lora 1” / “Lora 2”)
@@ -826,7 +826,7 @@ The code and database structure is described in
 
 What's coming, without dates and in no fixed order:
 
-- **Suppliers, prices and purchase orders** based on low stock
+- **Purchasing**: receive orders with an automatic stock entry and the real price, and warn about orders not yet sent
 - **Sign-off** when closing a job (also on the phone)
 - **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
 - **Machine criticality (ABC)**, to decide where to invest maintenance
