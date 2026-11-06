@@ -74,7 +74,7 @@ def preparar_registro_cambios(con):
     con.commit()
 
 
-def preparar_tabla(con, tabla, identidad=None, solo_si=None):
+def preparar_tabla(con, tabla, identidad=None, solo_si=None, uuid_desde=None, ignorar=()):
     """Añade `uuid` a [tabla] (rellenándolo en las filas que ya hay, sin anotar
     cambios) y (re)crea sus disparadores. Idempotente. Requiere que la tabla
     tenga rowid (todas las de MantPro: INTEGER PRIMARY KEY).
@@ -82,8 +82,17 @@ def preparar_tabla(con, tabla, identidad=None, solo_si=None):
     Tablas «de clave» (config, dias_especiales), cuya identidad es su propia
     clave y no un uuid: se pasa [identidad], una expresión SQL con {r} en lugar
     de NEW/OLD (p. ej. "{r}.clave"), que es lo que se anota en `cambios.uuid`.
-    No se añade columna. [solo_si] (misma sintaxis) limita qué filas se anotan."""
+    No se añade columna. [solo_si] (misma sintaxis) limita qué filas se anotan.
+
+    [uuid_desde]: nombre de una columna que ya identifica cada registro (el `uid` que
+    generan los móviles); se reutiliza como uuid si tiene valor, y si no se genera uno.
+
+    [ignorar]: columnas locales de cada PC (p. ej. `ultimo_acceso`): modificar solo
+    esas no anota ningún cambio."""
     t = _nombre(tabla)
+    origen = _UUID_NUEVO
+    if uuid_desde:
+        origen = f"COALESCE(NULLIF({_nombre(uuid_desde)}, ''), {_UUID_NUEVO})"
     if identidad is not None:
         return _preparar_tabla_de_clave(con, t, identidad, solo_si)
     columnas = {f[1] for f in con.execute(f"PRAGMA table_info({t})")}
@@ -91,7 +100,7 @@ def preparar_tabla(con, tabla, identidad=None, solo_si=None):
         con.execute(f"ALTER TABLE {t} ADD COLUMN uuid TEXT")
     # Los disparadores todavía no existen la primera vez, así que rellenar los
     # uuid de las filas antiguas no genera cambios. Al repetir no hay nada que rellenar.
-    con.execute(f"UPDATE {t} SET uuid = {_UUID_NUEVO} WHERE uuid IS NULL")
+    con.execute(f"UPDATE {t} SET uuid = {origen} WHERE uuid IS NULL")
     con.execute(f"CREATE UNIQUE INDEX IF NOT EXISTS idx_{t}_uuid ON {t}(uuid)")
 
     for sufijo in ("ai", "au", "ad"):
@@ -100,16 +109,21 @@ def preparar_tabla(con, tabla, identidad=None, solo_si=None):
     con.execute(f"""
         CREATE TRIGGER sync_{t}_ai AFTER INSERT ON {t}
         BEGIN
-            UPDATE {t} SET uuid = {_UUID_NUEVO} WHERE rowid = NEW.rowid AND uuid IS NULL;
+            UPDATE {t} SET uuid = {origen} WHERE rowid = NEW.rowid AND uuid IS NULL;
             INSERT INTO cambios (tabla, uuid, op)
                 SELECT '{t}', uuid, 'i' FROM {t}
                 WHERE rowid = NEW.rowid AND {_NO_SILENCIADO};
         END
     """)
-    # Modificación: no anota el cambio de uuid en sí (la asignación del alta).
+    # Modificación: no anota el cambio de uuid en sí (la asignación del alta) ni
+    # los de las columnas ignoradas (solo se anota si cambia alguna otra).
+    columnas = [f[1] for f in con.execute(f"PRAGMA table_info({t})")]
+    distintas = " OR ".join(f"OLD.{c} IS NOT NEW.{c}" for c in columnas
+                            if c != "uuid" and c not in ignorar)
+    cond_cambio = f" AND ({distintas})" if ignorar and distintas else ""
     con.execute(f"""
         CREATE TRIGGER sync_{t}_au AFTER UPDATE ON {t}
-        WHEN OLD.uuid IS NEW.uuid AND {_NO_SILENCIADO}
+        WHEN OLD.uuid IS NEW.uuid AND {_NO_SILENCIADO}{cond_cambio}
         BEGIN
             INSERT INTO cambios (tabla, uuid, op) VALUES ('{t}', NEW.uuid, 'u');
         END
@@ -201,7 +215,7 @@ CONFIG_COMPARTIDA = ("coste_hora", "moneda", "factor_objetivo",
 
 TABLAS = {
     "mant": {
-        "usuarios": {"tipo": "entidad", "refs": {"especialidad_id": "mant.especialidades"}},
+        "usuarios": {"tipo": "entidad", "ignorar": ("ultimo_acceso",), "refs": {"especialidad_id": "mant.especialidades"}},
         "especialidades": {"tipo": "entidad", "refs": {}},
         "usuario_roles": {"tipo": "enlace", "clave_natural": ("usuario_id", "rol"),
                           "refs": {"usuario_id": "mant.usuarios"}},
@@ -218,7 +232,7 @@ TABLAS = {
         "checklist_puntos": {"tipo": "entidad", "refs": {"plantilla_id": "mant.checklist_plantillas"}},
         "checklist_resultados": {"tipo": "entidad", "refs": {"tarea_id": "mant.tareas"}},
         "contadores": {"tipo": "entidad", "refs": {"maquina_id": "mant.maquinas"}},
-        "lecturas_contador": {"tipo": "inmutable", "refs": {"contador_id": "mant.contadores", "usuario_id": "mant.usuarios",
+        "lecturas_contador": {"tipo": "inmutable", "uuid_desde": "uid", "refs": {"contador_id": "mant.contadores", "usuario_id": "mant.usuarios",
                                                             "aviso_id": "mant.avisos_recurrentes", "tarea_id": "mant.tareas"}},
         "auditoria": {"tipo": "inmutable", "refs": {"usuario_id": "mant.usuarios", "tarea_id": "mant.tareas"}},
         "config": {"tipo": "clave", "identidad": "{r}.clave",
@@ -239,7 +253,7 @@ TABLAS = {
         "precios_proveedor": {"tipo": "inmutable", "refs": {"material_id": "alma.materiales", "proveedor_id": "alma.proveedores"}},
         "pedidos": {"tipo": "entidad", "refs": {"proveedor_id": "alma.proveedores"}},
         "pedidos_lineas": {"tipo": "entidad", "refs": {"pedido_id": "alma.pedidos", "material_id": "alma.materiales"}},
-        "revisiones_stock": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios"}},
+        "revisiones_stock": {"tipo": "entidad", "uuid_desde": "uid", "refs": {"usuario_id": "mant.usuarios"}},
         "revisiones_stock_lineas": {"tipo": "entidad", "refs": {"revision_id": "alma.revisiones_stock",
                                                                 "material_id": "alma.materiales"}},
         "trabajo_materiales": {"tipo": "entidad", "refs": {"tarea_id": "mant.tareas", "material_id": "alma.materiales"}},
@@ -282,5 +296,5 @@ def preparar_base(con, base):
         elif espec["tipo"] == "clave":
             preparar_tabla(con, tabla, identidad=espec["identidad"], solo_si=espec.get("solo_si"))
         else:
-            preparar_tabla(con, tabla)
+            preparar_tabla(con, tabla, uuid_desde=espec.get("uuid_desde"), ignorar=espec.get("ignorar", ()))
     return faltan
