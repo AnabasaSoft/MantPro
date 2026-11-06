@@ -1362,5 +1362,10 @@
   "cmp_txt_ref": "ref. {ref}",
   "cmp_pdf_titulo": "Encomenda de material n.º {n}",
   "cmp_pdf_proveedor": "Fornecedor",
-  "cmp_pdf_fecha": "Data"
+  "cmp_pdf_fecha": "Data",
+  "cmp_btn_marcar_sel": "☑️ Marcar seleção",
+  "cmp_btn_desmarcar_sel": "☐ Desmarcar seleção",
+  "cmp_btn_marcar_todo": "Marcar tudo",
+  "cmp_btn_desmarcar_todo": "Desmarcar tudo",
+  "cmp_tt_seleccion": "Selecione várias linhas (Ctrl ou Shift) e marque-as ou desmarque-as de uma vez; também com a barra de espaço."
 }

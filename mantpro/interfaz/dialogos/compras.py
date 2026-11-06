@@ -27,8 +27,8 @@ import re
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
                              QHeaderView, QAbstractItemView, QDialogButtonBox, QMessageBox, QComboBox, QDoubleSpinBox,
-                             QCheckBox, QTextEdit, QWidget, QApplication)
-from PyQt6.QtCore import Qt, QUrl
+                             QCheckBox, QTextEdit, QWidget, QApplication, QMenu)
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal
 from PyQt6.QtGui import QColor, QDesktopServices
 
 from ... import idiomas
@@ -56,6 +56,18 @@ def _abrir_fichero(ruta):
     QDesktopServices.openUrl(QUrl.fromLocalFile(ruta))
 
 
+class _TablaSugerido(QTableWidget):
+    """Tabla del pedido sugerido: la barra espaciadora avisa para marcar o desmarcar
+    las filas seleccionadas."""
+    espacio = pyqtSignal()
+
+    def keyPressEvent(self, evento):
+        if evento.key() == Qt.Key.Key_Space and not evento.modifiers():
+            self.espacio.emit()
+            return
+        super().keyPressEvent(evento)
+
+
 class DialogoPedidoSugerido(QDialog):
     """Qué pedir ahora: una fila por artículo por debajo del mínimo, con la cantidad
     calculada (objetivo − stock − lo ya pedido), el proveedor y el importe estimado.
@@ -76,7 +88,18 @@ class DialogoPedidoSugerido(QDialog):
             aviso = QLabel(tt("cmp_sug_sin_calculo", "{n} artículos por debajo del mínimo no se pueden calcular: no tienen stock mínimo ni objetivo.").format(n=sin_calculo))
             aviso.setWordWrap(True); aviso.setStyleSheet("color:#d98a00;")
             l.addWidget(aviso)
-        self.tabla = QTableWidget(0, 9)
+        self._aplicando = False   # evita rebotes al marcar varias casillas a la vez
+        barra_marcas = QHBoxLayout()
+        for clave, texto, accion in (("cmp_btn_marcar_sel", "☑️ Marcar selección", lambda: self._marcar_seleccion(True)),
+                                     ("cmp_btn_desmarcar_sel", "☐ Desmarcar selección", lambda: self._marcar_seleccion(False)),
+                                     ("cmp_btn_marcar_todo", "Marcar todo", lambda: self._marcar_todo(True)),
+                                     ("cmp_btn_desmarcar_todo", "Desmarcar todo", lambda: self._marcar_todo(False))):
+            b = QPushButton(tt(clave, texto)); b.clicked.connect(accion)
+            b.setToolTip(tt("cmp_tt_seleccion", "Selecciona varias filas (Ctrl o Mayús) y márcalas o desmárcalas a la vez; también con la barra espaciadora."))
+            barra_marcas.addWidget(b)
+        barra_marcas.addStretch()
+        l.addLayout(barra_marcas)
+        self.tabla = _TablaSugerido(0, 9)
         self.tabla.setHorizontalHeaderLabels([
             tt("cmp_sug_hdr_pedir", "PEDIR"), tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_stock", "STOCK"),
             tt("cmp_sug_hdr_pendiente", "YA PEDIDO"), tt("prov_hdr_cantidad", "CANTIDAD"), tt("prov_lbl_proveedor", "Proveedor").upper(),
@@ -85,8 +108,12 @@ class DialogoPedidoSugerido(QDialog):
         cab.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         cab.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.setAlternatingRowColors(True)
+        self.tabla.espacio.connect(self._alternar_seleccion)
+        self.tabla.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tabla.customContextMenuRequested.connect(self._menu_marcas)
         l.addWidget(self.tabla, 1)
         self.lbl_vacio = QLabel(tt("cmp_sug_vacio", "No hace falta pedir nada ahora."))
         self.lbl_vacio.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -106,7 +133,7 @@ class DialogoPedidoSugerido(QDialog):
         self.tabla.setRowCount(len(self._lineas))
         for fila, ln in enumerate(self._lineas):
             casilla = QCheckBox(); casilla.setChecked(True)
-            casilla.stateChanged.connect(self._actualizar_total)
+            casilla.stateChanged.connect(lambda estado, f=fila: self._casilla_cambiada(f, estado))
             contenedor = QWidget(); hc = QHBoxLayout(contenedor); hc.setContentsMargins(0, 0, 0, 0)
             hc.setAlignment(Qt.AlignmentFlag.AlignCenter); hc.addWidget(casilla)
             self.tabla.setCellWidget(fila, 0, contenedor)
@@ -145,6 +172,58 @@ class DialogoPedidoSugerido(QDialog):
 
     def _fila_marcada(self, fila):
         return self.tabla.cellWidget(fila, 0).findChild(QCheckBox).isChecked()
+
+    def _filas_seleccionadas(self):
+        return sorted({i.row() for i in self.tabla.selectionModel().selectedRows()})
+
+    def _poner_marcas(self, filas, marcado):
+        """Marca o desmarca varias filas de una vez (y recalcula el total una sola vez)."""
+        self._aplicando = True
+        try:
+            for f in filas:
+                self.tabla.cellWidget(f, 0).findChild(QCheckBox).setChecked(marcado)
+        finally:
+            self._aplicando = False
+        self._actualizar_total()
+
+    def _casilla_cambiada(self, fila, estado):
+        """Si se toca la casilla de una fila que forma parte de una selección de varias,
+        el cambio se aplica a todas las seleccionadas."""
+        if self._aplicando:
+            return
+        seleccion = self._filas_seleccionadas()
+        if len(seleccion) > 1 and fila in seleccion:
+            self._poner_marcas(seleccion, bool(estado))
+        else:
+            self._actualizar_total()
+
+    def _marcar_seleccion(self, marcado):
+        self._poner_marcas(self._filas_seleccionadas(), marcado)
+
+    def _marcar_todo(self, marcado):
+        self._poner_marcas(range(len(self._lineas)), marcado)
+
+    def _alternar_seleccion(self):
+        """Barra espaciadora: si todas las filas seleccionadas están marcadas, las desmarca;
+        si no, las marca."""
+        filas = self._filas_seleccionadas()
+        if filas:
+            self._poner_marcas(filas, not all(self._fila_marcada(f) for f in filas))
+
+    def _menu_marcas(self, pos):
+        menu = QMenu(self)
+        a1 = menu.addAction(tt("cmp_btn_marcar_sel", "☑️ Marcar selección"))
+        a2 = menu.addAction(tt("cmp_btn_desmarcar_sel", "☐ Desmarcar selección"))
+        menu.addSeparator()
+        a3 = menu.addAction(tt("cmp_btn_marcar_todo", "Marcar todo"))
+        a4 = menu.addAction(tt("cmp_btn_desmarcar_todo", "Desmarcar todo"))
+        hay = bool(self._filas_seleccionadas())
+        a1.setEnabled(hay); a2.setEnabled(hay)
+        elegida = menu.exec(self.tabla.viewport().mapToGlobal(pos))
+        if elegida == a1: self._marcar_seleccion(True)
+        elif elegida == a2: self._marcar_seleccion(False)
+        elif elegida == a3: self._marcar_todo(True)
+        elif elegida == a4: self._marcar_todo(False)
 
     def _actualizar_total(self, *_):
         total, sin_precio = 0.0, False

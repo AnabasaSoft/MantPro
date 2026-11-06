@@ -1362,5 +1362,10 @@
   "cmp_txt_ref": "ref. {ref}",
   "cmp_pdf_titulo": "Comanda de material núm. {n}",
   "cmp_pdf_proveedor": "Proveïdor",
-  "cmp_pdf_fecha": "Data"
+  "cmp_pdf_fecha": "Data",
+  "cmp_btn_marcar_sel": "☑️ Marca la selecció",
+  "cmp_btn_desmarcar_sel": "☐ Desmarca la selecció",
+  "cmp_btn_marcar_todo": "Marca-ho tot",
+  "cmp_btn_desmarcar_todo": "Desmarca-ho tot",
+  "cmp_tt_seleccion": "Selecciona diverses files (Ctrl o Maj) i marca-les o desmarca-les alhora; també amb la barra espaiadora."
 }

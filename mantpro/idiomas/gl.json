@@ -1362,5 +1362,10 @@
   "cmp_txt_ref": "ref. {ref}",
   "cmp_pdf_titulo": "Pedido de material n.º {n}",
   "cmp_pdf_proveedor": "Provedor",
-  "cmp_pdf_fecha": "Data"
+  "cmp_pdf_fecha": "Data",
+  "cmp_btn_marcar_sel": "☑️ Marcar selección",
+  "cmp_btn_desmarcar_sel": "☐ Desmarcar selección",
+  "cmp_btn_marcar_todo": "Marcar todo",
+  "cmp_btn_desmarcar_todo": "Desmarcar todo",
+  "cmp_tt_seleccion": "Selecciona varias filas (Ctrl ou Maiús) e márcaas ou desmárcaas á vez; tamén coa barra espazadora."
 }

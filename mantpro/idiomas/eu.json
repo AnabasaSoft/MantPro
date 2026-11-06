@@ -1362,5 +1362,10 @@
   "cmp_txt_ref": "erref. {ref}",
   "cmp_pdf_titulo": "Materialaren {n}. eskaera",
   "cmp_pdf_proveedor": "Hornitzailea",
-  "cmp_pdf_fecha": "Data"
+  "cmp_pdf_fecha": "Data",
+  "cmp_btn_marcar_sel": "☑️ Hautapena markatu",
+  "cmp_btn_desmarcar_sel": "☐ Hautapena desmarkatu",
+  "cmp_btn_marcar_todo": "Guztia markatu",
+  "cmp_btn_desmarcar_todo": "Guztia desmarkatu",
+  "cmp_tt_seleccion": "Hautatu hainbat lerro (Ctrl edo Maius) eta markatu edo desmarkatu aldi berean; zuriune-barrarekin ere bai."
 }

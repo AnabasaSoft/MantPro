@@ -1362,5 +1362,10 @@
   "cmp_txt_ref": "réf. {ref}",
   "cmp_pdf_titulo": "Commande de matériel n° {n}",
   "cmp_pdf_proveedor": "Fournisseur",
-  "cmp_pdf_fecha": "Date"
+  "cmp_pdf_fecha": "Date",
+  "cmp_btn_marcar_sel": "☑️ Cocher la sélection",
+  "cmp_btn_desmarcar_sel": "☐ Décocher la sélection",
+  "cmp_btn_marcar_todo": "Tout cocher",
+  "cmp_btn_desmarcar_todo": "Tout décocher",
+  "cmp_tt_seleccion": "Sélectionnez plusieurs lignes (Ctrl ou Maj) et cochez-les ou décochez-les d'un coup ; la barre d'espace fonctionne aussi."
 }
