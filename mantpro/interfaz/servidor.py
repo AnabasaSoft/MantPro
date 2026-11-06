@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -1357,7 +1357,16 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": "Material no encontrado"}), 404
             material["ubicacion"] = almacen.obtener_ubicacion_texto(material.get("seccion_id"))
             material["movimientos"] = almacen.obtener_movimientos(material_id, limite=20)
+            habitual = proveedores.proveedor_habitual(material_id)
+            material["proveedor_nombre"] = habitual["nombre"] if habitual else None
             return jsonify({"status": "ok", "material": material})
+
+        @self.app.route('/api/stock/proveedores', methods=['GET'])
+        @requiere_token
+        def api_stock_proveedores():
+            """Catálogo de proveedores (solo lectura desde el móvil: se
+            gestiona en el PC). Cada artículo trae su `proveedor_id`."""
+            return jsonify({"status": "ok", "proveedores": proveedores.listar_proveedores()})
 
         @self.app.route('/api/stock/material', methods=['POST'])
         @requiere_token
@@ -1383,6 +1392,8 @@ class ServidorSincronizacion(QThread):
                     usuario['id'], usuario['nombre'],
                     # Los precios solo los pone un administrador
                     precio=consumos.numero(datos.get('precio')) if usuarios.es_admin(usuario) else None)
+                if datos.get('proveedor_id'):
+                    proveedores.fijar_proveedor_habitual(material_id, datos.get('proveedor_id'))
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "id": material_id, "foto": filename or None})
             except Exception as e:
@@ -1422,6 +1433,11 @@ class ServidorSincronizacion(QThread):
                     # Solo si la app manda el precio (las versiones anteriores no lo conocen)
                     precio=consumos.numero(datos.get('precio')),
                     cambiar_precio='precio' in datos and usuarios.es_admin(usuario))
+                # Solo si la app manda el proveedor habitual (las anteriores no lo conocen)
+                if 'proveedor_id' in datos:
+                    ok, error = proveedores.fijar_proveedor_habitual(material_id, datos.get('proveedor_id') or None)
+                    if not ok:
+                        return jsonify({"status": "error", "error": error, "message": "Proveedor no válido."}), 400
                 self.stock_actualizado.emit()
                 return jsonify({"status": "ok", "foto": foto_final})
             except Exception as e:

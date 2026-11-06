@@ -44,7 +44,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen, maquinas
+from ...nucleo import usuarios, almacen, maquinas, proveedores
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -76,6 +76,9 @@ class PestanaStock:
         btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); btn_exportar.clicked.connect(lambda: self.stock_exportar())
         btn_historial = QPushButton(tt("btn_historial_almacen", "📜 Historial")); btn_historial.clicked.connect(self.stock_ver_historial)
         for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, btn_exportar, btn_historial): barra.addWidget(b)
+        self.btn_proveedores = QPushButton(tt("btn_proveedores", "🏭 Proveedores"))
+        self.btn_proveedores.clicked.connect(self.stock_gestionar_proveedores)
+        barra.addWidget(self.btn_proveedores)
         self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
         barra.addWidget(self.btn_configurar_almacen)
@@ -298,6 +301,8 @@ class PestanaStock:
         self.tabla_stock.blockSignals(False)
         if hasattr(self, "btn_configurar_almacen"):
             self.btn_configurar_almacen.setVisible(usuarios.es_admin())
+        if hasattr(self, "btn_proveedores"):
+            self.btn_proveedores.setVisible(usuarios.puede_gestionar_almacen())
         self.refresh_historial_stock()
         self.refresh_stock_alertas()
 
@@ -506,6 +511,7 @@ class PestanaStock:
                                                usuarios.id_actual(), usuarios.nombre_actual(),
                                                precio=d["precio"] if usuarios.es_admin() else None)
             almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
+            proveedores.fijar_proveedor_habitual(nuevo_id, d["proveedor_id"])
             self.refresh_stock()
 
     def stock_editar_material(self):
@@ -528,6 +534,7 @@ class PestanaStock:
                                          usuarios.id_actual(), usuarios.nombre_actual(),
                                          precio=d["precio"], cambiar_precio=usuarios.es_admin())
             almacen.fijar_maquinas_de_material(material_id, d["repuestos"])
+            proveedores.fijar_proveedor_habitual(material_id, d["proveedor_id"])
             self.refresh_stock()
 
     def stock_borrar_material(self, ids=None):
@@ -570,6 +577,11 @@ class PestanaStock:
             if not ok:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_stock_insuficiente", "No hay stock suficiente para esta salida."))
             self.refresh_stock()
+
+    def stock_gestionar_proveedores(self):
+        if not usuarios.puede_gestionar_almacen(): return
+        from ..dialogos.proveedores import DialogoProveedores
+        DialogoProveedores(self).exec()
 
     def stock_configurar_almacen(self):
         if not usuarios.es_admin(): return

@@ -175,6 +175,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **☑️ Listas de comprobación**: modelos reutilizables («Revisión mensual do compresor») con puntos que se marcan ben / mal / non aplica e lecturas coa súa unidade e o seu rango correcto (fóra de rango, «mal» automaticamente); asígnanse a avisos e pendentes e énchense ao completalos, no PC ou no móbil (tamén sen conexión). Gárdanse co traballo, vense no historial e saen nas exportacións a PDF, Excel e CSV
 - **📦 Control do stock do almacén**: estrutura de andeis, baldas e seccións configurable, ficha de materiais con foto, entradas/saídas con historial e alertas de stock por baixo do mínimo
 - **📄 Exportar o stock**: botón "📄 Exportar" na lapela de stock para sacar o almacén enteiro, unha zona ou un andel a PDF, CSV ou Excel, ordenado por localización; a lapela de stock por baixo do mínimo tamén ten o seu botón para exportar só os materiais en alerta
+- **🏭 Provedores e provedor habitual**: lista de provedores (nome, persoa de contacto, teléfono, correo e notas) dende o botón «🏭 Provedores» da lapela de stock, e campo «Provedor habitual» en cada artigo. Primeiro paso cara ao pedido suxerido por correo, WhatsApp ou impreso
 - **🗑️ Tempo máximo de gardado**: `Ferramentas` permite borrar do historial os traballos máis antigos que un número de anos, meses ou días, coas súas fotos e unha copia de seguranza previa (só administradores)
 - **📥 Importar dende Excel/CSV**: `Ficheiro > Importar dende Excel/CSV…` (só administradores) trae máquinas, artigos do almacén, avisos recorrentes, usuarios, pendentes e historial de traballos antigo dende un modelo descargable ou dende o teu propio Excel (unha folla ou todo o libro dunha vez), emparellando soas as columnas, con vista previa fila a fila e copia de seguranza previa. As localizacións (zonas, andeis, baldas) e máquinas superiores que non existan créanse soas, e os usuarios reciben un contrasinal temporal que terán que cambiar ao entrar
 - **🏭 Control de maquinaria**: árbore de máquinas e submáquinas con foto achegada, contador de traballos por ano e mes, e vínculo directo dende cada traballo rexistrado ou editado (ver [Maquinaria](#-maquinaria))
@@ -840,7 +841,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano, alemán…) e app para iPhone
 
-Feito hai pouco: custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

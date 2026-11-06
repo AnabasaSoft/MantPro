@@ -87,6 +87,9 @@ class GestorBaseDatos:
         # Control de las revisiones diarias del almacén (quién, cuándo, si revisó los 5)
         from . import revisiones_almacen
         revisiones_almacen.inicializar()
+        # Proveedores del almacén y proveedor habitual de cada artículo
+        from . import proveedores
+        proveedores.inicializar()
         # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
         maquinas.configurar_db(self.db_name)
         maquinas.inicializar()

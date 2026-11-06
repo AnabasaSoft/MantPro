@@ -93,6 +93,8 @@ _CAMPOS = {
     "Cada (horas)": "aud_f_cada_horas", "Copia tras recibir datos de un móvil": "aud_f_copia_tras_movil",
     "Carpeta externa de las copias": "aud_f_carpeta_externa", "Copias recientes que se guardan": "aud_f_copias_recientes",
     "Días con una copia diaria": "aud_f_dias_copia_diaria",
+    "Contacto": "aud_f_contacto", "Teléfono": "aud_f_telefono", "Correo": "aud_f_correo",
+    "Proveedor habitual": "aud_f_proveedor_habitual",
 }
 
 

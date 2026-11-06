@@ -33,7 +33,7 @@ from ...idiomas import t
 from ... import idiomas
 from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, maquinas, consumos, usuarios
+from ...nucleo import almacen, maquinas, consumos, usuarios, proveedores
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -521,7 +521,7 @@ class DialogoEditarMaterial(QDialog):
         self.ruta_foto_seleccionada = ""
         self.foto_nombre_existente = material.get("foto") if material else None
         self.setWindowTitle(tt("title_nuevo_material", "Nuevo material") if self.es_nuevo else tt("title_editar_material", "Editar material"))
-        self.resize(480, 740)
+        self.resize(480, 800)
         l = QVBoxLayout()
 
         l.addWidget(QLabel(tt("lbl_codigo", "Código (opcional)")))
@@ -555,6 +555,18 @@ class DialogoEditarMaterial(QDialog):
             self.campo_precio.setToolTip(tt("tt_precio_solo_admin", "Solo un administrador puede cambiar los precios."))
         v3.addWidget(self.campo_precio); h_um.addLayout(v3)
         l.addLayout(h_um)
+
+        # Proveedor habitual (el catálogo se gestiona desde el botón Proveedores)
+        l.addWidget(QLabel(tt("prov_lbl_habitual", "Proveedor habitual")))
+        self.combo_proveedor = QComboBox()
+        self.combo_proveedor.addItem(tt("prov_sin_proveedor", "— Sin proveedor —"), None)
+        for prov in proveedores.listar_proveedores():
+            self.combo_proveedor.addItem(prov["nombre"], prov["id"])
+        if material and material.get("proveedor_id") is not None:
+            idx = self.combo_proveedor.findData(material["proveedor_id"])
+            if idx >= 0:
+                self.combo_proveedor.setCurrentIndex(idx)
+        l.addWidget(self.combo_proveedor)
 
         if self.es_nuevo:
             l.addWidget(QLabel(tt("lbl_stock_inicial", "Stock inicial")))
@@ -787,6 +799,7 @@ class DialogoEditarMaterial(QDialog):
             "unidad": self.campo_unidad.text().strip(),
             "stock_minimo": self.spin_minimo.value(),
             "precio": consumos.numero(self.campo_precio.text()),
+            "proveedor_id": self.combo_proveedor.currentData(),
             "stock_inicial": self.spin_inicial.value() if self.es_nuevo else 0,
             "seccion_id": _seccion_destino(self.combo_seccion.currentData(), self.combo_balda.currentData()),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
