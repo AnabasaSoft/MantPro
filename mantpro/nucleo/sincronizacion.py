@@ -74,11 +74,18 @@ def preparar_registro_cambios(con):
     con.commit()
 
 
-def preparar_tabla(con, tabla):
+def preparar_tabla(con, tabla, identidad=None, solo_si=None):
     """Añade `uuid` a [tabla] (rellenándolo en las filas que ya hay, sin anotar
     cambios) y (re)crea sus disparadores. Idempotente. Requiere que la tabla
-    tenga rowid (todas las de MantPro: INTEGER PRIMARY KEY)."""
+    tenga rowid (todas las de MantPro: INTEGER PRIMARY KEY).
+
+    Tablas «de clave» (config, dias_especiales), cuya identidad es su propia
+    clave y no un uuid: se pasa [identidad], una expresión SQL con {r} en lugar
+    de NEW/OLD (p. ej. "{r}.clave"), que es lo que se anota en `cambios.uuid`.
+    No se añade columna. [solo_si] (misma sintaxis) limita qué filas se anotan."""
     t = _nombre(tabla)
+    if identidad is not None:
+        return _preparar_tabla_de_clave(con, t, identidad, solo_si)
     columnas = {f[1] for f in con.execute(f"PRAGMA table_info({t})")}
     if "uuid" not in columnas:
         con.execute(f"ALTER TABLE {t} ADD COLUMN uuid TEXT")
@@ -118,6 +125,27 @@ def preparar_tabla(con, tabla):
     con.commit()
 
 
+def _preparar_tabla_de_clave(con, t, identidad, solo_si):
+    nuevo, viejo = identidad.format(r="NEW"), identidad.format(r="OLD")
+    cond_n = f" AND {solo_si.format(r='NEW')}" if solo_si else ""
+    cond_v = f" AND {solo_si.format(r='OLD')}" if solo_si else ""
+    for sufijo in ("ai", "au", "ad"):
+        con.execute(f"DROP TRIGGER IF EXISTS sync_{t}_{sufijo}")
+    # INSERT OR REPLACE sobre una clave que ya existe llega como 'i' (SQLite no
+    # dispara el borrado del REPLACE): para estas tablas 'i' y 'u' significan lo mismo.
+    for sufijo, op, tipo, ref, cond in (("ai", "i", "INSERT", nuevo, cond_n),
+                                        ("au", "u", "UPDATE", nuevo, cond_n),
+                                        ("ad", "d", "DELETE", viejo, cond_v)):
+        con.execute(f"""
+            CREATE TRIGGER sync_{t}_{sufijo} AFTER {tipo} ON {t}
+            WHEN {_NO_SILENCIADO}{cond}
+            BEGIN
+                INSERT INTO cambios (tabla, uuid, op) VALUES ('{t}', {ref}, '{op}');
+            END
+        """)
+    con.commit()
+
+
 @contextlib.contextmanager
 def silenciar(con):
     """Mientras dura el bloque, los cambios no se anotan en `cambios`. Úsalo al
@@ -144,3 +172,115 @@ def marcar_subidos(con, hasta_n):
     """Marca como subidos los cambios con n <= [hasta_n]."""
     con.execute("UPDATE cambios SET subido = 1 WHERE subido = 0 AND n <= ?", (hasta_n,))
     con.commit()
+
+
+# ------------------------------------------------------------ qué se sincroniza
+#
+# MantPro tiene dos bases de datos: "mant" (mantenimiento.db) y "alma"
+# (almacen.db). Las dos tienen una tabla `zonas` distinta, así que en el
+# protocolo con la nube una tabla se nombra «base.tabla» (p. ej. "alma.zonas").
+# `cambios.tabla` guarda el nombre sin prefijo: cada base tiene su `cambios`.
+#
+# tipo:
+#   "entidad"   registro editable con identidad propia (uuid). Conflicto: gana el último cambio.
+#   "inmutable" solo se crea (y se borra con su padre): historiales y libros de movimientos.
+#               Nunca hay conflicto; se sincroniza el alta.
+#   "enlace"    une dos registros (relación N:M) con una clave natural, que es la que
+#               hay que respetar al combinar (el mismo enlace creado en dos PCs tendrá
+#               dos uuid pero es el mismo enlace).
+#   "clave"     identidad = su clave (no hay uuid). Solo se anota lo de [solo_si].
+# refs: columna -> "base.tabla" a la que apunta (id entero local). Muchas no son claves
+#   ajenas declaradas: al sincronizar hay que traducirlas por uuid. OJO: se han deducido
+#   de los nombres y del código; revisar antes de usarlas en la sincronización real.
+# derivadas: columnas que se recalculan en destino y no se sincronizan como valor.
+
+# Ajustes compartidos por toda la empresa (los demás de `config` son de cada PC:
+# idioma, puerto_servidor, dias_sesion, http_desactivado, ultimo_usuario…).
+CONFIG_COMPARTIDA = ("coste_hora", "moneda", "factor_objetivo",
+                     "country_iso", "region_iso", "parent_iso")
+
+TABLAS = {
+    "mant": {
+        "usuarios": {"tipo": "entidad", "refs": {"especialidad_id": "mant.especialidades"}},
+        "especialidades": {"tipo": "entidad", "refs": {}},
+        "usuario_roles": {"tipo": "enlace", "clave_natural": ("usuario_id", "rol"),
+                          "refs": {"usuario_id": "mant.usuarios"}},
+        "usuario_especialidades": {"tipo": "enlace", "clave_natural": ("usuario_id", "especialidad_id"),
+                                   "refs": {"usuario_id": "mant.usuarios", "especialidad_id": "mant.especialidades"}},
+        "zonas": {"tipo": "entidad", "refs": {}},
+        "maquinas": {"tipo": "entidad", "refs": {"padre_id": "mant.maquinas", "zona_id": "mant.zonas"}},
+        "tareas": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios", "maquina_id": "mant.maquinas"}},
+        "pendientes": {"tipo": "entidad", "refs": {"asignado_a": "mant.usuarios", "especialidad_id": "mant.especialidades",
+                                                   "checklist_id": "mant.checklist_plantillas"}},
+        "avisos_recurrentes": {"tipo": "entidad", "refs": {"asignado_a": "mant.usuarios", "especialidad_id": "mant.especialidades",
+                                                           "checklist_id": "mant.checklist_plantillas", "contador_id": "mant.contadores"}},
+        "checklist_plantillas": {"tipo": "entidad", "refs": {}},
+        "checklist_puntos": {"tipo": "entidad", "refs": {"plantilla_id": "mant.checklist_plantillas"}},
+        "checklist_resultados": {"tipo": "entidad", "refs": {"tarea_id": "mant.tareas"}},
+        "contadores": {"tipo": "entidad", "refs": {"maquina_id": "mant.maquinas"}},
+        "lecturas_contador": {"tipo": "inmutable", "refs": {"contador_id": "mant.contadores", "usuario_id": "mant.usuarios",
+                                                            "aviso_id": "mant.avisos_recurrentes", "tarea_id": "mant.tareas"}},
+        "auditoria": {"tipo": "inmutable", "refs": {"usuario_id": "mant.usuarios", "tarea_id": "mant.tareas"}},
+        "config": {"tipo": "clave", "identidad": "{r}.clave",
+                   "solo_si": "{r}.clave IN (" + ", ".join(f"'{k}'" for k in CONFIG_COMPARTIDA) + ")", "refs": {}},
+        "dias_especiales": {"tipo": "clave", "identidad": "{r}.fecha", "refs": {}},
+    },
+    "alma": {
+        "zonas": {"tipo": "entidad", "refs": {}},
+        "estanterias": {"tipo": "entidad", "refs": {"zona_id": "alma.zonas"}},
+        "baldas": {"tipo": "entidad", "refs": {"estanteria_id": "alma.estanterias"}},
+        "secciones": {"tipo": "entidad", "refs": {"balda_id": "alma.baldas"}},
+        "proveedores": {"tipo": "entidad", "refs": {}},
+        "materiales": {"tipo": "entidad", "derivadas": ("stock_actual",),
+                       "refs": {"seccion_id": "alma.secciones", "proveedor_id": "alma.proveedores"}},
+        "movimientos": {"tipo": "inmutable", "refs": {"material_id": "alma.materiales", "usuario_id": "mant.usuarios"}},
+        "maquina_repuestos": {"tipo": "enlace", "clave_natural": ("maquina_id", "material_id"),
+                              "refs": {"maquina_id": "mant.maquinas", "material_id": "alma.materiales"}},
+        "precios_proveedor": {"tipo": "inmutable", "refs": {"material_id": "alma.materiales", "proveedor_id": "alma.proveedores"}},
+        "pedidos": {"tipo": "entidad", "refs": {"proveedor_id": "alma.proveedores"}},
+        "pedidos_lineas": {"tipo": "entidad", "refs": {"pedido_id": "alma.pedidos", "material_id": "alma.materiales"}},
+        "revisiones_stock": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios"}},
+        "revisiones_stock_lineas": {"tipo": "entidad", "refs": {"revision_id": "alma.revisiones_stock",
+                                                                "material_id": "alma.materiales"}},
+        "trabajo_materiales": {"tipo": "entidad", "refs": {"tarea_id": "mant.tareas", "material_id": "alma.materiales"}},
+    },
+}
+
+# Tablas que NO se sincronizan, con el motivo. La prueba exige que toda tabla
+# real esté en TABLAS o aquí: una tabla nueva obliga a decidir.
+TABLAS_LOCALES = {
+    "mant": {
+        "sesiones": "sesiones de este servidor (la nube tendrá las suyas)",
+        "moviles": "dispositivos vistos por este servidor",
+        "cambios": "el propio registro de cambios",
+        "sync_estado": "interruptor local de la sincronización",
+    },
+    "alma": {
+        "cambios": "el propio registro de cambios",
+        "sync_estado": "interruptor local de la sincronización",
+    },
+}
+
+
+def tablas_sincronizables(base):
+    """Nombres de las tablas de [base] ("mant" o "alma") que se sincronizan."""
+    return list(TABLAS[base])
+
+
+def preparar_base(con, base):
+    """Prepara el registro de cambios y todas las tablas sincronizables de
+    [base] en la conexión [con] (que debe ser de esa base). Idempotente: hay que
+    llamarla tras cada migración que recree una tabla (los triggers se pierden
+    con DROP TABLE). Devuelve la lista de tablas que todavía no existen en la
+    base (se prepararán cuando se creen)."""
+    preparar_registro_cambios(con)
+    existentes = {f[0] for f in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    faltan = []
+    for tabla, espec in TABLAS[base].items():
+        if tabla not in existentes:
+            faltan.append(tabla)
+        elif espec["tipo"] == "clave":
+            preparar_tabla(con, tabla, identidad=espec["identidad"], solo_si=espec.get("solo_si"))
+        else:
+            preparar_tabla(con, tabla)
+    return faltan
