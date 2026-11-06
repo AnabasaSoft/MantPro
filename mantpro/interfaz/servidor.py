@@ -1359,6 +1359,8 @@ class ServidorSincronizacion(QThread):
             material["movimientos"] = almacen.obtener_movimientos(material_id, limite=20)
             habitual = proveedores.proveedor_habitual(material_id)
             material["proveedor_nombre"] = habitual["nombre"] if habitual else None
+            if usuarios.es_admin(g.usuario_mantpro):
+                material["precios_proveedores"] = proveedores.resumen_precios(material_id)
             return jsonify({"status": "ok", "material": material})
 
         @self.app.route('/api/stock/proveedores', methods=['GET'])
@@ -1480,8 +1482,21 @@ class ServidorSincronizacion(QThread):
                     mensaje = ("No hay stock suficiente para esta salida."
                                if error == "stock_insuficiente" else "Material no encontrado")
                     return jsonify({"status": "error", "error": error, "message": mensaje}), 400
+                # Entrada con proveedor (y precio): queda en el historial de precios. El
+                # movimiento ya está hecho, así que un proveedor que ya no existe no lo
+                # deshace: solo se avisa en la respuesta. El precio, como siempre, solo
+                # lo apunta un administrador (el resto deja constancia del proveedor).
+                compra = None
+                if tipo == 'entrada' and datos.get('proveedor_id'):
+                    es_admin = usuarios.es_admin(usuario)
+                    precio = consumos.numero(datos.get('precio')) if es_admin else None
+                    compra, error_compra = proveedores.registrar_precio(
+                        material_id, datos.get('proveedor_id'), precio, cantidad, datos.get('fecha'),
+                        datos.get('referencia', ''), '', usuario['nombre'])
+                    if compra and precio is not None and es_admin and datos.get('actualizar_precio') == '1':
+                        proveedores.fijar_precio_articulo(material_id, precio, usuario['id'], usuario['nombre'])
                 self.stock_actualizado.emit()
-                return jsonify({"status": "ok"})
+                return jsonify({"status": "ok", "compra_registrada": bool(compra)})
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 

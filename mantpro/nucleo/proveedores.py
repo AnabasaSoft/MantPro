@@ -21,10 +21,10 @@
 """
 proveedores.py — Proveedores del almacén y proveedor habitual de cada artículo.
 
-Primer paso de «Proveedores y punto de pedido»: un catálogo de proveedores
-(nombre, contacto, teléfono, correo y notas) y, para cada artículo, cuál es su
-proveedor habitual. Más adelante colgarán de aquí el historial de precios, los
-pedidos y el pedido sugerido.
+Pasos 1 y 2 de «Proveedores y punto de pedido»: un catálogo de proveedores
+(nombre, contacto, teléfono, correo y notas), el proveedor habitual de cada
+artículo y el historial de precios por proveedor. Más adelante colgarán de aquí
+los pedidos y el pedido sugerido.
 
 Vive en almacen.db, junto al resto del almacén. Python puro, sin Qt: lo usan
 la API del servidor y la ventana del PC. Los errores se devuelven como códigos
@@ -60,6 +60,7 @@ def inicializar():
     if "proveedor_id" not in almacen._columnas(con, "materiales"):
         con.execute("ALTER TABLE materiales ADD COLUMN proveedor_id INTEGER")
     con.execute("CREATE INDEX IF NOT EXISTS idx_materiales_proveedor ON materiales(proveedor_id)")
+    _inicializar_precios(con)
     con.commit()
     con.close()
 
@@ -156,6 +157,7 @@ def borrar_proveedor(proveedor_id):
         return False, "no_existe"
     con = almacen._conn()
     con.execute("UPDATE materiales SET proveedor_id = NULL WHERE proveedor_id = ?", (proveedor_id,))
+    con.execute("UPDATE precios_proveedor SET proveedor_id = NULL WHERE proveedor_id = ?", (proveedor_id,))
     con.execute("DELETE FROM proveedores WHERE id = ?", (proveedor_id,))
     con.commit()
     con.close()
@@ -216,3 +218,129 @@ def materiales_de_proveedor(proveedor_id):
                         (proveedor_id,)).fetchall()
     con.close()
     return [dict(f) for f in filas]
+
+
+# ------------------------------------------------- historial de precios
+# Cada fila es una compra o una oferta: cuándo, a qué proveedor y a cuánto. El
+# `precio` del artículo (el que usan los costes) NO cambia solo: ver
+# fijar_precio_articulo(), que se usa siempre tras una confirmación.
+
+def _inicializar_precios(con):
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS precios_proveedor (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            material_id      INTEGER NOT NULL REFERENCES materiales(id) ON DELETE CASCADE,
+            proveedor_id     INTEGER,               -- NULL si el proveedor se borró después
+            proveedor_nombre TEXT NOT NULL DEFAULT '',  -- copia, para no perder el historial
+            fecha            TEXT NOT NULL,         -- AAAA-MM-DD
+            precio           REAL,                  -- NULL: se compró sin apuntar el precio
+            cantidad         REAL,
+            referencia       TEXT NOT NULL DEFAULT '',  -- referencia del proveedor para este artículo
+            nota             TEXT NOT NULL DEFAULT '',
+            usuario_nombre   TEXT NOT NULL DEFAULT ''
+        )
+    """)
+    con.execute("CREATE INDEX IF NOT EXISTS idx_precios_material ON precios_proveedor(material_id, fecha)")
+
+
+def _numero(valor):
+    if valor is None or valor == "":
+        return None
+    try:
+        return float(str(valor).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _fecha_valida(texto):
+    from datetime import datetime
+    try:
+        datetime.strptime(texto, "%Y-%m-%d")
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def registrar_precio(material_id, proveedor_id, precio=None, cantidad=None, fecha=None,
+                     referencia="", nota="", usuario_nombre=""):
+    """Apunta una compra u oferta de un artículo a un proveedor. [precio] puede
+    ser None (se compró sin apuntar el precio). Devuelve (id, None) o (None, código)."""
+    from datetime import date
+    if almacen.obtener_material(material_id) is None:
+        return None, "material_no_existe"
+    try:
+        proveedor = obtener_proveedor(int(proveedor_id))
+    except (TypeError, ValueError):
+        proveedor = None
+    if proveedor is None:
+        return None, "no_existe"
+    precio, cantidad = _numero(precio), _numero(cantidad)
+    if (precio is not None and precio < 0) or (cantidad is not None and cantidad < 0):
+        return None, "negativo"
+    fecha = fecha if _fecha_valida(fecha) else date.today().strftime("%Y-%m-%d")
+    con = almacen._conn()
+    nuevo = con.execute("""
+        INSERT INTO precios_proveedor (material_id, proveedor_id, proveedor_nombre, fecha, precio, cantidad,
+                                       referencia, nota, usuario_nombre)
+        VALUES (?,?,?,?,?,?,?,?,?)""",
+        (material_id, proveedor["id"], proveedor["nombre"], fecha, precio, cantidad,
+         _texto(referencia), _texto(nota, _MAX_NOTA), _texto(usuario_nombre))).lastrowid
+    con.commit()
+    con.close()
+    return nuevo, None
+
+
+def historial_precios(material_id, limite=500):
+    """Apuntes de precio del artículo, del más reciente al más antiguo."""
+    con = almacen._conn()
+    filas = con.execute("""
+        SELECT pp.*, COALESCE(p.nombre, pp.proveedor_nombre) AS proveedor
+        FROM precios_proveedor pp LEFT JOIN proveedores p ON p.id = pp.proveedor_id
+        WHERE pp.material_id = ? ORDER BY pp.fecha DESC, pp.id DESC LIMIT ?""",
+        (material_id, limite)).fetchall()
+    con.close()
+    return [dict(f) for f in filas]
+
+
+def resumen_precios(material_id):
+    """Último precio de cada proveedor (solo apuntes con precio), del más barato
+    al más caro. Cada fila: proveedor_id, proveedor, precio, fecha, referencia,
+    anterior (el precio anterior de ese mismo proveedor, o None) y `mas_barato`."""
+    ultimos, anteriores = {}, {}
+    for h in historial_precios(material_id):       # del más reciente al más antiguo
+        if h["precio"] is None:
+            continue
+        clave = h["proveedor_id"] if h["proveedor_id"] is not None else ("borrado", h["proveedor"])
+        if clave not in ultimos:
+            ultimos[clave] = h
+        elif clave not in anteriores:
+            anteriores[clave] = h["precio"]
+    filas = [{"proveedor_id": h["proveedor_id"], "proveedor": h["proveedor"], "precio": h["precio"],
+              "fecha": h["fecha"], "referencia": h["referencia"], "anterior": anteriores.get(clave)}
+             for clave, h in ultimos.items()]
+    filas.sort(key=lambda f: (f["precio"], f["proveedor"].casefold()))
+    for f in filas:
+        f["mas_barato"] = bool(filas) and f["precio"] == filas[0]["precio"] and len(filas) > 1
+    return filas
+
+
+def borrar_precio(precio_id):
+    """Borra un apunte del historial (p. ej. uno mal tecleado)."""
+    con = almacen._conn()
+    n = con.execute("DELETE FROM precios_proveedor WHERE id = ?", (precio_id,)).rowcount
+    con.commit()
+    con.close()
+    return (True, None) if n else (False, "no_existe")
+
+
+def fijar_precio_articulo(material_id, precio, usuario_id=None, usuario_nombre=None):
+    """Cambia el precio unitario del artículo (el de los costes), dejándolo en el
+    registro de cambios. Se llama solo tras confirmar o si lo pide un administrador."""
+    m = almacen.obtener_material(material_id)
+    if m is None:
+        return False, "material_no_existe"
+    almacen.actualizar_material(
+        material_id, m.get("codigo") or "", m["nombre"], m.get("descripcion") or "", m.get("unidad") or "",
+        m.get("stock_minimo") or 0, m.get("seccion_id"), m.get("foto"), usuario_id, usuario_nombre,
+        precio=_numero(precio), cambiar_precio=True)
+    return True, None

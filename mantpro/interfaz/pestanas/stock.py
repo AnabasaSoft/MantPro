@@ -44,7 +44,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen, maquinas, proveedores
+from ...nucleo import usuarios, almacen, maquinas, proveedores, consumos
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -234,10 +234,33 @@ class PestanaStock:
         if not m: return
         dlg = DialogoMovimientoStock(self, m, "entrada")
         if dlg.exec():
-            cantidad, motivo = dlg.get_data()
-            almacen.registrar_movimiento(material_id, "entrada", cantidad,
-                                          usuarios.id_actual(), usuarios.nombre_actual(), motivo)
+            self._aplicar_movimiento(material_id, "entrada", dlg)
             self.refresh_stock(); self.refresh_stock_alertas()
+
+    def _aplicar_movimiento(self, material_id, tipo, dlg):
+        """Registra el movimiento del diálogo. En una entrada con proveedor, lo apunta
+        en el historial de precios y, si el precio es distinto al del artículo,
+        pregunta si se actualiza (nunca cambia solo: afecta a los costes)."""
+        cantidad, motivo = dlg.get_data()
+        ok, error = almacen.registrar_movimiento(material_id, tipo, cantidad, usuarios.id_actual(),
+                                                 usuarios.nombre_actual(), motivo)
+        if not ok or tipo != "entrada":
+            return ok, error
+        proveedor_id, precio = dlg.get_compra()
+        if proveedor_id is None:
+            return ok, error
+        proveedores.registrar_precio(material_id, proveedor_id, precio, cantidad,
+                                     usuario_nombre=usuarios.nombre_actual())
+        actual = (almacen.obtener_material(material_id) or {}).get("precio")
+        if precio is not None and usuarios.es_admin() and (actual is None or abs(actual - precio) > 1e-9):
+            moneda = consumos.moneda()
+            texto = tt("prov_msg_actualizar_precio",
+                       "El precio de esta compra es {nuevo}; el del artículo es {actual}.\n\n¿Actualizar el precio del artículo? Cambiará el coste de los trabajos a partir de ahora.").format(
+                nuevo=consumos.formato_importe(precio, moneda),
+                actual=consumos.formato_importe(actual, moneda) if actual is not None else tt("ph_precio", "sin precio"))
+            if QMessageBox.question(self, tt("prov_title_actualizar_precio", "Actualizar precio"), texto) == QMessageBox.StandardButton.Yes:
+                proveedores.fijar_precio_articulo(material_id, precio, usuarios.id_actual(), usuarios.nombre_actual())
+        return ok, error
 
     def _material_seleccionado(self):
         fila = self.tabla_stock.currentRow()
@@ -572,8 +595,7 @@ class PestanaStock:
         material = almacen.obtener_material(material_id)
         dlg = DialogoMovimientoStock(self, material, tipo)
         if dlg.exec():
-            cantidad, motivo = dlg.get_data()
-            ok, error = almacen.registrar_movimiento(material_id, tipo, cantidad, usuarios.id_actual(), usuarios.nombre_actual(), motivo)
+            ok, error = self._aplicar_movimiento(material_id, tipo, dlg)
             if not ok:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_stock_insuficiente", "No hay stock suficiente para esta salida."))
             self.refresh_stock()

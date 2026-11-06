@@ -568,6 +568,11 @@ class DialogoEditarMaterial(QDialog):
             if idx >= 0:
                 self.combo_proveedor.setCurrentIndex(idx)
         l.addWidget(self.combo_proveedor)
+        # Historial de precios por proveedor (solo administradores y con el artículo ya creado)
+        if not self.es_nuevo and usuarios.es_admin():
+            btn_precios = QPushButton(tt("prov_btn_precios", "💶 Precios por proveedor…"))
+            btn_precios.clicked.connect(self._ver_precios_proveedor)
+            l.addWidget(btn_precios)
 
         if self.es_nuevo:
             l.addWidget(QLabel(tt("lbl_stock_inicial", "Stock inicial")))
@@ -636,6 +641,13 @@ class DialogoEditarMaterial(QDialog):
         scroll.setWidget(contenido)
         externo = QVBoxLayout(); externo.addWidget(scroll, 1); externo.addWidget(b)
         self.setLayout(externo)
+
+    def _ver_precios_proveedor(self):
+        from .proveedores import DialogoPreciosProveedor
+        DialogoPreciosProveedor(self, self.material).exec()
+        # Si desde ahí se ha cambiado el precio del artículo, que la ficha no lo pise al guardar
+        actual = almacen.obtener_material(self.material["id"]) or {}
+        self.campo_precio.setText("" if actual.get("precio") is None else f"{actual['precio']:g}".replace(".", ","))
 
     def _pintar_repuestos(self):
         self.lista_repuestos.clear()
@@ -835,6 +847,28 @@ class DialogoMovimientoStock(QDialog):
         ph = tt("ph_motivo_entrada", "ej. Compra, devolución...") if tipo == "entrada" else tt("ph_motivo_salida", "ej. Usado en trabajo...")
         self.campo_motivo.setPlaceholderText(ph)
         l.addWidget(self.campo_motivo)
+
+        # En una entrada se puede apuntar a quién se compró y a cuánto: queda en el
+        # historial de precios del artículo. El precio solo lo ve y apunta un administrador.
+        self.combo_proveedor = None
+        self.campo_precio_compra = None
+        if tipo == "entrada":
+            self.resize(380, 360)
+            l.addWidget(QLabel(tt("prov_lbl_comprado_a", "Comprado a (opcional)")))
+            self.combo_proveedor = QComboBox()
+            self.combo_proveedor.addItem(tt("prov_sin_proveedor", "— Sin proveedor —"), None)
+            for prov in proveedores.listar_proveedores():
+                self.combo_proveedor.addItem(prov["nombre"], prov["id"])
+            if material.get("proveedor_id") is not None:
+                idx = self.combo_proveedor.findData(material["proveedor_id"])
+                if idx >= 0:
+                    self.combo_proveedor.setCurrentIndex(idx)
+            l.addWidget(self.combo_proveedor)
+            if usuarios.es_admin():
+                l.addWidget(QLabel(tt("prov_lbl_precio_compra", "Precio unitario de esta compra") + f" ({consumos.moneda()})"))
+                self.campo_precio_compra = QLineEdit()
+                self.campo_precio_compra.setPlaceholderText(tt("ph_precio", "sin precio"))
+                l.addWidget(self.campo_precio_compra)
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
@@ -842,6 +876,13 @@ class DialogoMovimientoStock(QDialog):
 
     def get_data(self):
         return self.spin_cantidad.value(), self.campo_motivo.text().strip()
+
+    def get_compra(self):
+        """(proveedor_id, precio) de la compra; (None, None) si no se indicó proveedor."""
+        if self.combo_proveedor is None or self.combo_proveedor.currentData() is None:
+            return None, None
+        precio = consumos.numero(self.campo_precio_compra.text()) if self.campo_precio_compra else None
+        return self.combo_proveedor.currentData(), precio
 
 
 class DialogoHistorialAlmacen(QDialog):
