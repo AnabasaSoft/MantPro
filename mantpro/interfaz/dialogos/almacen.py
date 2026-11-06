@@ -25,7 +25,8 @@ from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextE
                              QMessageBox, QDialog, QDialogButtonBox, QAbstractItemView, QComboBox,
                              QGroupBox, QCheckBox, QSpinBox, QDoubleSpinBox, QRadioButton, QMenu,
                              QTreeWidget, QTreeWidgetItem, QInputDialog, QFormLayout,
-                             QTableWidget, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem)
+                             QTableWidget, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem,
+                             QWidget, QScrollArea, QFrame)
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QColor, QPixmap
 
@@ -521,7 +522,7 @@ class DialogoEditarMaterial(QDialog):
         self.ruta_foto_seleccionada = ""
         self.foto_nombre_existente = material.get("foto") if material else None
         self.setWindowTitle(tt("title_nuevo_material", "Nuevo material") if self.es_nuevo else tt("title_editar_material", "Editar material"))
-        self.resize(480, 800)
+        self.resize(500, 760)
         l = QVBoxLayout()
 
         l.addWidget(QLabel(tt("lbl_codigo", "Código (opcional)")))
@@ -628,7 +629,13 @@ class DialogoEditarMaterial(QDialog):
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
         b.accepted.connect(self._validar_aceptar); b.rejected.connect(self.reject)
-        l.addWidget(b); self.setLayout(l)
+        # El formulario es largo: va en una zona con scroll (los botones quedan fijos
+        # abajo) para que en pantallas bajas no se aplaste y se solapen los controles.
+        contenido = QWidget(); contenido.setLayout(l)
+        scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(contenido)
+        externo = QVBoxLayout(); externo.addWidget(scroll, 1); externo.addWidget(b)
+        self.setLayout(externo)
 
     def _pintar_repuestos(self):
         self.lista_repuestos.clear()
