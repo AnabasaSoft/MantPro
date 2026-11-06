@@ -31,7 +31,7 @@ from flask import Flask, request, jsonify, send_from_directory, g
 from PyQt6.QtCore import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores
+from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -1508,6 +1508,17 @@ class ServidorSincronizacion(QThread):
                 # ya está hecho, así que un proveedor que ya no existe no lo deshace: solo
                 # se avisa en la respuesta.
                 compra = None
+                if tipo == 'entrada':
+                    # Lo que llega descuenta lo pendiente de los pedidos (venga de quien venga la
+                    # entrada); el proveedor, para dar preferencia a sus pedidos, solo se tiene
+                    # en cuenta si lo manda un administrador.
+                    prov_entrada = None
+                    if usuarios.es_admin(usuario):
+                        try:
+                            prov_entrada = int(datos.get('proveedor_id')) if datos.get('proveedor_id') else None
+                        except ValueError:
+                            prov_entrada = None
+                    compras.aplicar_entrada(material_id, cantidad, prov_entrada)
                 if tipo == 'entrada' and datos.get('proveedor_id') and usuarios.es_admin(usuario):
                     precio = consumos.numero(datos.get('precio'))
                     compra, error_compra = proveedores.registrar_precio(

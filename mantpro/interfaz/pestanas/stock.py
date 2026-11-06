@@ -44,7 +44,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen, maquinas, proveedores, consumos, pedidos
+from ...nucleo import usuarios, almacen, maquinas, proveedores, consumos, pedidos, compras
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -79,6 +79,9 @@ class PestanaStock:
         self.btn_proveedores = QPushButton(tt("btn_proveedores", "🏭 Proveedores"))
         self.btn_proveedores.clicked.connect(self.stock_gestionar_proveedores)
         barra.addWidget(self.btn_proveedores)
+        self.btn_pedidos = QPushButton(tt("cmp_btn_pedidos", "🛒 Pedidos"))
+        self.btn_pedidos.clicked.connect(self.stock_abrir_pedidos)
+        barra.addWidget(self.btn_pedidos)
         self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
         barra.addWidget(self.btn_configurar_almacen)
@@ -159,6 +162,9 @@ class PestanaStock:
         btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar"))
         btn_exportar.clicked.connect(lambda: self.stock_exportar(solo_bajo_minimo=True))
         barra.addWidget(btn_ir); barra.addWidget(btn_entrada); barra.addWidget(btn_exportar)
+        self.btn_pedido_sugerido = QPushButton(tt("cmp_btn_sugerido", "🛒 Pedido sugerido…"))
+        self.btn_pedido_sugerido.clicked.connect(lambda: self.stock_abrir_pedidos(sugerido=True))
+        barra.addWidget(self.btn_pedido_sugerido)
         l.addLayout(barra)
 
         self.tab_stock_alertas.setLayout(l)
@@ -183,6 +189,8 @@ class PestanaStock:
 
     def refresh_stock_alertas(self):
         if not hasattr(self, "tabla_stock_alertas"): return
+        if hasattr(self, "btn_pedido_sugerido"):
+            self.btn_pedido_sugerido.setVisible(usuarios.es_admin())   # pedidos: solo administradores
         # También los que están justo en el mínimo (sin color: ni rojo ni verde)
         materiales = almacen.materiales_bajo_minimo(incluir_en_minimo=True)
         header = self.tabla_stock_alertas.horizontalHeader()
@@ -247,6 +255,7 @@ class PestanaStock:
         if not ok or tipo != "entrada":
             return ok, error
         proveedor_id, precio = dlg.get_compra()
+        compras.aplicar_entrada(material_id, cantidad, proveedor_id)   # lo que llega descuenta lo pendiente de los pedidos
         if proveedor_id is None:
             return ok, error
         proveedores.registrar_precio(material_id, proveedor_id, precio, cantidad,
@@ -326,6 +335,8 @@ class PestanaStock:
             self.btn_configurar_almacen.setVisible(usuarios.es_admin())
         if hasattr(self, "btn_proveedores"):
             self.btn_proveedores.setVisible(usuarios.es_admin())
+        if hasattr(self, "btn_pedidos"):
+            self.btn_pedidos.setVisible(usuarios.es_admin())
         self.refresh_historial_stock()
         self.refresh_stock_alertas()
 
@@ -603,6 +614,19 @@ class PestanaStock:
             if not ok:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_stock_insuficiente", "No hay stock suficiente para esta salida."))
             self.refresh_stock()
+
+    def stock_abrir_pedidos(self, *_, sugerido=False):
+        """Pedidos de material (solo administradores). Con [sugerido], abre antes el pedido sugerido."""
+        if not usuarios.es_admin(): return
+        from ..dialogos.compras import DialogoPedidos, DialogoPedidoSugerido
+        seleccionar = None
+        if sugerido:
+            dlg = DialogoPedidoSugerido(self)
+            if not dlg.exec() or not dlg.pedidos_creados:
+                return
+            seleccionar = dlg.pedidos_creados[0]
+        DialogoPedidos(self, seleccionar).exec()
+        self.refresh_stock_alertas()
 
     def stock_gestionar_proveedores(self):
         if not usuarios.es_admin(): return

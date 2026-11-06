@@ -93,6 +93,9 @@ class GestorBaseDatos:
         # Punto de pedido: stock objetivo y múltiplo de pedido de cada artículo
         from . import pedidos
         pedidos.inicializar()
+        # Pedido sugerido y pedidos guardados
+        from . import compras
+        compras.inicializar()
         # Listado de maquinaria + vínculo de cada trabajo con su máquina (idempotente)
         maquinas.configurar_db(self.db_name)
         maquinas.inicializar()

@@ -158,6 +158,10 @@ def borrar_proveedor(proveedor_id):
     con = almacen._conn()
     con.execute("UPDATE materiales SET proveedor_id = NULL WHERE proveedor_id = ?", (proveedor_id,))
     con.execute("UPDATE precios_proveedor SET proveedor_id = NULL WHERE proveedor_id = ?", (proveedor_id,))
+    try:   # los pedidos guardados conservan el nombre del proveedor (tabla de compras.py)
+        con.execute("UPDATE pedidos SET proveedor_id = NULL WHERE proveedor_id = ?", (proveedor_id,))
+    except Exception:
+        pass
     con.execute("DELETE FROM proveedores WHERE id = ?", (proveedor_id,))
     con.commit()
     con.close()
