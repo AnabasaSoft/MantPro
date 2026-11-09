@@ -432,7 +432,8 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         admin = usuarios.es_admin()
         grupos = [
             # Móviles y conexión con el PC
-            [(t("menu_sync_qr"), self.mostrar_dialogo_qr, True),
+            [(tt("menu_nube", "☁️ MantPro Cloud…"), self.gestionar_nube, admin),
+             (t("menu_sync_qr"), self.mostrar_dialogo_qr, True),
              (tt("menu_instalar_mantpro", "📱 Instalar MantPro en móvil"), lambda: self.mostrar_qr_instalar_app("MantPro.apk", "MantPro"), True),
              (tt("menu_instalar_mantpro_stock", "📦 Instalar MantPro Stock en móvil"), lambda: self.mostrar_qr_instalar_app("MantProStock.apk", "MantPro Stock"), True),
              (tt("menu_sesiones", "🔐 Sesiones de dispositivos"), self.gestionar_sesiones, admin),

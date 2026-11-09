@@ -35,6 +35,14 @@ class AccionesUsuarios:
     Mixin de MaintenanceApp: sus métodos usan el estado de la ventana
     principal (self.db, self.tabs...) como si estuvieran en la propia clase."""
 
+    def gestionar_nube(self):
+        """Herramientas → MantPro Cloud (solo administradores): iniciar sesión con la
+        cuenta de la nube y ver la licencia. Sin sesión, MantPro funciona igual en local."""
+        if not usuarios.es_admin():
+            return
+        from ..dialogos.nube import DialogoNube
+        DialogoNube(self).exec()
+
     def ver_auditoria(self):
         """Herramientas → Registro de cambios (solo administradores)."""
         if not usuarios.es_admin():
