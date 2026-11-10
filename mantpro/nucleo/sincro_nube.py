@@ -406,6 +406,7 @@ def bajar_y_aplicar(cons, e, bajar, carpeta=None, copia=None):
     e["ultima_bajada"] = nube._ahora_iso()
     _guardar_estado(e, carpeta)
     sincro_bajada.olvidar_esquemas()
+    res.pop("_tocados", None)        # solo servía para mirar el stock final al acabar
     return res, None
 
 
@@ -425,7 +426,8 @@ def _nube_tiene_datos(bajar):
 
 def pc_vacio(cons):
     """True si este PC no tiene NADA suyo: solo lo que MantPro crea por defecto (el administrador y su
-    rol). Los ajustes y los días especiales no cuentan."""
+    rol) y los apuntes de auditoría de ese administrador (p. ej. el cambio de su contraseña al entrar
+    por primera vez). Los ajustes y los días especiales no cuentan."""
     for base, tablas in sincronizacion.TABLAS.items():
         existentes = {f[0] for f in cons[base].execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
         for tabla, espec in tablas.items():
@@ -437,6 +439,11 @@ def pc_vacio(cons):
                     return False
             elif tabla == "usuario_roles":
                 if n > 1:
+                    return False
+            elif tabla == "auditoria":
+                admin = cons[base].execute("SELECT id FROM usuarios WHERE login = 'admin'").fetchone()
+                if n and (admin is None or cons[base].execute(
+                        "SELECT COUNT(*) FROM auditoria WHERE usuario_id IS NOT ?", (admin[0],)).fetchone()[0]):
                     return False
             elif n:
                 return False
@@ -453,6 +460,8 @@ def _adoptar(cons, empresa_uuid, carpeta, con_copia, copia=None):
         sincronizacion.vaciar_tablas(cons[base], base)
     e = _estado_base(empresa_uuid)
     e["inicial_pendiente"] = True
+    if con_copia:
+        e["copia_nube"] = _hoy()          # ya hay copia de ahora mismo: no hace falta otra al empezar a bajar
     for base in BASES:
         e["subido_hasta"][base] = sincronizacion.ultimo_n(cons[base])
         sincronizacion.marcar_subidos(cons[base], 10 ** 12)
@@ -472,7 +481,7 @@ def _primer_inicio(cons, empresa_uuid, carpeta, bajar, copia):
     for base in BASES:
         sincronizacion.preparar_base(cons[base], base)
     if pc_vacio(cons):
-        return _adoptar(cons, empresa_uuid, carpeta, False)
+        return _adoptar(cons, empresa_uuid, carpeta, True, copia)    # copia siempre: se vacía lo local
     return None, NUBE_CON_DATOS
 
 

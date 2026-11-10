@@ -41,6 +41,9 @@ Reglas (decididas con el usuario):
     local y los valores van siempre como parámetros, nunca dentro del texto del SQL.
   * Cada registro va en su propio punto de guardado: uno que falla no estropea el resto, y toda la
     página entra o no entra (si algo grave falla, se deshace entera).
+  * Un usuario que baja DESACTIVADO, BORRADO o con otra CONTRASEÑA pierde sus sesiones locales (las del
+    móvil incluidas), igual que hace MantPro en local: un técnico dado de baja en un PC no puede seguir
+    entrando por otro. Si el usuario no ha cambiado en nada de eso, sus sesiones no se tocan.
   * Nada de lo que se aplica se anota en `cambios` (`silenciar`): no se reenvía a la nube."""
 
 import re
@@ -54,7 +57,7 @@ MAX_NEGATIVOS = 20                  # artículos que se devuelven en el aviso de
 
 def resultado_vacio():
     return {"aplicados": 0, "borrados": 0, "conflictos": 0, "ignorados": 0, "rechazados": 0,
-            "refs_vacias": 0, "stock_negativo": []}
+            "refs_vacias": 0, "stock_negativo": [], "sesiones_cerradas": 0}
 
 
 # ---------------------------------------------------------------- esquema local
@@ -116,10 +119,19 @@ def _aplicar_clave(con, tabla, espec, uuid, op, datos, res):
     res["aplicados"] += 1
 
 
+def _cerrar_sesiones(con, usuario_id, res):
+    """Cierra las sesiones locales (PC y móviles) de un usuario. `sesiones` es local: no se sincroniza."""
+    res["sesiones_cerradas"] += con.execute("DELETE FROM sesiones WHERE usuario_id = ?", (usuario_id,)).rowcount
+
+
 def _aplicar_entidad(cons, base, tabla, espec, uuid, op, datos, res, diferidas):
     con = cons[base]
     t = sync._nombre(tabla)
     if op == "d":
+        if base == "mant" and tabla == "usuarios":
+            f = con.execute("SELECT id FROM usuarios WHERE uuid = ?", (uuid,)).fetchone()
+            if f is not None:
+                _cerrar_sesiones(con, f[0], res)
         res["borrados"] += con.execute(f"DELETE FROM {t} WHERE uuid = ?", (uuid,)).rowcount
         return
     esq = _esquema(con, tabla)
@@ -158,9 +170,16 @@ def _aplicar_entidad(cons, base, tabla, espec, uuid, op, datos, res, diferidas):
         if espec["tipo"] == "inmutable":
             res["ignorados"] += 1            # historiales: solo se crean
             return
+        antes = None
+        if base == "mant" and tabla == "usuarios":
+            antes = con.execute("SELECT id, activo, password_hash FROM usuarios WHERE rowid = ?", (fila[0],)).fetchone()
         if valores:
             asignar = ", ".join(f"{c} = ?" for c in valores)
             con.execute(f"UPDATE {t} SET {asignar} WHERE rowid = ?", list(valores.values()) + [fila[0]])
+        if antes is not None:
+            activo = valores.get("activo", antes[1])
+            if not activo or valores.get("password_hash", antes[2]) != antes[2]:
+                _cerrar_sesiones(con, antes[0], res)
         res["aplicados"] += 1
         return
     cols = list(valores) + ["uuid"]
@@ -172,16 +191,31 @@ def _aplicar_entidad(cons, base, tabla, espec, uuid, op, datos, res, diferidas):
 
 
 def _ajustar_stock(con, mov, res):
-    """Un movimiento nuevo de la nube suma o resta en el stock del artículo (como hace MantPro)."""
+    """Un movimiento nuevo de la nube suma o resta en el stock del artículo (como hace MantPro).
+    NO avisa de un stock negativo aquí: los movimientos no llegan en orden y una salida puede aplicarse
+    antes que la entrada que la cubre. Se anota el artículo y se mira su stock FINAL al acabar."""
     material, cantidad, tipo = mov.get("material_id"), mov.get("cantidad"), mov.get("tipo")
     if material is None or not isinstance(cantidad, (int, float)) or tipo not in ("entrada", "salida"):
         return
     delta = cantidad if tipo == "entrada" else -cantidad
     con.execute("UPDATE materiales SET stock_actual = stock_actual + ? WHERE id = ?", (delta, material))
-    f = con.execute("SELECT uuid, codigo, nombre, stock_actual FROM materiales WHERE id = ?", (material,)).fetchone()
-    if f is not None and f[3] < 0 and len(res["stock_negativo"]) < MAX_NEGATIVOS \
-            and f[0] not in [x["uuid"] for x in res["stock_negativo"]]:
-        res["stock_negativo"].append({"uuid": f[0], "codigo": f[1], "nombre": f[2], "stock": f[3]})
+    f = con.execute("SELECT uuid FROM materiales WHERE id = ?", (material,)).fetchone()
+    if f is not None:
+        res.setdefault("_tocados", set()).add(f[0])
+
+
+def stock_negativo(con_almacen, uuids):
+    """Artículos de [uuids] cuyo stock está ahora en negativo (como mucho MAX_NEGATIVOS), para avisar
+    de un recuento urgente. Se llama con el stock FINAL, nunca a mitad de aplicar."""
+    uuids = list(uuids)
+    salida = []
+    for i in range(0, len(uuids), 500):
+        lote = uuids[i:i + 500]
+        for f in con_almacen.execute(
+                f"SELECT uuid, codigo, nombre, stock_actual FROM materiales WHERE stock_actual < 0 "
+                f"AND uuid IN ({', '.join('?' * len(lote))}) ORDER BY nombre", lote):
+            salida.append({"uuid": f[0], "codigo": f[1], "nombre": f[2], "stock": f[3]})
+    return salida[:MAX_NEGATIVOS]
 
 
 # ---------------------------------------------------------------- aplicar una página
@@ -238,6 +272,8 @@ def aplicar(cons, cambios, origen_propio, res=None):
                     con.execute(f"RELEASE r{n}")
                     res["rechazados"] += 1
         _resolver_diferidas(cons, diferidas, res)
+        # El stock negativo se mira con TODO aplicado (y acumulando las páginas ya aplicadas de esta bajada)
+        res["stock_negativo"] = stock_negativo(cons["alma"], res.get("_tocados", ()))
         for con in cons.values():
             con.execute("UPDATE sync_estado SET silenciado = 0 WHERE id = 1")
             con.execute("COMMIT")
