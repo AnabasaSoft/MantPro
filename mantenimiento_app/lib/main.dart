@@ -1663,7 +1663,10 @@ class _TabDashboardState extends State<TabDashboard> {
   }
 
   Future<void> _abrirQR() async {
-    final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    final leido = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+    // El QR trae «https://ip:puerto/?h=huella&p=puertoHttp»: hay que sacar de ahí la
+    // dirección y fijar la huella del certificado, no guardar el texto en bruto.
+    final ip = await guardarVinculacion(leido);
     if (ip != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pc_ip_url', ip);
@@ -1833,7 +1836,8 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             if (_urlPC != null) TextButton.icon(icon: _cargando ? const SizedBox(width:16,height:16,child:CircularProgressIndicator(strokeWidth:2)) : const Icon(Icons.sync), label: Text(t("btn_sincronizar")), onPressed: () => _sincronizar()),
               IconButton(icon: const Icon(Icons.qr_code), onPressed: () async {
-                final ip = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+                final leido = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
+                final ip = await guardarVinculacion(leido);
                 if (ip != null) {
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setString('pc_ip_url', ip);
