@@ -34,6 +34,7 @@ from ..idiomas import t
 from .acciones.copias import AccionesCopias
 from .acciones.exportar import AccionesExportar
 from .acciones.importacion import AccionesImportacion
+from .acciones.nube import AccionesNube
 from .acciones.usuarios import AccionesUsuarios
 from .comun import abrir_url_externa, instalar_traductor_qt, resource_path, tt
 from .dialogos.ayuda import DialogoAyuda
@@ -51,7 +52,7 @@ from .pestanas.registrar import PestanaRegistrar
 from .pestanas.stock import PestanaStock
 from .servidor import PUERTO_POR_DEFECTO, ServidorSincronizacion, puerto_libre
 from .temas import Temas
-from ..nucleo import usuarios
+from ..nucleo import sincro_nube, usuarios
 from ..nucleo.basedatos import GestorBaseDatos
 from ..nucleo.rutas import DATA_DIR
 from ..version import APP_VERSION, GESTOR_PAQUETES, REPO_NAME, REPO_OWNER
@@ -60,10 +61,13 @@ from ..version import APP_VERSION, GESTOR_PAQUETES, REPO_NAME, REPO_OWNER
 # 4. APLICACIÓN PRINCIPAL
 # ==========================================
 
-class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistrar, PestanaAvisos, PestanaHistorial, PestanaPendientes, PestanaMaquinas, PestanaStock, AccionesCopias, AccionesExportar, AccionesImportacion, AccionesUsuarios, QMainWindow):
+class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistrar, PestanaAvisos, PestanaHistorial, PestanaPendientes, PestanaMaquinas, PestanaStock, AccionesCopias, AccionesExportar, AccionesImportacion, AccionesNube, AccionesUsuarios, QMainWindow):
     def __init__(self):
         super().__init__()
         self.db = GestorBaseDatos()
+        # Con sesión de MantPro Cloud: repara los disparadores que una migración haya borrado
+        # y detecta una copia restaurada antes de que se anote ningún cambio (sin sesión, nada)
+        sincro_nube.preparar_al_arrancar()
         # Cargamos el idioma guardado (por defecto español) antes de construir nada de la UI
         idiomas.set_idioma(self.db.get_config("idioma") or "es")
         # GestorFestivos ahora necesita la BD para saber qué región usar
@@ -152,6 +156,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
         self.iniciar_copias_automaticas()
+        self.iniciar_sincronizacion_nube()
         QTimer.singleShot(6000, self.avisar_dias_sin_revision_almacen)
 
         # NOTA: La comprobación automática de actualizaciones YA NO se lanza aquí.
@@ -206,6 +211,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
 
         # Que no empiece otra copia mientras se cierra (y esperar a la que esté en marcha)
         self.parar_copias_automaticas()
+        self.parar_sincronizacion_nube()
 
         print("Iniciando limpieza de fotos...")
         self.limpiar_fotos_huerfanas(silencioso=True)

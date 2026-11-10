@@ -1409,5 +1409,22 @@
   "nube_error_url": "L'adreça de MantPro Cloud no és segura (ha de ser HTTPS).",
   "nube_error_sesion": "La sessió de MantPro Cloud ha caducat o s'ha tancat. Torna a iniciar la sessió.",
   "nube_error_sin_sesion": "No hi ha cap sessió iniciada.",
-  "nube_error_otro": "No s'ha pogut completar l'operació."
+  "nube_error_otro": "No s'ha pogut completar l'operació.",
+  "nube_error_empresa": "Aquest PC ja se sincronitza amb una altra empresa de MantPro Cloud. No es poden barrejar les dades de dues empreses: inicia la sessió amb el compte de sempre.",
+  "nube_error_licencia_caducada": "La llicència ha caducat: pots consultar les teves dades, però no pujar canvis. Renova-la per tornar a sincronitzar.",
+  "nube_error_licencia_suspendida": "El compte està suspès i no es pot sincronitzar. Contacta amb MantPro Cloud.",
+  "nube_error_espacio": "S'ha omplert l'espai del teu pla a MantPro Cloud. Allibera espai o canvia de pla.",
+  "nube_error_ocupado": "Ja hi ha una sincronització en marxa.",
+  "nube_error_bd": "No s'han pogut obrir les bases de dades per sincronitzar. Torna-ho a provar d'aquí a uns segons.",
+  "lbl_nube_sync_titulo": "Sincronització",
+  "nube_ultima_subida": "Última pujada",
+  "nube_nunca": "Encara no",
+  "nube_sin_subir": "Sense pujar",
+  "nube_al_dia": "Tot al dia",
+  "lbl_nube_fotos_aparte": "Es pugen les dades; les fotos encara no. MantPro puja el que és nou tot sol cada 10 minuts mentre està obert.",
+  "lbl_nube_omitidos": "Atenció: {n} registres eren massa grans i no s'han pogut pujar.",
+  "btn_nube_sincronizar": "Sincronitza ara",
+  "lbl_nube_sincronizando": "Sincronitzant…",
+  "msg_nube_sync_ok": "Sincronitzat: {n} registres pujats.",
+  "msg_nube_sync_al_dia": "Tot al dia: no hi havia res de nou per pujar."
 }

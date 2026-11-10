@@ -20,8 +20,9 @@
 
 """Registro local de cambios para la sincronización PC <-> MantPro Cloud (motor, sin Qt).
 
-PROTOTIPO (paso 2 del roadmap, sección «Sincronización PC ↔ nube»): todavía no
-se usa desde la aplicación; solo lo ejercita herramientas/pruebas/prueba_sincronizacion.py.
+Paso 2 del roadmap (sección «Sincronización PC ↔ nube»). Lo usa nucleo/sincro_nube.py
+(paso 4: subir los cambios a MantPro Cloud) y lo ejercita
+herramientas/pruebas/prueba_sincronizacion.py.
 
 Idea: cada tabla sincronizable lleva una columna `uuid` (identificador global;
 el id entero sigue siendo el local, así la API y las apps móviles no cambian) y
@@ -186,6 +187,45 @@ def marcar_subidos(con, hasta_n):
     """Marca como subidos los cambios con n <= [hasta_n]."""
     con.execute("UPDATE cambios SET subido = 1 WHERE subido = 0 AND n <= ?", (hasta_n,))
     con.commit()
+
+
+def ultimo_n(con):
+    """Último número de cambio que se ha dado en esta base (0 si nunca hubo ninguno).
+    `cambios` usa AUTOINCREMENT: el número no baja aunque se purguen filas, así que
+    si es MENOR que el último que se subió, esta base es una copia antigua restaurada."""
+    f = con.execute("SELECT seq FROM sqlite_sequence WHERE name = 'cambios'").fetchone()
+    return f[0] if f else 0
+
+
+def purgar_subidos(con):
+    """Borra de `cambios` lo que ya se subió (solo sirve de cola de salida). Devuelve cuántos."""
+    n = con.execute("DELETE FROM cambios WHERE subido = 1").rowcount
+    con.commit()
+    return n
+
+
+def encolar_todo(con, base):
+    """Anota como alta ('i') TODOS los registros que ya hay en las tablas sincronizables
+    de [base], para subirlos enteros (primera subida de un PC, o la que sigue a restaurar
+    una copia). Lo que había pendiente en `cambios` pasa a «subido»: lo sustituye esto.
+    Requiere `preparar_base()` hecha antes (los registros ya tienen uuid).
+    Devuelve cuántos registros se han encolado."""
+    con.execute("UPDATE cambios SET subido = 1 WHERE subido = 0")
+    existentes = {f[0] for f in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    total = 0
+    for tabla, espec in TABLAS[base].items():
+        if tabla not in existentes:
+            continue
+        t = _nombre(tabla)
+        if espec["tipo"] == "clave":
+            identidad = espec["identidad"].format(r=t)
+            donde = f" WHERE {espec['solo_si'].format(r=t)}" if espec.get("solo_si") else ""
+        else:
+            identidad, donde = "uuid", " WHERE uuid IS NOT NULL"
+        total += con.execute(
+            f"INSERT INTO cambios (tabla, uuid, op) SELECT '{t}', {identidad}, 'i' FROM {t}{donde}").rowcount
+    con.commit()
+    return total
 
 
 # ------------------------------------------------------------ qué se sincroniza

@@ -1409,5 +1409,22 @@
   "nube_error_url": "The MantPro Cloud address is not secure (it must be HTTPS).",
   "nube_error_sesion": "Your MantPro Cloud session has expired or been closed. Sign in again.",
   "nube_error_sin_sesion": "No session is signed in.",
-  "nube_error_otro": "The operation could not be completed."
+  "nube_error_otro": "The operation could not be completed.",
+  "nube_error_empresa": "This PC is already synchronised with another MantPro Cloud company. The data of two companies cannot be mixed: sign in with the usual account.",
+  "nube_error_licencia_caducada": "The licence has expired: you can view your data, but you cannot upload changes. Renew it to synchronise again.",
+  "nube_error_licencia_suspendida": "The account is suspended and cannot be synchronised. Contact MantPro Cloud.",
+  "nube_error_espacio": "The storage space of your MantPro Cloud plan is full. Free up space or change plan.",
+  "nube_error_ocupado": "A synchronisation is already running.",
+  "nube_error_bd": "The databases could not be opened to synchronise. Try again in a few seconds.",
+  "lbl_nube_sync_titulo": "Synchronisation",
+  "nube_ultima_subida": "Last upload",
+  "nube_nunca": "Not yet",
+  "nube_sin_subir": "Not uploaded",
+  "nube_al_dia": "All up to date",
+  "lbl_nube_fotos_aparte": "The data is uploaded; photos are not yet. MantPro uploads new changes by itself every 10 minutes while it is open.",
+  "lbl_nube_omitidos": "Warning: {n} records were too large and could not be uploaded.",
+  "btn_nube_sincronizar": "Synchronise now",
+  "lbl_nube_sincronizando": "Synchronising…",
+  "msg_nube_sync_ok": "Synchronised: {n} records uploaded.",
+  "msg_nube_sync_al_dia": "All up to date: there was nothing new to upload."
 }

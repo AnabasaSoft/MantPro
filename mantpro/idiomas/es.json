@@ -1409,5 +1409,22 @@
   "nube_error_url": "La dirección de MantPro Cloud no es segura (debe ser HTTPS).",
   "nube_error_sesion": "La sesión de MantPro Cloud ha caducado o se ha cerrado. Vuelve a iniciar sesión.",
   "nube_error_sin_sesion": "No hay ninguna sesión iniciada.",
-  "nube_error_otro": "No se ha podido completar la operación."
+  "nube_error_otro": "No se ha podido completar la operación.",
+  "nube_error_empresa": "Este PC ya se sincroniza con otra empresa de MantPro Cloud. No se pueden mezclar los datos de dos empresas: inicia sesión con la cuenta de siempre.",
+  "nube_error_licencia_caducada": "La licencia ha caducado: puedes consultar tus datos, pero no subir cambios. Renuévala para volver a sincronizar.",
+  "nube_error_licencia_suspendida": "La cuenta está suspendida y no se puede sincronizar. Contacta con MantPro Cloud.",
+  "nube_error_espacio": "Se ha llenado el espacio de tu plan en MantPro Cloud. Libera espacio o cambia de plan.",
+  "nube_error_ocupado": "Ya hay una sincronización en marcha.",
+  "nube_error_bd": "No se han podido abrir las bases de datos para sincronizar. Inténtalo de nuevo en unos segundos.",
+  "lbl_nube_sync_titulo": "Sincronización",
+  "nube_ultima_subida": "Última subida",
+  "nube_nunca": "Todavía no",
+  "nube_sin_subir": "Sin subir",
+  "nube_al_dia": "Todo al día",
+  "lbl_nube_fotos_aparte": "Se suben los datos; las fotos todavía no. MantPro sube lo nuevo solo cada 10 minutos mientras está abierto.",
+  "lbl_nube_omitidos": "Atención: {n} registros eran demasiado grandes y no se han podido subir.",
+  "btn_nube_sincronizar": "Sincronizar ahora",
+  "lbl_nube_sincronizando": "Sincronizando…",
+  "msg_nube_sync_ok": "Sincronizado: {n} registros subidos.",
+  "msg_nube_sync_al_dia": "Todo al día: no había nada nuevo que subir."
 }

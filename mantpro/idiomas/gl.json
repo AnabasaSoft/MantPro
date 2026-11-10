@@ -1409,5 +1409,22 @@
   "nube_error_url": "O enderezo de MantPro Cloud non é seguro (debe ser HTTPS).",
   "nube_error_sesion": "A sesión de MantPro Cloud caducou ou pechouse. Volve iniciar sesión.",
   "nube_error_sin_sesion": "Non hai ningunha sesión iniciada.",
-  "nube_error_otro": "Non se puido completar a operación."
+  "nube_error_otro": "Non se puido completar a operación.",
+  "nube_error_empresa": "Este PC xa se sincroniza con outra empresa de MantPro Cloud. Non se poden mesturar os datos de dúas empresas: inicia sesión coa conta de sempre.",
+  "nube_error_licencia_caducada": "A licenza caducou: podes consultar os teus datos, pero non subir cambios. Renóvaa para volver sincronizar.",
+  "nube_error_licencia_suspendida": "A conta está suspendida e non se pode sincronizar. Contacta con MantPro Cloud.",
+  "nube_error_espacio": "Encheuse o espazo do teu plan en MantPro Cloud. Libera espazo ou cambia de plan.",
+  "nube_error_ocupado": "Xa hai unha sincronización en marcha.",
+  "nube_error_bd": "Non se puideron abrir as bases de datos para sincronizar. Téntao de novo en uns segundos.",
+  "lbl_nube_sync_titulo": "Sincronización",
+  "nube_ultima_subida": "Última subida",
+  "nube_nunca": "Aínda non",
+  "nube_sin_subir": "Sen subir",
+  "nube_al_dia": "Todo ao día",
+  "lbl_nube_fotos_aparte": "Súbense os datos; as fotos aínda non. MantPro sube o novo soo cada 10 minutos mentres está aberto.",
+  "lbl_nube_omitidos": "Atención: {n} rexistros eran demasiado grandes e non se puideron subir.",
+  "btn_nube_sincronizar": "Sincronizar agora",
+  "lbl_nube_sincronizando": "Sincronizando…",
+  "msg_nube_sync_ok": "Sincronizado: {n} rexistros subidos.",
+  "msg_nube_sync_al_dia": "Todo ao día: non había nada novo que subir."
 }

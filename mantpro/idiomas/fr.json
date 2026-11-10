@@ -1409,5 +1409,22 @@
   "nube_error_url": "L'adresse de MantPro Cloud n'est pas sécurisée (elle doit être en HTTPS).",
   "nube_error_sesion": "La session MantPro Cloud a expiré ou a été fermée. Reconnectez-vous.",
   "nube_error_sin_sesion": "Aucune session n'est ouverte.",
-  "nube_error_otro": "L'opération n'a pas pu être terminée."
+  "nube_error_otro": "L'opération n'a pas pu être terminée.",
+  "nube_error_empresa": "Ce PC est déjà synchronisé avec une autre entreprise MantPro Cloud. Les données de deux entreprises ne peuvent pas être mélangées : connectez-vous avec le compte habituel.",
+  "nube_error_licencia_caducada": "La licence a expiré : vous pouvez consulter vos données, mais pas envoyer de modifications. Renouvelez-la pour synchroniser à nouveau.",
+  "nube_error_licencia_suspendida": "Le compte est suspendu et ne peut pas être synchronisé. Contactez MantPro Cloud.",
+  "nube_error_espacio": "L'espace de stockage de votre forfait MantPro Cloud est plein. Libérez de l'espace ou changez de forfait.",
+  "nube_error_ocupado": "Une synchronisation est déjà en cours.",
+  "nube_error_bd": "Impossible d'ouvrir les bases de données pour synchroniser. Réessayez dans quelques secondes.",
+  "lbl_nube_sync_titulo": "Synchronisation",
+  "nube_ultima_subida": "Dernier envoi",
+  "nube_nunca": "Pas encore",
+  "nube_sin_subir": "Non envoyés",
+  "nube_al_dia": "Tout est à jour",
+  "lbl_nube_fotos_aparte": "Les données sont envoyées ; les photos pas encore. MantPro envoie les nouveautés tout seul toutes les 10 minutes tant qu'il est ouvert.",
+  "lbl_nube_omitidos": "Attention : {n} enregistrements étaient trop volumineux et n'ont pas pu être envoyés.",
+  "btn_nube_sincronizar": "Synchroniser maintenant",
+  "lbl_nube_sincronizando": "Synchronisation…",
+  "msg_nube_sync_ok": "Synchronisé : {n} enregistrements envoyés.",
+  "msg_nube_sync_al_dia": "Tout est à jour : il n'y avait rien de nouveau à envoyer."
 }

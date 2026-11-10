@@ -172,8 +172,9 @@ def _ahora_iso(ahora=None):
     return ahora.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-def _peticion(metodo, ruta, json_cuerpo=None, token_=None):
-    """Una petición a la API. Devuelve (datos, None) o (None, código)."""
+def _peticion(metodo, ruta, json_cuerpo=None, token_=None, timeout=None):
+    """Una petición a la API. Devuelve (datos, None) o (None, código).
+    [timeout]: segundos (por defecto TIMEOUT; la sincronización pide más)."""
     base = url_base()
     if not _url_valida(base):
         return None, URL_NO_VALIDA
@@ -181,7 +182,7 @@ def _peticion(metodo, ruta, json_cuerpo=None, token_=None):
     if token_:
         cabeceras["Authorization"] = "Bearer " + token_
     try:
-        r = requests.request(metodo, base + ruta, json=json_cuerpo, headers=cabeceras, timeout=TIMEOUT)
+        r = requests.request(metodo, base + ruta, json=json_cuerpo, headers=cabeceras, timeout=timeout or TIMEOUT)
     except (requests.RequestException, socket.error, OSError):
         return None, SIN_CONEXION
     try:

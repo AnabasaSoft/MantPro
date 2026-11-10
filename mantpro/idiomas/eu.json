@@ -1409,5 +1409,22 @@
   "nube_error_url": "MantPro Cloud-en helbidea ez da segurua (HTTPS izan behar du).",
   "nube_error_sesion": "MantPro Cloud-eko saioa iraungi da edo itxi egin da. Hasi saioa berriro.",
   "nube_error_sin_sesion": "Ez dago saiorik hasita.",
-  "nube_error_otro": "Ezin izan da eragiketa osatu."
+  "nube_error_otro": "Ezin izan da eragiketa osatu.",
+  "nube_error_empresa": "PC hau dagoeneko beste MantPro Cloud enpresa batekin sinkronizatzen da. Ezin dira bi enpresaren datuak nahastu: hasi saioa betiko kontuarekin.",
+  "nube_error_licencia_caducada": "Lizentzia iraungi da: zure datuak kontsulta ditzakezu, baina ezin dituzu aldaketak igo. Berritu ezazu berriz sinkronizatzeko.",
+  "nube_error_licencia_suspendida": "Kontua etenda dago eta ezin da sinkronizatu. Jarri harremanetan MantPro Cloudekin.",
+  "nube_error_espacio": "Zure MantPro Cloud planeko lekua bete da. Egin lekua edo aldatu plana.",
+  "nube_error_ocupado": "Sinkronizazio bat abian da dagoeneko.",
+  "nube_error_bd": "Ezin izan dira datu-baseak ireki sinkronizatzeko. Saiatu berriro segundo batzuk barru.",
+  "lbl_nube_sync_titulo": "Sinkronizazioa",
+  "nube_ultima_subida": "Azken igoera",
+  "nube_nunca": "Oraindik ez",
+  "nube_sin_subir": "Igo gabe",
+  "nube_al_dia": "Dena egunean",
+  "lbl_nube_fotos_aparte": "Datuak igotzen dira; argazkiak oraindik ez. MantProk berria bere kabuz igotzen du 10 minuturo irekita dagoen bitartean.",
+  "lbl_nube_omitidos": "Kontuz: {n} erregistro handiegiak ziren eta ezin izan dira igo.",
+  "btn_nube_sincronizar": "Sinkronizatu orain",
+  "lbl_nube_sincronizando": "Sinkronizatzen…",
+  "msg_nube_sync_ok": "Sinkronizatuta: {n} erregistro igo dira.",
+  "msg_nube_sync_al_dia": "Dena egunean: ez zegoen igotzeko ezer berririk."
 }

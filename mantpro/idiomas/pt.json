@@ -1409,5 +1409,22 @@
   "nube_error_url": "O endereço do MantPro Cloud não é seguro (tem de ser HTTPS).",
   "nube_error_sesion": "A sessão do MantPro Cloud expirou ou foi encerrada. Inicie sessão novamente.",
   "nube_error_sin_sesion": "Não há nenhuma sessão iniciada.",
-  "nube_error_otro": "Não foi possível concluir a operação."
+  "nube_error_otro": "Não foi possível concluir a operação.",
+  "nube_error_empresa": "Este PC já está sincronizado com outra empresa do MantPro Cloud. Não se podem misturar os dados de duas empresas: inicie sessão com a conta de sempre.",
+  "nube_error_licencia_caducada": "A licença expirou: pode consultar os seus dados, mas não enviar alterações. Renove-a para voltar a sincronizar.",
+  "nube_error_licencia_suspendida": "A conta está suspensa e não pode ser sincronizada. Contacte o MantPro Cloud.",
+  "nube_error_espacio": "O espaço do seu plano no MantPro Cloud está cheio. Liberte espaço ou mude de plano.",
+  "nube_error_ocupado": "Já existe uma sincronização em curso.",
+  "nube_error_bd": "Não foi possível abrir as bases de dados para sincronizar. Tente novamente dentro de alguns segundos.",
+  "lbl_nube_sync_titulo": "Sincronização",
+  "nube_ultima_subida": "Último envio",
+  "nube_nunca": "Ainda não",
+  "nube_sin_subir": "Por enviar",
+  "nube_al_dia": "Tudo em dia",
+  "lbl_nube_fotos_aparte": "Os dados são enviados; as fotografias ainda não. O MantPro envia as novidades sozinho a cada 10 minutos enquanto estiver aberto.",
+  "lbl_nube_omitidos": "Atenção: {n} registos eram demasiado grandes e não puderam ser enviados.",
+  "btn_nube_sincronizar": "Sincronizar agora",
+  "lbl_nube_sincronizando": "A sincronizar…",
+  "msg_nube_sync_ok": "Sincronizado: {n} registos enviados.",
+  "msg_nube_sync_al_dia": "Tudo em dia: não havia nada de novo para enviar."
 }

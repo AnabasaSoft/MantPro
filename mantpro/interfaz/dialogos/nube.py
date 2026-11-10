@@ -29,9 +29,24 @@ from PyQt6.QtGui import QDesktopServices
 
 from ...idiomas import t, formato_fecha_localizada
 from ..comun import tt
-from ...nucleo import nube
+from ...nucleo import nube, sincro_nube
 
 _ERRORES = {
+    "empresa_distinta": ("nube_error_empresa",
+                         "Este PC ya se sincroniza con otra empresa de MantPro Cloud. No se pueden mezclar los datos de "
+                         "dos empresas: inicia sesión con la cuenta de siempre."),
+    "licencia_caducada": ("nube_error_licencia_caducada",
+                          "La licencia ha caducado: puedes consultar tus datos, pero no subir cambios. "
+                          "Renuévala para volver a sincronizar."),
+    "licencia_suspendida": ("nube_error_licencia_suspendida",
+                            "La cuenta está suspendida y no se puede sincronizar. Contacta con MantPro Cloud."),
+    "almacenamiento_lleno": ("nube_error_espacio",
+                             "Se ha llenado el espacio de tu plan en MantPro Cloud. Libera espacio o cambia de plan."),
+    "ocupado": ("nube_error_ocupado", "Ya hay una sincronización en marcha."),
+    "bd_no_disponible": ("nube_error_bd",
+                         "No se han podido abrir las bases de datos para sincronizar. Inténtalo de nuevo en unos segundos."),
+    "bd_ocupada": ("nube_error_bd",
+                   "No se han podido abrir las bases de datos para sincronizar. Inténtalo de nuevo en unos segundos."),
     "sin_conexion": ("nube_error_sin_conexion",
                      "No se puede conectar con MantPro Cloud. Comprueba tu conexión a internet e inténtalo de nuevo."),
     "respuesta_no_valida": ("nube_error_respuesta",
@@ -92,7 +107,9 @@ class DialogoNube(QDialog):
         self.setModal(True)
         self.setMinimumWidth(460)
         self._hilo = None
+        self._sincronizando = False
         self.boton_entrar = self.boton_comprobar = self.boton_salir_sesion = self.aviso = None
+        self.boton_sincronizar = None
         self._layout = QVBoxLayout(self)
         self._construir()
 
@@ -121,6 +138,7 @@ class DialogoNube(QDialog):
         self._vaciar()
         # Los botones y el aviso de la vista anterior ya no existen
         self.boton_entrar = self.boton_comprobar = self.boton_salir_sesion = self.aviso = None
+        self.boton_sincronizar = None
         datos = nube.sesion()
         if datos:
             self._construir_con_sesion(datos)
@@ -222,12 +240,17 @@ class DialogoNube(QDialog):
             aviso_lic.setStyleSheet("color: #b26a00;")
             l.addWidget(aviso_lic)
 
+        self._construir_sincronizacion(l)
+
         self.aviso = self._etiqueta("")
         l.addWidget(self.aviso)
 
         botones = QHBoxLayout()
         self.boton_salir_sesion = QPushButton(tt("btn_nube_cerrar_sesion", "Cerrar sesión"))
         self.boton_salir_sesion.clicked.connect(self._cerrar_sesion)
+        self.boton_sincronizar = QPushButton(tt("btn_nube_sincronizar", "Sincronizar ahora"))
+        self.boton_sincronizar.setAutoDefault(False)
+        self.boton_sincronizar.clicked.connect(self._sincronizar)
         self.boton_comprobar = QPushButton(tt("btn_nube_comprobar", "Comprobar ahora"))
         self.boton_comprobar.clicked.connect(self._comprobar)
         self.boton_cerrar = QPushButton(t("btn_cerrar"))
@@ -236,13 +259,35 @@ class DialogoNube(QDialog):
         botones.addWidget(self.boton_salir_sesion)
         botones.addWidget(self._boton_web())
         botones.addStretch()
+        botones.addWidget(self.boton_sincronizar)
         botones.addWidget(self.boton_comprobar)
         botones.addWidget(self.boton_cerrar)
         l.addLayout(botones)
 
+    def _construir_sincronizacion(self, l):
+        """Estado de la subida de datos: última vez, qué queda sin subir y avisos."""
+        estado = sincro_nube.resumen_estado()
+        l.addWidget(self._etiqueta(tt("lbl_nube_sync_titulo", "Sincronización"), True))
+        form = QFormLayout()
+        ultima = estado.get("ultima_subida")
+        form.addRow(tt("nube_ultima_subida", "Última subida") + ":", self._etiqueta(
+            f"{formato_fecha_localizada(ultima[:10])} {ultima[11:16]}" if ultima else tt("nube_nunca", "Todavía no")))
+        pendientes = estado.get("pendientes")
+        if estado.get("activa") and pendientes is not None:
+            form.addRow(tt("nube_sin_subir", "Sin subir") + ":", self._etiqueta(
+                tt("nube_al_dia", "Todo al día") if pendientes == 0 else str(pendientes)))
+        l.addLayout(form)
+        l.addWidget(self._etiqueta(tt("lbl_nube_fotos_aparte",
+            "Se suben los datos; las fotos todavía no. MantPro sube lo nuevo solo cada 10 minutos mientras está abierto.")))
+        if estado.get("omitidos"):
+            omitidos = self._etiqueta(tt("lbl_nube_omitidos",
+                "Atención: {n} registros eran demasiado grandes y no se han podido subir.").format(n=estado["omitidos"]))
+            omitidos.setStyleSheet("color: #b26a00;")
+            l.addWidget(omitidos)
+
     # ------------------------------------------------------------ acciones
     def _ocupado(self, ocupado, mensaje=""):
-        for nombre in ("boton_entrar", "boton_comprobar", "boton_salir_sesion"):
+        for nombre in ("boton_entrar", "boton_comprobar", "boton_salir_sesion", "boton_sincronizar"):
             w = getattr(self, nombre, None)
             if w is not None:
                 w.setEnabled(not ocupado)
@@ -272,7 +317,45 @@ class DialogoNube(QDialog):
             self.campo_password.clear()
             self.campo_password.setFocus()
             return
+        # Un PC solo se sincroniza con UNA empresa: otra cuenta se rechaza antes de tocar nada
+        empresa = ((datos or {}).get("empresa") or {}).get("uuid")
+        rechazo = sincro_nube.comprobar_empresa(empresa) if empresa else None
+        if rechazo:
+            nube.cerrar_sesion()
+            self._construir()
+            self.aviso.setStyleSheet("color: #c62828;")
+            self.aviso.setText(texto_error(rechazo))
+            return
         self._construir()
+        self._sincronizar()
+
+    def _sincronizar(self):
+        """Sube lo pendiente ahora (la primera vez, todo lo que ya hay). No se puede cerrar el
+        diálogo mientras tanto."""
+        if self._hilo is not None and self._hilo.isRunning():
+            return
+        self._sincronizando = True
+        self.boton_cerrar.setEnabled(False)
+        self._lanzar(sincro_nube.sincronizar_ahora, self._tras_sincronizar,
+                     tt("lbl_nube_sincronizando", "Sincronizando…"))
+
+    def _tras_sincronizar(self, resultado, error):
+        self._sincronizando = False
+        if error == "sesion_caducada":
+            self._construir()
+            QMessageBox.information(self, tt("title_nube", "MantPro Cloud"), texto_error(error))
+            return
+        if error == "ocupado":
+            error = None        # ya hay una subida en marcha (la del temporizador): no es un fallo
+            resultado = None
+        self._construir()
+        if error:
+            self.aviso.setStyleSheet("color: #c62828;")
+            self.aviso.setText(texto_error(error))
+        elif resultado is not None:
+            n = resultado.get("enviados", 0)
+            self.aviso.setText(tt("msg_nube_sync_ok", "Sincronizado: {n} registros subidos.").format(n=n) if n
+                               else tt("msg_nube_sync_al_dia", "Todo al día: no había nada nuevo que subir."))
 
     def _comprobar(self):
         self._lanzar(nube.comprobar_licencia, self._tras_comprobar,
@@ -306,6 +389,10 @@ class DialogoNube(QDialog):
                      tt("lbl_nube_cerrando", "Cerrando sesión…"))
 
     def done(self, resultado):
+        # Una subida puede tardar (la primera, todo lo que ya hay): hasta que acabe no se cierra
+        # (Esc o la X también llegan aquí) y así el hilo nunca toca una ventana ya destruida.
+        if self._sincronizando:
+            return
         # No cerrar mientras hay una petición en curso (el hilo seguiría tocando la ventana)
         if self._hilo is not None and self._hilo.isRunning():
             self._hilo.wait(nube.TIMEOUT * 1000 + 2000)
