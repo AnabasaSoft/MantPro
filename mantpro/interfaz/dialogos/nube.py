@@ -43,6 +43,10 @@ _ERRORES = {
     "almacenamiento_lleno": ("nube_error_espacio",
                              "Se ha llenado el espacio de tu plan en MantPro Cloud. Libera espacio o cambia de plan."),
     "ocupado": ("nube_error_ocupado", "Ya hay una sincronización en marcha."),
+    "copia_fallida": ("nube_error_copia",
+                      "No se ha podido hacer la copia de seguridad antes de cambiar tus datos, así que no se ha tocado nada."),
+    "nube_con_datos": ("msg_nube_necesita_decision", "MantPro Cloud necesita tu decisión: Herramientas → MantPro Cloud…"),
+    "copia_restaurada": ("msg_nube_necesita_decision", "MantPro Cloud necesita tu decisión: Herramientas → MantPro Cloud…"),
     "bd_no_disponible": ("nube_error_bd",
                          "No se han podido abrir las bases de datos para sincronizar. Inténtalo de nuevo en unos segundos."),
     "bd_ocupada": ("nube_error_bd",
@@ -109,7 +113,7 @@ class DialogoNube(QDialog):
         self._hilo = None
         self._sincronizando = False
         self.boton_entrar = self.boton_comprobar = self.boton_salir_sesion = self.aviso = None
-        self.boton_sincronizar = None
+        self.boton_sincronizar = self.boton_recuperar = None
         self._layout = QVBoxLayout(self)
         self._construir()
 
@@ -138,7 +142,7 @@ class DialogoNube(QDialog):
         self._vaciar()
         # Los botones y el aviso de la vista anterior ya no existen
         self.boton_entrar = self.boton_comprobar = self.boton_salir_sesion = self.aviso = None
-        self.boton_sincronizar = None
+        self.boton_sincronizar = self.boton_recuperar = None
         datos = nube.sesion()
         if datos:
             self._construir_con_sesion(datos)
@@ -250,7 +254,7 @@ class DialogoNube(QDialog):
         self.boton_salir_sesion.clicked.connect(self._cerrar_sesion)
         self.boton_sincronizar = QPushButton(tt("btn_nube_sincronizar", "Sincronizar ahora"))
         self.boton_sincronizar.setAutoDefault(False)
-        self.boton_sincronizar.clicked.connect(self._sincronizar)
+        self.boton_sincronizar.clicked.connect(lambda: self._sincronizar())
         self.boton_comprobar = QPushButton(tt("btn_nube_comprobar", "Comprobar ahora"))
         self.boton_comprobar.clicked.connect(self._comprobar)
         self.boton_cerrar = QPushButton(t("btn_cerrar"))
@@ -272,13 +276,26 @@ class DialogoNube(QDialog):
         ultima = estado.get("ultima_subida")
         form.addRow(tt("nube_ultima_subida", "Última subida") + ":", self._etiqueta(
             f"{formato_fecha_localizada(ultima[:10])} {ultima[11:16]}" if ultima else tt("nube_nunca", "Todavía no")))
+        bajada = estado.get("ultima_bajada")
+        if bajada:
+            form.addRow(tt("nube_ultima_bajada", "Última descarga") + ":",
+                        self._etiqueta(f"{formato_fecha_localizada(bajada[:10])} {bajada[11:16]}"))
         pendientes = estado.get("pendientes")
         if estado.get("activa") and pendientes is not None:
             form.addRow(tt("nube_sin_subir", "Sin subir") + ":", self._etiqueta(
                 tt("nube_al_dia", "Todo al día") if pendientes == 0 else str(pendientes)))
         l.addLayout(form)
         l.addWidget(self._etiqueta(tt("lbl_nube_fotos_aparte",
-            "Se suben los datos; las fotos todavía no. MantPro sube lo nuevo solo cada 10 minutos mientras está abierto.")))
+            "Se sincronizan los datos; las fotos todavía no. MantPro sube y recibe lo nuevo solo cada 10 minutos mientras está abierto.")))
+        if estado.get("restaurada"):
+            aviso_r = self._etiqueta(tt("lbl_nube_restaurada",
+                "Sincronización parada: se ha restaurado una copia de seguridad. Recupera los datos de la nube para continuar."))
+            aviso_r.setStyleSheet("color: #b26a00;")
+            l.addWidget(aviso_r)
+            self.boton_recuperar = QPushButton(tt("btn_nube_recuperar", "Recuperar de la nube"))
+            self.boton_recuperar.setAutoDefault(False)
+            self.boton_recuperar.clicked.connect(self._recuperar)
+            l.addWidget(self.boton_recuperar)
         if estado.get("omitidos"):
             omitidos = self._etiqueta(tt("lbl_nube_omitidos",
                 "Atención: {n} registros eran demasiado grandes y no se han podido subir.").format(n=estado["omitidos"]))
@@ -287,7 +304,7 @@ class DialogoNube(QDialog):
 
     # ------------------------------------------------------------ acciones
     def _ocupado(self, ocupado, mensaje=""):
-        for nombre in ("boton_entrar", "boton_comprobar", "boton_salir_sesion", "boton_sincronizar"):
+        for nombre in ("boton_entrar", "boton_comprobar", "boton_salir_sesion", "boton_sincronizar", "boton_recuperar"):
             w = getattr(self, nombre, None)
             if w is not None:
                 w.setEnabled(not ocupado)
@@ -295,8 +312,16 @@ class DialogoNube(QDialog):
             self.aviso.setStyleSheet("")
             self.aviso.setText(mensaje)
 
-    def _lanzar(self, funcion, al_terminar, mensaje):
+    def _hilo_libre(self):
+        """True si no hay otra petición en curso. Una señal de «terminado» llega cuando el hilo está
+        acabando: se le da un momento para salir del todo, o una acción encadenada (sincronizar tras
+        iniciar sesión, o tras aceptar «Usar los de la nube») se descartaría sin avisar."""
         if self._hilo is not None and self._hilo.isRunning():
+            self._hilo.wait(3000)
+        return self._hilo is None or not self._hilo.isRunning()
+
+    def _lanzar(self, funcion, al_terminar, mensaje):
+        if not self._hilo_libre():
             return
         self._ocupado(True, mensaje)
         self._hilo = _Hilo(funcion, self)
@@ -329,15 +354,44 @@ class DialogoNube(QDialog):
         self._construir()
         self._sincronizar()
 
-    def _sincronizar(self):
-        """Sube lo pendiente ahora (la primera vez, todo lo que ya hay). No se puede cerrar el
-        diálogo mientras tanto."""
-        if self._hilo is not None and self._hilo.isRunning():
+    def _sincronizar(self, adoptar=False):
+        """Baja lo de la nube y sube lo de este PC ahora (la primera vez, todo lo que ya hay). [adoptar]:
+        sustituye lo de este PC por lo de la nube, con copia de seguridad previa (lo pide el usuario).
+        No se puede cerrar el diálogo mientras tanto."""
+        if not self._hilo_libre():
             return
         self._sincronizando = True
         self.boton_cerrar.setEnabled(False)
-        self._lanzar(sincro_nube.sincronizar_ahora, self._tras_sincronizar,
+        self._lanzar(lambda: sincro_nube.sincronizar_ahora(adoptar=adoptar), self._tras_sincronizar,
                      tt("lbl_nube_sincronizando", "Sincronizando…"))
+
+    def _preguntar(self, texto, texto_si):
+        """Pregunta con dos botones: [texto_si] y «Ahora no». True si se elige el primero."""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(tt("title_nube", "MantPro Cloud"))
+        msg.setText(texto)
+        btn_si = msg.addButton(texto_si, QMessageBox.ButtonRole.YesRole)
+        msg.addButton(tt("btn_nube_ahora_no", "Ahora no"), QMessageBox.ButtonRole.NoRole)
+        msg.exec()
+        return msg.clickedButton() == btn_si
+
+    def _avisar(self, texto):
+        QMessageBox.warning(self, tt("title_nube", "MantPro Cloud"), texto)
+
+    def _refrescar_ventana(self):
+        """Tras bajar datos de la nube, repinta la ventana principal con lo nuevo."""
+        refrescar = getattr(self.parent(), "refrescar_tras_nube", None)
+        if refrescar:
+            refrescar()
+
+    def _recuperar(self):
+        if self._preguntar(tt("msg_nube_restaurada",
+                "Parece que has restaurado una copia de seguridad antigua de este PC. Para no duplicar datos, la "
+                "sincronización está parada.\n\n¿Quieres recuperar los datos de la nube? Los de este PC se sustituirán "
+                "por los de la nube (se hace antes una copia de seguridad)."),
+                tt("btn_nube_recuperar", "Recuperar de la nube")):
+            self._sincronizar(adoptar=True)
 
     def _tras_sincronizar(self, resultado, error):
         self._sincronizando = False
@@ -349,13 +403,45 @@ class DialogoNube(QDialog):
             error = None        # ya hay una subida en marcha (la del temporizador): no es un fallo
             resultado = None
         self._construir()
+        if error == sincro_nube.NUBE_CON_DATOS:
+            if self._preguntar(tt("msg_nube_con_datos",
+                    "La cuenta de MantPro Cloud ya tiene datos y este PC también tiene los suyos. Para no mezclarlos, "
+                    "no se ha sincronizado nada.\n\n¿Quieres usar los datos de la nube? Los de este PC se sustituirán "
+                    "por los de la nube (se hace antes una copia de seguridad)."),
+                    tt("btn_nube_adoptar", "Usar los de la nube")):
+                self._sincronizar(adoptar=True)
+            return
+        if error == sincro_nube.COPIA_RESTAURADA:
+            self._recuperar()
+            return
         if error:
             self.aviso.setStyleSheet("color: #c62828;")
             self.aviso.setText(texto_error(error))
-        elif resultado is not None:
-            n = resultado.get("enviados", 0)
-            self.aviso.setText(tt("msg_nube_sync_ok", "Sincronizado: {n} registros subidos.").format(n=n) if n
-                               else tt("msg_nube_sync_al_dia", "Todo al día: no había nada nuevo que subir."))
+            return
+        if resultado is None:
+            return
+        subidos, bajados = resultado.get("enviados", 0), resultado.get("aplicados", 0)
+        if resultado.get("adoptado"):
+            texto = tt("msg_nube_adoptado", "Datos de la nube recibidos: {n} registros.\n\nCierra MantPro y vuelve a "
+                       "abrirlo para empezar con ellos (tendrás que iniciar sesión de nuevo).").format(n=bajados)
+        else:
+            partes = []
+            if subidos:
+                partes.append(tt("msg_nube_sync_ok", "Sincronizado: {n} registros subidos.").format(n=subidos))
+            if bajados:
+                partes.append(tt("msg_nube_sync_bajada", "Recibidos de la nube: {n} registros.").format(n=bajados))
+            texto = " ".join(partes) or tt("msg_nube_sync_al_dia", "Todo al día: no había nada nuevo que subir.")
+        sin_aplicar = resultado.get("rechazados", 0) + resultado.get("refs_vacias", 0)
+        if sin_aplicar:
+            texto += " " + tt("lbl_nube_aviso_bajada", "{n} registros de la nube no se han podido aplicar del todo.").format(n=sin_aplicar)
+        self.aviso.setText(texto)
+        if bajados or resultado.get("borrados"):
+            self._refrescar_ventana()
+        negativos = resultado.get("stock_negativo") or []
+        if negativos:
+            lista = "\n".join(f"• {x.get('nombre') or x.get('codigo')}: {x.get('stock'):g}" for x in negativos[:10])
+            self._avisar(tt("msg_nube_stock_negativo", "Tras sincronizar, estos artículos han quedado con stock NEGATIVO. "
+                            "Haz un recuento urgente:\n\n{lista}").format(lista=lista))
 
     def _comprobar(self):
         self._lanzar(nube.comprobar_licencia, self._tras_comprobar,

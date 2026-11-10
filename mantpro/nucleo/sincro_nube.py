@@ -18,11 +18,20 @@
 # Deberías haber recibido una copia de la Licencia Pública General Affero de
 # GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
-"""Sincronización de este PC con MantPro Cloud (motor, sin Qt). Paso 4, fase A: SUBIR.
+"""Sincronización de este PC con MantPro Cloud (motor, sin Qt). Paso 4: SUBIR (fase A) y BAJAR (fase B).
 
-El PC envía a la nube lo que ha cambiado y NUNCA modifica sus datos locales por lo
-que haya en la nube (bajar es la fase B). Sirve ya como copia de seguridad fuera
-de casa y no puede estropear nada local.
+SUBIR: el PC envía a la nube lo que ha cambiado. Sirve como copia de seguridad fuera de casa.
+BAJAR: aplica a las bases locales lo que han escrito otros (móviles, otros PCs); toda la lógica de
+aplicarlo está en `sincro_bajada.py`. Se baja ANTES de subir, y antes de aplicar cambios de la nube
+se hace una copia de seguridad (como mucho una al día).
+
+Primer inicio de sesión de un PC («primer login con datos ya existentes»):
+  * la nube sin datos: se sube todo lo de este PC;
+  * la nube con datos y este PC VACÍO (solo lo que MantPro crea por defecto): adopta lo de la nube
+    (no sube sus registros por defecto, que ensuciarían la cuenta con un segundo administrador);
+  * la nube con datos y este PC con datos propios: no sube ni baja nada y devuelve NUBE_CON_DATOS
+    para que el usuario decida; `sincronizar_ahora(adoptar=True)` sustituye lo de este PC por lo de
+    la nube (con copia de seguridad previa). Sirve también para recuperar tras restaurar una copia.
 
 Cómo funciona:
   * `sincronizacion.py` anota en la tabla `cambios` de cada base (mant y alma) qué
@@ -49,7 +58,7 @@ import os
 import threading
 import uuid as _uuid
 
-from . import conexion_bd, nube, sincronizacion
+from . import conexion_bd, nube, sincro_bajada, sincronizacion
 from .seguridad import escribir_atomico
 
 BASES = ("mant", "alma")
@@ -60,6 +69,11 @@ EMPRESA_DISTINTA = "empresa_distinta"
 OCUPADO = "ocupado"
 BD_NO_DISPONIBLE = "bd_no_disponible"
 BD_OCUPADA = "bd_ocupada"
+NUBE_CON_DATOS = "nube_con_datos"
+COPIA_FALLIDA = "copia_fallida"
+COPIA_RESTAURADA = "copia_restaurada"
+PAGINA = 500                        # registros por petición al bajar (el servidor admite hasta 500)
+_TABLAS_CONOCIDAS = {f"{b}.{t}" for b in sincronizacion.TABLAS for t in sincronizacion.TABLAS[b]}
 
 # Códigos del servidor que significan «esto no cabe»: si un lote da uno de ellos se parte
 # por la mitad hasta dar con el registro que sobra.
@@ -105,6 +119,8 @@ def _conexiones(carpeta=None):
     try:
         for base, ruta in rutas_bd(carpeta).items():
             cons[base] = conexion_bd.conectar(ruta, timeout=30)
+            if base == "alma":
+                cons[base].execute("PRAGMA foreign_keys = ON")      # como almacen.py: los borrados en cascada
         yield cons
     finally:
         for c in cons.values():
@@ -122,10 +138,21 @@ def _restaurada(cons, e):
     return any(sincronizacion.ultimo_n(cons[b]) < int(subido.get(b, 0)) for b in BASES)
 
 
-def _estado_nuevo(cons, empresa_uuid, carpeta):
-    """Origen nuevo y todo encolado para subir (primera vez, o copia restaurada)."""
-    e = {"empresa_uuid": empresa_uuid, "origen": _uuid.uuid4().hex,
-         "subido_hasta": {b: 0 for b in BASES}, "ultima_subida": None, "omitidos": 0}
+def _estado_base(empresa_uuid):
+    return {"empresa_uuid": empresa_uuid, "origen": _uuid.uuid4().hex,
+            "subido_hasta": {b: 0 for b in BASES}, "ultima_subida": None, "omitidos": 0,
+            "bajado_hasta": 0, "ultima_bajada": None, "copia_nube": None,
+            "restaurada": False,            # copia restaurada: ni se sube ni se baja hasta recuperar de la nube
+            "inicial_pendiente": False}     # adopción en curso: no se sube nada hasta acabar de bajar
+
+
+def _estado_nuevo(cons, empresa_uuid, carpeta, restaurada=False):
+    """Origen nuevo y todo encolado para subir (primera vez, o copia restaurada). Tras restaurar una copia
+    NO se sincroniza nada más (`restaurada`): sus uuid pueden ser otros (si la copia es anterior a la primera
+    sincronización) y subir o bajar ahora duplicaría los registros en la nube o en este PC.
+    `sincronizar_ahora(adoptar=True)` recupera lo de la nube sin duplicar."""
+    e = _estado_base(empresa_uuid)
+    e["restaurada"] = restaurada
     for base in BASES:
         sincronizacion.encolar_todo(cons[base], base)
     _guardar_estado(e, carpeta)
@@ -142,7 +169,7 @@ def activar(cons, empresa_uuid, carpeta=None):
     for base in BASES:
         sincronizacion.preparar_base(cons[base], base)
     if e is None or _restaurada(cons, e):
-        e = _estado_nuevo(cons, empresa_uuid, carpeta)
+        e = _estado_nuevo(cons, empresa_uuid, carpeta, restaurada=e is not None)
     return e, None
 
 
@@ -307,9 +334,153 @@ def subir_pendiente(cons, e, enviar, carpeta=None, lote=LOTE):
     return resumen, None
 
 
-def sincronizar_ahora(carpeta=None, enviar=None):
-    """Una sincronización completa (hay que llamarla fuera del hilo de la ventana).
-    Devuelve (resumen, None) o (None, código). [enviar] solo lo usan las pruebas."""
+# ---------------------------------------------------------------- bajar
+
+def _hoy():
+    return nube._ahora_iso()[:10]
+
+
+def _bajar_por_red(tk, carpeta=None):
+    """Función que pide una página a la nube: (desde, limite) -> (respuesta, código de error)."""
+    def bajar(desde, limite=PAGINA):
+        res, err = nube._peticion("GET", f"/sync/bajar?desde={int(desde)}&limite={int(limite)}", None, tk, timeout=60)
+        if err == "no_autorizado":
+            nube.cerrar_sesion(carpeta, avisar=False)
+            return None, nube.SESION_CADUCADA
+        if not err and not (isinstance(res.get("cambios"), list) and isinstance(res.get("hay_mas"), bool)
+                            and isinstance(res.get("hasta"), int) and not isinstance(res.get("hasta"), bool)):
+            return None, nube.RESPUESTA_NO_VALIDA
+        return res, err
+    return bajar
+
+
+def _hacer_copia(carpeta=None, copia=None):
+    """Copia de seguridad de las bases antes de que la nube cambie algo. True si salió bien."""
+    if copia is not None:
+        return bool(copia())
+    from . import copias
+    c = nube._carpeta(carpeta)
+    fotos, destino = os.path.join(c, "fotos_recibidas"), os.path.join(c, "backups_auto")
+    os.makedirs(fotos, exist_ok=True)
+    os.makedirs(destino, exist_ok=True)
+    return bool(copias.hacer_copia(fotos, destino, list(rutas_bd(carpeta).values()), motivo="nube").get("ok"))
+
+
+def _hay_ajenos(cambios, propio):
+    return any(c.get("tabla") in _TABLAS_CONOCIDAS and not (c.get("origen") or "").startswith(propio) for c in cambios)
+
+
+def bajar_y_aplicar(cons, e, bajar, carpeta=None, copia=None):
+    """Baja de la nube todo lo posterior a `bajado_hasta` y lo aplica, página a página. Antes de aplicar
+    lo primero ajeno del día se hace una copia de seguridad (si falla, no se aplica nada).
+    Devuelve (recuentos, código de error)."""
+    res = sincro_bajada.resultado_vacio()
+    while True:
+        desde = int(e.get("bajado_hasta", 0))
+        pagina, err = bajar(desde, PAGINA)
+        if err:
+            return res, err
+        cambios = pagina["cambios"]
+        if _hay_ajenos(cambios, e["origen"]) and e.get("copia_nube") != _hoy():
+            if not _hacer_copia(carpeta, copia):
+                return res, COPIA_FALLIDA
+            e["copia_nube"] = _hoy()
+            _guardar_estado(e, carpeta)
+        try:
+            sincro_bajada.aplicar(cons, cambios, e["origen"], res)
+        except conexion_bd.sqlite3.Error:
+            return res, BD_OCUPADA
+        if pagina["hay_mas"] and pagina["hasta"] <= desde:
+            return res, nube.RESPUESTA_NO_VALIDA          # no avanza: no se puede quedar dando vueltas
+        e["bajado_hasta"] = max(desde, pagina["hasta"])
+        _guardar_estado(e, carpeta)
+        if not pagina["hay_mas"]:
+            break
+    if e.get("inicial_pendiente"):
+        # Adopción terminada: lo que se anotó mientras tanto son los registros por defecto que MantPro
+        # recrea al arrancar con la base vacía; no deben subirse a la cuenta.
+        for base in BASES:
+            sincronizacion.marcar_subidos(cons[base], 10 ** 12)
+            e["subido_hasta"][base] = sincronizacion.ultimo_n(cons[base])
+        e["inicial_pendiente"] = False
+    e["ultima_bajada"] = nube._ahora_iso()
+    _guardar_estado(e, carpeta)
+    sincro_bajada.olvidar_esquemas()
+    return res, None
+
+
+def _nube_tiene_datos(bajar):
+    """¿Hay en la nube algún registro (no borrado) de las tablas que este PC sincroniza?"""
+    desde = 0
+    while True:
+        pagina, err = bajar(desde, PAGINA)
+        if err:
+            return None, err
+        if any(c.get("op") == "u" and c.get("tabla") in _TABLAS_CONOCIDAS for c in pagina["cambios"]):
+            return True, None
+        if not pagina["hay_mas"] or pagina["hasta"] <= desde:
+            return False, None
+        desde = pagina["hasta"]
+
+
+def pc_vacio(cons):
+    """True si este PC no tiene NADA suyo: solo lo que MantPro crea por defecto (el administrador y su
+    rol). Los ajustes y los días especiales no cuentan."""
+    for base, tablas in sincronizacion.TABLAS.items():
+        existentes = {f[0] for f in cons[base].execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        for tabla, espec in tablas.items():
+            if espec["tipo"] == "clave" or tabla not in existentes:
+                continue
+            n = cons[base].execute(f"SELECT COUNT(*) FROM {sincronizacion._nombre(tabla)}").fetchone()[0]
+            if tabla == "usuarios":
+                if n > 1 or (n == 1 and cons[base].execute("SELECT login FROM usuarios").fetchone()[0] != "admin"):
+                    return False
+            elif tabla == "usuario_roles":
+                if n > 1:
+                    return False
+            elif n:
+                return False
+    return True
+
+
+def _adoptar(cons, empresa_uuid, carpeta, con_copia, copia=None):
+    """Empieza de cero con lo de la nube: copia de seguridad (si se pide; si falla NO se toca nada),
+    se vacían las tablas sincronizables y se queda pendiente la bajada completa."""
+    if con_copia and not _hacer_copia(carpeta, copia):
+        return None, COPIA_FALLIDA
+    for base in BASES:
+        sincronizacion.preparar_base(cons[base], base)
+        sincronizacion.vaciar_tablas(cons[base], base)
+    e = _estado_base(empresa_uuid)
+    e["inicial_pendiente"] = True
+    for base in BASES:
+        e["subido_hasta"][base] = sincronizacion.ultimo_n(cons[base])
+        sincronizacion.marcar_subidos(cons[base], 10 ** 12)
+    _guardar_estado(e, carpeta)
+    return e, None
+
+
+def _primer_inicio(cons, empresa_uuid, carpeta, bajar, copia):
+    """Primer sincronización de un PC (no hay estado). Devuelve (estado, código de error)."""
+    if bajar is None:
+        return activar(cons, empresa_uuid, carpeta)
+    hay, err = _nube_tiene_datos(bajar)
+    if err:
+        return None, err
+    if not hay:
+        return activar(cons, empresa_uuid, carpeta)
+    for base in BASES:
+        sincronizacion.preparar_base(cons[base], base)
+    if pc_vacio(cons):
+        return _adoptar(cons, empresa_uuid, carpeta, False)
+    return None, NUBE_CON_DATOS
+
+
+def sincronizar_ahora(carpeta=None, enviar=None, bajar=None, copia=None, adoptar=False):
+    """Una sincronización completa: baja lo de la nube y sube lo de este PC (hay que llamarla fuera del
+    hilo de la ventana). Devuelve (resumen, None) o (None, código). [adoptar]: sustituye lo de este PC por
+    lo de la nube (con copia de seguridad); lo pide el usuario tras NUBE_CON_DATOS o tras restaurar una copia.
+    [enviar], [bajar] y [copia] solo los usan las pruebas; con [enviar] y sin [bajar] no se baja nada."""
     if not _cerrojo.acquire(blocking=False):
         return None, OCUPADO
     try:
@@ -320,18 +491,42 @@ def sincronizar_ahora(carpeta=None, enviar=None):
         empresa = (ses.get("empresa") or {}).get("uuid")
         if not empresa:
             return None, nube.RESPUESTA_NO_VALIDA
+        if bajar is None and enviar is None:
+            bajar = _bajar_por_red(tk, carpeta)
         try:
             with _conexiones(carpeta) as cons:
-                e, err = activar(cons, empresa, carpeta)
+                e = estado(carpeta)
+                if e is not None and e["empresa_uuid"] != empresa:
+                    return None, EMPRESA_DISTINTA
+                if adoptar:
+                    if bajar is None:
+                        return None, nube.RESPUESTA_NO_VALIDA
+                    e, err = _adoptar(cons, empresa, carpeta, True, copia)
+                elif e is None:
+                    e, err = _primer_inicio(cons, empresa, carpeta, bajar, copia)
+                else:
+                    e, err = activar(cons, empresa, carpeta)
                 if err:
                     return None, err
-                resumen, err = subir_pendiente(cons, e, enviar or _enviar_por_red(tk, carpeta), carpeta)
-                if err:
-                    return None, err
-                for base in BASES:
-                    sincronizacion.purgar_subidos(cons[base])
-                e["ultima_subida"] = nube._ahora_iso()
-                e["omitidos"] = int(e.get("omitidos", 0)) + resumen["omitidos"]
+                if e.get("restaurada"):
+                    return None, COPIA_RESTAURADA
+                resumen = {"enviados": 0, "omitidos": 0}
+                resumen.update(sincro_bajada.resultado_vacio())
+                resumen["adoptado"] = bool(e.get("inicial_pendiente"))
+                if bajar is not None:
+                    bajado, err = bajar_y_aplicar(cons, e, bajar, carpeta, copia)
+                    resumen.update(bajado)
+                    if err:
+                        return None, err
+                if not e.get("inicial_pendiente"):
+                    subido, err = subir_pendiente(cons, e, enviar or _enviar_por_red(tk, carpeta), carpeta)
+                    if err:
+                        return None, err
+                    resumen.update(subido)
+                    for base in BASES:
+                        sincronizacion.purgar_subidos(cons[base])
+                    e["ultima_subida"] = nube._ahora_iso()
+                    e["omitidos"] = int(e.get("omitidos", 0)) + subido["omitidos"]
                 _guardar_estado(e, carpeta)
                 return resumen, None
         except (conexion_bd.SinSQLCipher, conexion_bd.ClaveNoDisponible):
@@ -367,7 +562,9 @@ def resumen_estado(carpeta=None):
     «pendientes» es None si todavía no se puede contar."""
     e = estado(carpeta)
     res = {"activa": e is not None, "ultima_subida": (e or {}).get("ultima_subida"),
-           "pendientes": None, "omitidos": int((e or {}).get("omitidos", 0))}
+           "pendientes": None, "omitidos": int((e or {}).get("omitidos", 0)),
+           "ultima_bajada": (e or {}).get("ultima_bajada"), "restaurada": bool((e or {}).get("restaurada")),
+           "adoptando": bool((e or {}).get("inicial_pendiente"))}
     if e is None:
         return res
     try:

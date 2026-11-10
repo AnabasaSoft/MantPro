@@ -204,6 +204,23 @@ def purgar_subidos(con):
     return n
 
 
+def vaciar_tablas(con, base):
+    """Borra TODOS los registros sincronizables de [base] sin anotar cambios: es lo que hace falta
+    para «adoptar» lo que hay en la nube. De `config` solo se borran los ajustes compartidos
+    (idioma, puerto y demás son de este PC y se quedan). Devuelve cuántos registros se borraron."""
+    existentes = {f[0] for f in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    total = 0
+    with silenciar(con):
+        for tabla in reversed(list(TABLAS[base])):
+            if tabla not in existentes:
+                continue
+            t, espec = _nombre(tabla), TABLAS[base][tabla]
+            donde = f" WHERE {espec['solo_si'].format(r=t)}" if espec["tipo"] == "clave" and espec.get("solo_si") else ""
+            total += con.execute(f"DELETE FROM {t}{donde}").rowcount
+    con.commit()
+    return total
+
+
 def encolar_todo(con, base):
     """Anota como alta ('i') TODOS los registros que ya hay en las tablas sincronizables
     de [base], para subirlos enteros (primera subida de un PC, o la que sigue a restaurar
