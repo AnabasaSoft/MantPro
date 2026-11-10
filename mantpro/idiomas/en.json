@@ -1396,6 +1396,7 @@
   "lbl_nube_suspendida": "The account is suspended. MantPro keeps working locally with your data. Contact MantPro Cloud.",
   "btn_nube_cerrar_sesion": "Sign out",
   "btn_nube_comprobar": "Check now",
+  "btn_nube_web": "Open the website",
   "lbl_nube_conectando": "Connecting…",
   "lbl_nube_comprobando": "Checking…",
   "lbl_nube_cerrando": "Signing out…",

@@ -24,7 +24,8 @@ import socket
 
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
                              QFormLayout, QDialog, QMessageBox)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, QUrl, pyqtSignal
+from PyQt6.QtGui import QDesktopServices
 
 from ...idiomas import t, formato_fecha_localizada
 from ..comun import tt
@@ -126,6 +127,13 @@ class DialogoNube(QDialog):
         else:
             self._construir_sin_sesion()
 
+    def _boton_web(self):
+        """Botón que abre la web de MantPro Cloud en el navegador (contratar, renovar, información)."""
+        b = QPushButton("🌐 " + tt("btn_nube_web", "Abrir la web"))
+        b.setAutoDefault(False)
+        b.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(nube.URL_WEB)))
+        return b
+
     def _etiqueta(self, texto, negrita=False):
         lbl = QLabel(texto)
         lbl.setWordWrap(True)
@@ -163,6 +171,7 @@ class DialogoNube(QDialog):
         self.campo_password.returnPressed.connect(self._iniciar)
         self.campo_correo.returnPressed.connect(self.campo_password.setFocus)
         botones.addWidget(self.boton_cerrar)
+        botones.addWidget(self._boton_web())
         botones.addStretch()
         botones.addWidget(self.boton_entrar)
         l.addLayout(botones)
@@ -225,6 +234,7 @@ class DialogoNube(QDialog):
         self.boton_cerrar.setDefault(True)
         self.boton_cerrar.clicked.connect(self.accept)
         botones.addWidget(self.boton_salir_sesion)
+        botones.addWidget(self._boton_web())
         botones.addStretch()
         botones.addWidget(self.boton_comprobar)
         botones.addWidget(self.boton_cerrar)

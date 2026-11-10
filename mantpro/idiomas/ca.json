@@ -1396,6 +1396,7 @@
   "lbl_nube_suspendida": "El compte està suspès. MantPro continua funcionant en local amb les teves dades. Contacta amb MantPro Cloud.",
   "btn_nube_cerrar_sesion": "Tancar sessió",
   "btn_nube_comprobar": "Comprova ara",
+  "btn_nube_web": "Obre el lloc web",
   "lbl_nube_conectando": "Connectant…",
   "lbl_nube_comprobando": "Comprovant…",
   "lbl_nube_cerrando": "Tancant la sessió…",

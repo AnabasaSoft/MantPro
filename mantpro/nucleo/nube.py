@@ -48,6 +48,7 @@ from .seguridad import escribir_atomico
 from . import conexion_bd
 
 URL_POR_DEFECTO = "https://mantpro-cloud.com/api/v1"
+URL_WEB = "https://www.mantpro-cloud.com"     # web de MantPro Cloud (se abre en el navegador)
 TIMEOUT = 10                       # segundos por petición
 SERVICIO_LLAVERO = "MantPro Cloud"
 GRACIA_POR_DEFECTO = 7             # si el servidor no dice otra cosa

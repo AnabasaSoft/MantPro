@@ -1396,6 +1396,7 @@
   "lbl_nube_suspendida": "Kontua etenda dago. MantPro lokalean funtzionatzen jarraitzen du zure datuekin. Jarri harremanetan MantPro Cloud-ekin.",
   "btn_nube_cerrar_sesion": "Saioa itxi",
   "btn_nube_comprobar": "Egiaztatu orain",
+  "btn_nube_web": "Ireki webgunea",
   "lbl_nube_conectando": "Konektatzen…",
   "lbl_nube_comprobando": "Egiaztatzen…",
   "lbl_nube_cerrando": "Saioa ixten…",
