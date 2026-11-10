@@ -74,12 +74,16 @@ def _esquema(con, tabla):
                 for f in con.execute(f"PRAGMA table_info({t})")}
         pks = [c for c, d in cols.items() if d["pk"]]
         unicos = []
+        if len(pks) == 1 and (cols[pks[0]]["tipo"] or "").upper() != "INTEGER":
+            unicos.append([pks[0]])          # una clave de texto (token, dispositivo_id) también identifica la fila
         for idx in con.execute(f"PRAGMA index_list({t})").fetchall():
             if idx[2] and idx[3] != "pk":
                 columnas = [x[2] for x in con.execute(f"PRAGMA index_info({idx[1]})")]
                 if columnas and columnas != ["uuid"]:
                     unicos.append(columnas)
-        _cache[clave] = {"cols": cols, "pk": pks[0] if len(pks) == 1 else None, "unicos": unicos}
+        # Solo una clave ENTERA es «el id local» (nunca viaja ni se impone desde la nube); una de texto es un dato.
+        entera = len(pks) == 1 and (cols[pks[0]]["tipo"] or "").upper() == "INTEGER"
+        _cache[clave] = {"cols": cols, "pk": pks[0] if entera else None, "unicos": unicos}
     return _cache[clave]
 
 
@@ -183,8 +187,12 @@ def _aplicar_entidad(cons, base, tabla, espec, uuid, op, datos, res, diferidas):
         res["aplicados"] += 1
         return
     cols = list(valores) + ["uuid"]
-    con.execute(f"INSERT INTO {t} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
-                list(valores.values()) + [uuid])
+    vals = list(valores.values()) + [uuid]
+    for c, plantilla in espec.get("relleno", {}).items():
+        if c in esq["cols"] and c not in valores:        # columna local obligatoria que no viaja (p. ej. el token)
+            cols.append(c)
+            vals.append(re.sub(r"\{(\w+)\}", lambda m: str((datos or {}).get(m.group(1)) or ""), plantilla))
+    con.execute(f"INSERT INTO {t} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})", vals)
     res["aplicados"] += 1
     if base == "alma" and tabla == "movimientos":
         _ajustar_stock(con, valores, res)

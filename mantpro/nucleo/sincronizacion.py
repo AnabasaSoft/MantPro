@@ -221,17 +221,20 @@ def vaciar_tablas(con, base):
     return total
 
 
-def encolar_todo(con, base):
+def encolar_todo(con, base, solo=None):
     """Anota como alta ('i') TODOS los registros que ya hay en las tablas sincronizables
     de [base], para subirlos enteros (primera subida de un PC, o la que sigue a restaurar
     una copia). Lo que había pendiente en `cambios` pasa a «subido»: lo sustituye esto.
+    Con [solo] (nombres de tabla sin prefijo) encola únicamente esas tablas —las que se han añadido a la
+    sincronización en una versión nueva de MantPro— y NO toca lo que ya estaba pendiente.
     Requiere `preparar_base()` hecha antes (los registros ya tienen uuid).
     Devuelve cuántos registros se han encolado."""
-    con.execute("UPDATE cambios SET subido = 1 WHERE subido = 0")
+    if solo is None:
+        con.execute("UPDATE cambios SET subido = 1 WHERE subido = 0")
     existentes = {f[0] for f in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
     total = 0
     for tabla, espec in TABLAS[base].items():
-        if tabla not in existentes:
+        if tabla not in existentes or (solo is not None and tabla not in solo):
             continue
         t = _nombre(tabla)
         if espec["tipo"] == "clave":
@@ -264,6 +267,13 @@ def encolar_todo(con, base):
 #   ajenas declaradas: al sincronizar hay que traducirlas por uuid. OJO: se han deducido
 #   de los nombres y del código; revisar antes de usarlas en la sincronización real.
 # derivadas: columnas que se recalculan en destino y no se sincronizan como valor.
+# ignorar: columnas locales de cada PC: nunca viajan y cambiarlas no anota nada.
+# silenciosas: columnas que SÍ viajan (se mandan con el registro) pero cambiarlas solo no anota
+#   nada, para no inundar la nube (p. ej. la caducidad de una sesión, que se renueva cada minuto).
+# relleno: columnas locales obligatorias que no viajan y hay que inventar al CREAR el registro en
+#   otro PC; la plantilla usa los datos que llegan (p. ej. token «~{huella}» para una sesión).
+# uuid_desde: columna cuyo valor sirve de identidad (así el mismo móvil o la misma sesión tienen el
+#   mismo uuid en todos los PCs sin que se dupliquen).
 
 # Ajustes compartidos por toda la empresa (los demás de `config` son de cada PC:
 # idioma, puerto_servidor, dias_sesion, http_desactivado, ultimo_usuario…).
@@ -278,6 +288,14 @@ TABLAS = {
                           "refs": {"usuario_id": "mant.usuarios"}},
         "usuario_especialidades": {"tipo": "enlace", "clave_natural": ("usuario_id", "especialidad_id"),
                                    "refs": {"usuario_id": "mant.usuarios", "especialidad_id": "mant.especialidades"}},
+        # Sesiones de los móviles: viajan con la HUELLA del token (SHA-256), NUNCA con el token (una credencial).
+        # El móvil presenta su token en cualquier PC y se reconoce por la huella (usuarios.usuario_por_token).
+        "sesiones": {"tipo": "entidad", "uuid_desde": "huella", "ignorar": ("token", "ultimo_contacto", "cifrada"),
+                     "silenciosas": ("expira",), "relleno": {"token": "~{huella}"},
+                     "refs": {"usuario_id": "mant.usuarios"}},
+        # Los móviles conocidos y a qué técnico están adjudicados: valen para toda la empresa.
+        "moviles": {"tipo": "entidad", "uuid_desde": "dispositivo_id", "silenciosas": ("visto",),
+                    "refs": {"usuario_id": "mant.usuarios"}},
         "zonas": {"tipo": "entidad", "refs": {}},
         "maquinas": {"tipo": "entidad", "refs": {"padre_id": "mant.maquinas", "zona_id": "mant.zonas"}},
         "tareas": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios", "maquina_id": "mant.maquinas"}},
@@ -321,8 +339,6 @@ TABLAS = {
 # real esté en TABLAS o aquí: una tabla nueva obliga a decidir.
 TABLAS_LOCALES = {
     "mant": {
-        "sesiones": "sesiones de este servidor (la nube tendrá las suyas)",
-        "moviles": "dispositivos vistos por este servidor",
         "cambios": "el propio registro de cambios",
         "sync_estado": "interruptor local de la sincronización",
     },
@@ -353,5 +369,6 @@ def preparar_base(con, base):
         elif espec["tipo"] == "clave":
             preparar_tabla(con, tabla, identidad=espec["identidad"], solo_si=espec.get("solo_si"))
         else:
-            preparar_tabla(con, tabla, uuid_desde=espec.get("uuid_desde"), ignorar=espec.get("ignorar", ()))
+            preparar_tabla(con, tabla, uuid_desde=espec.get("uuid_desde"),
+                           ignorar=tuple(espec.get("ignorar", ())) + tuple(espec.get("silenciosas", ())))
     return faltan

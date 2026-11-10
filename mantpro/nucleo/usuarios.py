@@ -196,6 +196,12 @@ def inicializar():
     # el mismo teléfono) y los móviles adjudicados a un técnico.
     if "dispositivo_id" not in _columnas(con, "sesiones"):
         cur.execute("ALTER TABLE sesiones ADD COLUMN dispositivo_id TEXT")
+    # Huella SHA-256 del token. Es lo que viaja a MantPro Cloud para que la sesión de un móvil valga en
+    # todos los PCs de la empresa SIN guardar nunca el token (una credencial) en la nube. Ver huella_token().
+    if "huella" not in _columnas(con, "sesiones"):
+        cur.execute("ALTER TABLE sesiones ADD COLUMN huella TEXT")
+    for (token,) in cur.execute("SELECT token FROM sesiones WHERE huella IS NULL").fetchall():
+        con.execute("UPDATE sesiones SET huella = ? WHERE token = ?", (huella_token(token), token))
     cur.execute("""
         CREATE TABLE IF NOT EXISTS moviles (
             dispositivo_id TEXT PRIMARY KEY,
@@ -680,6 +686,12 @@ def borrar_especialidad(especialidad_id):
 
 # ---------------------------------------------------------------- sesiones (móvil)
 
+def huella_token(token):
+    """Huella SHA-256 (hexadecimal) del token de un móvil. Es irreversible: con ella se reconoce la sesión
+    en otro PC (el móvil presenta el token, se calcula su huella y se compara), pero no se puede sacar el token."""
+    return hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+
+
 def crear_token(usuario_id, dispositivo=None, dispositivo_id=None):
     token = secrets.token_urlsafe(32)
     dispositivo_id = limpiar_dispositivo_id(dispositivo_id)
@@ -696,12 +708,12 @@ def crear_token(usuario_id, dispositivo=None, dispositivo_id=None):
             (usuario_id, dispositivo),
         )
     con.execute(
-        "INSERT INTO sesiones (token, usuario_id, dispositivo, creado, expira, dispositivo_id) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sesiones (token, usuario_id, dispositivo, creado, expira, dispositivo_id, huella) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (token, usuario_id, dispositivo or "",
          ahora.isoformat(timespec="seconds"),
          (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"),
-         dispositivo_id),
+         dispositivo_id, huella_token(token)),
     )
     con.commit()
     con.close()
@@ -710,19 +722,22 @@ def crear_token(usuario_id, dispositivo=None, dispositivo_id=None):
 
 def usuario_por_token(token):
     """Devuelve el usuario asociado al token, o None si no existe/expiró/está inactivo."""
-    if not token:
+    # Un token que empieza por «~» NUNCA vale: es el de sustitución de una sesión que llegó de otro PC por la
+    # nube (se guarda como «~huella» y la huella no es secreta). Los tokens reales no pueden empezar así.
+    if not token or token.startswith("~"):
         return None
     con = _conn()
+    # Por token, o por su huella: las sesiones que llegan de otro PC por la nube no traen el token.
     fila = con.execute(
-        "SELECT u.*, s.expira FROM sesiones s "
-        "JOIN usuarios u ON u.id = s.usuario_id WHERE s.token = ?",
-        (token,),
+        "SELECT u.*, s.expira, s.token AS token_guardado FROM sesiones s "
+        "JOIN usuarios u ON u.id = s.usuario_id WHERE s.token = ? OR s.huella = ?",
+        (token, huella_token(token)),
     ).fetchone()
     if fila is None:
         con.close()
         return None
     if not fila["activo"] or fila["expira"] < datetime.now().isoformat(timespec="seconds"):
-        con.execute("DELETE FROM sesiones WHERE token = ?", (token,))
+        con.execute("DELETE FROM sesiones WHERE token = ?", (fila["token_guardado"],))
         con.commit()
         con.close()
         return None
@@ -733,7 +748,7 @@ def usuario_por_token(token):
 
 def revocar_token(token):
     con = _conn()
-    con.execute("DELETE FROM sesiones WHERE token = ?", (token,))
+    con.execute("DELETE FROM sesiones WHERE token = ? OR huella = ?", (token, huella_token(token)))
     con.commit()
     con.close()
 
@@ -847,9 +862,10 @@ def registrar_contacto(token, cifrada=None):
     try:
         con = _conn()
         # Cada contacto renueva la sesión: caduca tras X días SIN conectar
-        con.execute("UPDATE sesiones SET ultimo_contacto = ?, cifrada = COALESCE(?, cifrada), expira = ? WHERE token = ?",
+        con.execute("UPDATE sesiones SET ultimo_contacto = ?, cifrada = COALESCE(?, cifrada), expira = ? "
+                    "WHERE token = ? OR huella = ?",
                     (ahora.isoformat(timespec="seconds"), None if cifrada is None else int(cifrada),
-                     (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"), token))
+                     (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"), token, huella_token(token)))
         con.commit()
         con.close()
     except sqlite3.Error:

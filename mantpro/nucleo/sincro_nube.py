@@ -74,6 +74,9 @@ COPIA_FALLIDA = "copia_fallida"
 COPIA_RESTAURADA = "copia_restaurada"
 PAGINA = 500                        # registros por petición al bajar (el servidor admite hasta 500)
 _TABLAS_CONOCIDAS = {f"{b}.{t}" for b in sincronizacion.TABLAS for t in sincronizacion.TABLAS[b]}
+# Las tablas que ya se sincronizaban antes de que el estado guardara cuáles se habían encolado (las sesiones
+# de móvil y los móviles se añadieron después): un estado antiguo se da por encolado con estas.
+_TABLAS_ANTERIORES = _TABLAS_CONOCIDAS - {"mant.sesiones", "mant.moviles"}
 
 # Códigos del servidor que significan «esto no cabe»: si un lote da uno de ellos se parte
 # por la mitad hasta dar con el registro que sobra.
@@ -142,6 +145,7 @@ def _estado_base(empresa_uuid):
     return {"empresa_uuid": empresa_uuid, "origen": _uuid.uuid4().hex,
             "subido_hasta": {b: 0 for b in BASES}, "ultima_subida": None, "omitidos": 0,
             "bajado_hasta": 0, "ultima_bajada": None, "copia_nube": None,
+            "tablas": sorted(_TABLAS_CONOCIDAS),        # tablas ya encoladas (una versión nueva puede añadir otras)
             "restaurada": False,            # copia restaurada: ni se sube ni se baja hasta recuperar de la nube
             "inicial_pendiente": False}     # adopción en curso: no se sube nada hasta acabar de bajar
 
@@ -170,7 +174,22 @@ def activar(cons, empresa_uuid, carpeta=None):
         sincronizacion.preparar_base(cons[base], base)
     if e is None or _restaurada(cons, e):
         e = _estado_nuevo(cons, empresa_uuid, carpeta, restaurada=e is not None)
+    else:
+        _encolar_tablas_nuevas(cons, e, carpeta)
     return e, None
+
+
+def _encolar_tablas_nuevas(cons, e, carpeta=None):
+    """Si esta versión de MantPro sincroniza tablas que el estado no recuerda haber encolado (se añadieron
+    después), sube lo que ya hay en ellas: los disparadores solo anotan lo que cambie A PARTIR DE AHORA."""
+    ya = set(e.get("tablas") or _TABLAS_ANTERIORES)
+    nuevas = _TABLAS_CONOCIDAS - ya
+    if nuevas and not e.get("restaurada") and not e.get("inicial_pendiente"):
+        for base in BASES:
+            sincronizacion.encolar_todo(cons[base], base, solo={t.split(".", 1)[1] for t in nuevas if t.startswith(base + ".")})
+    if nuevas or "tablas" not in e:
+        e["tablas"] = sorted(_TABLAS_CONOCIDAS)
+        _guardar_estado(e, carpeta)
 
 
 def preparar_al_arrancar(carpeta=None):
@@ -197,8 +216,9 @@ _pk = {}
 def _columna_pk(con, tabla):
     """Nombre de la clave primaria entera de [tabla] (o None si no tiene una sola)."""
     t = sincronizacion._nombre(tabla)
-    pks = [f[1] for f in con.execute(f"PRAGMA table_info({t})") if f[5]]
-    return pks[0] if len(pks) == 1 else None
+    pks = [f for f in con.execute(f"PRAGMA table_info({t})") if f[5]]
+    # Solo una clave entera es «el id local» (no viaja). Un pk de texto (token, dispositivo_id) es un dato.
+    return pks[0][1] if len(pks) == 1 and (pks[0][2] or "").upper() == "INTEGER" else None
 
 
 def _uuid_de(cons, destino, valor):
