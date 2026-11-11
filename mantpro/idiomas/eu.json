@@ -1423,6 +1423,8 @@
   "nube_al_dia": "Dena egunean",
   "lbl_nube_fotos_aparte": "MantProk aldatzen duzuna ia berehala igotzen du, eta minuturo begiratzen du ea berririk dagoen irekita dagoen bitartean. Argazkiak bereizita sinkronizatzen dira, atzeko planoan.",
   "nube_fotos_sin_subir": "Igo gabeko argazkiak",
+  "nube_fotos_subiendo": "Igotzen… {hecho} / {total}",
+  "nube_fotos_bajando": "Deskargatzen… {hecho} / {total}",
   "lbl_nube_omitidos": "Kontuz: {n} erregistro handiegiak ziren eta ezin izan dira igo.",
   "btn_nube_sincronizar": "Sinkronizatu orain",
   "lbl_nube_sincronizando": "Sinkronizatzen…",

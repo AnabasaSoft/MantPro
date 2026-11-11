@@ -64,6 +64,12 @@ SEGUNDOS_SIN_SUBIR = 1800                            # con la nube llena o la li
 _NOMBRE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,150}$")
 _NOMBRES_EN_TEXTO = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,150}\.(?:%s)" % "|".join(e[1:] for e in sorted(EXTENSIONES_FOTO)), re.I)
 _cerrojo = threading.Lock()                          # una sola pasada de fotos a la vez
+_en_curso = None                                     # progreso de la pasada que está en marcha (solo en memoria)
+
+
+def _marcar(fase, hecho, total):
+    global _en_curso
+    _en_curso = {"fase": fase, "hecho": int(hecho), "total": int(total)}
 
 # Códigos que paran la pasada (se reintenta más tarde) frente a los que solo descartan ESA foto
 # Con estos dos NO se puede subir, pero sí BAJAR: se deja de subir y se sigue con las bajadas
@@ -112,7 +118,8 @@ def resumen_estado(carpeta=None):
     e = estado(carpeta)
     resultado = e.get("resultado") or {}
     motivo = (e.get("sin_subir") or {}).get("motivo")
-    return {"pendientes": resultado.get("pendientes") if e.get("ultima") else None, "motivo": motivo, "ultima": e.get("ultima")}
+    return {"pendientes": resultado.get("pendientes") if e.get("ultima") else None, "motivo": motivo, "ultima": e.get("ultima"),
+            "en_curso": dict(_en_curso) if (_en_curso and _cerrojo.locked()) else None}
 
 
 def es_sincronizable(nombre):
@@ -317,6 +324,7 @@ def sincronizar(carpeta=None, nube_fotos=None, progreso=None, parar=None):
             if parado():
                 return resumen, "parado"
             avisar(n, i, len(por_subir))
+            _marcar("subiendo", len(locales) - len(por_subir) + i, len(locales))     # «231 de 341»: contando las que ya estaban
             ruta = os.path.join(carpeta_fotos(carpeta), n)
             try:
                 if locales[n] > TAMANO_MAXIMO_FOTO or locales[n] == 0:
@@ -354,6 +362,7 @@ def sincronizar(carpeta=None, nube_fotos=None, progreso=None, parar=None):
             if parado():
                 return resumen, "parado"
             avisar(n, i, len(necesarias))
+            _marcar("bajando", i, len(necesarias))
             contenido, err = nube_fotos.bajar(n)
             if err == "foto_no_existe":
                 continue
@@ -370,6 +379,8 @@ def sincronizar(carpeta=None, nube_fotos=None, progreso=None, parar=None):
         _guardar(e, carpeta)
         return resumen, error_subida
     finally:
+        global _en_curso
+        _en_curso = None
         _cerrojo.release()
 
 

@@ -24,12 +24,12 @@ import socket
 
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
                              QFormLayout, QDialog, QMessageBox)
-from PyQt6.QtCore import Qt, QThread, QUrl, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 
 from ...idiomas import t, formato_fecha_localizada
 from ..comun import tt
-from ...nucleo import nube, sincro_nube
+from ...nucleo import nube, sincro_fotos, sincro_nube
 
 _ERRORES = {
     "empresa_distinta": ("nube_error_empresa",
@@ -268,6 +268,29 @@ class DialogoNube(QDialog):
         botones.addWidget(self.boton_cerrar)
         l.addLayout(botones)
 
+    def _refrescar_fotos(self):
+        """Pone al día la fila de las fotos y su aviso (se llama al abrir y cada 3 segundos)."""
+        if not getattr(self, "_activa_fotos", False):
+            self.aviso_fotos.hide()
+            return
+        f = sincro_fotos.resumen_estado()
+        curso = f.get("en_curso")
+        if curso:
+            clave, defecto = (("nube_fotos_subiendo", "Subiendo… {hecho} de {total}") if curso["fase"] == "subiendo"
+                              else ("nube_fotos_bajando", "Descargando… {hecho} de {total}"))
+            texto = tt(clave, defecto).format(hecho=curso["hecho"], total=curso["total"])
+        elif f.get("pendientes") is None:
+            texto = tt("nube_nunca", "Todavía no")
+        else:
+            texto = tt("nube_al_dia", "Todo al día") if f["pendientes"] == 0 else str(f["pendientes"])
+        self.etiqueta_fotos.setText(texto)
+        if f.get("motivo") in ("almacenamiento_lleno", "licencia_caducada"):
+            # Las fotos nuevas no se pueden subir (plan lleno o licencia caducada); las que faltan aquí sí se descargan
+            self.aviso_fotos.setText(texto_error(f["motivo"]))
+            self.aviso_fotos.show()
+        else:
+            self.aviso_fotos.hide()
+
     def _construir_sincronizacion(self, l):
         """Estado de la subida de datos: última vez, qué queda sin subir y avisos."""
         estado = sincro_nube.resumen_estado()
@@ -284,17 +307,20 @@ class DialogoNube(QDialog):
         if estado.get("activa") and pendientes is not None:
             form.addRow(tt("nube_sin_subir", "Sin subir") + ":", self._etiqueta(
                 tt("nube_al_dia", "Todo al día") if pendientes == 0 else str(pendientes)))
-        fotos = estado.get("fotos") or {}
+        self.etiqueta_fotos = self._etiqueta("")
+        self.aviso_fotos = self._etiqueta("")
+        self.aviso_fotos.setStyleSheet("color: #b26a00;")
         if estado.get("activa"):
-            n = fotos.get("pendientes")
-            form.addRow(tt("nube_fotos_sin_subir", "Fotos sin subir") + ":", self._etiqueta(
-                tt("nube_nunca", "Todavía no") if n is None else (tt("nube_al_dia", "Todo al día") if n == 0 else str(n))))
+            form.addRow(tt("nube_fotos_sin_subir", "Fotos sin subir") + ":", self.etiqueta_fotos)
         l.addLayout(form)
-        if estado.get("activa") and fotos.get("motivo") in ("almacenamiento_lleno", "licencia_caducada"):
-            # Las fotos nuevas no se pueden subir (plan lleno o licencia caducada); las que faltan aquí sí se descargan
-            aviso_f = self._etiqueta(texto_error(fotos["motivo"]))
-            aviso_f.setStyleSheet("color: #b26a00;")
-            l.addWidget(aviso_f)
+        l.addWidget(self.aviso_fotos)
+        self._activa_fotos = bool(estado.get("activa"))
+        self._refrescar_fotos()
+        if self._activa_fotos:
+            # Mientras el diálogo está abierto se refresca solo: la subida de fotos tarda y así se ve avanzar
+            self._temporizador_fotos = QTimer(self)
+            self._temporizador_fotos.timeout.connect(self._refrescar_fotos)
+            self._temporizador_fotos.start(3000)
         l.addWidget(self._etiqueta(tt("lbl_nube_fotos_aparte",
             "MantPro sube lo que cambies casi al momento y mira cada minuto si hay algo nuevo mientras está abierto. "
             "Las fotos se sincronizan aparte, en segundo plano.")))
@@ -493,4 +519,7 @@ class DialogoNube(QDialog):
         # No cerrar mientras hay una petición en curso (el hilo seguiría tocando la ventana)
         if self._hilo is not None and self._hilo.isRunning():
             self._hilo.wait(nube.TIMEOUT * 1000 + 2000)
+        temporizador = getattr(self, "_temporizador_fotos", None)
+        if temporizador is not None:
+            temporizador.stop()
         super().done(resultado)

@@ -1423,6 +1423,8 @@
   "nube_al_dia": "All up to date",
   "lbl_nube_fotos_aparte": "MantPro uploads what you change almost immediately and checks for anything new every minute while it is open. Photos are synchronised separately, in the background.",
   "nube_fotos_sin_subir": "Photos not uploaded",
+  "nube_fotos_subiendo": "Uploading… {hecho} of {total}",
+  "nube_fotos_bajando": "Downloading… {hecho} of {total}",
   "lbl_nube_omitidos": "Warning: {n} records were too large and could not be uploaded.",
   "btn_nube_sincronizar": "Synchronise now",
   "lbl_nube_sincronizando": "Synchronising…",
