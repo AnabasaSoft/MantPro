@@ -39,6 +39,9 @@ const Map<String, String> traduccionesEn = {
     "login_movil_adjudicado": "This phone is assigned to {nombre}.",
     "login_movil_de": "Phone assigned to {nombre}",
     "login_sin_conexion": "Could not reach the PC. Check the WiFi and that MantPro is running.",
+    "login_sin_conexion_nube": "Could not reach the PC or MantPro Cloud. Check the WiFi or the internet connection.",
+    "login_nube_no_disponible": "MantPro Cloud is not available right now. Connect to the PC's WiFi.",
+    "login_limite_moviles": "The maximum number of phones for the MantPro Cloud plan has been reached.",
     "login_sin_pc": "Link the phone to the PC first by scanning the QR code.",
     "login_pc_no_vinculado": "No PC linked",
     "btn_vincular_pc": "Link PC",
@@ -130,6 +133,7 @@ const Map<String, String> traduccionesEn = {
     "msg_articulo_eliminado_pendiente": "💾 Deleted on the phone. It will be confirmed on the PC when there is a connection.",
     "lbl_pendiente_sincronizar": "Pending upload to the PC",
     "lbl_conectado_pc": "🟢 Connected to the PC",
+    "lbl_conectado_nube": "🟢 Connected to the cloud",
     "lbl_desconectado_pc": "🔴 No connection to the PC",
 
     // --- Comprobador de actualizaciones ---

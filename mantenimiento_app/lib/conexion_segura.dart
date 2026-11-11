@@ -37,6 +37,8 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'rutas_servidor.dart';
+
 /// «https» si el PC vinculado tiene huella guardada; «http» si no (PC con
 /// una versión anterior de MantPro). Se usa en todas las direcciones del
 /// PC: "$esquemaPC://$ip/api/...".
@@ -79,13 +81,28 @@ Future<String?> guardarVinculacion(String? leido) async {
     huellaPC = huella.toLowerCase();
     esquemaPC = 'https';
     await prefs.setString(_claveHuella, huellaPC!);
-    return '${uri.host}:${uri.port}';
+    final ruta = '${uri.host}:${uri.port}';
+    // El QR puede llevar también la ruta de la nube (&n=dominio&e=empresa): se guardan las dos.
+    await RutasServidor.guardar(pc: ruta, nube: rutaNubeDelQr(uri));
+    return ruta;
   }
   // QR antiguo: sin cifrar hasta que el PC se actualice ([migrarAHttps]).
   huellaPC = null;
   esquemaPC = 'http';
   await prefs.remove(_claveHuella);
-  return leido.trim().replaceAll('http://', '').replaceAll('/', '');
+  final ruta = leido.trim().replaceAll('http://', '').replaceAll('/', '');
+  await RutasServidor.guardar(pc: ruta);       // QR antiguo: solo el PC, y se olvida cualquier ruta de nube anterior
+  return ruta;
+}
+
+/// Ruta de MantPro Cloud que lleva el QR del PC (`&n=dominio&e=empresa`): «dominio/m/empresa», o null si
+/// el QR no la lleva o trae algo que no vale (solo se admiten un dominio y un uuid de 32 hexadecimales).
+String? rutaNubeDelQr(Uri uri) {
+  final n = uri.queryParameters['n'];
+  final e = uri.queryParameters['e'];
+  if (n == null || e == null) return null;
+  if (!RegExp(r'^[A-Za-z0-9.:-]{1,100}$').hasMatch(n) || !RegExp(r'^[0-9a-f]{32}$').hasMatch(e)) return null;
+  return '$n/m/$e';
 }
 
 /// Si el móvil sigue por HTTP con un PC que ya tiene HTTPS, pasa a HTTPS:

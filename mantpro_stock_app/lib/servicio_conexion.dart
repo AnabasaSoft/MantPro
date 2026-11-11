@@ -32,6 +32,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import 'i18n/strings.dart';
+import 'rutas_servidor.dart';
 
 const String _idBotonCerrar = 'cerrar';
 
@@ -85,7 +86,9 @@ class ServicioConexion {
     );
   }
 
-  static String _texto(bool conectado) => conectado ? t('lbl_conectado_pc') : t('lbl_desconectado_pc');
+  static String _texto(bool conectado) => !conectado
+      ? t('lbl_desconectado_pc')
+      : (RutasServidor.enNube.value ? t('lbl_conectado_nube') : t('lbl_conectado_pc'));
 
   /// Arranca el servicio (o actualiza su texto si ya estaba en marcha).
   static Future<void> iniciar({required bool conectado}) async {

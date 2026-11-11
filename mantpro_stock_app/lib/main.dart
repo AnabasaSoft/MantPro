@@ -33,6 +33,7 @@ import 'actualizador.dart';
 import 'servicio_conexion.dart';
 import 'conexion_segura.dart';
 import 'api.dart';
+import 'rutas_servidor.dart';
 import 'sincronizador.dart';
 import 'pantallas/pantalla_almacen.dart';
 import 'pantallas/pantalla_buscar.dart';
@@ -242,6 +243,9 @@ void main() async {
   await iniciarConexionSegura();
   final ipGuardada = (await SharedPreferences.getInstance()).getString('pc_ip_url');
   if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
+  // Rutas del PC y de la nube: se recuerda la activa y se vuelve a decidir sin esperar (la app es offline).
+  await RutasServidor.cargar();
+  unawaited(RutasServidor.resolver(forzar: true));
 
   tz.initializeTimeZones();
   try {
@@ -603,9 +607,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     ServicioConexion.iniciar(conectado: ConexionPC.estado.value == true);
     ServicioConexion.escucharCerrar(avisarDesconexionPC);
     ConexionPC.estado.addListener(_alCambiarConexion);
+    RutasServidor.enNube.addListener(_alCambiarRuta);
   }
 
   void _alCambiarConexion() => ServicioConexion.actualizar(ConexionPC.estado.value == true);
+
+  /// Cambio de ruta (PC <-> nube): se olvida lo recordado de la ruta anterior y se actualiza la notificación.
+  void _alCambiarRuta() {
+    ConexionPC.olvidarEstado();
+    ServicioConexion.actualizar(ConexionPC.estado.value == true);
+  }
 
   /// Mientras la app está abierta: cada 25 s reintenta enviar lo pendiente y
   /// refresca los roles del usuario (para detectar sin reconectar cambios
@@ -649,6 +660,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // Al cerrar sesión desaparece esta pantalla: sin sesión no hay nada que
     // mantener vivo en segundo plano.
     ConexionPC.estado.removeListener(_alCambiarConexion);
+    RutasServidor.enNube.removeListener(_alCambiarRuta);
     ServicioConexion.dejarDeEscuchar();
     ServicioConexion.detener();
     super.dispose();
@@ -769,7 +781,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 PopupMenuItem<String>(
                   enabled: false,
                   child: Text(ConexionPC.estado.value == true
-                      ? tt('lbl_conectado_pc', '🟢 Conectado al PC')
+                      ? (RutasServidor.enNube.value
+                          ? tt('lbl_conectado_nube', '🟢 Conectado a la nube')
+                          : tt('lbl_conectado_pc', '🟢 Conectado al PC'))
                       : tt('lbl_desconectado_pc', '🔴 Sin conexión con el PC')),
                 ),
                 PopupMenuItem<String>(

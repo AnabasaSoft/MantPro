@@ -19,6 +19,7 @@
 // GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
 import 'conexion_segura.dart';
+import 'rutas_servidor.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -78,6 +79,14 @@ class ConexionPC {
     _accesible = false;
     _comprobadoEn = DateTime.now();
     estado.value = false;
+    // Con ruta de nube, se vuelve a decidir entre el PC y la nube (sin ella no hace nada).
+    unawaited(RutasServidor.alFallar());
+  }
+
+  /// Olvida lo recordado (p. ej. «sin conexión», válido 20 s): al cambiar de ruta hay que volver a probar.
+  static void olvidarEstado() {
+    _accesible = null;
+    _comprobadoEn = DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   static void marcarExito() {
@@ -103,7 +112,7 @@ class ConexionPC {
   static Future<bool> _sondear(String ip) async {
     try {
       final uri = Uri.parse(ip.contains('://') ? ip : '$esquemaPC://$ip');
-      final socket = await Socket.connect(uri.host, uri.hasPort ? uri.port : 80,
+      final socket = await Socket.connect(uri.host, uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80),
           timeout: const Duration(milliseconds: 1500));
       socket.destroy();
       marcarExito();
@@ -264,6 +273,9 @@ class AuthService {
 
   static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
     try {
+      // Con ruta de nube: el PC si responde y, si no, la nube (sin ella no cambia nada).
+      await RutasServidor.resolver();
+      ip = (await SharedPreferences.getInstance()).getString(RutasServidor.claveActiva) ?? ip;
       final res = await http.post(
         Uri.parse('$esquemaPC://$ip/api/login'),
         headers: {'Content-Type': 'application/json'},
@@ -292,6 +304,7 @@ class AuthService {
         await prefs.setString('auth_rol', rol ?? 'tecnico');
         await prefs.setStringList('auth_roles', roles);
         await _guardarAdjudicado(prefs, datos['movil_adjudicado']);
+        await RutasServidor.marcarInicioSesion();
         sesionNotifier.value = true;
         return null;
       }
@@ -303,9 +316,19 @@ class AuthService {
         return tt('login_movil_adjudicado', 'Este móvil está adjudicado a {nombre}.')
             .replaceAll('{nombre}', '${datos['tecnico'] ?? ''}');
       }
+      if (datos['error'] == 'limite_moviles') {
+        return tt('login_limite_moviles', 'Se ha alcanzado el máximo de móviles del plan de MantPro Cloud.');
+      }
+      if (res.statusCode == 402 || res.statusCode >= 500) {
+        return tt('login_nube_no_disponible', 'MantPro Cloud no está disponible ahora. Conéctate a la WiFi del PC.');
+      }
       if (datos['error'] == 'credenciales') return tt('login_error', 'Usuario o contraseña incorrectos.');
       return datos['message'] ?? tt('login_error', 'Usuario o contraseña incorrectos.');
     } catch (e) {
+      if (await RutasServidor.hayNube()) {
+        return tt('login_sin_conexion_nube',
+            'No se pudo conectar con el PC ni con MantPro Cloud. Comprueba la WiFi o la conexión a internet.');
+      }
       return tt('login_sin_conexion',
           'No se pudo conectar con el PC. Comprueba la WiFi y que MantPro esté abierto.');
     }
@@ -364,7 +387,11 @@ class AuthService {
 
 /// Si el PC responde 401, el token ya no vale: cerramos sesión y volvemos al login.
 Future<void> comprobar401(int codigo) async {
+  // Licencia de la nube caducada o suspendida, servidor caído...: se vuelve a decidir entre el PC y la nube.
+  if (RutasServidor.esFalloDeRuta(codigo)) unawaited(RutasServidor.alFallar());
   if (codigo == 401) {
+    // La nube recibe las sesiones del PC con retraso: un 401 de la nube justo después de entrar no es real.
+    if (await RutasServidor.sesionEnGracia()) return;
     await AuthService.cerrarSesion();
   }
 }
@@ -381,6 +408,7 @@ Future<http.Response> httpGetAuth(Uri url) async {
 /// y actualiza al momento el icono de usuario verde/rojo. No sincroniza datos.
 Future<void> latidoPC() async {
   if (!AuthService.autenticado) return;
+  await RutasServidor.tictac();         // con la nube activa, vuelve a probar el PC cada minuto
   final ip = (await SharedPreferences.getInstance()).getString('pc_ip_url');
   if (ip == null) return;
   try {

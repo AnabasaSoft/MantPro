@@ -41,6 +41,7 @@ import 'i18n/strings.dart';
 import 'actualizador.dart';
 import 'servicio_conexion.dart';
 import 'conexion_segura.dart';
+import 'rutas_servidor.dart';
 import 'checklists.dart';
 import 'contadores.dart';
 
@@ -205,6 +206,9 @@ class AuthService {
 
   static Future<String?> iniciarSesion(String ip, String usuario, String password) async {
     try {
+      // Con ruta de nube: el PC si responde y, si no, la nube (sin ella no cambia nada).
+      await RutasServidor.resolver();
+      ip = (await SharedPreferences.getInstance()).getString(RutasServidor.claveActiva) ?? ip;
       final res = await http.post(
         Uri.parse('$esquemaPC://$ip/api/login'),
         headers: {'Content-Type': 'application/json'},
@@ -233,6 +237,7 @@ class AuthService {
         await prefs.setString('auth_rol', rol ?? 'tecnico');
         await prefs.setStringList('auth_roles', roles);
         await _guardarAdjudicado(prefs, datos['movil_adjudicado']);
+        await RutasServidor.marcarInicioSesion();
         sesionNotifier.value = true;
         return null;
       }
@@ -244,9 +249,19 @@ class AuthService {
         return tt('login_movil_adjudicado', 'Este móvil está adjudicado a {nombre}.')
             .replaceAll('{nombre}', '${datos['tecnico'] ?? ''}');
       }
+      if (datos['error'] == 'limite_moviles') {
+        return tt('login_limite_moviles', 'Se ha alcanzado el máximo de móviles del plan de MantPro Cloud.');
+      }
+      if (res.statusCode == 402 || res.statusCode >= 500) {
+        return tt('login_nube_no_disponible', 'MantPro Cloud no está disponible ahora. Conéctate a la WiFi del PC.');
+      }
       if (datos['error'] == 'credenciales') return tt('login_error', 'Usuario o contraseña incorrectos.');
       return datos['message'] ?? tt('login_error', 'Usuario o contraseña incorrectos.');
     } catch (e) {
+      if (await RutasServidor.hayNube()) {
+        return tt('login_sin_conexion_nube',
+            'No se pudo conectar con el PC ni con MantPro Cloud. Comprueba la WiFi o la conexión a internet.');
+      }
       return tt('login_sin_conexion',
           'No se pudo conectar con el PC. Comprueba la WiFi y que MantPro esté abierto.');
     }
@@ -288,7 +303,11 @@ Future<void> sincronizarLecturas(String ip) async {
 
 /// Si el PC responde 401, el token ya no vale: cerramos sesión y volvemos al login.
 Future<void> comprobar401(int codigo) async {
+  // Licencia de la nube caducada o suspendida, servidor caído...: se vuelve a decidir entre el PC y la nube.
+  if (RutasServidor.esFalloDeRuta(codigo)) unawaited(RutasServidor.alFallar());
   if (codigo == 401) {
+    // La nube recibe las sesiones del PC con retraso: un 401 de la nube justo después de entrar no es real.
+    if (await RutasServidor.sesionEnGracia()) return;
     await AuthService.cerrarSesion();
   }
 }
@@ -820,6 +839,9 @@ void main() async {
   await iniciarConexionSegura();
   final ipGuardada = (await SharedPreferences.getInstance()).getString('pc_ip_url');
   if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
+  // Rutas del PC y de la nube: se recuerda la activa y se vuelve a decidir sin esperar (la app es offline).
+  await RutasServidor.cargar();
+  unawaited(RutasServidor.resolver(forzar: true));
 
   tz.initializeTimeZones();
   try {
@@ -1400,7 +1422,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     datosSincronizadosNotifier.value++;
   }
 
+  /// Ruta (PC o nube) en la última comprobación: si cambia, se actualiza el texto de la notificación.
+  bool _ultimaEnNube = false;
+
   Future<void> _comprobarConexionYSincronizar() async {
+    await RutasServidor.tictac();         // con la nube activa, vuelve a probar el PC cada minuto
     final prefs = await SharedPreferences.getInstance();
     final ip = prefs.getString('pc_ip_url');
     if (ip == null || !AuthService.autenticado) return;
@@ -1409,6 +1435,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/dashboard")).timeout(const Duration(seconds: 4));
       ok = res.statusCode == 200;
     } catch (_) { ok = false; }
+    if (!ok) unawaited(RutasServidor.alFallar());      // las siguientes comprobaciones usan la otra ruta
     if (ok && !_conectadoPC) {
       // Acabamos de recuperar la conexión: sincronizamos todo lo pendiente y
       // refrescamos todas las pestañas (la visible al momento y las demás en
@@ -1416,7 +1443,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       try { await SincronizadorGlobal.sincronizarTodo(ip); } catch (_) {}
       datosSincronizadosNotifier.value++;
     }
-    if (ok != _conectadoPC) ServicioConexion.actualizar(ok);
+    if (ok != _conectadoPC || RutasServidor.enNube.value != _ultimaEnNube) ServicioConexion.actualizar(ok);
+    _ultimaEnNube = RutasServidor.enNube.value;
     _conectadoPC = ok;
   }
 
@@ -1710,7 +1738,7 @@ class _TabDashboardState extends State<TabDashboard> {
             Text(t("lbl_pc_no_vinculado")), TextButton(onPressed: _abrirQR, child: Text(t("btn_vincular_ahora")))
           ]));
         }
-        String txt = _cargando ? "..." : (_urlPC == null ? "Sin IP" : (_conexionActiva ? "Online" : "Reconectar"));
+        String txt = _cargando ? "..." : (_urlPC == null ? "Sin IP" : (_conexionActiva ? (RutasServidor.enNube.value ? "Online ☁" : "Online") : "Reconectar"));
         Color col = _cargando ? Colors.orange : (_urlPC == null ? Colors.grey : (_conexionActiva ? Colors.green : Colors.red));
         return RefreshIndicator(
           onRefresh: _cargarStatsOnline,

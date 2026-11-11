@@ -39,6 +39,9 @@ const Map<String, String> traduccionesEu = {
     "login_movil_adjudicado": "Mugikor hau {nombre}(r)i esleituta dago.",
     "login_movil_de": "Mugikorra esleituta: {nombre}",
     "login_sin_conexion": "Ezin izan da PCarekin konektatu. Egiaztatu WiFia eta MantPro irekita dagoela.",
+    "login_sin_conexion_nube": "Ezin izan da PCarekin ez MantPro Cloudekin konektatu. Egiaztatu WiFia edo interneteko konexioa.",
+    "login_nube_no_disponible": "MantPro Cloud ez dago eskuragarri orain. Konektatu PCaren WiFira.",
+    "login_limite_moviles": "MantPro Cloud planaren gehienezko mugikor kopurura iritsi da.",
     "login_sin_pc": "Lehenik lotu mugikorra PCarekin QR kodea eskaneatuz.",
     "login_pc_no_vinculado": "PCrik lotu gabe",
     "btn_vincular_pc": "Estekatu PCa",
@@ -130,6 +133,7 @@ const Map<String, String> traduccionesEu = {
     "msg_articulo_eliminado_pendiente": "💾 Mugikorrean ezabatuta. PCan berretsiko da konexioa dagoenean.",
     "lbl_pendiente_sincronizar": "PCra bidaltzeko zain",
     "lbl_conectado_pc": "🟢 PCra konektatuta",
+    "lbl_conectado_nube": "🟢 Hodeira konektatuta",
     "lbl_desconectado_pc": "🔴 PCrekin konexiorik gabe",
 
     // --- Comprobador de actualizaciones ---

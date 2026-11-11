@@ -52,7 +52,7 @@ from .pestanas.registrar import PestanaRegistrar
 from .pestanas.stock import PestanaStock
 from .servidor import PUERTO_POR_DEFECTO, ServidorSincronizacion, puerto_libre
 from .temas import Temas
-from ..nucleo import sincro_nube, usuarios
+from ..nucleo import nube, sincro_nube, usuarios
 from ..nucleo.basedatos import GestorBaseDatos
 from ..nucleo.rutas import DATA_DIR
 from ..version import APP_VERSION, GESTOR_PAQUETES, REPO_NAME, REPO_OWNER
@@ -302,6 +302,12 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             # por si hiciera falta volver a él.
             url = f"https://{ip}:{self.server_thread.puerto_https}/?h={huella}&p={self.server_thread.server_port}"
             visible = f"https://{ip}:{self.server_thread.puerto_https}  🔒"
+            # Con sesión de MantPro Cloud, el QR lleva también la ruta de la nube (el móvil usa el PC si
+            # responde y, si no, la nube; y vuelve al PC si la nube falla).
+            extra_nube = nube.parametros_qr()
+            if extra_nube:
+                url += extra_nube
+                visible += "  ☁"
         else:
             url = visible = f"http://{ip}:{self.server_thread.server_port}"
         self.qr_dialog = DialogoQR(url, self, texto_visible=visible)

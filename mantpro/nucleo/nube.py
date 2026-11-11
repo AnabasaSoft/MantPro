@@ -36,6 +36,7 @@ Los errores se devuelven como CÓDIGOS (segundo valor de la tupla), nunca como
 texto: la interfaz los traduce a cada idioma."""
 
 import json
+import re
 import os
 import socket
 from datetime import date, datetime, timedelta, timezone
@@ -65,6 +66,22 @@ def url_base():
     """Dirección de la API. Solo se cambia con MANTPRO_CLOUD_URL (pruebas o
     servidor propio); debe ser HTTPS, salvo en esta misma máquina."""
     return (os.environ.get("MANTPRO_CLOUD_URL") or URL_POR_DEFECTO).rstrip("/")
+
+
+def parametros_qr(carpeta=None):
+    """Lo que el QR de vinculación de los móviles añade cuando este PC tiene sesión de MantPro Cloud:
+    «&n=dominio&e=uuid-de-la-empresa». Con eso la app puede sincronizar directamente con la nube (en
+    `https://dominio/m/uuid`) cuando el PC no responde. Sin sesión, con la licencia suspendida o sin
+    dirección HTTPS devuelve "" y el QR queda como siempre (solo el PC). Las apps antiguas ignoran
+    estos parámetros."""
+    ses = sesion(carpeta) or {}
+    empresa = str((ses.get("empresa") or {}).get("uuid") or "")
+    if not re.fullmatch(r"[0-9a-f]{32}", empresa) or (ses.get("licencia") or {}).get("estado") == "suspendida":
+        return ""
+    p = urlparse(url_base())
+    if p.scheme != "https" or not p.netloc or not re.fullmatch(r"[A-Za-z0-9.:-]+", p.netloc):
+        return ""
+    return f"&n={p.netloc}&e={empresa}"
 
 
 def _url_valida(url):
