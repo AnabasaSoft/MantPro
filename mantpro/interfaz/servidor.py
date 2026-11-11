@@ -28,7 +28,10 @@ import logging
 import threading
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, g
-from PyQt6.QtCore import pyqtSignal, QThread
+try:
+    from PyQt6.QtCore import pyqtSignal, QThread
+except ImportError:      # servidor de MantPro Cloud: sin escritorio ni Qt, solo se usa `app`
+    from ..nucleo.sin_qt import pyqtSignal, QThread
 
 from .. import idiomas
 from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
