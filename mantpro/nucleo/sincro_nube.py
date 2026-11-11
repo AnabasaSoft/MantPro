@@ -58,7 +58,7 @@ import os
 import threading
 import uuid as _uuid
 
-from . import conexion_bd, nube, sincro_bajada, sincronizacion
+from . import conexion_bd, nube, sincro_bajada, sincro_fotos, sincronizacion
 from .seguridad import escribir_atomico
 
 BASES = ("mant", "alma")
@@ -512,6 +512,7 @@ def sincronizar_ahora(carpeta=None, enviar=None, bajar=None, copia=None, adoptar
     [enviar], [bajar] y [copia] solo los usan las pruebas; con [enviar] y sin [bajar] no se baja nada."""
     if not _cerrojo.acquire(blocking=False):
         return None, OCUPADO
+    por_la_red = bajar is None and enviar is None        # las pruebas inyectan [enviar] o [bajar]: sin hilos de fotos
     try:
         ses = nube.sesion(carpeta)
         tk = nube.token(carpeta)
@@ -557,6 +558,8 @@ def sincronizar_ahora(carpeta=None, enviar=None, bajar=None, copia=None, adoptar
                     e["ultima_subida"] = nube._ahora_iso()
                     e["omitidos"] = int(e.get("omitidos", 0)) + subido["omitidos"]
                 _guardar_estado(e, carpeta)
+                if por_la_red and not e.get("inicial_pendiente") and sincro_fotos.hace_falta(resumen, carpeta):
+                    sincro_fotos.lanzar_en_segundo_plano(carpeta)     # las fotos van aparte: no retrasan los datos
                 return resumen, None
         except (conexion_bd.SinSQLCipher, conexion_bd.ClaveNoDisponible):
             return None, BD_NO_DISPONIBLE
@@ -614,6 +617,7 @@ def resumen_estado(carpeta=None):
            "pendientes": None, "omitidos": int((e or {}).get("omitidos", 0)),
            "ultima_bajada": (e or {}).get("ultima_bajada"), "restaurada": bool((e or {}).get("restaurada")),
            "adoptando": bool((e or {}).get("inicial_pendiente"))}
+    res["fotos"] = sincro_fotos.resumen_estado(carpeta)
     if e is None:
         return res
     try:

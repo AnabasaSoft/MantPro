@@ -284,9 +284,20 @@ class DialogoNube(QDialog):
         if estado.get("activa") and pendientes is not None:
             form.addRow(tt("nube_sin_subir", "Sin subir") + ":", self._etiqueta(
                 tt("nube_al_dia", "Todo al día") if pendientes == 0 else str(pendientes)))
+        fotos = estado.get("fotos") or {}
+        if estado.get("activa"):
+            n = fotos.get("pendientes")
+            form.addRow(tt("nube_fotos_sin_subir", "Fotos sin subir") + ":", self._etiqueta(
+                tt("nube_nunca", "Todavía no") if n is None else (tt("nube_al_dia", "Todo al día") if n == 0 else str(n))))
         l.addLayout(form)
+        if estado.get("activa") and fotos.get("motivo") in ("almacenamiento_lleno", "licencia_caducada"):
+            # Las fotos nuevas no se pueden subir (plan lleno o licencia caducada); las que faltan aquí sí se descargan
+            aviso_f = self._etiqueta(texto_error(fotos["motivo"]))
+            aviso_f.setStyleSheet("color: #b26a00;")
+            l.addWidget(aviso_f)
         l.addWidget(self._etiqueta(tt("lbl_nube_fotos_aparte",
-            "Se sincronizan los datos; las fotos todavía no. MantPro sube y recibe lo nuevo solo cada 10 minutos mientras está abierto.")))
+            "MantPro sube lo que cambies casi al momento y mira cada minuto si hay algo nuevo mientras está abierto. "
+            "Las fotos se sincronizan aparte, en segundo plano.")))
         if estado.get("restaurada"):
             aviso_r = self._etiqueta(tt("lbl_nube_restaurada",
                 "Sincronización parada: se ha restaurado una copia de seguridad. Recupera los datos de la nube para continuar."))

@@ -38,7 +38,7 @@ from ..dialogos.copias import DialogoCopiasAutomaticas, textos_problemas, fecha_
 from ...nucleo import usuarios, almacen
 from ...nucleo.fotos import fotos_galeria
 from ...nucleo.seguridad import anadir_bd_a_zip
-from ...nucleo import cifrado_copias, conexion_bd, copias
+from ...nucleo import cifrado_copias, conexion_bd, copias, sincro_fotos
 
 class AccionesCopias:
     """Copias de seguridad, restauración, limpieza de fotos y borrado de trabajos antiguos.
@@ -466,9 +466,16 @@ class AccionesCopias:
                 if msg.clickedButton() != btn_si: confirmado = False
             if not confirmado: return
 
+            borradas = []
             for f in basura:
-                try: os.remove(os.path.join(self.carpeta_fotos, f))
+                try:
+                    os.remove(os.path.join(self.carpeta_fotos, f))
+                    borradas.append(f)
                 except: pass
+            # Con MantPro Cloud, la nube también borra las que ningún trabajo usa (si algún otro PC o móvil aún las
+            # usa, las conserva): se le avisa en la próxima sincronización de fotos.
+            if borradas:
+                sincro_fotos.anotar_borradas(borradas)
 
             for ruta_zip, huerfanas in zips_con_huerfanas.items():
                 try:

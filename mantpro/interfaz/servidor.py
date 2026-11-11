@@ -165,6 +165,11 @@ class ServidorSincronizacion(QThread):
         # reintento por la otra ruta tras perderse la respuesta) no creen dos.
         self._cerrojo_alta_pendiente = threading.Lock()
 
+        def _raw_desc_para_bd(raw_desc, ruta_local):
+            # La columna `raw_desc` solo se escribe (nada la lee): con foto guardaba la RUTA ABSOLUTA del fichero
+            # en el equipo que la recibió, y esa ruta viaja a otros PCs por MantPro Cloud. Se guarda solo el nombre.
+            return os.path.basename(ruta_local) if ruta_local else raw_desc
+
         # --- AUTENTICACIÓN POR TOKEN ---------------------------------------
         def _token_peticion():
             cabecera = request.headers.get('Authorization', '')
@@ -356,7 +361,7 @@ class ServidorSincronizacion(QThread):
                 with get_db_connection(self.db_path) as conn:
                     cursor = conn.cursor()
                     cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, maquina_id) VALUES (?,?,?,?,?,?,?,?)',
-                                   (fecha_final, desc_final, tags, raw_desc, filename,
+                                   (fecha_final, desc_final, tags, _raw_desc_para_bd(raw_desc, ruta_local), filename,
                                     usuario['id'], usuario['nombre'], maquina_id))
                     nueva_tarea = cursor.lastrowid
                     conn.commit()
@@ -547,7 +552,7 @@ class ServidorSincronizacion(QThread):
                         return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
                     # Usamos el INSERT completo para alimentar todas las columnas
                     c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
-                              (fecha_final, desc_final, tags, raw_desc, filename,
+                              (fecha_final, desc_final, tags, _raw_desc_para_bd(raw_desc, ruta_local), filename,
                                usuario['id'], usuario['nombre']))
                     nueva_tarea = c.lastrowid
                     # Lista de comprobación rellenada en el móvil (JSON)
