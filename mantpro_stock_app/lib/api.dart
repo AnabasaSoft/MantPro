@@ -390,8 +390,11 @@ Future<void> comprobar401(int codigo) async {
   // Licencia de la nube caducada o suspendida, servidor caído...: se vuelve a decidir entre el PC y la nube.
   if (RutasServidor.esFalloDeRuta(codigo)) unawaited(RutasServidor.alFallar());
   if (codigo == 401) {
-    // La nube recibe las sesiones del PC con retraso: un 401 de la nube justo después de entrar no es real.
-    if (await RutasServidor.sesionEnGracia()) return;
+    // El PC y la nube se pasan las sesiones con retraso: un 401 de la otra ruta justo después de entrar no es real.
+    if (await RutasServidor.sesionEnGracia()) {
+      unawaited(RutasServidor.alFallar());       // esa ruta aún no me conoce: se usa la otra
+      return;
+    }
     await AuthService.cerrarSesion();
   }
 }

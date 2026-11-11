@@ -125,6 +125,8 @@ class RutasServidor {
     _ultimoSondeoPc = null;
     _ultimoFallo = null;
     _noAntesDe = null;
+    await p.remove(_claveInicioSesion);           // sesión nueva: se olvida dónde se entró antes
+    await p.remove(_claveInicioEnNube);
   }
 
   /// La ruta del PC: lo que haya en la ruta activa si no es la de la nube (otras partes de la app
@@ -148,7 +150,8 @@ class RutasServidor {
     if (nube == null) return;                     // sin ruta de nube no hay nada que decidir
     if (!forzar && _noAntesDe != null && ahora().isBefore(_noAntesDe!)) return;
     final pc = _rutaPc(p);
-    if (pc != null) {
+    // Entré en la nube hace poco: el PC aún no conoce mi sesión (le llega en su siguiente sincronización).
+    if (pc != null && !await _pcNoConoceLaSesion(p)) {
       _ultimoSondeoPc = ahora();
       if (await sonda(esquemaPC, pc, esperaSondaPc)) {
         await _fijar(p, pc, nube, false);
@@ -200,14 +203,22 @@ class RutasServidor {
     await p.setBool(_claveInicioEnNube, enNube.value);
   }
 
-  /// true si un 401 NO debe cerrar la sesión: se está en la nube, se entró con el PC hace menos de 15
-  /// minutos y es posible que la nube aún no conozca la sesión. Pasado ese tiempo, o si se entró en la
-  /// propia nube, un 401 es real (p. ej. un técnico dado de baja).
-  static Future<bool> sesionEnGracia() async {
-    if (!enNube.value) return false;
-    final p = await SharedPreferences.getInstance();
-    if (p.getBool(_claveInicioEnNube) ?? false) return false;
+  /// Cuándo se entró y con qué ruta, si fue hace menos de 15 minutos; si no, null.
+  static (DateTime, bool)? _inicioReciente(SharedPreferences p) {
     final inicio = DateTime.tryParse(p.getString(_claveInicioSesion) ?? '');
-    return inicio != null && ahora().difference(inicio) < graciaSesion;
+    if (inicio == null || ahora().difference(inicio) >= graciaSesion) return null;
+    return (inicio, p.getBool(_claveInicioEnNube) ?? false);
+  }
+
+  static Future<bool> _pcNoConoceLaSesion(SharedPreferences p) async => _inicioReciente(p)?.$2 ?? false;
+
+  /// true si un 401 NO debe cerrar la sesión: se entró hace menos de 15 minutos por una ruta y ahora se
+  /// está en la OTRA, que puede no conocer todavía la sesión (el PC y la nube se pasan las sesiones al
+  /// sincronizar, con hasta 10 minutos de retraso). Pasado ese tiempo, o en la misma ruta en la que se
+  /// entró, un 401 es real (p. ej. un técnico dado de baja).
+  static Future<bool> sesionEnGracia() async {
+    final p = await SharedPreferences.getInstance();
+    final reciente = _inicioReciente(p);
+    return reciente != null && enNube.value != reciente.$2;
   }
 }

@@ -301,13 +301,20 @@ Future<void> sincronizarLecturas(String ip) async {
   });
 }
 
+/// Estado de la conexión con el servidor (PC o nube) para el icono y el menú del usuario: null mientras
+/// no se ha comprobado aún.
+final ValueNotifier<bool?> conexionNotifier = ValueNotifier(null);
+
 /// Si el PC responde 401, el token ya no vale: cerramos sesión y volvemos al login.
 Future<void> comprobar401(int codigo) async {
   // Licencia de la nube caducada o suspendida, servidor caído...: se vuelve a decidir entre el PC y la nube.
   if (RutasServidor.esFalloDeRuta(codigo)) unawaited(RutasServidor.alFallar());
   if (codigo == 401) {
-    // La nube recibe las sesiones del PC con retraso: un 401 de la nube justo después de entrar no es real.
-    if (await RutasServidor.sesionEnGracia()) return;
+    // El PC y la nube se pasan las sesiones con retraso: un 401 de la otra ruta justo después de entrar no es real.
+    if (await RutasServidor.sesionEnGracia()) {
+      unawaited(RutasServidor.alFallar());       // esa ruta aún no me conoce: se usa la otra
+      return;
+    }
     await AuthService.cerrarSesion();
   }
 }
@@ -1415,6 +1422,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     try {
       await SincronizadorGlobal.sincronizarTodo(ip);
       _conectadoPC = true;
+      conexionNotifier.value = true;
     } catch (_) {
       // Sin conexión con el PC: no molestamos, las pestañas usan su caché.
     }
@@ -1446,6 +1454,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (ok != _conectadoPC || RutasServidor.enNube.value != _ultimaEnNube) ServicioConexion.actualizar(ok);
     _ultimaEnNube = RutasServidor.enNube.value;
     _conectadoPC = ok;
+    conexionNotifier.value = ok;
   }
 
   Future<void> _cerrarSesion() async {
@@ -1513,7 +1522,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.account_circle),
+                // Verde con conexión (al PC o a la nube), rojo sin ella (también mientras no se ha comprobado).
+                icon: ListenableBuilder(
+                  listenable: Listenable.merge([conexionNotifier, RutasServidor.enNube]),
+                  builder: (_, __) => Icon(Icons.account_circle,
+                      color: conexionNotifier.value == true ? Colors.green : Colors.red),
+                ),
                 tooltip: AuthService.nombre ?? '',
                 onSelected: (v) { if (v == 'salir') _cerrarSesion(); },
                 itemBuilder: (_) => [
@@ -1521,6 +1535,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     enabled: false,
                     child: Text('👤 ${AuthService.nombre ?? ''}',
                         style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: Text(conexionNotifier.value == true
+                        ? (RutasServidor.enNube.value
+                            ? tt('lbl_conectado_nube', '🟢 Conectado a la nube')
+                            : tt('lbl_conectado_pc', '🟢 Conectado al PC'))
+                        : tt('lbl_desconectado_pc', '🔴 Sin conexión con el PC')),
                   ),
                   PopupMenuItem<String>(
                     value: 'salir',

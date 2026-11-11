@@ -20,6 +20,8 @@
 
 /// Pruebas de las rutas del móvil (PC y nube): elección, respaldo, vuelta al PC, regla del 401 y QR.
 /// Este fichero es igual en mantenimiento_app y mantpro_stock_app (solo cambia el paquete importado).
+library;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mantpro_stock_app/conexion_segura.dart';
@@ -167,10 +169,35 @@ void main() {
       expect(await RutasServidor.sesionEnGracia(), false, reason: 'pasado el cuarto de hora un 401 es real');
     });
 
-    test('si se entró en la propia nube, un 401 es real desde el primer momento', () async {
+    test('si se entró en la propia nube y se sigue en ella, un 401 es real desde el primer momento', () async {
       responde[pc] = false;
       await RutasServidor.resolver();
       await RutasServidor.marcarInicioSesion();       // entra con la nube
+      expect(await RutasServidor.sesionEnGracia(), false);
+    });
+
+    test('entrando en la nube y volviendo al PC: el PC aún no conoce la sesión, así que no se cierra', () async {
+      responde[pc] = false;
+      await RutasServidor.resolver();                 // nube
+      await RutasServidor.marcarInicioSesion();       // entra con la nube
+      responde[pc] = true;
+      reloj = reloj.add(const Duration(seconds: 61));
+      await RutasServidor.tictac();                   // sin gracia volvería al PC
+      expect(await activa(), nube, reason: 'durante el cuarto de hora no se vuelve al PC (no conoce el token)');
+      reloj = reloj.add(const Duration(minutes: 16));
+      await RutasServidor.tictac();
+      expect(await activa(), pc, reason: 'pasado el cuarto de hora, el PC ya conoce la sesión');
+    });
+
+    test('un 401 del PC con la sesión empezada en la nube hace menos de 15 min está en gracia; después, no', () async {
+      responde[pc] = false;
+      await RutasServidor.resolver();
+      await RutasServidor.marcarInicioSesion();       // entra con la nube
+      final p = await SharedPreferences.getInstance();
+      await p.setString('pc_ip_url', pc);              // la app está usando el PC
+      RutasServidor.enNube.value = false;
+      expect(await RutasServidor.sesionEnGracia(), true);
+      reloj = reloj.add(const Duration(minutes: 16));
       expect(await RutasServidor.sesionEnGracia(), false);
     });
   });
@@ -182,6 +209,7 @@ void main() {
       final p = await SharedPreferences.getInstance();
       expect(p.getString('ruta_nube'), nube);
       expect(p.getString('pc_ip_url'), pc);
+      expect(p.getString('ruta_inicio_sesion'), null, reason: 'una vinculación nueva olvida dónde se entró antes');
       expect(RutasServidor.enNube.value, false);
       expect(await RutasServidor.hayNube(), true);
     });
