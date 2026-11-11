@@ -1421,7 +1421,7 @@
   "nube_nunca": "Pas encore",
   "nube_sin_subir": "Non envoyés",
   "nube_al_dia": "Tout est à jour",
-  "lbl_nube_fotos_aparte": "Les données sont synchronisées ; les photos pas encore. MantPro envoie et reçoit les nouveautés tout seul toutes les 10 minutes tant qu'il est ouvert.",
+  "lbl_nube_fotos_aparte": "Les données sont synchronisées ; les photos pas encore. MantPro envoie ce que vous modifiez presque immédiatement et vérifie chaque minute s'il y a du nouveau tant qu'il est ouvert.",
   "lbl_nube_omitidos": "Attention : {n} enregistrements étaient trop volumineux et n'ont pas pu être envoyés.",
   "btn_nube_sincronizar": "Synchroniser maintenant",
   "lbl_nube_sincronizando": "Synchronisation…",

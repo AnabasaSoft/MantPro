@@ -1421,7 +1421,7 @@
   "nube_nunca": "Todavía no",
   "nube_sin_subir": "Sin subir",
   "nube_al_dia": "Todo al día",
-  "lbl_nube_fotos_aparte": "Se sincronizan los datos; las fotos todavía no. MantPro sube y recibe lo nuevo solo cada 10 minutos mientras está abierto.",
+  "lbl_nube_fotos_aparte": "Se sincronizan los datos; las fotos todavía no. MantPro sube lo que cambies casi al momento y mira cada minuto si hay algo nuevo mientras está abierto.",
   "lbl_nube_omitidos": "Atención: {n} registros eran demasiado grandes y no se han podido subir.",
   "btn_nube_sincronizar": "Sincronizar ahora",
   "lbl_nube_sincronizando": "Sincronizando…",

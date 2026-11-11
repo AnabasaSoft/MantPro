@@ -586,6 +586,26 @@ def lanzar_en_segundo_plano(carpeta=None, al_terminar=None):
     return hilo
 
 
+def hay_cambios_sin_subir(carpeta=None):
+    """True si este PC sincroniza con la nube y tiene algún cambio sin subir. Es una lectura mínima (dos
+    consultas con un máximo de 1 s de espera) pensada para mirarla cada pocos segundos desde la ventana:
+    nunca lanza y, si no puede mirar (bases ocupadas, sin sincronización activa...), dice False."""
+    e = estado(carpeta)
+    if e is None or e.get("restaurada") or e.get("inicial_pendiente"):
+        return False
+    for ruta in rutas_bd(carpeta).values():
+        try:
+            con = conexion_bd.conectar(ruta, timeout=1)
+            try:
+                if con.execute("SELECT 1 FROM cambios WHERE subido = 0 LIMIT 1").fetchone():
+                    return True
+            finally:
+                con.close()
+        except Exception:      # noqa: BLE001  (no poder mirar no debe romper la ventana)
+            continue
+    return False
+
+
 def resumen_estado(carpeta=None):
     """Para mostrarlo en el diálogo: {"activa", "ultima_subida", "pendientes", "omitidos"}.
     «pendientes» es None si todavía no se puede contar."""

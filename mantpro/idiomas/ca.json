@@ -1421,7 +1421,7 @@
   "nube_nunca": "Encara no",
   "nube_sin_subir": "Sense pujar",
   "nube_al_dia": "Tot al dia",
-  "lbl_nube_fotos_aparte": "Es sincronitzen les dades; les fotos encara no. MantPro puja i rep el que és nou tot sol cada 10 minuts mentre està obert.",
+  "lbl_nube_fotos_aparte": "Es sincronitzen les dades; les fotos encara no. MantPro puja el que canvies gairebé a l'instant i mira cada minut si hi ha alguna cosa nova mentre està obert.",
   "lbl_nube_omitidos": "Atenció: {n} registres eren massa grans i no s'han pogut pujar.",
   "btn_nube_sincronizar": "Sincronitza ara",
   "lbl_nube_sincronizando": "Sincronitzant…",

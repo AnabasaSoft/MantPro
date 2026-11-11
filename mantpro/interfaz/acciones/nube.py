@@ -20,14 +20,19 @@
 
 """Sincronización automática con MantPro Cloud: subir y bajar los cambios cada pocos minutos."""
 
+import time
+
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QMessageBox
 
 from ..comun import tt
 from ...nucleo import nube, sincro_nube
 
-MINUTOS_SINCRONIZACION_NUBE = 10      # cada cuánto sube lo nuevo mientras MantPro está abierto
-SEGUNDOS_PRIMERA_SINCRONIZACION = 60  # tras abrir MantPro (da tiempo a que cargue todo)
+SEGUNDOS_SINCRONIZACION_NUBE = 60     # cada cuánto sube y BAJA lo nuevo mientras MantPro está abierto (lo que hagan los móviles en la nube)
+SEGUNDOS_VIGILAR_CAMBIOS = 5          # cada cuánto mira si hay cambios sin subir (y los sube al momento)
+SEGUNDOS_ESPERA_TRAS_ERROR = 60       # si la última subida falló (sin internet, licencia...), no insiste antes de esto
+SEGUNDOS_ESPERA_AL_CERRAR = 8         # lo que espera al cerrar MantPro para dejar subido lo último
+SEGUNDOS_PRIMERA_SINCRONIZACION = 15  # tras abrir MantPro (da tiempo a que cargue todo; poco, para que lo hecho por los móviles en la nube llegue pronto)
 SEGUNDOS_REVISAR_RESULTADO = 3        # cada cuánto mira la ventana si ha terminado la sincronización de fondo
 
 
@@ -50,14 +55,48 @@ class AccionesNube:
         self.temporizador_resultado_nube.start(SEGUNDOS_REVISAR_RESULTADO * 1000)
         self.temporizador_nube = QTimer(self)
         self.temporizador_nube.timeout.connect(self._tic_nube)
-        self.temporizador_nube.start(MINUTOS_SINCRONIZACION_NUBE * 60 * 1000)
+        self.temporizador_nube.start(SEGUNDOS_SINCRONIZACION_NUBE * 1000)
         QTimer.singleShot(SEGUNDOS_PRIMERA_SINCRONIZACION * 1000, self._tic_nube)
+        # Subir al momento: cada pocos segundos se mira si hay algo sin subir (una lectura mínima, sin red);
+        # solo si lo hay se sincroniza. Lo que cambian los móviles contra este PC también cuenta.
+        self._proximo_intento_nube = 0.0
+        self.temporizador_cambios_nube = QTimer(self)
+        self.temporizador_cambios_nube.timeout.connect(self._vigilar_cambios_nube)
+        self.temporizador_cambios_nube.start(SEGUNDOS_VIGILAR_CAMBIOS * 1000)
 
     def parar_sincronizacion_nube(self):
-        for nombre in ("temporizador_nube", "temporizador_resultado_nube"):
+        for nombre in ("temporizador_nube", "temporizador_cambios_nube", "temporizador_resultado_nube"):
             temporizador = getattr(self, nombre, None)
             if temporizador is not None:
                 temporizador.stop()
+        self._sincronizar_al_cerrar()
+
+    def _sincronizar_al_cerrar(self):
+        """Al cerrar MantPro deja subido lo último (un cambio de hace unos segundos no debe quedarse solo en
+        este PC: otro PC o un móvil en la nube no lo verían). Espera como mucho unos segundos."""
+        try:
+            if nube.sesion() is None:
+                return
+            hilo = getattr(self, "_hilo_nube", None)
+            if hilo is None or not hilo.is_alive():
+                if not sincro_nube.hay_cambios_sin_subir():
+                    return
+                hilo = sincro_nube.lanzar_en_segundo_plano()
+            hilo.join(SEGUNDOS_ESPERA_AL_CERRAR)
+        except Exception as ex:      # noqa: BLE001  (nada de esto debe impedir cerrar)
+            print(f"Sincronización con la nube: no se pudo subir lo último al cerrar ({ex})")
+
+    def _vigilar_cambios_nube(self):
+        """Cada pocos segundos: si hay cambios sin subir y toca, sincroniza ya."""
+        if time.monotonic() < getattr(self, "_proximo_intento_nube", 0.0):
+            return
+        if nube.sesion() is None:
+            return
+        hilo = getattr(self, "_hilo_nube", None)
+        if hilo is not None and hilo.is_alive():
+            return
+        if sincro_nube.hay_cambios_sin_subir():
+            self._tic_nube()
 
     def _tic_nube(self):
         if nube.sesion() is None:
@@ -70,6 +109,8 @@ class AccionesNube:
     def _guardar_resultado_nube(self, resultado, error):
         """Lo llama el hilo de fondo: solo guarda el resultado (nada de tocar la interfaz desde aquí)."""
         self._resultado_nube = (resultado, error)
+        # Si ha fallado (sin internet, licencia caducada...) el vigilante espera un rato antes de volver a probar
+        self._proximo_intento_nube = time.monotonic() + (SEGUNDOS_ESPERA_TRAS_ERROR if error else 0.0)
 
     def _revisar_resultado_nube(self):
         """En el hilo de la ventana: recoge el resultado de la sincronización de fondo."""

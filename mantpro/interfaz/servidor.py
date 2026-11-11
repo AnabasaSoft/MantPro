@@ -160,6 +160,10 @@ class ServidorSincronizacion(QThread):
         self._conn = lambda: get_db_connection(self.db_path)
         # Para el registro de cambios: estado antes y después de cada cambio
         self._lector = LectorBD(self.db_path)
+        # Alta de pendientes desde el móvil: comprobar «¿ya lo tengo?» y crearlo va bajo este candado, para que
+        # dos envíos simultáneos del mismo pendiente (p. ej. la cola vaciada por dos sitios a la vez, o un
+        # reintento por la otra ruta tras perderse la respuesta) no creen dos.
+        self._cerrojo_alta_pendiente = threading.Lock()
 
         # --- AUTENTICACIÓN POR TOKEN ---------------------------------------
         def _token_peticion():
@@ -570,6 +574,10 @@ class ServidorSincronizacion(QThread):
         @requiere_tecnico
         def api_agregar_pendiente():
             print(">>> PETICIÓN: AGREGAR PENDIENTE")
+            with self._cerrojo_alta_pendiente:
+                return _agregar_pendiente_unico()
+
+        def _agregar_pendiente_unico():
             try:
                 titulo = request.form.get('titulo')
                 detalles = request.form.get('detalles')
@@ -577,6 +585,17 @@ class ServidorSincronizacion(QThread):
                 especialidad_id = request.form.get('especialidad_id') or None
                 if especialidad_id is not None:
                     especialidad_id = int(especialidad_id)
+                # El móvil marca cada pendiente con una referencia única «[REF:…]» en los detalles. Si este
+                # usuario ya tiene uno con la misma, es un reenvío: se responde «ok» sin crear otro.
+                ref = re.search(r"\[REF:([0-9A-Za-z_-]{1,40})\]", detalles or "")
+                if ref:
+                    conn = self._conn()
+                    repetido = conn.execute(
+                        "SELECT 1 FROM pendientes WHERE asignado_a = ? AND detalles LIKE ? ESCAPE '\\'",
+                        (g.usuario_mantpro['id'], f"%[REF:{ref.group(1)}]%")).fetchone()
+                    conn.close()
+                    if repetido:
+                        return jsonify({"status": "ok", "duplicado": True})
                 filename, ruta_foto = self._procesar_foto(request, 'foto')
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
                 if filename: detalles += f"\n[FOTO: {filename}]"

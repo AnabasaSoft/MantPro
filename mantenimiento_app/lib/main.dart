@@ -1618,13 +1618,24 @@ class _TabDashboardState extends State<TabDashboard> {
     super.initState();
     _inicializarDatos();
     datosSincronizadosNotifier.addListener(_alSincronizar);
+    conexionNotifier.addListener(_alCambiarConexion);
+    RutasServidor.enNube.addListener(_alCambiarConexion);
   }
 
   void _alSincronizar() { if (mounted) _inicializarDatos(); }
 
+  /// La etiqueta «Online»/«Reconectar» sigue a la comprobación periódica de la conexión (si no, solo se
+  /// recalculaba al recargar el dashboard y se quedaba con el último valor al perderse el servidor).
+  void _alCambiarConexion() {
+    if (!mounted || conexionNotifier.value == null || _cargando) return;
+    setState(() => _conexionActiva = conexionNotifier.value == true);
+  }
+
   @override
   void dispose() {
     datosSincronizadosNotifier.removeListener(_alSincronizar);
+    conexionNotifier.removeListener(_alCambiarConexion);
+    RutasServidor.enNube.removeListener(_alCambiarConexion);
     super.dispose();
   }
 
@@ -1700,6 +1711,10 @@ class _TabDashboardState extends State<TabDashboard> {
   Future<void> _intentarReconexion() async {
     if (_urlPC == null) { _abrirQR(); return; }
     setState(() => _cargando = true);
+    // Con ruta de nube se prueban las dos (el PC primero) antes de rendirse y pedir el QR.
+    await RutasServidor.resolver(forzar: true);
+    final ruta = (await SharedPreferences.getInstance()).getString(RutasServidor.claveActiva);
+    if (ruta != null && mounted) setState(() => _urlPC = ruta);
     try {
       final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
