@@ -86,3 +86,6 @@ conversion_bd_pendiente.json
 
 # Scripts de uso interno (verificador de idiomas, pruebas de regresión…)
 herramientas/
+
+# MantPro Cloud
+MantPro-Cloud/
