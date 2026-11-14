@@ -1448,5 +1448,6 @@
   "filtro_imagenes_videos": "Images et vidéos",
   "filtro_videos": "Vidéos",
   "msg_video_no_valido": "Impossible d'ajouter « {nombre} » : il dépasse 100 Mo ou n'est pas une vidéo valide.",
-  "msg_video_no_en_pc": "Cette vidéo n'est pas encore sur ce PC (elle arrivera lors de la synchronisation)."
+  "msg_video_no_en_pc": "Cette vidéo n'est pas encore sur ce PC (elle arrivera lors de la synchronisation).",
+  "lbl_nube_sesion_perdida": "La session de ce PC a été perdue (par exemple après avoir déplacé ou renommé le dossier de MantPro). Reconnectez-vous : vos données n'ont pas été modifiées."
 }

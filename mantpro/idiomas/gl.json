@@ -1448,5 +1448,6 @@
   "filtro_imagenes_videos": "Imaxes e vídeos",
   "filtro_videos": "Vídeos",
   "msg_video_no_valido": "Non se pode engadir «{nombre}»: pasa de 100 MB ou non é un vídeo válido.",
-  "msg_video_no_en_pc": "Este vídeo aínda non está neste PC (chegará ao sincronizar)."
+  "msg_video_no_en_pc": "Este vídeo aínda non está neste PC (chegará ao sincronizar).",
+  "lbl_nube_sesion_perdida": "A sesión deste PC perdeuse (por exemplo, ao mover ou renomear o cartafol de MantPro). Inicia sesión outra vez: os teus datos non se tocaron."
 }

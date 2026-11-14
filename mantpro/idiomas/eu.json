@@ -1448,5 +1448,6 @@
   "filtro_imagenes_videos": "Irudiak eta bideoak",
   "filtro_videos": "Bideoak",
   "msg_video_no_valido": "Ezin da «{nombre}» gehitu: 100 MB baino handiagoa da edo ez da baliozko bideo bat.",
-  "msg_video_no_en_pc": "Bideo hau oraindik ez dago PC honetan (sinkronizatzean iritsiko da)."
+  "msg_video_no_en_pc": "Bideo hau oraindik ez dago PC honetan (sinkronizatzean iritsiko da).",
+  "lbl_nube_sesion_perdida": "PC honen saioa galdu egin da (adibidez, MantProren karpeta lekuz aldatzean edo izena aldatzean). Hasi saioa berriro: zure datuak ez dira ukitu."
 }

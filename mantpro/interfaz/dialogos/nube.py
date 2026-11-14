@@ -114,6 +114,8 @@ class DialogoNube(QDialog):
         self._sincronizando = False
         self.boton_entrar = self.boton_comprobar = self.boton_salir_sesion = self.aviso = None
         self.boton_sincronizar = self.boton_recuperar = None
+        self._temporizador_fotos = None
+        self.etiqueta_fotos = self.aviso_fotos = None
         self._layout = QVBoxLayout(self)
         self._construir()
 
@@ -138,16 +140,38 @@ class DialogoNube(QDialog):
             elif item.layout() is not None:
                 self._vaciar_layout(item.layout())
 
+    def _parar_temporizador_fotos(self):
+        """Para el refresco de la fila de fotos: sus etiquetas van a desaparecer (al reconstruir o cerrar)."""
+        temporizador = getattr(self, "_temporizador_fotos", None)
+        if temporizador is not None:
+            temporizador.stop()
+            temporizador.deleteLater()
+        self._temporizador_fotos = None
+        self._activa_fotos = False
+        self.etiqueta_fotos = self.aviso_fotos = None
+
     def _construir(self):
+        self._parar_temporizador_fotos()
         self._vaciar()
         # Los botones y el aviso de la vista anterior ya no existen
         self.boton_entrar = self.boton_comprobar = self.boton_salir_sesion = self.aviso = None
         self.boton_sincronizar = self.boton_recuperar = None
         datos = nube.sesion()
+        perdida = False
+        if datos and not nube.token():
+            # Hay datos de la sesión pero no su token (p. ej. tras mover o renombrar la carpeta de datos de
+            # MantPro: el token se guarda en el llavero con una clave que depende de esa ruta). No se puede
+            # sincronizar: se cierra del todo aquí y se pide iniciar sesión otra vez, en vez de enseñarla como activa.
+            nube.cerrar_sesion(avisar=False)
+            datos, perdida = None, True
         if datos:
             self._construir_con_sesion(datos)
         else:
             self._construir_sin_sesion()
+            if perdida:
+                self.aviso.setText(tt("lbl_nube_sesion_perdida",
+                    "La sesión de este PC se ha perdido (por ejemplo, al mover o renombrar la carpeta de MantPro). "
+                    "Inicia sesión otra vez: tus datos no se han tocado."))
 
     def _boton_web(self):
         """Botón que abre la web de MantPro Cloud en el navegador (contratar, renovar, información)."""
@@ -270,6 +294,8 @@ class DialogoNube(QDialog):
 
     def _refrescar_fotos(self):
         """Pone al día la fila de las fotos y su aviso (se llama al abrir y cada 3 segundos)."""
+        if self.etiqueta_fotos is None or self.aviso_fotos is None:
+            return                      # la vista ya no tiene la fila de fotos (se ha reconstruido)
         if not getattr(self, "_activa_fotos", False):
             self.aviso_fotos.hide()
             return
@@ -519,7 +545,5 @@ class DialogoNube(QDialog):
         # No cerrar mientras hay una petición en curso (el hilo seguiría tocando la ventana)
         if self._hilo is not None and self._hilo.isRunning():
             self._hilo.wait(nube.TIMEOUT * 1000 + 2000)
-        temporizador = getattr(self, "_temporizador_fotos", None)
-        if temporizador is not None:
-            temporizador.stop()
+        self._parar_temporizador_fotos()
         super().done(resultado)
