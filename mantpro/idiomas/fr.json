@@ -1442,5 +1442,11 @@
   "msg_nube_adoptado": "Données du cloud reçues : {n} enregistrements.\n\nFermez MantPro et rouvrez-le pour commencer avec elles (vous devrez vous reconnecter).",
   "msg_nube_stock_negativo": "Après la synchronisation, ces articles ont un stock NÉGATIF. Faites un comptage urgent :\n\n{lista}",
   "lbl_nube_aviso_bajada": "{n} enregistrements du cloud n'ont pas pu être entièrement appliqués.",
-  "nube_ultima_bajada": "Dernier téléchargement"
+  "nube_ultima_bajada": "Dernier téléchargement",
+  "lbl_video": "Vidéo",
+  "lbl_videos_coleccion": "Vidéos de la collection",
+  "filtro_imagenes_videos": "Images et vidéos",
+  "filtro_videos": "Vidéos",
+  "msg_video_no_valido": "Impossible d'ajouter « {nombre} » : il dépasse 100 Mo ou n'est pas une vidéo valide.",
+  "msg_video_no_en_pc": "Cette vidéo n'est pas encore sur ce PC (elle arrivera lors de la synchronisation)."
 }

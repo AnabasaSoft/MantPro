@@ -50,7 +50,7 @@ from urllib.parse import quote
 import requests
 
 from . import conexion_bd, nube
-from .seguridad import EXTENSIONES_FOTO, TAMANO_MAXIMO_FOTO, escribir_atomico, foto_valida
+from .seguridad import EXTENSIONES_FOTO, escribir_atomico, foto_valida, tamano_maximo
 
 ARCHIVO_ESTADO = "sync_fotos.json"
 CARPETA_FOTOS = "fotos_recibidas"
@@ -327,7 +327,7 @@ def sincronizar(carpeta=None, nube_fotos=None, progreso=None, parar=None):
             _marcar("subiendo", len(locales) - len(por_subir) + i, len(locales))     # «231 de 341»: contando las que ya estaban
             ruta = os.path.join(carpeta_fotos(carpeta), n)
             try:
-                if locales[n] > TAMANO_MAXIMO_FOTO or locales[n] == 0:
+                if locales[n] > tamano_maximo(n) or locales[n] == 0:
                     raise ValueError("foto_demasiado_grande" if locales[n] else "foto_vacia")
                 with open(ruta, "rb") as f:
                     contenido = f.read()

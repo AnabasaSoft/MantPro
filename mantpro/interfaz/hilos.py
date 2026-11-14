@@ -39,6 +39,7 @@ from .comun import tt
 from ..nucleo import usuarios
 from ..nucleo import copias
 from ..nucleo.fotos import _RE_GALERIA, fotos_galeria
+from ..nucleo.seguridad import es_video
 from ..nucleo.rutas import DATA_DIR
 from ..nucleo.seguridad import anadir_bd_a_zip
 from ..nucleo import cifrado_copias, checklists, consumos, mano_obra
@@ -244,6 +245,12 @@ class GeneradorPDFThread(QThread):
                                                      ('LEFTPADDING', (0, 0), (-1, -1), 1), ('RIGHTPADDING', (0, 0), (-1, -1), 1)]))
                         filas_coleccion.append(len(data_tabla))
                         data_tabla.append([[Paragraph(f"<b>{tt('lbl_coleccion_fotos', 'Colección de fotos')}</b> ({len(miniaturas)})", style_cell), rejilla], "", "", "", "", ""])
+                    # Los vídeos no caben en un PDF: se nombran, para que se sepa que existen.
+                    videos = [n for n in fotos_galeria(desc) if es_video(n)]
+                    if videos:
+                        filas_coleccion.append(len(data_tabla))
+                        data_tabla.append([Paragraph(f"<b>{escape(tt('lbl_videos_coleccion', 'Vídeos de la colección'))}</b> ({len(videos)}): "
+                                                     + escape(", ".join(videos)), style_cell), "", "", "", "", ""])
 
                 ancho_foto = 3.0 * cm
                 tabla_pdf = Table(data_tabla, colWidths=[2.0*cm, 4.5*cm, 2.4*cm, 2.6*cm, ancho_foto, ancho_foto])

@@ -1442,5 +1442,11 @@
   "msg_nube_adoptado": "Dades del núvol rebudes: {n} registres.\n\nTanca MantPro i torna'l a obrir per començar amb elles (hauràs d'iniciar la sessió de nou).",
   "msg_nube_stock_negativo": "Després de sincronitzar, aquests articles han quedat amb estoc NEGATIU. Fes un recompte urgent:\n\n{lista}",
   "lbl_nube_aviso_bajada": "{n} registres del núvol no s'han pogut aplicar del tot.",
-  "nube_ultima_bajada": "Última baixada"
+  "nube_ultima_bajada": "Última baixada",
+  "lbl_video": "Vídeo",
+  "lbl_videos_coleccion": "Vídeos de la col·lecció",
+  "filtro_imagenes_videos": "Imatges i vídeos",
+  "filtro_videos": "Vídeos",
+  "msg_video_no_valido": "No es pot afegir «{nombre}»: passa de 100 MB o no és un vídeo vàlid.",
+  "msg_video_no_en_pc": "Aquest vídeo encara no és en aquest PC (arribarà en sincronitzar)."
 }

@@ -268,4 +268,8 @@ const Map<String, String> traduccionesFr = {
     "msg_lectura_guardada": "Relevé enregistré sur le mobile : il sera envoyé au PC à la connexion.",
     "msg_lectura_no_valida": "Saisissez un nombre (p. ex. 1530 ou 1530,5)",
     "msg_lectura_menor": "Le relevé ({nueva}) est inférieur au dernier ({anterior}). Le compteur a-t-il été changé ou remis à zéro ?",
+    "btn_video_coleccion_camara": "Filmer une vidéo",
+    "msg_descargando_video": "Téléchargement de la vidéo…",
+    "msg_video_no_disponible": "Cette vidéo n'est pas sur le téléphone et ne peut pas être téléchargée du PC pour le moment.",
+    "msg_videos_rechazados": "{n} vidéo(s) n'ont pas été ajoutées : elles dépassent 100 Mo ou leur format n'est pas compatible.",
 };

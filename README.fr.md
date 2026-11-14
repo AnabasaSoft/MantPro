@@ -196,7 +196,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **🔐 Connexion par utilisateur** : chaque technicien se connecte une fois et la session reste enregistrée sur l'appareil (le jeton est conservé dans le Keystore d'Android, pas en clair)
 - **📝 Saisie rapide** : enregistrement des interventions sur le terrain, signées automatiquement avec votre utilisateur
 - **📷 Appareil photo intégré** : prenez des photos et annotez-les
-- **🖼️ Collection de photos** : en plus des photos avant et après, ajoutez à une intervention ou à une tâche en attente autant de photos que vous voulez (appareil photo ou galerie) ; en touchant une photo, elle s'affiche en plein écran, en passant de l'une à l'autre et en zoomant à deux doigts
+- **🖼️ Collection de photos** : en plus des photos avant et après, ajoutez à une intervention ou à une tâche en attente autant de photos que vous voulez (appareil photo ou galerie) ; en touchant une photo, elle s'affiche en plein écran, en passant de l'une à l'autre et en zoomant à deux doigts. La collection accepte aussi des **🎬 vidéos** (jusqu'à 30 s et 100 Mo ; filmées sur le moment ou choisies dans la galerie), lues dans l'application, même sans connexion, et sur le PC avec son lecteur ; les photos avant et après restent toujours des photos
 - **✏️ Éditeur d'images** : dessinez sur les photos pour marquer les zones importantes
 - **🔄 Synchronisation automatique** : envoi automatique des données au PC via QR code
 - **💾 Stockage local** : conserve les enregistrements hors ligne jusqu'à la synchronisation

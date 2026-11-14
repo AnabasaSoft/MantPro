@@ -195,7 +195,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🔐 Acceso con usuario**: cada técnico inicia sesión unha vez e a sesión queda gardada no dispositivo (o token gárdase no Keystore de Android, non en claro)
 - **📝 Rexistro rápido**: captura de intervencións sobre o terreo, asinadas automaticamente co seu usuario
 - **📷 Cámara integrada**: toma de fotos e edición con anotacións
-- **🖼️ Colección de fotos**: ademais das fotos de antes e despois, engade a un traballo ou pendente todas as fotos que queiras (cámara ou galería); ao tocar calquera foto vese a pantalla completa, pasando dunha a outra e ampliando con dous dedos
+- **🖼️ Colección de fotos**: ademais das fotos de antes e despois, engade a un traballo ou pendente todas as fotos que queiras (cámara ou galería); ao tocar calquera foto vese a pantalla completa, pasando dunha a outra e ampliando con dous dedos. A colección admite tamén **🎬 vídeos** (ata 30 s e 100 MB; gravados no momento ou escollidos da galería), que se ven dentro da app, sen conexión, e no PC co seu reprodutor; as fotos de antes e despois son sempre fotos
 - **✏️ Editor de imaxes**: debuxa sobre as fotos para marcar zonas de interese
 - **🔄 Sincronización automática**: envío automático de datos ao PC mediante código QR
 - **💾 Almacenamento local**: garda os rexistros sen conexión ata que se sincronicen

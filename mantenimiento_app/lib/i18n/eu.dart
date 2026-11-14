@@ -251,4 +251,8 @@ const Map<String, String> traduccionesEu = {
     "msg_lectura_guardada": "Irakurketa mugikorrean gordeta: PCra bidaliko da konektatzean.",
     "msg_lectura_no_valida": "Idatzi zenbaki bat (adib. 1530 edo 1530,5)",
     "msg_lectura_menor": "Irakurketa ({nueva}) azkena ({anterior}) baino txikiagoa da. Kontagailua aldatu edo zerora jarri da?",
+    "btn_video_coleccion_camara": "Bideoa grabatu",
+    "msg_descargando_video": "Bideoa deskargatzen…",
+    "msg_video_no_disponible": "Bideo hau ez dago mugikorrean, eta orain ezin da PCtik deskargatu.",
+    "msg_videos_rechazados": "{n} bideo ez dira gehitu: 100 MB baino handiagoak dira edo haien formatua ez da bateragarria.",
 };

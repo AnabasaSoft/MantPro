@@ -1442,5 +1442,11 @@
   "msg_nube_adoptado": "Dados da nuvem recebidos: {n} registos.\n\nFeche o MantPro e abra-o de novo para começar com eles (terá de iniciar sessão outra vez).",
   "msg_nube_stock_negativo": "Após sincronizar, estes artigos ficaram com stock NEGATIVO. Faça uma contagem urgente:\n\n{lista}",
   "lbl_nube_aviso_bajada": "{n} registos da nuvem não puderam ser aplicados por completo.",
-  "nube_ultima_bajada": "Última transferência"
+  "nube_ultima_bajada": "Última transferência",
+  "lbl_video": "Vídeo",
+  "lbl_videos_coleccion": "Vídeos da coleção",
+  "filtro_imagenes_videos": "Imagens e vídeos",
+  "filtro_videos": "Vídeos",
+  "msg_video_no_valido": "Não é possível adicionar «{nombre}»: ultrapassa 100 MB ou não é um vídeo válido.",
+  "msg_video_no_en_pc": "Este vídeo ainda não está neste PC (chegará ao sincronizar)."
 }

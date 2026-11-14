@@ -253,4 +253,8 @@ const Map<String, String> traduccionesEs = {
     "msg_lectura_guardada": "Lectura guardada en el móvil: se enviará al PC al conectar.",
     "msg_lectura_no_valida": "Escribe un número (p. ej. 1530 o 1530,5)",
     "msg_lectura_menor": "La lectura ({nueva}) es menor que la última ({anterior}). ¿Se ha cambiado el contador o se ha puesto a cero?",
+    "btn_video_coleccion_camara": "Grabar vídeo",
+    "msg_descargando_video": "Descargando el vídeo…",
+    "msg_video_no_disponible": "Este vídeo no está en el móvil y ahora no se puede descargar del PC.",
+    "msg_videos_rechazados": "{n} vídeo(s) no se han añadido: pasan de 100 MB o su formato no es compatible.",
 };

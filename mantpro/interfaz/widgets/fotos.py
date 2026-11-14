@@ -25,11 +25,12 @@ import shutil
 from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListWidget,
                              QMessageBox, QDialog, QAbstractItemView, QListWidgetItem, QFileDialog,
-                             QSizePolicy, QTreeView)
-from PyQt6.QtCore import Qt, pyqtSignal, QDir, QSize
-from PyQt6.QtGui import QIcon, QPixmap, QFileSystemModel
+                             QSizePolicy, QTreeView, QStyle)
+from PyQt6.QtCore import Qt, pyqtSignal, QDir, QSize, QUrl
+from PyQt6.QtGui import QIcon, QPixmap, QFileSystemModel, QDesktopServices
 
 from ...idiomas import t
+from ...nucleo.seguridad import EXTENSIONES_VIDEO, es_video, foto_valida
 from ..comun import _estilo_zona_arrastre, tt
 
 class VisorFoto(QDialog):
@@ -93,7 +94,9 @@ class GaleriaFotosWidget(QWidget):
     """Colección de fotos extra de un trabajo (además de la de antes y la de
     después): miniaturas en fila, añadir varias de golpe (botón o arrastrar),
     quitar la seleccionada y doble clic para verlas a tamaño completo pasando
-    de una a otra. Guarda las fotos en la carpeta de fotos de la app."""
+    de una a otra. Guarda las fotos en la carpeta de fotos de la app. También
+    admite vídeos (los graba el móvil): salen con un icono de reproducir y el
+    doble clic los abre con el reproductor del sistema."""
     def __init__(self, carpeta_fotos, parent=None, nombres=None):
         super().__init__(parent)
         self.carpeta_fotos = carpeta_fotos
@@ -138,6 +141,13 @@ class GaleriaFotosWidget(QWidget):
 
     def _anadir_item(self, nombre):
         it = QListWidgetItem()
+        if es_video(nombre):
+            it.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
+            it.setText(tt("lbl_video", "Vídeo"))
+            it.setData(Qt.ItemDataRole.UserRole, nombre)
+            it.setToolTip(nombre)
+            self.lista.addItem(it)
+            return
         pix = QPixmap(self._ruta(nombre))
         if pix.isNull(): it.setText(nombre)
         else: it.setIcon(QIcon(pix.scaled(90, 90, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
@@ -148,7 +158,14 @@ class GaleriaFotosWidget(QWidget):
     def anadir_rutas(self, rutas):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         for i, origen in enumerate(rutas):
-            if QPixmap(origen).isNull(): continue
+            if es_video(origen):
+                # Mismo límite y comprobación que los que llegan del móvil.
+                if not foto_valida(origen):
+                    QMessageBox.warning(self, t("title_error"), tt(
+                        "msg_video_no_valido", "No se puede añadir «{nombre}»: pasa de 100 MB o no es un vídeo válido."
+                    ).format(nombre=os.path.basename(origen)))
+                    continue
+            elif QPixmap(origen).isNull(): continue
             nuevo = f"pc_galeria_{ts}_{i}{os.path.splitext(origen)[1].lower()}"
             try:
                 shutil.copy2(origen, self._ruta(nuevo))
@@ -160,7 +177,10 @@ class GaleriaFotosWidget(QWidget):
     def elegir_fotos(self):
         dlg = QFileDialog(self, tt("btn_anadir_fotos", "➕ Añadir fotos"))
         dlg.setFileMode(QFileDialog.FileMode.ExistingFiles)
-        dlg.setNameFilter(tt("filtro_imagenes", "Imágenes") + " (*.png *.jpg *.jpeg *.bmp *.gif *.webp)")
+        videos = " ".join(f"*{e}" for e in sorted(EXTENSIONES_VIDEO))
+        dlg.setNameFilters([tt("filtro_imagenes_videos", "Imágenes y vídeos") + f" (*.png *.jpg *.jpeg *.bmp *.gif *.webp {videos})",
+                            tt("filtro_imagenes", "Imágenes") + " (*.png *.jpg *.jpeg *.bmp *.gif *.webp)",
+                            tt("filtro_videos", "Vídeos") + f" ({videos})"])
         dlg.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         dlg.setDirectory(QDir.homePath())
         dlg.setLabelText(QFileDialog.DialogLabel.Accept, t("btn_elegir_foto"))
@@ -173,8 +193,17 @@ class GaleriaFotosWidget(QWidget):
         self._actualizar_titulo()
 
     def ver(self, item):
-        rutas = [self._ruta(n) for n in self.nombres()]
-        VisorFoto(self._ruta(item.data(Qt.ItemDataRole.UserRole)), self, rutas=rutas).exec()
+        nombre = item.data(Qt.ItemDataRole.UserRole)
+        if es_video(nombre):
+            if not os.path.exists(self._ruta(nombre)):
+                QMessageBox.information(self, tt("lbl_video", "Vídeo"), tt(
+                    "msg_video_no_en_pc", "Este vídeo todavía no está en este PC (llegará al sincronizar)."))
+                return
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self._ruta(nombre)))
+            return
+        # El visor solo pasa de una foto a otra (los vídeos se abren aparte).
+        rutas = [self._ruta(n) for n in self.nombres() if not es_video(n)]
+        VisorFoto(self._ruta(nombre), self, rutas=rutas).exec()
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls(): e.acceptProposedAction()

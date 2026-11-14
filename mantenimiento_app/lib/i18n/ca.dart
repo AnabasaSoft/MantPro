@@ -252,4 +252,8 @@ const Map<String, String> traduccionesCa = {
     "msg_lectura_guardada": "Lectura desada al mòbil: s'enviarà al PC en connectar.",
     "msg_lectura_no_valida": "Escriu un número (p. ex. 1530 o 1530,5)",
     "msg_lectura_menor": "La lectura ({nueva}) és menor que l'última ({anterior}). S'ha canviat el comptador o s'ha posat a zero?",
+    "btn_video_coleccion_camara": "Gravar vídeo",
+    "msg_descargando_video": "Baixant el vídeo…",
+    "msg_video_no_disponible": "Aquest vídeo no és al mòbil i ara no es pot baixar del PC.",
+    "msg_videos_rechazados": "{n} vídeo(s) no s'han afegit: passen de 100 MB o el seu format no és compatible.",
 };

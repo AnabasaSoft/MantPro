@@ -1442,5 +1442,11 @@
   "msg_nube_adoptado": "Hodeiko datuak jaso dira: {n} erregistro.\n\nItxi MantPro eta ireki berriro haiekin hasteko (berriro hasi beharko duzu saioa).",
   "msg_nube_stock_negativo": "Sinkronizatu ondoren, artikulu hauek stock NEGATIBOA dute. Egin berehala zenbaketa bat:\n\n{lista}",
   "lbl_nube_aviso_bajada": "Hodeiko {n} erregistro ezin izan dira guztiz aplikatu.",
-  "nube_ultima_bajada": "Azken deskarga"
+  "nube_ultima_bajada": "Azken deskarga",
+  "lbl_video": "Bideoa",
+  "lbl_videos_coleccion": "Bildumako bideoak",
+  "filtro_imagenes_videos": "Irudiak eta bideoak",
+  "filtro_videos": "Bideoak",
+  "msg_video_no_valido": "Ezin da «{nombre}» gehitu: 100 MB baino handiagoa da edo ez da baliozko bideo bat.",
+  "msg_video_no_en_pc": "Bideo hau oraindik ez dago PC honetan (sinkronizatzean iritsiko da)."
 }

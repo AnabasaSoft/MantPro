@@ -1442,5 +1442,11 @@
   "msg_nube_adoptado": "Cloud data received: {n} records.\n\nClose MantPro and open it again to start with them (you will have to sign in again).",
   "msg_nube_stock_negativo": "After synchronising, these items have NEGATIVE stock. Do an urgent stock count:\n\n{lista}",
   "lbl_nube_aviso_bajada": "{n} records from the cloud could not be fully applied.",
-  "nube_ultima_bajada": "Last download"
+  "nube_ultima_bajada": "Last download",
+  "lbl_video": "Video",
+  "lbl_videos_coleccion": "Videos in the collection",
+  "filtro_imagenes_videos": "Images and videos",
+  "filtro_videos": "Videos",
+  "msg_video_no_valido": "«{nombre}» cannot be added: it is larger than 100 MB or is not a valid video.",
+  "msg_video_no_en_pc": "This video is not on this PC yet (it will arrive when syncing)."
 }

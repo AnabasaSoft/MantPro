@@ -196,7 +196,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🔐 Accés amb usuari**: cada tècnic inicia sessió una vegada i la sessió queda desada al dispositiu (el token es desa al Keystore d'Android, no en clar)
 - **📝 Registre ràpid**: captura d'intervencions sobre el terreny, signades automàticament amb el seu usuari
 - **📷 Càmera integrada**: presa de fotos i edició amb anotacions
-- **🖼️ Col·lecció de fotos**: a més de les fotos d'abans i després, afegeix a un treball o pendent totes les fotos que vulguis (càmera o galeria); en tocar qualsevol foto es veu a pantalla completa, passant de l'una a l'altra i ampliant amb dos dits
+- **🖼️ Col·lecció de fotos**: a més de les fotos d'abans i després, afegeix a un treball o pendent totes les fotos que vulguis (càmera o galeria); en tocar qualsevol foto es veu a pantalla completa, passant de l'una a l'altra i ampliant amb dos dits. La col·lecció admet també **🎬 vídeos** (fins a 30 s i 100 MB; gravats en el moment o triats de la galeria), que es veuen dins de l'app, sense connexió, i al PC amb el seu reproductor; les fotos d'abans i després són sempre fotos
 - **✏️ Editor d'imatges**: dibuixa sobre les fotos per marcar zones d'interès
 - **🔄 Sincronització automàtica**: enviament automàtic de dades al PC mitjançant codi QR
 - **💾 Emmagatzematge local**: desa els registres fora de línia fins que se sincronitzin

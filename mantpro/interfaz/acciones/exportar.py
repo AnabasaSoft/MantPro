@@ -39,6 +39,7 @@ from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking, Grafi
 from ...nucleo import usuarios, maquinas, checklists, consumos, mano_obra
 from ..dialogos.checklists import texto_export, texto_repuestos_export, texto_tiempo_export
 from ...nucleo.fotos import fotos_galeria
+from ...nucleo.seguridad import es_video
 from ...nucleo.rutas import DATA_DIR
 
 class AccionesExportar:
@@ -255,6 +256,10 @@ class AccionesExportar:
                     worksheet.write(row, col_tiempo, texto_tiempo_export(tiempos.get(tarea[0]), moneda), wrap)
                 for k, nombre_g in enumerate(fotos_galeria(tarea[2])):
                     ruta_g = os.path.join(self.carpeta_fotos, nombre_g)
+                    if es_video(nombre_g):
+                        # Un vídeo no tiene miniatura en Excel: se pone su nombre.
+                        worksheet.write(row, col_coleccion + k, f"{tt('lbl_video', 'Vídeo')}: {nombre_g}", wrap)
+                        continue
                     opc = miniatura_excel(ruta_g) if os.path.exists(ruta_g) else None
                     if opc:
                         try: worksheet.insert_image(row, col_coleccion + k, nombre_g, opc)

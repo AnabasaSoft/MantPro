@@ -85,24 +85,58 @@ LOGIN_LOCAL = LimiteIntentos(maximo=5, bloqueo=60)
 
 # ---------------------------------------------------------------- fotos recibidas
 
-EXTENSIONES_FOTO = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic", ".heif"}
+# Vídeos de la colección de un trabajo (los graba el móvil). Viajan, se guardan y se
+# sincronizan exactamente igual que las fotos, así que sus extensiones van también en
+# EXTENSIONES_FOTO; donde haga falta distinguirlos (para enseñarlos), es_video().
+EXTENSIONES_VIDEO = {".mp4", ".m4v", ".mov", ".3gp", ".webm"}
+EXTENSIONES_FOTO = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic", ".heif"} | EXTENSIONES_VIDEO
 # Formatos que Pillow sabe abrir; HEIC/HEIF no, y se aceptan solo por extensión.
 _COMPROBABLES = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"}
 TAMANO_MAXIMO_FOTO = 30 * 1024 * 1024      # 30 MB por foto
-TAMANO_MAXIMO_PETICION = 300 * 1024 * 1024  # 300 MB por envío (colecciones de fotos)
+TAMANO_MAXIMO_VIDEO = 100 * 1024 * 1024    # 100 MB por vídeo (el móvil graba como mucho 30 s)
+# Por envío: una colección con varios vídeos y fotos. Flask guarda en disco lo que recibe,
+# así que esto no se queda entero en memoria.
+TAMANO_MAXIMO_PETICION = 1024 * 1024 * 1024
+
+
+def es_video(nombre):
+    """True si [nombre] (nombre o ruta) es un vídeo por su extensión."""
+    return os.path.splitext(str(nombre or ""))[1].lower() in EXTENSIONES_VIDEO
+
+
+def tamano_maximo(nombre):
+    """Tamaño máximo admitido para [nombre]: el de los vídeos o el de las fotos."""
+    return TAMANO_MAXIMO_VIDEO if es_video(nombre) else TAMANO_MAXIMO_FOTO
+
+
+def _video_valido(extension, cabecera):
+    """Comprobación ligera de que el contenido es de verdad un vídeo del formato de su
+    extensión: MP4/MOV/3GP llevan la caja «ftyp» en los bytes 4-8; WebM empieza por la
+    cabecera EBML."""
+    if extension == ".webm":
+        return cabecera[:4] == b"\x1a\x45\xdf\xa3"
+    return cabecera[4:8] == b"ftyp"
 
 
 def foto_valida(ruta):
-    """True si el fichero tiene extensión de imagen, no pasa del tamaño
-    máximo y, si es de un formato que Pillow conoce, es de verdad una imagen."""
+    """True si el fichero tiene extensión de imagen o de vídeo, no pasa del tamaño
+    máximo de su tipo y es de verdad lo que dice su extensión (las imágenes que
+    Pillow conoce, abriéndolas; los vídeos, por su cabecera)."""
     extension = os.path.splitext(ruta)[1].lower()
     if extension not in EXTENSIONES_FOTO:
         return False
     try:
-        if os.path.getsize(ruta) > TAMANO_MAXIMO_FOTO:
+        tamano = os.path.getsize(ruta)
+        if tamano == 0 or tamano > tamano_maximo(ruta):
             return False
     except OSError:
         return False
+    if extension in EXTENSIONES_VIDEO:
+        try:
+            with open(ruta, "rb") as f:
+                return _video_valido(extension, f.read(16))
+        except OSError:
+            return False
     if extension not in _COMPROBABLES:
         return True
     try:

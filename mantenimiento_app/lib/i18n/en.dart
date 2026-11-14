@@ -253,4 +253,8 @@ const Map<String, String> traduccionesEn = {
     "msg_lectura_guardada": "Reading saved on the phone: it will be sent to the PC when connected.",
     "msg_lectura_no_valida": "Enter a number (e.g. 1530 or 1530.5)",
     "msg_lectura_menor": "The reading ({nueva}) is lower than the last one ({anterior}). Has the counter been replaced or reset?",
+    "btn_video_coleccion_camara": "Record video",
+    "msg_descargando_video": "Downloading the video…",
+    "msg_video_no_disponible": "This video is not on the phone and cannot be downloaded from the PC right now.",
+    "msg_videos_rechazados": "{n} video(s) were not added: they are larger than 100 MB or their format is not supported.",
 };

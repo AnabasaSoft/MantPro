@@ -196,7 +196,7 @@ versiones estables. Los cambios de cada versión están en
 - **🔐 Acceso con Usuario**: Cada técnico inicia sesión una vez y la sesión queda guardada en el dispositivo (el token se guarda en el Keystore de Android, no en claro)
 - **📝 Registro Rápido**: Captura de intervenciones sobre el terreno, firmadas automáticamente con su usuario
 - **📷 Cámara Integrada**: Toma de fotos y edición con anotaciones
-- **🖼️ Colección de Fotos**: además de las fotos de antes y después, añade a un trabajo o pendiente todas las fotos que quieras (cámara o galería); al tocar cualquier foto se ve a pantalla completa, pasando de una a otra y ampliando con dos dedos
+- **🖼️ Colección de Fotos**: además de las fotos de antes y después, añade a un trabajo o pendiente todas las fotos que quieras (cámara o galería); al tocar cualquier foto se ve a pantalla completa, pasando de una a otra y ampliando con dos dedos. La colección admite también **🎬 vídeos** (hasta 30 s y 100 MB; grabados en el momento o elegidos de la galería) que se ven dentro de la app, sin conexión, y en el PC con su reproductor; las fotos de antes y después son siempre fotos
 - **✏️ Editor de Imágenes**: Dibuja sobre las fotos para marcar áreas de interés
 - **🔄 Sincronización Automática**: Envío automático de datos al PC mediante código QR
 - **💾 Almacenamiento Local**: Guarda registros offline hasta sincronizar

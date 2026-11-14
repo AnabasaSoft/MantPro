@@ -193,7 +193,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🔐 User Sign-in**: Each technician signs in once and the session is kept on the device (the token is kept in the Android Keystore, not in plain text)
 - **📝 Quick Logging**: Capture jobs in the field, automatically signed with the user's name
 - **📷 Built-in Camera**: Take photos and annotate them
-- **🖼️ Photo Collection**: besides the before and after photos, add as many photos as you want to a job or pending job (camera or gallery); tapping any photo opens it full screen, swiping from one to the next and pinching to zoom
+- **🖼️ Photo Collection**: besides the before and after photos, add as many photos as you want to a job or pending job (camera or gallery); tapping any photo opens it full screen, swiping from one to the next and pinching to zoom. The collection also accepts **🎬 videos** (up to 30 s and 100 MB; recorded on the spot or picked from the gallery), played inside the app, even offline, and on the PC with its video player; the before and after photos are always photos
 - **✏️ Image Editor**: Draw on photos to mark areas of interest
 - **🔄 Automatic Sync**: Data is sent to the PC automatically after pairing via QR code
 - **💾 Local Storage**: Keeps records offline until they are synced

@@ -198,7 +198,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🔐 Erabiltzailearekin sarbidea**: Teknikari bakoitzak behin hasten du saioa eta saioa gailuan gordeta geratzen da (tokena Androiden Keystorean gordetzen da, ez testu argian)
 - **📝 Erregistro azkarra**: Lanak tokian bertan erregistratzea, erabiltzailearekin automatikoki sinatuta
 - **📷 Kamera integratua**: Argazkiak atera eta oharrekin editatu
-- **🖼️ Argazki bilduma**: aurreko eta ondorengo argazkiez gain, gehitu lan edo egiteke dagoen lan bati nahi adina argazki (kamera edo galeria); edozein argazki sakatuz pantaila osoan ikusten da, batetik bestera pasatuz eta bi hatzekin handituz
+- **🖼️ Argazki bilduma**: aurreko eta ondorengo argazkiez gain, gehitu lan edo egiteke dagoen lan bati nahi adina argazki (kamera edo galeria); edozein argazki sakatuz pantaila osoan ikusten da, batetik bestera pasatuz eta bi hatzekin handituz. Bildumak **🎬 bideoak** ere onartzen ditu (gehienez 30 s eta 100 MB; unean bertan grabatuak edo galeriatik aukeratuak), aplikazioaren barruan ikusten direnak, konexiorik gabe ere, eta PCan bere erreproduzitzailearekin; aurreko eta ondorengo argazkiak beti dira argazkiak
 - **✏️ Irudi-editorea**: Marraztu argazkien gainean interesgune diren eremuak markatzeko
 - **🔄 Sinkronizazio automatikoa**: Datuak PCra automatikoki bidaltzea QR kodearen bidez
 - **💾 Biltegiratze lokala**: Erregistroak konexiorik gabe gordetzen ditu sinkronizatu arte

@@ -268,4 +268,8 @@ const Map<String, String> traduccionesPt = {
     "msg_lectura_guardada": "Leitura salva no celular: será enviada ao PC ao conectar.",
     "msg_lectura_no_valida": "Escreva um número (p. ex. 1530 ou 1530,5)",
     "msg_lectura_menor": "A leitura ({nueva}) é menor do que a última ({anterior}). O contador foi trocado ou zerado?",
+    "btn_video_coleccion_camara": "Gravar vídeo",
+    "msg_descargando_video": "Baixando o vídeo…",
+    "msg_video_no_disponible": "Este vídeo não está no celular e agora não é possível baixá-lo do PC.",
+    "msg_videos_rechazados": "{n} vídeo(s) não foram adicionados: ultrapassam 100 MB ou o formato não é compatível.",
 };

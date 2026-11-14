@@ -1182,7 +1182,7 @@ class ServidorSincronizacion(QThread):
                 tipo = request.form.get('tipo')  # 'antes', 'despues' o 'galeria'
                 key = {'antes': 'foto', 'galeria': 'foto_galeria'}.get(tipo, 'foto_despues')
 
-                filename, ruta = self._procesar_foto(request, key)
+                filename, ruta = self._procesar_foto(request, key, solo_imagen=(tipo != 'galeria'))
                 if not filename:
                     return jsonify({"status": "error", "message": "No se recibió ningún archivo"}), 400
 
@@ -1581,15 +1581,19 @@ class ServidorSincronizacion(QThread):
                 return jsonify({"status": "error", "message": str(e)}), 500
         # -------------------------------------------------------------------
 
-    def _guardar_foto_recibida(self, file, filename):
-        """Guarda una foto llegada del móvil, con un nombre ya saneado, y la
-        comprueba (extensión, tamaño y que sea de verdad una imagen; ver
-        nucleo/seguridad.py). Si no vale, la borra y devuelve None."""
+    def _guardar_foto_recibida(self, file, filename, solo_imagen=False):
+        """Guarda una foto (o un vídeo de la colección) llegada del móvil, con un
+        nombre ya saneado, y la comprueba (extensión, tamaño y que sea de verdad
+        lo que dice; ver nucleo/seguridad.py). Con [solo_imagen] (fotos de antes
+        y después) un vídeo no vale. Si no vale, la borra y devuelve None."""
         # Solo letras, números, «_» y un punto: el nombre no puede salirse de
         # la carpeta de fotos (sin «/», «\\» ni «..»).
         base, extension = os.path.splitext(filename)
         filename = re.sub(r'[^a-zA-Z0-9_]', '_', base) + re.sub(r'[^a-zA-Z0-9.]', '', extension.lower())
         ruta = os.path.join(self.carpeta_destino, filename)
+        if solo_imagen and seguridad.es_video(filename):
+            print(f"Vídeo rechazado como foto de antes/después: {filename}")
+            return None
         file.save(ruta)
         if not seguridad.foto_valida(ruta):
             try: os.remove(ruta)
@@ -1598,18 +1602,18 @@ class ServidorSincronizacion(QThread):
             return None
         return filename
 
-    def _procesar_foto(self, req, key='foto'):
+    def _procesar_foto(self, req, key='foto', solo_imagen=True):
         if key in req.files:
             file = req.files[key]
             if file and file.filename != '':
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = self._guardar_foto_recibida(file, f"app_{timestamp}_{file.filename}")
+                filename = self._guardar_foto_recibida(file, f"app_{timestamp}_{file.filename}", solo_imagen=solo_imagen)
                 if filename:
                     return filename, os.path.join(self.carpeta_destino, filename)
         return "", ""
 
     def _procesar_galeria(self, req, key='fotos_extra'):
-        """Guarda todas las fotos enviadas en el campo [key] (puede repetirse)
+        """Guarda todas las fotos y vídeos enviados en el campo [key] (puede repetirse)
         y devuelve sus nombres de fichero en el orden recibido."""
         nombres = []
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

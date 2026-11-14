@@ -25,6 +25,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -376,7 +377,8 @@ Future<void> cachearFotosHistorial(String ip, List<Map<String, dynamic>> items,
   final pendientes = <String>[];
   for (var item in items) {
     for (final nombre in <String?>[item['serverImageName'], item['serverImageNameDespues'], ...listaTextos(item['serverFotosExtra'])]) {
-      if (nombre == null || pendientes.contains(nombre)) continue;
+      // Los vídeos (hasta 100 MB) no se bajan solos: se descargan al abrirlos en el visor.
+      if (nombre == null || esVideoNombre(nombre) || pendientes.contains(nombre)) continue;
       if (!File(path.join(dir.path, nombre)).existsSync()) pendientes.add(nombre);
     }
   }
@@ -3115,8 +3117,9 @@ class _TabHistorialState extends State<TabHistorial> {
             }
             final r = _registros[i]; Widget w;
             w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues)
-                ?? (r.fotosExtra.isNotEmpty ? _widgetFoto(r.fotosExtra.first, null) : null)
-                ?? (r.serverFotosExtra.isNotEmpty ? _widgetFoto(null, r.serverFotosExtra.first) : null)
+                // Miniatura: la primera foto de la colección que no sea un vídeo.
+                ?? (r.fotosExtra.where((f) => !esVideoNombre(f)).isNotEmpty ? _widgetFoto(r.fotosExtra.firstWhere((f) => !esVideoNombre(f)), null) : null)
+                ?? (r.serverFotosExtra.where((f) => !esVideoNombre(f)).isNotEmpty ? _widgetFoto(null, r.serverFotosExtra.firstWhere((f) => !esVideoNombre(f))) : null)
                 ?? const Icon(Icons.article, color: Colors.blueGrey);
               bool p = _colaEdiciones.any((e) => e['id'] == r.id.toString());
             return Card(color: p ? Colors.orange.withOpacity(0.1) : null, margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: ListTile(leading: ClipRRect(borderRadius: BorderRadius.circular(4), child: SizedBox(width: 50, height: 50, child: Center(child: w))), title: Text(r.detalles, maxLines: 2, overflow: TextOverflow.ellipsis), subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -3216,12 +3219,22 @@ Future<void> olvidarGaleriaSubida(SharedPreferences prefs, List<Map<String, dyna
   await prefs.setString('galeria_locales_map', json.encode(mapa));
 }
 
-/// Una foto de un trabajo: un fichero del móvil (recién hecha o ya
+/// Vídeos de la colección de un trabajo. Mismas extensiones y tamaño máximo
+/// que EXTENSIONES_VIDEO y TAMANO_MAXIMO_VIDEO del PC (mantpro/nucleo/seguridad.py),
+/// que rechaza lo que no cumpla. La foto de antes y la de después son siempre fotos.
+const Set<String> kExtensionesVideo = {'.mp4', '.m4v', '.mov', '.3gp', '.webm'};
+const int kTamanoMaximoVideo = 100 * 1024 * 1024;
+const Duration kDuracionMaximaVideo = Duration(seconds: 30);
+bool esVideoNombre(String? nombre) =>
+    nombre != null && kExtensionesVideo.contains(path.extension(nombre).toLowerCase());
+
+/// Una foto (o vídeo) de un trabajo: un fichero del móvil (recién hecha o ya
 /// descargada) o el nombre de una foto que está en el PC.
 class FotoTrabajo {
   final String? rutaLocal;
   final String? nombreServidor;
   const FotoTrabajo({this.rutaLocal, this.nombreServidor});
+  bool get esVideo => esVideoNombre(rutaLocal ?? nombreServidor);
 }
 
 /// Imagen para mostrar una [FotoTrabajo]: primero la copia local (sirve sin
@@ -3271,6 +3284,9 @@ class _PantallaVisorFotosState extends State<PantallaVisorFotos> {
         itemCount: widget.fotos.length,
         onPageChanged: (i) => setState(() => _actual = i),
         itemBuilder: (_, i) {
+          if (widget.fotos[i].esVideo) {
+            return PaginaVideo(foto: widget.fotos[i], dirDocs: widget.dirDocs, urlPC: widget.urlPC);
+          }
           final prov = proveedorFotoTrabajo(widget.fotos[i], widget.dirDocs, widget.urlPC);
           if (prov == null) return const Center(child: Icon(Icons.no_photography, color: Colors.white54, size: 64));
           return InteractiveViewer(minScale: 1, maxScale: 5, child: Center(child: Image(image: prov, fit: BoxFit.contain,
@@ -3281,15 +3297,121 @@ class _PantallaVisorFotosState extends State<PantallaVisorFotos> {
   }
 }
 
+/// Un vídeo de la colección dentro del visor: se reproduce desde el móvil
+/// (sin conexión) y, si solo está en el PC, se descarga primero y se guarda
+/// para la próxima vez. Tocar el vídeo lo pausa o lo sigue.
+class PaginaVideo extends StatefulWidget {
+  final FotoTrabajo foto;
+  final String? dirDocs, urlPC;
+  const PaginaVideo({super.key, required this.foto, this.dirDocs, this.urlPC});
+  @override State<PaginaVideo> createState() => _PaginaVideoState();
+}
+
+class _PaginaVideoState extends State<PaginaVideo> {
+  VideoPlayerController? _ctrl;
+  bool _descargando = false, _error = false;
+
+  @override void initState() { super.initState(); _preparar(); }
+  @override void dispose() { _ctrl?.dispose(); super.dispose(); }
+
+  /// Ruta del vídeo en el móvil, descargándolo del PC si hace falta (null si
+  /// no está y no se puede bajar ahora).
+  Future<String?> _ficheroLocal() async {
+    final f = widget.foto;
+    if (f.rutaLocal != null && File(f.rutaLocal!).existsSync()) return f.rutaLocal;
+    final n = f.nombreServidor;
+    if (n == null || widget.dirDocs == null) return null;
+    final fp = path.join(widget.dirDocs!, n);
+    if (File(fp).existsSync()) return fp;
+    if (widget.urlPC == null) return null;
+    if (mounted) setState(() => _descargando = true);
+    try {
+      final r = await httpGetAuth(Uri.parse("$esquemaPC://${widget.urlPC}/api/foto/$n")).timeout(const Duration(minutes: 5));
+      if (r.statusCode != 200) return null;
+      // Primero a un temporal: un vídeo a medias nunca queda con su nombre.
+      final tmp = File('$fp.descargando');
+      await tmp.writeAsBytes(r.bodyBytes, flush: true);
+      await tmp.rename(fp);
+      return fp;
+    } catch (_) {
+      return null;
+    } finally {
+      if (mounted) setState(() => _descargando = false);
+    }
+  }
+
+  Future<void> _preparar() async {
+    final fp = await _ficheroLocal();
+    if (!mounted) return;
+    if (fp == null) { setState(() => _error = true); return; }
+    final c = VideoPlayerController.file(File(fp));
+    try {
+      await c.initialize();
+    } catch (_) {
+      await c.dispose();
+      if (mounted) setState(() => _error = true);
+      return;
+    }
+    if (!mounted) { await c.dispose(); return; }
+    setState(() => _ctrl = c);
+    await c.play();
+  }
+
+  String _mmss(Duration d) => "${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}";
+
+  @override Widget build(BuildContext context) {
+    const blanco = TextStyle(color: Colors.white70);
+    if (_error) {
+      return Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.videocam_off, color: Colors.white54, size: 64),
+        const SizedBox(height: 12),
+        Text(tt("msg_video_no_disponible", "Este vídeo no está en el móvil y ahora no se puede descargar del PC."),
+            textAlign: TextAlign.center, style: blanco),
+      ])));
+    }
+    final c = _ctrl;
+    if (c == null) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const CircularProgressIndicator(color: Colors.white),
+        if (_descargando) ...[const SizedBox(height: 12), Text(tt("msg_descargando_video", "Descargando el vídeo…"), style: blanco)],
+      ]));
+    }
+    return Column(children: [
+      Expanded(child: Center(child: AspectRatio(
+        aspectRatio: c.value.aspectRatio,
+        child: GestureDetector(
+          onTap: () => c.value.isPlaying ? c.pause() : c.play(),
+          child: Stack(alignment: Alignment.center, children: [
+            VideoPlayer(c),
+            ValueListenableBuilder<VideoPlayerValue>(valueListenable: c, builder: (_, v, __) => v.isPlaying
+                ? const SizedBox.shrink()
+                : const Icon(Icons.play_circle_fill, color: Colors.white70, size: 72)),
+          ]),
+        ),
+      ))),
+      VideoProgressIndicator(c, allowScrubbing: true, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
+      ValueListenableBuilder<VideoPlayerValue>(valueListenable: c, builder: (_, v, __) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          IconButton(color: Colors.white, iconSize: 36,
+              icon: Icon(v.isPlaying ? Icons.pause : Icons.play_arrow),
+              onPressed: () => v.isPlaying ? c.pause() : c.play()),
+          Text("${_mmss(v.position)} / ${_mmss(v.duration)}", style: blanco),
+        ]),
+      )),
+    ]);
+  }
+}
+
 /// Fila de miniaturas de la colección de fotos de un trabajo, con botones
-/// para añadir (cámara o varias de la galería) y quitar.
+/// para añadir (foto o vídeo con la cámara, o varias de la galería) y quitar.
 class GaleriaFotosTrabajo extends StatelessWidget {
   final List<FotoTrabajo> fotos;
   final String? dirDocs, urlPC;
-  final VoidCallback onCamara, onGaleria;
+  final VoidCallback onCamara, onVideo, onGaleria;
   final void Function(int) onQuitar, onVer;
   const GaleriaFotosTrabajo({super.key, required this.fotos, required this.dirDocs, required this.urlPC,
-      required this.onCamara, required this.onGaleria, required this.onQuitar, required this.onVer});
+      required this.onCamara, required this.onVideo, required this.onGaleria, required this.onQuitar, required this.onVer});
   @override Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text("${tt("lbl_coleccion_fotos", "Colección de fotos")}${fotos.isEmpty ? "" : " (${fotos.length})"}",
@@ -3303,8 +3425,9 @@ class GaleriaFotosTrabajo extends StatelessWidget {
           final prov = proveedorFotoTrabajo(fotos[i], dirDocs, urlPC);
           return Stack(children: [
             GestureDetector(onTap: () => onVer(i), child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Container(
-              width: 96, height: 96, color: Colors.grey.withValues(alpha: 0.2),
-              child: prov == null ? const Icon(Icons.cloud_download, color: Colors.grey)
+              width: 96, height: 96, color: fotos[i].esVideo ? Colors.black87 : Colors.grey.withValues(alpha: 0.2),
+              child: fotos[i].esVideo ? const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40))
+                  : prov == null ? const Icon(Icons.cloud_download, color: Colors.grey)
                   : Image(image: prov, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey))))),
             Positioned(top: 0, right: 0, child: GestureDetector(onTap: () => onQuitar(i), child: Container(
               decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
@@ -3315,6 +3438,7 @@ class GaleriaFotosTrabajo extends StatelessWidget {
       const SizedBox(height: 6),
       Wrap(spacing: 8, children: [
         ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: Text(tt("btn_foto_coleccion_camara", "Hacer foto")), onPressed: onCamara),
+        ElevatedButton.icon(icon: const Icon(Icons.videocam), label: Text(tt("btn_video_coleccion_camara", "Grabar vídeo")), onPressed: onVideo),
         ElevatedButton.icon(icon: const Icon(Icons.photo_library), label: Text(tt("btn_fotos_coleccion_galeria", "Elegir de la galería")), onPressed: onGaleria),
       ]),
     ]);
@@ -3374,22 +3498,45 @@ class _FormScreenState extends State<FormScreen> {
     if (f == null) return;
     await _anadirAGaleria([f]);
   }
+  /// Graba un vídeo con la cámara (como mucho [kDuracionMaximaVideo]).
+  Future<void> _galeriaVideo() async {
+    final f = await ImagePicker().pickVideo(source: ImageSource.camera, maxDuration: kDuracionMaximaVideo);
+    if (f == null) return;
+    await _anadirAGaleria([f]);
+  }
+  /// Fotos y vídeos ya hechos, de la galería del móvil.
   Future<void> _galeriaElegir() async {
-    final fs = await ImagePicker().pickMultiImage(imageQuality: 60);
+    final fs = await ImagePicker().pickMultipleMedia(imageQuality: 60);
     if (fs.isNotEmpty) await _anadirAGaleria(fs);
   }
-  /// Copia las fotos a la carpeta de la app (los ficheros del selector son
-  /// temporales) y las añade a la colección.
+  /// Copia las fotos y vídeos a la carpeta de la app (los ficheros del
+  /// selector son temporales) y los añade a la colección. Un vídeo de más de
+  /// [kTamanoMaximoVideo] o de un formato que el PC no admite no se añade (el
+  /// PC lo rechazaría al sincronizar): se avisa de cuántos se han quedado fuera.
   Future<void> _anadirAGaleria(List<XFile> fs) async {
     final d = await getApplicationDocumentsDirectory();
     final ms = DateTime.now().millisecondsSinceEpoch;
     final nuevas = <FotoTrabajo>[];
+    var rechazados = 0;
     for (var i = 0; i < fs.length; i++) {
-      final n = path.join(d.path, 'foto_g_${ms}_$i.jpg');
+      final ext = path.extension(fs[i].path).toLowerCase();
+      final esVideo = kExtensionesVideo.contains(ext) || (fs[i].mimeType?.startsWith('video/') ?? false);
+      if (esVideo) {
+        if (!kExtensionesVideo.contains(ext) || await File(fs[i].path).length() > kTamanoMaximoVideo) {
+          rechazados++;
+          continue;
+        }
+      }
+      final n = path.join(d.path, esVideo ? 'video_g_${ms}_$i$ext' : 'foto_g_${ms}_$i.jpg');
       await File(fs[i].path).copy(n);
       nuevas.add(FotoTrabajo(rutaLocal: n));
     }
-    if (mounted) setState(() => _galeria.addAll(nuevas));
+    if (!mounted) return;
+    setState(() => _galeria.addAll(nuevas));
+    if (rechazados > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt("msg_videos_rechazados",
+          "{n} vídeo(s) no se han añadido: pasan de 100 MB o su formato no es compatible.").replaceAll("{n}", "$rechazados"))));
+    }
   }
   /// Todas las fotos del trabajo en orden (antes, después y colección), para
   /// el visor a pantalla completa.
@@ -3551,7 +3698,7 @@ class _FormScreenState extends State<FormScreen> {
           const SizedBox(height: 15),
           GaleriaFotosTrabajo(
             fotos: _galeria, dirDocs: _dirDocs, urlPC: widget.urlPC,
-            onCamara: _galeriaCamara, onGaleria: _galeriaElegir,
+            onCamara: _galeriaCamara, onVideo: _galeriaVideo, onGaleria: _galeriaElegir,
             onQuitar: (i) => setState(() => _galeria.removeAt(i)),
             onVer: (i) => _verFoto((_img != null ? 1 : 0) + (_imgDespues != null ? 1 : 0) + i),
           ),
