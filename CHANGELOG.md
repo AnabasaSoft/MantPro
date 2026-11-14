@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Mejoras
+- **📱 La app MantPro (móvil) pesa mucho menos**: el APK pasa de unos 538 MB a unos 80 MB, porque ya no lleva dentro los símbolos de depuración de sus bibliotecas (no los usa nadie al ejecutarla). Las actualizaciones desde la propia app se descargan antes y gastan muchos menos datos. MantPro Stock ya era ligera.
+
 ## 3.10.6 — 2026-11-14
 
 Incluye también lo publicado en 3.10.4 (2026-11-03) y 3.10.5 (2026-11-06), que no tuvieron sección propia en este registro.
