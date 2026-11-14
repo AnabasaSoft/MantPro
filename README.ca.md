@@ -6,6 +6,7 @@
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
   <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/Deutsch-6e7781?style=for-the-badge" alt="Deutsch"></a>
 </p>
 
 # MantPro
@@ -181,7 +182,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📥 Importar des d'Excel/CSV**: `Arxiu > Importar des d'Excel/CSV…` (només administradors) porta màquines, articles del magatzem, avisos recurrents, usuaris, pendents i historial de treballs antic des d'una plantilla descarregable o des del teu propi Excel (un full o tot el llibre d'una vegada), aparellant soles les columnes, amb previsualització fila a fila i còpia de seguretat prèvia. Les ubicacions (zones, prestatgeries, prestatges) i màquines superiors que no existeixin es creen soles, i els usuaris reben una contrasenya temporal que hauran de canviar en entrar
 - **🏭 Control de maquinària**: arbre de màquines i submàquines amb foto adjunta, comptador de treballs per any i mes, i vincle directe des de cada treball registrat o editat (vegeu [Maquinària](#-maquinària))
 - **📊 Exportació**: a PDF, CSV i Excel, amb filtre opcional per tècnic i indicant la màquina/submàquina de cada treball, si en té
-- **📖 Ajuda integrada**: `Ajuda > 📖 Instruccions` obre un manual complet per apartats (primers passos, usuaris, cada pestanya, menús, apps del mòbil i problemes freqüents), amb índex i cercador, en els 7 idiomes. Amb **F1** s'obre directament a l'apartat de la pestanya on ets
+- **📖 Ajuda integrada**: `Ajuda > 📖 Instruccions` obre un manual complet per apartats (primers passos, usuaris, cada pestanya, menús, apps del mòbil i problemes freqüents), amb índex i cercador, en els 8 idiomes. Amb **F1** s'obre directament a l'apartat de la pestanya on ets
 - **👥 Estadístiques per tècnic**: botó al Dashboard amb els treballs de cada tècnic per any i mes, avaries, preventius, hores d'aturada i pendents assignats ara mateix, amb gràfic de barres; filtrable per tipus (tots, treballs i avaries o manteniment preventiu) i exportable a PDF (amb logotip) i Excel
 - **🔩 Recanvis per màquina**: quins articles del magatzem porta cada màquina i quants, amb el seu estoc i ubicació, i a quines màquines s'utilitza cada article (vegeu [Maquinària](#-maquinària))
 - **💶 Recanvis utilitzats i el seu cost**: en registrar, completar o editar un treball s'hi apunten els recanvis utilitzats (es proposen primer els de la màquina); surten de l'estoc i queden desats amb el treball i el preu d'aquell moment, així que el cost no canvia encara que després canviï el preu. En corregir-los s'ajusta l'estoc. Cada article pot tenir preu unitari (moneda configurable). `Màquines > 💶 Cost de recanvis` mostra el cost per màquina, amb les submàquines, per any i exportable a Excel; l'historial, el PDF, l'Excel i el CSV els inclouen Els costos només els veuen els administradors.
@@ -845,7 +846,7 @@ El que ve, sense dates i sense un ordre tancat:
 - **Notificacions push** de treballs urgents i **vídeos** als treballs
 - **Diversos PC alhora**, servidor sense finestra (Raspberry Pi, NAS, Docker) i accés web
 - **Diversos centres o plantes** amb dades i indicadors per centre
-- Més idiomes (italià, alemany…) i app per a iPhone
+- Més idiomes (italià…) i app per a iPhone
 
 Fet fa poc: comanda suggerida i comandes desades, proveïdors i proveïdor habitual de cada article, cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 

@@ -81,7 +81,7 @@ jobs:
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.Windows"
         # Traducciones de Qt (selector de ficheros, botones estándar, menú de copiar/pegar)
-        for q in qtbase_es.qm qtbase_ca.qm qtbase_fr.qm qtbase_pt_BR.qm; do
+        for q in qtbase_es.qm qtbase_ca.qm qtbase_fr.qm qtbase_pt_BR.qm qtbase_de.qm; do
           grep -q "$q" contenido.txt || { echo "::error::Falta $q en el ejecutable (los textos de Qt saldrían en inglés)"; exit 1; }
         done
         echo "El ejecutable lleva las traducciones de Qt"
@@ -214,7 +214,7 @@ jobs:
         done
         echo "El ejecutable lleva SQLCipher y keyring.backends.SecretService"
         # Traducciones de Qt (selector de ficheros, botones estándar, menú de copiar/pegar)
-        for q in qtbase_es.qm qtbase_ca.qm qtbase_fr.qm qtbase_pt_BR.qm; do
+        for q in qtbase_es.qm qtbase_ca.qm qtbase_fr.qm qtbase_pt_BR.qm qtbase_de.qm; do
           grep -q "$q" contenido.txt || { echo "::error::Falta $q en el ejecutable (los textos de Qt saldrían en inglés)"; exit 1; }
         done
         echo "El ejecutable lleva las traducciones de Qt"

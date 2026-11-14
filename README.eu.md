@@ -6,6 +6,7 @@
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
   <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/Deutsch-6e7781?style=for-the-badge" alt="Deutsch"></a>
 </p>
 
 # MantPro
@@ -183,7 +184,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **📥 Excel/CSV-tik inportatu**: `Fitxategia > Excel/CSV-tik inportatu…` (administratzaileak soilik) menutik makinak, biltegiko artikuluak, abisu errepikakorrak, erabiltzaileak, egiteke daudenak eta lanen historia zaharra ekar daitezke, deskarga daitekeen txantiloi batetik edo zure Excel-etik (orri bat edo liburu osoa batera), zutabeak berez parekatuz, errenkadaz errenkadako aurrebistarekin eta aurretik segurtasun-kopia eginez. Ez dauden kokapenak (eremuak, apalategiak, apalak) eta goiko makinak berez sortzen dira, eta erabiltzaileek aldi baterako pasahitz bat jasotzen dute, lehen aldiz sartzean aldatu beharko dutena
 - **🏭 Makineriaren kontrola**: Makinen eta azpimakinen zuhaitza argazki erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta erregistratutako edo editatutako lan bakoitzetik zuzeneko lotura (ikusi [Makineria](#-makineria))
 - **📊 Esportazioa**: PDF, CSV eta Excelera, aukerako teknikari-iragazkiarekin eta lan bakoitzaren makina/azpimakina adieraziz, baldin badu
-- **📖 Laguntza integratua**: `Laguntza > 📖 Jarraibideak` aukerak eskuliburu osoa irekitzen du ataletan (lehen urratsak, erabiltzaileak, fitxa bakoitza, menuak, mugikorreko aplikazioak eta ohiko arazoak), aurkibide eta bilatzailearekin, 7 hizkuntzetan. **F1** sakatuta, zauden fitxaren atalean irekitzen da zuzenean
+- **📖 Laguntza integratua**: `Laguntza > 📖 Jarraibideak` aukerak eskuliburu osoa irekitzen du ataletan (lehen urratsak, erabiltzaileak, fitxa bakoitza, menuak, mugikorreko aplikazioak eta ohiko arazoak), aurkibide eta bilatzailearekin, 8 hizkuntzetan. **F1** sakatuta, zauden fitxaren atalean irekitzen da zuzenean
 - **👥 Teknikarien estatistikak**: Aginte-mahaiko botoia, teknikari bakoitzaren lanak urteka eta hilabeteka, matxurak, prebentiboak, geldialdi-orduak eta une honetan esleituta dituen lanak erakusten dituena, barra-grafikoarekin; motaren arabera iragazten da (guztiak, lanak eta matxurak edo mantentze prebentiboa) eta PDFra (logoarekin) eta Excelera esportatzen da
 - **🔩 Makina bakoitzeko ordezko piezak**: makina bakoitzak biltegiko zein artikulu daramatzan eta zenbat, haien stockarekin eta kokapenarekin, eta artikulu bakoitza zein makinatan erabiltzen den (ikus [Makineria](#-makineria))
 - **💶 Erabilitako ordezko piezak eta haien kostua**: lan bat erregistratzean, osatzean edo editatzean erabilitako ordezko piezak idazten dira (makinarenak lehenengo proposatzen dira); stocketik ateratzen dira eta lanarekin batera gordetzen dira momentu horretako prezioarekin, beraz kostua ez da aldatzen prezioa gero aldatzen bada ere. Zuzentzean stocka doitzen da. Artikulu bakoitzak unitateko prezioa izan dezake (txanpona konfiguragarria). `Makinak > 💶 Ordezko piezen kostua` atalak makina bakoitzeko kostua erakusten du, azpimakinak barne, urteka eta Excelera esportagarria; historian, PDFan, Excelen eta CSVan agertzen dira Kostuak administratzaileek soilik ikusten dituzte.
@@ -855,7 +856,7 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - Lan larrien **push jakinarazpenak** eta lanetako **bideoak**
 - **Hainbat PC aldi berean**, leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker) eta web bidezko sarbidea
 - **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
-- Hizkuntza gehiago (italiera, alemana…) eta iPhonerako aplikazioa
+- Hizkuntza gehiago (italiera…) eta iPhonerako aplikazioa
 
 Berriki egina: eskaera iradokia eta gordetako eskaerak, hornitzaileak eta artikulu bakoitzaren ohiko hornitzailea, mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 

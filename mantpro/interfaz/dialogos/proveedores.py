@@ -199,7 +199,7 @@ class DialogoProveedores(QDialog):
 
 def _qdate_formato():
     from ... import idiomas
-    return "yyyy/MM/dd" if idiomas.get_idioma() == "eu" else "dd/MM/yyyy"
+    return {"eu": "yyyy/MM/dd", "de": "dd.MM.yyyy"}.get(idiomas.get_idioma(), "dd/MM/yyyy")
 
 
 class DialogoApuntarPrecio(QDialog):

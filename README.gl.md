@@ -6,6 +6,7 @@
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-0969da?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
   <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/Deutsch-6e7781?style=for-the-badge" alt="Deutsch"></a>
 </p>
 
 # MantPro
@@ -180,7 +181,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📥 Importar dende Excel/CSV**: `Ficheiro > Importar dende Excel/CSV…` (só administradores) trae máquinas, artigos do almacén, avisos recorrentes, usuarios, pendentes e historial de traballos antigo dende un modelo descargable ou dende o teu propio Excel (unha folla ou todo o libro dunha vez), emparellando soas as columnas, con vista previa fila a fila e copia de seguranza previa. As localizacións (zonas, andeis, baldas) e máquinas superiores que non existan créanse soas, e os usuarios reciben un contrasinal temporal que terán que cambiar ao entrar
 - **🏭 Control de maquinaria**: árbore de máquinas e submáquinas con foto achegada, contador de traballos por ano e mes, e vínculo directo dende cada traballo rexistrado ou editado (ver [Maquinaria](#-maquinaria))
 - **📊 Exportación**: a PDF, CSV e Excel, con filtro opcional por técnico e indicando a máquina/submáquina de cada traballo, se a ten
-- **📖 Axuda integrada**: `Axuda > 📖 Instrucións` abre un manual completo por apartados (primeiros pasos, usuarios, cada lapela, menús, apps do móbil e problemas frecuentes), con índice e buscador, nos 7 idiomas. Con **F1** ábrese directamente no apartado da lapela na que esteas
+- **📖 Axuda integrada**: `Axuda > 📖 Instrucións` abre un manual completo por apartados (primeiros pasos, usuarios, cada lapela, menús, apps do móbil e problemas frecuentes), con índice e buscador, nos 8 idiomas. Con **F1** ábrese directamente no apartado da lapela na que esteas
 - **👥 Estatísticas por técnico**: botón no Dashboard cos traballos de cada técnico por ano e mes, avarías, preventivos, horas de parada e pendentes asignados agora mesmo, con gráfico de barras; filtrable por tipo (todos, traballos e avarías ou mantemento preventivo) e exportable a PDF (con logotipo) e Excel
 - **🔩 Recambios por máquina**: que artigos do almacén leva cada máquina e cantos, co seu stock e localización, e en que máquinas se usa cada artigo (ver [Maquinaria](#-maquinaria))
 - **💶 Recambios usados e o seu custo**: ao rexistrar, completar ou editar un traballo apúntanse os recambios usados (propóñense primeiro os da máquina); saen do stock e quedan gardados co traballo e o prezo dese momento, así que o custo non cambia aínda que despois cambie o prezo. Ao corrixilos axústase o stock. Cada artigo pode ter prezo unitario (moeda configurable). `Máquinas > 💶 Custo de recambios` mostra o custo por máquina, coas súas submáquinas, por ano e exportable a Excel; o historial, o PDF, o Excel e o CSV inclúenos Os custos só os ven os administradores.
@@ -839,7 +840,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Notificacións push** de traballos urxentes e **vídeos** nos traballos
 - **Varios PC á vez**, servidor sen xanela (Raspberry Pi, NAS, Docker) e acceso web
 - **Varios centros ou plantas** con datos e indicadores por centro
-- Máis idiomas (italiano, alemán…) e app para iPhone
+- Máis idiomas (italiano…) e app para iPhone
 
 Feito hai pouco: pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 

@@ -48,6 +48,7 @@ IDIOMAS_DISPONIBLES = [
     ("gl", "Galego"),
     ("pt", "Português (Brasil)"),
     ("fr", "Français"),
+    ("de", "Deutsch"),
 ]
 
 _DIR_IDIOMAS = os.path.dirname(os.path.abspath(__file__))
@@ -83,7 +84,8 @@ def get_idioma():
 
 def formato_fecha_localizada(fecha_iso):
     """Convierte una fecha ISO (YYYY-MM-DD) al formato corto propio del idioma activo:
-    DD/MM/AAAA en general, pero AAAA/MM/DD en euskera (donde el orden va al revés)."""
+    DD/MM/AAAA en general, AAAA/MM/DD en euskera (donde el orden va al revés) y
+    DD.MM.AAAA en alemán."""
     import datetime as _dt
     try:
         fecha_obj = _dt.datetime.strptime(fecha_iso, "%Y-%m-%d")
@@ -91,17 +93,19 @@ def formato_fecha_localizada(fecha_iso):
         return fecha_iso or ""
     if _idioma_actual == "eu":
         return fecha_obj.strftime("%Y/%m/%d")
+    if _idioma_actual == "de":
+        return fecha_obj.strftime("%d.%m.%Y")
     return fecha_obj.strftime("%d/%m/%Y")
 
 
 def formato_fecha_corta_qt():
     """Patrón día/mes (sin año) para QDate.toString(), según el idioma activo."""
-    return "MM/dd" if _idioma_actual == "eu" else "dd/MM"
+    return {"eu": "MM/dd", "de": "dd.MM."}.get(_idioma_actual, "dd/MM")
 
 
 def formato_fecha_corta_py():
     """Patrón día/mes (sin año) para datetime.strftime(), según el idioma activo."""
-    return "%m/%d" if _idioma_actual == "eu" else "%d/%m"
+    return {"eu": "%m/%d", "de": "%d.%m."}.get(_idioma_actual, "%d/%m")
 
 
 def t(clave):

@@ -135,6 +135,50 @@ _PALABRAS_SUELO = ["suelo", "hueco de suelo", "floor", "floor space", "ground", 
                    "terra", "espai a terra", "chan", "oco no chan", "chao", "espaco no chao", "sol",
                    "espace au sol"]
 
+# Alemán: lo que suele llamarse así en un Excel alemán (ya normalizado: sin diéresis ni mayúsculas).
+# Las traducciones de de.json ya se reconocen solas (_traducciones_de); esto añade los nombres
+# habituales que no coinciden con ellas.
+for _clave, _palabras in {
+    ("maquinas", "nombre"): ["maschine", "anlage", "maschinenname", "gerat"],
+    ("maquinas", "padre"): ["ubergeordnet", "ubergeordnete maschine", "linie"],
+    ("articulos", "nombre"): ["artikel", "bezeichnung", "teil", "artikelname"],
+    ("articulos", "codigo"): ["artikelnummer", "teilenummer", "art nr", "nr"],
+    ("articulos", "stock"): ["menge", "bestand", "lagerbestand", "anzahl"],
+    ("articulos", "minimo"): ["mindestbestand", "mindestmenge"],
+    ("articulos", "unidad"): ["einheit", "me", "mengeneinheit"],
+    ("articulos", "estanteria"): ["regal"],
+    ("articulos", "balda"): ["fachboden", "ebene"],
+    ("avisos", "titulo"): ["wartung", "aufgabe", "erinnerung"],
+    ("avisos", "fecha_inicio"): ["beginn", "startdatum", "datum"],
+    ("avisos", "frecuencia"): ["haufigkeit", "intervall"],
+    ("avisos", "margen"): ["tage", "spielraum"],
+    ("avisos", "tecnico"): ["techniker", "zugewiesen", "verantwortlich"],
+    ("avisos", "ultima"): ["zuletzt", "letzte durchfuhrung", "zuletzt erledigt"],
+    ("usuarios", "login"): ["benutzer", "benutzername", "anmeldename"],
+    ("usuarios", "nombre"): ["vollstandiger name"],
+    ("usuarios", "roles"): ["rolle", "rollen"],
+    ("pendientes", "titulo"): ["offen", "aufgabe", "offene arbeit"],
+    ("pendientes", "detalles"): ["beschreibung", "bemerkungen", "notizen"],
+    ("pendientes", "prioridad"): ["prioritat", "dringlichkeit"],
+    ("pendientes", "tecnico"): ["techniker", "zugewiesen"],
+    ("historial", "fecha"): ["datum", "tag"],
+    ("historial", "titulo"): ["arbeit", "aufgabe", "einsatz", "tatigkeit"],
+    ("historial", "detalles"): ["beschreibung", "bemerkungen", "notizen"],
+    ("historial", "etiquetas"): ["kategorie", "art"],
+    ("historial", "maquina"): ["maschine", "anlage"],
+    ("historial", "tecnico"): ["techniker", "ausgefuhrt von", "erledigt von"],
+    ("historial", "horas_paro"): ["stillstand", "stillstandsstunden", "ausfallzeit"],
+    ("historial", "minutos_trabajo"): ["minuten", "arbeitszeit"],
+}.items():
+    _SINONIMOS[_clave] = _SINONIMOS[_clave] + _palabras
+for _clave, _palabras in {"freq_diario": ["taglich"], "freq_semanal": ["wochentlich"],
+                          "freq_mensual": ["monatlich"], "freq_trimestral": ["vierteljahrlich", "quartalsweise"],
+                          "freq_semestral": ["halbjahrlich"], "freq_anual": ["jahrlich"]}.items():
+    _SINONIMOS_FRECUENCIA[_clave] = _SINONIMOS_FRECUENCIA[_clave] + _palabras
+_SINONIMOS_ROLES["tecnico"] = _SINONIMOS_ROLES["tecnico"] + ["techniker"]
+_SINONIMOS_ROLES["almacen"] = _SINONIMOS_ROLES["almacen"] + ["lager", "lagerist"]
+_PALABRAS_SUELO = _PALABRAS_SUELO + ["boden", "bodenplatz"]
+
 
 class ErrorLectura(Exception):
     """El fichero no se puede leer (formato no soportado, dañado...). El
@@ -204,7 +248,8 @@ def _numero(v):
 def _fecha(v):
     """Fecha en formato AAAA-MM-DD o None si la celda está vacía. Acepta
     celdas de fecha del Excel, AAAA-MM-DD, AAAA/MM/DD (euskera) y DD/MM/AAAA
-    (resto de idiomas de la app). Lanza ValueError si no se entiende."""
+    (resto de idiomas de la app), también con puntos (DD.MM.AAAA, alemán). Lanza
+    ValueError si no se entiende."""
     if v is None or (isinstance(v, str) and not v.strip()):
         return None
     if isinstance(v, datetime):
@@ -246,6 +291,10 @@ _SINONIMOS_PRIORIDAD = {
     "Alta": ["alta", "high", "haute", "altua", "elevada", "3"],
     "Crítica": ["critica", "critical", "urgente", "urgent", "kritikoa", "critique", "4"],
 }
+_SINONIMOS_PRIORIDAD["Baja"] += ["niedrig"]          # alemán
+_SINONIMOS_PRIORIDAD["Media"] += ["mittel"]
+_SINONIMOS_PRIORIDAD["Alta"] += ["hoch"]
+_SINONIMOS_PRIORIDAD["Crítica"] += ["kritisch", "dringend"]
 
 
 def _prioridad(v):

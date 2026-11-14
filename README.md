@@ -6,6 +6,7 @@
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
   <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/Deutsch-6e7781?style=for-the-badge" alt="Deutsch"></a>
 </p>
 
 # MantPro
@@ -178,7 +179,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📥 Import from Excel/CSV**: `File > Import from Excel/CSV…` (administrators only) brings in machines, warehouse items, recurring reminders, users, pending jobs and old work history from a downloadable template or from your own Excel (one sheet or the whole workbook at once), with automatic column matching, a row-by-row preview and a backup made beforehand. Missing locations (zones, shelving units, shelves) and parent machines are created automatically, and users get a temporary password they must change on first login
 - **🏭 Machinery Control**: Tree of machines and sub-machines with an attached photo, job counter per year and month, and a direct link from every job logged or edited (see [Machinery](#-machinery))
 - **📊 Export**: To PDF, CSV and Excel, with an optional technician filter and showing each job's machine/sub-machine, if it has one
-- **📖 Built-in Help**: `Help > 📖 Instructions` opens a full manual by section (getting started, users, each tab, menus, mobile apps and common problems), with an index and search box, in all 7 languages. **F1** opens it directly at the section of the tab you are on
+- **📖 Built-in Help**: `Help > 📖 Instructions` opens a full manual by section (getting started, users, each tab, menus, mobile apps and common problems), with an index and search box, in all 8 languages. **F1** opens it directly at the section of the tab you are on
 - **👥 Statistics by Technician**: button on the Dashboard showing each technician's jobs by year and month, breakdowns, preventive jobs, downtime hours and pending jobs assigned right now, with a bar chart; can be filtered by type (all, work orders and breakdowns, or preventive maintenance) and exported to PDF (with logo) and Excel
 - **🔩 Spare Parts per Machine**: which warehouse items each machine has fitted and how many, with their stock and location, and which machines use each item (see [Machinery](#-machinery))
 - **💶 Spare Parts Used and Cost**: when logging, completing or editing a job you note the spare parts used (the machine's own parts are offered first); they come out of stock and are saved with the job and the price at that moment, so the cost does not change if the price changes later. Correcting them adjusts the stock. Each item can have a unit price (configurable currency). `Machines > 💶 Spare parts cost` shows the cost per machine, including sub-machines, by year, exportable to Excel; the history, PDF, Excel and CSV include them Costs are only visible to administrators.
@@ -834,7 +835,7 @@ What's coming, without dates and in no fixed order:
 - **Push notifications** of urgent jobs and **videos** in jobs
 - **Several PCs at once**, a headless server (Raspberry Pi, NAS, Docker) and web access
 - **Several sites or plants** with separate data and KPIs per site
-- More languages (Italian, German…) and an iPhone app
+- More languages (Italian…) and an iPhone app
 
 Recently done: suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 

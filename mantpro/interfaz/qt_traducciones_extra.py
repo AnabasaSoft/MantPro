@@ -170,7 +170,7 @@ COMPLEMENTOS = {"es": _COMPLEMENTO_ES, "pt": _COMPLEMENTO_PT, "fr": _COMPLEMENTO
 
 # Idiomas cuyos textos de Qt están cubiertos (oficial + este fichero). Hay que
 # añadir aquí el idioma nuevo al darlo de alta, junto con su traducción.
-IDIOMAS_QT_CUBIERTOS = ("es", "en", "eu", "ca", "gl", "pt", "fr")
+IDIOMAS_QT_CUBIERTOS = ("es", "en", "eu", "ca", "gl", "pt", "fr", "de")
 
 # (contexto, texto original) de los textos de Qt que la app muestra de verdad:
 # selector de ficheros y carpetas, botones estándar, menú de edición, selector
@@ -289,6 +289,7 @@ IGUALES_VALIDOS = {
     ("gl", "&Sat:"): True, ("gl", "&Val:"): True,
     ("pt", "&Sat:"): True, ("pt", "&Val:"): True,
     ("fr", "Type"): True, ("fr", "Oblique"): True,
+    ("de", "Computer"): True, ("de", "Name"): True,
 }
 
 

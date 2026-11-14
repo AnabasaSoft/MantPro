@@ -1,0 +1,195 @@
+<h1>Anleitung zu MantPro</h1>
+<p>MantPro erfasst die Instandhaltung Ihres Werks oder Ihrer Werkstatt: erledigte Arbeiten, offene Arbeiten, wiederkehrende Wartungen, Maschinen und den Lagerbestand. Die Techniker arbeiten auf dem Handy, auch ohne Verbindung, und beim Synchronisieren kommt alles auf diesem PC an.</p>
+<p>Wählen Sie links im Inhaltsverzeichnis einen Abschnitt oder suchen Sie oben nach einem Wort. Dieses Fenster öffnet sich auch mit der Taste <b>F1</b>, und zwar direkt beim Abschnitt des Reiters, in dem Sie sich befinden.</p>
+
+<h2><a name="inicio"></a>🚀 Erste Schritte</h2>
+<ol>
+<li><b>Melden Sie sich</b> mit Ihrem Benutzer und Passwort an. Beim ersten Mal gibt es den Benutzer <code>admin</code> mit dem Passwort <code>admin</code>, und das Programm verlangt, dass Sie es ändern.</li>
+<li><b>Legen Sie die Benutzer</b> der Techniker unter <i>Werkzeuge → 👥 Benutzerverwaltung</i> an.</li>
+<li><b>Erfassen Sie die Maschinen</b> im Reiter <i>🏭 Maschinen</i>. Haben Sie sie bereits in einer Tabelle, importieren Sie sie über <i>Datei → 📥 Aus Excel/CSV importieren…</i></li>
+<li><b>Verbinden Sie die Handys</b> über <i>Werkzeuge → 📲 App synchronisieren (QR)</i> (siehe „Handy-Apps“).</li>
+<li>Wählen Sie Ihr <b>Land oder Ihre Region</b> unter <i>Werkzeuge → 🌍 Land / Region (Feiertage)</i>, damit der Kalender die Feiertage markiert.</li>
+</ol>
+
+<h2><a name="sesion"></a>👤 Sitzung, Benutzer und Berechtigungen</h2>
+<p>Jede Person meldet sich mit ihrem eigenen Benutzer an, und jede Arbeit wird mit dem Namen dessen gekennzeichnet, der sie erledigt hat. Ein Benutzer kann eine oder mehrere Rollen haben:</p>
+<ul>
+<li><b>Administrator:</b> darf alles, einschließlich Benutzer verwalten, das Lager einrichten und jeden Eintrag ändern oder löschen. Nur er sieht die Preise, die Kosten und alles rund um den Einkauf (Lieferanten und Bestellungen).</li>
+<li><b>Techniker:</b> erfasst Arbeiten und erledigt offene Arbeiten und Erinnerungen. Er kann nur seine eigenen Einträge ändern oder löschen.</li>
+<li><b>Lager:</b> verwaltet Artikel und Lagerbewegungen in der App MantPro Stock.</li>
+</ul>
+<p>Im Menü <i>Sitzung</i> können Sie <b>den Benutzer wechseln</b> oder <b>sich abmelden</b>, ohne das Programm zu beenden. Ihr Passwort ändern Sie unter <i>Werkzeuge → 🔑 Mein Passwort ändern</i>.</p>
+<p>Ein Administrator legt Benutzer an, bearbeitet, deaktiviert und <b>löscht</b> sie unter <i>Werkzeuge → 👥 Benutzerverwaltung</i>. Beim Löschen eines Benutzers werden seine Sitzungen geschlossen und sein zugeordnetes Handy freigegeben, aber <b>sein Name bleibt erhalten</b> in den Arbeiten, Lagerbewegungen und Einträgen, die er erstellt hat. Man kann weder sich selbst noch den letzten Administrator löschen.</p>
+
+<h2><a name="dashboard"></a>📊 Dashboard</h2>
+<p>Überblick auf einen Blick: offene Erinnerungen, zu erledigende Aufgaben, Einträge des Monats und die Zuverlässigkeitskennzahlen des ganzen Werks (<b>MTBF</b>, mittlere Zeit zwischen Störungen, und <b>MTTR</b>, mittlere Reparaturzeit). Darunter sehen Sie die Maschinen mit den meisten Arbeiten, die Störungen pro Monat und die Verteilung der Arbeiten nach Art.</p>
+<p>Die Karten <b>Kosten des Monats</b> und <b>Kosten des Jahres</b> summieren Ersatzteile und Arbeitskosten der Arbeiten, und darunter sehen Sie die <b>Maschinen mit den höchsten Kosten</b> im laufenden Jahr (jeweils mit ihren Untermaschinen) und die <b>Wartungskosten pro Monat</b> der letzten 12 Monate. Fehlt bei einem Ersatzteil oder einer Arbeit der Preis oder der Stundensatz, ist die Summe zu niedrig und wird mit „≥“ angezeigt. Die Einzelheiten pro Maschine und Artikel finden Sie unter <i>Maschinen → 💶 Kosten</i>. Die Kosten sehen nur Administratoren.</p>
+<p>Die Zuverlässigkeitskennzahlen werden aus den als <b>Störung</b> getaggten Arbeiten und deren Stillstandsstunden berechnet.</p>
+<p>Die Schaltfläche <b>👥 Statistik pro Techniker</b> zeigt für das gewählte Jahr die Arbeiten jedes Technikers (insgesamt und Monat für Monat), seine Störungen, vorbeugenden Wartungen und Stillstandsstunden sowie die Anzahl der ihm gerade zugewiesenen offenen Arbeiten. Unter <b>Art</b> wählen Sie, ob alle Arbeiten, nur Arbeiten und Störungen oder nur die vorbeugende Wartung angezeigt werden. Mit <b>📄 PDF exportieren</b> und <b>📊 Excel exportieren</b> speichern Sie sie so, wie Sie sie sehen.</p>
+
+<h2><a name="calendario"></a>📅 Kalender</h2>
+<p>Zeigt die Arbeiten und Erinnerungen jedes Tages. Ein Klick auf einen Tag zeigt seine Liste, und ein Doppelklick auf eine Arbeit öffnet sie zum Bearbeiten. <i>Zu heute</i> kehrt zum aktuellen Tag zurück.</p>
+<p>Feiertage, Urlaub, Brückentage und freie Tage erscheinen in unterschiedlichen Farben. Sie werden mit der Schaltfläche <i>Tage verwalten</i> oder unter <i>Werkzeuge → Tage / Feiertage verwalten</i> verwaltet. Die gesetzlichen Feiertage werden je nach gewähltem Land oder gewählter Region automatisch heruntergeladen.</p>
+
+<h2><a name="avisos"></a>🔁 Wartungsplan (wiederkehrende Wartungen)</h2>
+<p>Eine Erinnerung ist eine wiederkehrende Wartung: zum Beispiel eine Maschine jeden Monat schmieren. Sie wird mit Titel, Startdatum, Häufigkeit (täglich, wöchentlich, monatlich, vierteljährlich, halbjährlich oder jährlich), Tagen Spielraum, Techniker und Fachbereich angelegt.</p>
+<ul>
+<li><b>Offen</b> (orange): Sie ist fällig und liegt innerhalb des Spielraums.</li>
+<li><b>Überfällig</b> (rot): Der Spielraum ist verstrichen, ohne dass sie erledigt wurde. Die Erinnerung wird nicht übersprungen: Sie bleibt bestehen, bis sie erledigt ist.</li>
+</ul>
+<p>Beim Abhaken als erledigt entsteht ein Eintrag im Verlauf, und das nächste Datum wird <b>ab dem Tag gezählt, an dem sie tatsächlich erledigt wurde</b>. Mit der rechten Maustaste können Sie mehrere Erinnerungen auf einmal zuweisen oder löschen.</p>
+<p><b>📟 Nach Zähler:</b> Eine Erinnerung kann sich nach den <b>Betriebsstunden, Zyklen oder km</b> einer Maschine richten statt (oder zusätzlich) nach dem Datum: „Ölwechsel alle 500 h, 50 h vorher erinnern“.</p>
+<ul>
+<li><b>Zuerst der Zähler:</b> Die Erinnerung kann nur bereits vorhandene Zähler verwenden. Legen Sie sie vorher unter <i>Maschinen → 📟 Zähler</i> an (nur Administratoren). Die Auswahlliste <i>Zähler</i> der Erinnerung zeigt die Zähler aller Maschinen („Maschine — Name (Einheit)“); ist sie leer, gibt es noch keinen, und das Formular weist selbst darauf hin.</li>
+<li><b>Felder:</b> Haken Sie beim Anlegen oder Bearbeiten der Erinnerung <i>Nach Zähler</i> an, wählen Sie den Zähler und füllen Sie <b>Alle</b> (wie oft sie fällig ist, in der Einheit des Zählers: 500), <b>Vorher erinnern</b> (wie früh sie orange wird: 50) und, wenn Sie möchten, <b>Erstmals bei</b> aus (die Ablesung, bei der sie zum ersten Mal fällig ist; leer heißt „automatisch“: aktuelle Ablesung plus „Alle“). Zahlen schreiben Sie wie gewohnt: „1.500“ ist 1500 und „6,5“ ist 6,5.</li>
+<li><b>Was zuerst eintritt:</b> Mit <i>Zusätzlich höchstens nach der Häufigkeit nach Datum</i> behält die Erinnerung auch ihre Häufigkeit (jährlich, monatlich…) und wird fällig, je nachdem, was zuerst eintritt („alle 500 h oder jedes Jahr“, für selten genutzte Maschinen). Ohne Haken richtet sie sich nur nach dem Zähler: Sie erscheint nicht im Kalender, zählt aber im Dashboard.</li>
+<li><b>Farben:</b> normal bis zum Erreichen der Vorlaufzeit, <b>orange</b> innerhalb davon und <b>rot</b> nach Überschreiten. Die Spalte zeigt, was noch fehlt („1500 h (jetzt 1440 h)“), und der Tooltip sagt, wann es beim aktuellen Nutzungstempo erreicht wird.</li>
+<li><b>Geschätztes Datum:</b> wird aus der mittleren Nutzung der letzten 180 Tage berechnet, ab dem letzten Mal, als der Zähler gesunken ist (Tausch oder Nullstellung). Nötig sind mindestens zwei Ablesungen im Abstand von einem Tag oder mehr und ein steigender Zähler; sonst lässt es sich nicht schätzen und wird nicht angezeigt.</li>
+<li><b>Erledigen:</b> Der Dialog fragt nach der aktuellen Ablesung (optional, zusammen mit der Arbeitszeit). Ab ihr wird die nächste gezählt („alle 500 h“ ab dort), die Arbeit wird mit der Maschine verknüpft, und die Ablesung kommt in den Verlauf des Zählers. Ist sie kleiner als die vorherige, wird um Bestätigung gebeten (Zähler getauscht oder auf null gesetzt).</li>
+<li><b>Rückgängig machen:</b> Das Aufheben der Erledigung oder das Löschen der Arbeit im Verlauf führt zum vorherigen Zyklus zurück; die Ablesung bleibt im Verlauf des Zählers, zählt aber nicht mehr als Beginn des Zyklus.</li>
+<li><b>Auf dem Handy</b> erscheinen die zählerbasierten Erinnerungen genauso, auch ohne Verbindung: Der Status (orange oder rot) berücksichtigt die auf dem Handy erfassten Ablesungen, die noch nicht an den PC gesendet wurden.</li>
+<li>Die Änderungen an der Erinnerung (Zähler, „Alle“, „Vorher erinnern“, „Erstmals bei“) und die Ablesungen werden im <i>Änderungsprotokoll</i> festgehalten.</li>
+</ul>
+
+<h2><a name="registrar"></a>📝 Eine Arbeit erfassen</h2>
+<p>Zum Erfassen einer bereits erledigten Arbeit: Datum, eine kurze Zusammenfassung, die Details, die Maschine und die Tags (Dringend, Elektrisch, Mechanisch, Vorbeugend, Störung oder eigene).</p>
+<ul>
+<li><b>Fotos:</b> Ziehen Sie ein Foto <i>vorher</i> und eines <i>nachher</i> in ihre Felder oder klicken Sie, um sie zu suchen. In der <b>Fotosammlung</b> können Sie beliebig viele hinzufügen, auch <b>Videos</b> (bis 100 MB; das Handy nimmt sie auf): Sie erscheinen mit einem Wiedergabesymbol, und ein Doppelklick öffnet sie im Videoplayer des Rechners. Das Foto vorher und das Foto nachher sind immer Fotos.</li>
+<li>Bei einer <b>Störung</b> geben Sie die <b>Stillstandsstunden</b> an: Sie werden für die MTTR verwendet.</li>
+</ul>
+<p>Klicken Sie auf <b>💾 EINTRAG SPEICHERN</b>, um sie im Verlauf zu speichern.</p>
+
+<p><b>🔩 Verbrauchtes Material:</b> Tragen Sie die verwendeten Lagerartikel ein (die Ersatzteile der gewählten Maschine stehen oben). Sie werden vom Bestand abgebucht und bleiben mit Preis bei der Arbeit. Das geht auch beim Erledigen einer offenen Arbeit und, um sie zu korrigieren, beim Bearbeiten der Arbeit im Verlauf: Der Bestand passt sich automatisch an. Die Kosten pro Maschine finden Sie unter <i>Maschinen → 💶 Ersatzteilkosten</i>; den Preis jedes Artikels in seinem Steckbrief und die Währung unter <i>Lagerbestand → ⚙️ Lager einrichten</i>. Die Kosten sehen nur Administratoren.</p>
+
+<p><b>⏱️ Arbeitszeit:</b> wie lange die Arbeit gedauert hat (1:30, 1,5 oder 90 min) und wie viele Personen. <b>Sie wird nachträglich erfasst</b>, nach der Rückkehr: Es gibt keine Stoppuhr. Auch beim Erledigen einer offenen Arbeit oder einer Erinnerung und, falls vergessen, beim Bearbeiten der Arbeit im Verlauf. Sie dient für die Arbeitskosten und die Stunden jedes Technikers in der Statistik. Sie ist optional: Wenn es nur eine Kontrolle war, lassen Sie sie leer.</p>
+
+<h2><a name="historial"></a>📋 Verlauf</h2>
+<p>Alle erledigten Arbeiten, nach Jahren und Monaten geordnet. Sie können nach Techniker und nach Art filtern (Arbeiten und Störungen oder vorbeugende Erinnerungen).</p>
+<ul>
+<li><b>Doppelklick</b> auf eine Arbeit, um sie mit ihren Fotos anzusehen oder zu bearbeiten.</li>
+<li>Mit der <b>rechten Maustaste</b> können Sie mehrere Arbeiten löschen, eine versehentlich abgeschlossene Arbeit <b>zurück auf offen</b> setzen und, als Administrator, den Autor mehrerer Einträge auf einmal ändern.</li>
+</ul>
+<p>Jede Änderung wird unter <i>Werkzeuge → 📋 Änderungsprotokoll</i> festgehalten: wer sie vorgenommen hat, wann, von wo (PC oder Handy) und welche Felder sich geändert haben.</p>
+
+<h2><a name="buscador"></a>🔍 Suche</h2>
+<p>Sucht Arbeiten nach Text (zum Beispiel „Motor“, „Leck“ oder dem Namen eines Teils), nach Datumsbereich und nach Tags. Die Ergebnisse öffnen sich mit Doppelklick, genau wie im Verlauf.</p>
+
+<h2><a name="pendientes"></a>🔨 Offene Arbeiten</h2>
+<p>Zu erledigende Arbeiten. Jede offene Arbeit hat Titel, Details, <b>Priorität</b> (Niedrig, Mittel, Hoch oder Kritisch, mit ihrer Farbe), Fachbereich, Fotos und den zugewiesenen Techniker.</p>
+<ul>
+<li><b>✅ Erledigen</b> verschiebt sie in den Verlauf; dabei können Sie die abschließenden Fotos und Details hinzufügen.</li>
+<li><b>👤 Neu zuweisen</b> ändert den Techniker. Die Liste <i>Anzeigen von</i> filtert nach Person.</li>
+<li>Auf dem Handy sieht jeder Techniker seine offenen Arbeiten mit dem Filter „Nur meine“.</li>
+</ul>
+
+<h2><a name="maquinas"></a>🏭 Maschinen</h2>
+<p>Baum aus Maschinen und Untermaschinen (zum Beispiel eine Linie mit ihren Anlagen). Beim Aufklappen einer Maschine erscheinen ihre Arbeiten nach Jahren und Monaten, und ein Doppelklick öffnet jede Arbeit.</p>
+<ul>
+<li>Jede Maschine kann eine <b>Zone</b>, Notizen und ein <b>Foto</b> haben, das beim Auswählen angezeigt wird.</li>
+<li>Beim Auswählen werden ihre Zuverlässigkeitskennzahlen angezeigt (Störungen, MTBF und MTTR).</li>
+<li><b>🏷️ QR-Etiketten</b> erzeugt ein PDF mit Etiketten (24 pro A4-Bogen, 70 × 37 mm) zum Aufkleben auf die Maschinen. Beim Scannen mit der App MantPro öffnet sich der Steckbrief dieser Maschine.</li>
+<li><b>🔩 Ersatzteile:</b> Unter dem Baum sehen Sie die Lagerartikel, die in der ausgewählten Maschine verbaut sind, wie viele, wie viele auf Lager sind (rot, wenn unter Minimum) und wo sie liegen. Fügen Sie sie mit <b>➕ Ersatzteil hinzufügen</b> hinzu; ein Doppelklick führt zum Artikel im Lagerbestand. Auf dem Handy erscheinen sie im Steckbrief der Maschine, und im Lagerbestand zeigt jeder Artikel, in welchen Maschinen er verwendet wird; Sie können ihn auch beim Anlegen oder Bearbeiten seinen Maschinen zuordnen.</li>
+<li><b>💶 Kosten:</b> was die Wartung jeder Maschine gekostet hat, einschließlich ihrer Untermaschinen, pro Jahr: Arbeitsstunden, <b>Arbeitskosten</b> (Stunden × Stundensatz) und <b>Ersatzteile</b>, mit den Einzelheiten der Artikel der gewählten Maschine. Wird nach Excel exportiert. Den <b>Stundensatz</b> legen Sie gleich dort fest (nur Administratoren); jede Arbeit speichert den Satz, der beim Erfassen ihrer Zeit galt. Die Ersatzteile der Maschine stehen beim Erfassen verbrauchter Teile einer Arbeit oben, auf dem PC und auf dem Handy. Nur Administratoren.</li>
+<li><b>📟 Zähler:</b> Betriebsstunden, Zyklen oder km der ausgewählten Maschine, für die zählerbasierten Wartungen. Wählen Sie die Maschine und klicken Sie auf <i>📟 Zähler</i>:
+<ul>
+<li><b>➕ Neuer Zähler</b> (nur Administratoren): Name („Betriebsstunden“), Einheit („h“) und, falls bekannt, die aktuelle Ablesung. Eine Maschine kann mehrere haben (zum Beispiel Stunden und Zyklen). <b>✏️ Bearbeiten</b> ändert Name und Einheit.</li>
+<li><b>🗑️ Löschen</b> löscht den Zähler mit allen Ablesungen. Das geht nicht, wenn eine Erinnerung ihn verwendet: Ändern oder löschen Sie diese Erinnerungen vorher. Beim Löschen einer Maschine werden ihre Zähler gelöscht, und die Erinnerungen, die sie verwendeten, richten sich nicht mehr nach dem Zähler.</li>
+<li><b>📟 Ablesung erfassen</b> (wer Arbeiten erfassen darf): Trägt Wert und Datum ein; das geht auch im Steckbrief der Maschine auf dem Handy oder beim Erledigen einer zählerbasierten Wartung.</li>
+<li><b>📋 Ablesungen</b> zeigt den Verlauf; ein Administrator kann eine falsche mit <b>🗑️ Ablesung löschen</b> entfernen.</li>
+</ul>
+Jeder Zähler zeigt seine letzte Ablesung und die mittlere Nutzung pro Tag. Maßgeblich ist die nach Datum neueste Ablesung (nicht die höchste), sodass ein getauschter oder auf null gesetzter Zähler weiter funktioniert; tragen Sie eine kleinere als die vorherige ein, wird um Bestätigung gebeten.</li>
+</ul>
+
+<h2><a name="stock"></a>📦 Lagerbestand</h2>
+<p>Das Lager ist in <b>Zonen → Regale → Fachböden → Fächer</b> gegliedert (Fächer sind optional). Nur ein Administrator kann diese Struktur über <b>⚙️ Lager einrichten</b> ändern.</p>
+<ul>
+<li><b>➕ Material hinzufügen:</b> Code, Name, Beschreibung, Einheit, Mindestbestand, Lagerort, Foto und Stückpreis (nur Administratoren).</li>
+<li><b>📥 Zugang / 📤 Abgang:</b> erfasst Lagerbewegungen mit optionalem Grund. Ein manueller Abgang darf den Bestand nicht ins Negative bringen.</li>
+<li>Um Artikel an einen anderen Platz zu <b>verschieben</b>, wählen Sie sie aus und verwenden die rechte Maustaste.</li>
+<li>Beim Auswählen eines Artikels sehen Sie unten seinen Bewegungsverlauf. <b>📜 Verlauf</b> zeigt alle Bewegungen des Lagers nacheinander.</li>
+<li><b>📄 Exportieren</b> gibt den Bestand, ganz oder für eine Zone oder ein Regal, als PDF, CSV oder Excel aus.</li>
+<li><b>💶 Preise:</b> Jeder Artikel kann einen <b>Stückpreis</b> haben, der für die Kosten der in den Arbeiten verbrauchten Ersatzteile verwendet wird. <b>Nur ein Administrator kann ihn festlegen oder ändern</b> (auch in MantPro Stock). Die Währung wählen Sie unter <i>⚙️ Lager einrichten</i>. Die Kosten einer Arbeit werden mit dem damaligen Preis gespeichert: Ändert sich der Preis später, bleibt Erledigtes unverändert. Den Preis sieht nur ein Administrator: Alle anderen sehen ihn nirgends, weder auf dem PC noch in MantPro Stock.</li>
+<li><b>📦 Tägliche Prüfung (MantPro Stock):</b> Jeden Tag schlägt die App vor, 5 zufällige Artikel zu prüfen, und erinnert per Benachrichtigung daran. Jeder wird gezählt und die Menge bei Bedarf korrigiert; festgehalten wird, wer es getan hat und ob alle 5 geprüft wurden (zu sehen unter <i>Werkzeuge → 📦 Verlauf der Lagerprüfungen</i>).</li>
+<li><b>🏭 Lieferanten:</b> Die Schaltfläche <i>Lieferanten</i> öffnet die Lieferantenliste des Lagers (Name, Ansprechpartner, Telefon, E-Mail und Notizen) zum Anlegen, Bearbeiten oder Löschen; nur Administratoren können sie verwenden. Im Steckbrief jedes Artikels wählen Sie seinen <b>Stammlieferanten</b>. Löschen Sie einen Lieferanten, bleiben seine Artikel ohne Stammlieferant. Die Änderungen werden im Änderungsprotokoll festgehalten.</li>
+<li><b>💶 Preise pro Lieferant</b> (nur Administratoren): Im Steckbrief eines Artikels zeigt die Schaltfläche <i>Preise pro Lieferant…</i> den letzten Preis jedes Lieferanten (der günstigste grün, mit der Preisänderung) und den vollständigen Verlauf. Sie können einen Preis manuell erfassen, einen Eintrag löschen oder einen als Artikelpreis verwenden. Bei einem <b>Zugang</b> können Sie angeben, bei wem und zu welchem Preis gekauft wurde, und es wird im Verlauf festgehalten; weicht der Preis von dem des Artikels ab, werden Sie gefragt, ob Sie ihn aktualisieren möchten (er ändert sich nie von selbst).</li>
+<li><b>🎯 Zielbestand und Bestellvielfaches:</b> (nur Administratoren) Im Steckbrief des Artikels können Sie angeben, bis zu welcher Menge er beim Bestellen aufgefüllt werden soll (<i>Zielbestand</i>; leer gilt Mindestbestand × Faktor aus <i>⚙️ Lager einrichten</i>, standardmäßig 2), und das <i>Bestellvielfache</i>, wenn nur in Kartons oder Losen gekauft wird. Darunter sehen Sie, wie viel beim aktuellen Bestand zu bestellen vorgeschlagen würde, auf das Vielfache aufgerundet.</li>
+<li><b>🛒 Bestellungen</b> (nur Administratoren): Unter <i>Bestand unter Minimum</i> listet die Schaltfläche <i>Bestellvorschlag…</i> auf, was bestellt werden muss (Zielbestand − Vorhandenes − bereits Bestelltes und noch Ausstehendes), mit Lieferant, geschätztem Preis und Summe; Sie können Mengen und Lieferanten ändern und Unerwünschtes abwählen (mehrere Zeilen lassen sich auswählen und gemeinsam markieren oder entmarkieren, auch mit der Leertaste). <i>Bestellungen anlegen</i> speichert eine Bestellung pro Lieferant mit Datum. Die Schaltfläche <i>🛒 Bestellungen</i> im Reiter Lagerbestand listet sie auf: <b>✉️ E-Mail</b> öffnet Ihr E-Mail-Programm mit dem Text und legt das PDF zum Anhängen bereit, <b>💬 WhatsApp</b> öffnet den Chat mit dem fertigen Text (die Telefonnummer des Lieferanten braucht eine Vorwahl, z. B. +49), <b>📞 Telefon</b> zeigt Nummer und Text zum Vorlesen oder Kopieren, und <b>🖨️ Drucken / PDF</b> erzeugt das PDF. Text und PDF enthalten keine Preise. Jeder <b>Zugang</b> verrechnet die ausstehenden Mengen der Bestellungen (die älteste zuerst): Sie wechseln zu <i>Teilweise</i> und, wenn alles da ist, zu <i>Erhalten</i>. Sie können eine Bestellung auch als erhalten markieren (ohne den Bestand zu ändern), stornieren oder löschen.</li>
+</ul>
+<p>Der Bestand erscheint <b>rot</b>, wenn er unter dem Minimum liegt, und <b>grün</b>, wenn er darüber liegt.</p>
+
+<h2><a name="bajo_minimo"></a>⚠️ Bestand unter Minimum</h2>
+<p>Artikel ohne Bestand oder unter ihrem Minimum (Menge rot) und solche <b>genau auf dem Minimum</b> (Menge ohne Farbe), damit Sie sie im Blick behalten. Der Titel des Reiters zählt nur die darunter. Von hier aus können Sie zum Artikel springen, einen Zugang erfassen oder die Liste für die Bestellung exportieren; beim Export wählen Sie, ob die Artikel genau auf dem Minimum dabei sein sollen. Als Administrator berechnet die Schaltfläche <b>🛒 Bestellvorschlag…</b>, was zu bestellen ist (abzüglich bereits Bestelltem), und legt die Bestellungen an; siehe <i>🛒 Bestellungen</i> unter „Lagerbestand“.</p>
+
+<h2><a name="archivo"></a>💾 Menü Datei: Sicherungen, Import und Export</h2>
+<ul>
+<li><b>💾 Sicherung:</b> vollständige Sicherung (Datenbanken und Fotos) als ZIP an einem Ort Ihrer Wahl. Außerdem erstellt MantPro automatische Sicherungen (siehe unten).</li>
+<li><b>♻️ Wiederherstellen:</b> stellt eine manuelle oder eine der automatischen Sicherungen wieder her. <b>Ersetzt alle aktuellen Daten.</b></li>
+<li><b>🛡️ Automatische Sicherungen…:</b> MantPro sichert nur die Datenbanken und die neuen Fotos im Ordner <code>backups_auto</code>: immer beim Beenden, alle 2 Stunden, solange es geöffnet ist (wenn es Änderungen gab), kurz nach dem Empfang von Handydaten und beim Öffnen, falls noch ungesicherte Änderungen vorhanden sind. Hier wählen Sie, wie oft und wie viele Sicherungen aufbewahrt werden (standardmäßig die letzten 10 und eine pro Tag der letzten 14 Tage) und, sehr empfehlenswert, <b>einen externen Ordner</b> (NAS, USB-Festplatte oder Ordner von Nextcloud/Dropbox/Google Drive), in den jede Sicherung zusätzlich geschickt wird: Eine Sicherung auf derselben Festplatte hilft nicht, wenn die Festplatte ausfällt. Nach jeder Sicherung wird geprüft, ob sie sich wiederherstellen lässt (ohne Ihre Daten anzutasten). Unten rechts in der Statusleiste steht das Datum der letzten fehlerfreien Sicherung; wenn etwas schiefgeht, erscheint „⚠️ Sicherungen: prüfen“ in Rot. Um aus dem externen Ordner wiederherzustellen, verwenden Sie <i>Wiederherstellen → Aus automatischer Sicherung wiederherstellen</i> und wählen eine Sicherung aus diesem Ordner.</li>
+<li><b>🔒 Passwort der Sicherungen…:</b> verschlüsselt die Sicherungen (die manuelle, die automatische und die vorherigen) mit einem Passwort, damit sie sich außerhalb des Rechners (USB, NAS, Cloud) nicht öffnen lassen. Auf diesem Rechner werden sie ohne Nachfrage wiederhergestellt, auf einem anderen nicht. Wenn Sie es vergessen, lassen sich die verschlüsselten Sicherungen nicht wiederherstellen.</li>
+<li><b>📥 Aus Excel/CSV importieren…:</b> übernimmt Maschinen, Artikel, Erinnerungen, Benutzer, offene Arbeiten und alte Arbeitsverläufe aus einer Tabelle. Sie können eine Vorlage herunterladen und eine Vorschau Zeile für Zeile prüfen, und vor dem Import wird eine Sicherung gespeichert.</li>
+<li><b>📤 Exportieren:</b> den Verlauf als PDF (mit dem Logo Ihres Unternehmens, wenn Sie es unter <i>PDF-Optionen</i> hinterlegen), CSV oder Excel, mit Filter nach Techniker.</li>
+</ul>
+
+<h2><a name="herramientas"></a>🛠️ Menü Werkzeuge</h2>
+<ul>
+<li><b>📲 App synchronisieren (QR):</b> zeigt den Code zum Verbinden der Handys.</li>
+<li><b>📱 MantPro auf dem Handy installieren</b> und <b>📦 MantPro Stock auf dem Handy installieren:</b> zeigen einen QR-Code; beim Scannen mit der Handykamera wird die neueste Version der App zum Installieren heruntergeladen.</li>
+<li><b>🔌 Synchronisierungsport…:</b> Ändern Sie ihn nur, wenn ein anderes Programm denselben Port verwendet. Danach muss der QR-Code auf den Handys erneut gescannt werden. MantPro verwendet diesen Port und den nächsten (diesen für die verschlüsselte Verbindung): Gibt es eine Firewall, öffnen Sie beide.</li>
+<li><b>👥 Benutzerverwaltung</b>, <b>🔐 Gerätesitzungen</b> (welche Handys gerade verbunden sind und ihren Zugang widerrufen) und <b>📋 Änderungsprotokoll</b> (wer was wann und von wo geändert hat: Arbeiten, offene Arbeiten, Erinnerungen, Checklisten, Maschinen, Lager, Benutzer, Sicherheit, Sicherungen und Einstellungen, mit jedem Feld vorher → nachher; filterbar, durchsuchbar und als Excel oder CSV exportierbar).</li>
+<li><b>📦 Verlauf der Lagerprüfungen</b> (nur Administratoren): wer an jedem Tag die Prüfung der 5 von MantPro Stock vorgeschlagenen Artikel durchgeführt hat, ob alle geprüft wurden (✅ vollständig, ⚠️ unvollständig, ❌ nicht geprüft) und die gezählte Menge im Vergleich zur Menge im System. Filterbar nach Benutzer, Zeitraum und Status, exportierbar als Excel oder CSV. Gab es an den letzten 7 Arbeitstagen einen Tag ohne Prüfung, weist MantPro beim Öffnen darauf hin und markiert ihn rot; darunter sehen Sie, <b>welche Handys Prüfungen durchgeführt haben</b> (mit wem und dem Datum der letzten).</li>
+<li><b>🔐 Verschlüsselung der Datenbanken…:</b> speichert <code>mantenimiento.db</code> und <code>almacen.db</code> verschlüsselt (SQLCipher), mit dem Schlüssel im Schlüsselbund des Systems: MantPro öffnet sie selbst, aber wer die Dateien kopiert oder die Festplatte mitnimmt, kann sie nicht lesen. Beim Aktivieren wird ein <b>Wiederherstellungsschlüssel</b> angezeigt, den Sie notieren müssen: MantPro fragt danach, wenn der Schlüsselbund den Schlüssel verliert (System neu installiert, neuer Benutzer…). Die Umstellung erfolgt beim nächsten Öffnen von MantPro.</li>
+<li><b>📅 Tage / Feiertage verwalten</b> und <b>🌍 Land / Region (Feiertage)</b>: besondere Tage des Kalenders.</li>
+<li><b>☑️ Checklisten…:</b> legt Vorlagen mit Prüfpunkten an (in Ordnung / nicht in Ordnung / entfällt, oder Messwerte mit Einheit und gültigem Bereich), die Sie Erinnerungen und offenen Arbeiten beim Anlegen oder Bearbeiten zuweisen. Beim Erledigen, auf dem PC oder auf dem Handy, muss die Liste ausgefüllt werden; sie wird mit der Arbeit gespeichert (☑️ im Verlauf, ☑️❌ wenn etwas nicht in Ordnung war; rechte Maustaste zum Anzeigen) und erscheint im PDF, im Excel und im CSV.</li>
+<li><b>🗑️ Maximale Aufbewahrungsdauer der Arbeiten…:</b> löscht Arbeiten, die älter als der gewählte Zeitraum sind, mit vorheriger Sicherung.</li>
+<li><b>🧹 Ungenutzte Fotos bereinigen:</b> löscht Fotos, die kein Eintrag mehr verwendet.</li>
+<li><b>🌐 Sprache</b> und im Menü <i>Darstellung</i> das helle, dunkle oder klassische Design.</li>
+</ul>
+
+<h2><a name="movil"></a>📱 Handy-Apps</h2>
+<p>Es gibt zwei Apps für Android: <b>MantPro</b> (Arbeiten) und <b>MantPro Stock</b> (Lager).</p>
+<ol>
+<li>Öffnen Sie, mit dem Handy im <b>selben WLAN</b> wie der PC, <i>Werkzeuge → 📲 App synchronisieren (QR)</i>.</li>
+<li>Tippen Sie auf dem Handy auf <b>PC verbinden</b> und scannen Sie den Code.</li>
+<li>Melden Sie sich mit Ihrem Benutzer und Passwort an. Das ist nur beim ersten Mal nötig.</li>
+</ol>
+<ul>
+<li>Die Apps funktionieren <b>ohne Verbindung</b>: Alles wird auf dem Handy gespeichert und automatisch gesendet, sobald der PC wieder erreichbar ist.</li>
+<li>Solange die App geöffnet ist, auch im Hintergrund, synchronisiert sie weiter und zeigt die Benachrichtigung „Mit dem PC verbunden“. Wird sie ganz geschlossen, verbraucht sie keinen Akku mehr.</li>
+<li>In MantPro liest die <b>Scan</b>-Schaltfläche das QR-Etikett einer Maschine und öffnet ihren Steckbrief.</li>
+<li>Die Verbindung zum PC ist <b>verschlüsselt</b>. Um ein neues Handy zu verbinden, aktualisieren Sie vorher seine App: Eine alte App versteht den neuen QR-Code nicht.</li>
+<li>Erinnerungen und offene Arbeiten mit <b>☑️</b> haben eine Checkliste: Beim Erledigen wird sie auf dem Handy ausgefüllt, auch ohne Verbindung.</li>
+<li>Im Steckbrief einer Maschine (nach dem Scannen ihres QR-Codes) stehen ihre <b>📟 Zähler</b> mit der letzten Ablesung: Tippen Sie auf <b>Erfassen</b>, um die Ablesung einzutragen, auch ohne Verbindung (sie ist sofort sichtbar und wird beim Synchronisieren an den PC gesendet; wird dieselbe Sendung wiederholt, entsteht kein Duplikat). Dort stehen auch ihre zählerbasierten Wartungen mit dem, was noch fehlt, und ihrem Status, und beim Erledigen einer davon lässt sich die Ablesung im selben Schritt erfassen.</li>
+<li>Ist das Handy <b>einem Techniker zugeordnet</b> (siehe „Sicherheit und Verschlüsselung“), trägt der Anmeldebildschirm bereits seinen Benutzer ein und zeigt an, wem es zugeordnet ist; ein anderer Benutzer kann sich nicht anmelden, außer einem Administrator.</li>
+<li><b>MantPro Stock dient nur der Bestandskontrolle</b>: Den Preis der Artikel sieht und ändert nur ein Administrator, und Lieferanten, Preise pro Lieferant und Bestellungen werden ausschließlich auf dem PC verwaltet.</li>
+</ul>
+
+<h2><a name="seguridad"></a>🛡️ Sicherheit und Verschlüsselung</h2>
+<ul>
+<li><b>Verschlüsselte Verbindung zu den Handys (HTTPS):</b> Der PC erstellt sein eigenes Zertifikat, und dessen Fingerabdruck steht im Verbindungs-QR-Code, sodass sich die Handys nur mit <i>diesem</i> PC verbinden und niemand im WLAN die Daten mitlesen oder sich als dieser PC ausgeben kann. Die verschlüsselte Verbindung nutzt den Port nach dem Synchronisierungsport (5001, wenn Sie 5000 verwenden): Gibt es eine Firewall, öffnen Sie beide.</li>
+<li><b>Unverschlüsselte Verbindung:</b> Solange es Handys mit einer alten App gibt, bedient der PC sie auch unverschlüsselt. Unter <i>Werkzeuge → 🔐 Gerätesitzungen</i> zeigt die Spalte „Verschlüsselung“, welche Handys sie noch nutzen; wenn keines mehr übrig ist, klicken Sie auf <b>Unverschlüsselte Verbindung deaktivieren</b>.</li>
+<li><b>Geschützte Anmeldung:</b> Nach 5 falschen Passwörtern hintereinander wird der Benutzer auf dem Handy 15 Minuten und auf dem PC eine Minute gesperrt. Auf dem Handy wird die Sitzung im sicheren Speicher von Android abgelegt.</li>
+<li><b>Handysitzungen:</b> Jedes Mal, wenn sich das Handy mit dem PC verbindet, wird seine Sitzung erneuert, sodass man sich nicht erneut anmelden muss. Hat sich ein Handy 60 Tage nicht verbunden (verloren oder von jemandem, der nicht mehr da ist), wird seine Sitzung automatisch geschlossen; die Frist ändern Sie unter <i>Werkzeuge → 🔐 Gerätesitzungen</i>. Noch nicht Gesendetes geht nicht verloren.</li>
+<li><b>Handy einem Techniker zuordnen:</b> Wählen Sie unter <i>Werkzeuge → 🔐 Gerätesitzungen</i> eine Sitzung und klicken Sie auf <b>📲 Handy einem Techniker zuordnen…</b>. Ab dann kann sich auf diesem Handy nur sein Techniker anmelden (Administratoren immer), und die App trägt seinen Benutzer auf dem Anmeldebildschirm ein. Das gilt für MantPro und MantPro Stock zugleich (sie teilen die Kennung des Handys), sodass derselbe Techniker beide Apps auf demselben Handy nutzen kann. Das Handy muss sich dafür mit den aktualisierten Apps verbunden haben; bereits offene Sitzungen werden nicht geschlossen. Die Spalte „Handy von“ zeigt, wem es zugeordnet ist, und die Änderung steht im Änderungsprotokoll.</li>
+<li><b>Geprüfte Fotos:</b> Der PC speichert Fotos von den Handys nur, wenn es echte Bilder mit höchstens 30 MB sind, und über die verschlüsselte Verbindung sind sie nur mit angemeldeter Sitzung sichtbar.</li>
+<li><b>Verschlüsselte Datenbanken</b> (<i>Werkzeuge → 🔐 Verschlüsselung der Datenbanken…</i>, standardmäßig deaktiviert): Wer die Dateien kopiert oder die Festplatte mitnimmt, kann die Daten nicht lesen. MantPro öffnet sie selbst mit dem Schlüssel aus dem Schlüsselbund des Systems. <b>Notieren Sie den Wiederherstellungsschlüssel</b>, der beim Aktivieren angezeigt wird, und bewahren Sie ihn außerhalb des Rechners auf.</li>
+<li><b>Verschlüsselte Sicherungen</b> (<i>Datei → 🔒 Passwort der Sicherungen…</i>): Sicherungen, die den Rechner verlassen (USB, NAS, Cloud), lassen sich ohne das Passwort nicht öffnen. Die Sicherungen enthalten die Daten ohne die Verschlüsselung der Datenbanken, damit sie auf einem anderen Rechner wiederhergestellt werden können: Schützen Sie sie mit diesem Passwort.</li>
+<li>Fotos werden nicht verschlüsselt. Um den ganzen Rechner zu schützen, verwenden Sie zusätzlich eine Festplattenverschlüsselung (BitLocker unter Windows, LUKS unter Linux).</li>
+</ul>
+
+<h2><a name="problemas"></a>❓ Häufige Probleme</h2>
+<ul>
+<li><b>Das Handy verbindet sich nicht:</b> Prüfen Sie, ob PC und Handy im selben WLAN sind und ob MantPro auf dem PC geöffnet ist. Unter Windows muss das Programm eventuell in der Firewall zugelassen werden. Hat der PC eine neue IP-Adresse, scannen Sie den QR-Code erneut.</li>
+<li><b>„Der Port ist belegt“:</b> Meist ist ein weiteres MantPro geöffnet. Schließen Sie es oder ändern Sie den Port unter <i>Werkzeuge → 🔌 Synchronisierungsport…</i></li>
+<li><b>Jemand hat sein Passwort vergessen:</b> Ein Administrator kann es unter <i>Werkzeuge → 👥 Benutzerverwaltung</i> zurücksetzen.</li>
+<li><b>Die tägliche Benachrichtigung kommt auf dem Handy nicht an:</b> Stellen Sie die App bei Xiaomi, OPPO/Realme oder Huawei unter <i>Akku → Keine Einschränkungen</i>.</li>
+<li><b>Ich habe mich beim Wiederherstellen oder Importieren vertan:</b> Im Ordner <code>backups_auto</code> liegen die vorherigen Sicherungen.</li>
+<li><b>Unten rechts steht „⚠️ Sicherungen: prüfen“:</b> Die letzte automatische Sicherung ist fehlgeschlagen, ließ sich in der Probe nicht wiederherstellen oder konnte nicht in den externen Ordner geschickt werden (USB-Festplatte nicht angeschlossen, NAS ausgeschaltet). Klicken Sie darauf, um den Grund zu sehen, beheben Sie ihn und klicken Sie auf <i>💾 Jetzt sichern</i>.</li>
+<li><b>Beim Öffnen fragt MantPro nach einem Wiederherstellungsschlüssel:</b> Die Datenbanken sind verschlüsselt, und der Schlüsselbund des Systems hat ihren Schlüssel nicht mehr (System neu installiert, anderer Benutzer…). Geben Sie den Schlüssel ein, den Sie beim Aktivieren der Verschlüsselung notiert haben. Haben Sie ihn nicht, nehmen Sie <code>mantenimiento.db</code> und <code>almacen.db</code> aus dem Datenordner, öffnen Sie MantPro und stellen Sie eine Sicherung wieder her.</li>
+<li><b>„Zu viele Fehlversuche“:</b> Warten Sie die angegebene Zeit oder bitten Sie einen Administrator, das Passwort zurückzusetzen.</li>
+<li><b>Beim Wiederherstellen wird ein Passwort verlangt:</b> Die Sicherung ist mit dem Passwort der Sicherungen des Rechners verschlüsselt, auf dem sie erstellt wurde (oder mit einem früheren). Ohne dieses lässt sie sich nicht wiederherstellen.</li>
+<li><b>„Dieses Handy ist … zugeordnet“:</b> Das Handy ist einem Techniker vorbehalten, und nur er (oder ein Administrator) kann sich anmelden. Um es freizugeben oder zu ändern, verwendet ein Administrator <i>Werkzeuge → 🔐 Gerätesitzungen → 📲 Handy einem Techniker zuordnen…</i> und wählt einen anderen Techniker oder „Niemand (Handy frei)“.</li>
+<li><b>Ich sehe keine Preise, Kosten, Lieferanten oder Bestellungen:</b> Diese sehen nur Administratoren, auf dem PC und in den Apps. Bitten Sie einen Administrator, sie nachzusehen.</li>
+<li><b>WhatsApp öffnet den Chat mit dem Lieferanten nicht:</b> Seine Telefonnummer braucht die internationale Vorwahl (z. B. <code>+49 151 00000000</code>). Korrigieren Sie sie unter <i>🏭 Lieferanten</i>; ohne Vorwahl erkennt WhatsApp sie eventuell nicht.</li>
+<li><b>Ein Artikel erscheint nicht im Bestellvorschlag:</b> Es erscheinen nur Artikel unter dem Minimum mit Mindest- oder Zielbestand, und nicht, wenn das bereits Bestellte den Fehlbestand deckt. Artikel ohne Stammlieferant erscheinen ohne Lieferant: Wählen Sie einen, bevor Sie die Bestellungen anlegen.</li>
+<li><b>Ich habe einen Zugang erfasst, aber die Bestellung ist nicht gesunken:</b> Der Zugang verrechnet nur offene Bestellungen dieses Artikels (keine stornierten oder bereits erhaltenen), zuerst die des angegebenen Lieferanten und dann die älteste. Inventurkorrekturen verrechnen keine Bestellungen, und „Als erhalten markieren“ ändert den Bestand nicht.</li>
+</ul>

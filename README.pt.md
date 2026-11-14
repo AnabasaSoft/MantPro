@@ -6,6 +6,7 @@
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-0969da?style=for-the-badge" alt="Português"></a>
   <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-6e7781?style=for-the-badge" alt="Français"></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/Deutsch-6e7781?style=for-the-badge" alt="Deutsch"></a>
 </p>
 
 # MantPro
@@ -180,7 +181,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **📥 Importar do Excel/CSV**: `Arquivo > Importar do Excel/CSV…` (somente administradores) traz máquinas, itens do almoxarifado, avisos recorrentes, usuários, pendentes e histórico de trabalhos antigo de um modelo para baixar ou do seu próprio Excel (uma planilha ou a pasta de trabalho inteira de uma vez), associando as colunas automaticamente, com pré-visualização linha a linha e cópia de segurança prévia. Localizações (zonas, estantes, prateleiras) e máquinas superiores que não existirem são criadas automaticamente, e os usuários recebem uma senha temporária que terão de alterar no primeiro acesso
 - **🏭 Controle de máquinas**: árvore de máquinas e submáquinas com foto anexada, contador de serviços por ano e mês e vínculo direto a partir de cada serviço registrado ou editado (veja [Máquinas](#-máquinas))
 - **📊 Exportação**: para PDF, CSV e Excel, com filtro opcional por técnico e indicando a máquina/submáquina de cada serviço, se houver
-- **📖 Ajuda integrada**: `Ajuda > 📖 Instruções` abre um manual completo por tópicos (primeiros passos, usuários, cada aba, menus, aplicativos do celular e problemas comuns), com índice e busca, nos 7 idiomas. Com **F1** ele abre direto no tópico da aba em que você está
+- **📖 Ajuda integrada**: `Ajuda > 📖 Instruções` abre um manual completo por tópicos (primeiros passos, usuários, cada aba, menus, aplicativos do celular e problemas comuns), com índice e busca, nos 8 idiomas. Com **F1** ele abre direto no tópico da aba em que você está
 - **👥 Estatísticas por técnico**: botão no Painel com os serviços de cada técnico por ano e mês, falhas, preventivos, horas de parada e pendentes atribuídos agora, com gráfico de barras; filtrável por tipo (todos, serviços e falhas ou manutenção preventiva) e exportável para PDF (com logo) e Excel
 - **🔩 Peças de reposição por máquina**: quais itens do almoxarifado cada máquina leva e quantos, com seu estoque e localização, e em quais máquinas cada item é usado (veja [Máquinas](#-máquinas))
 - **💶 Peças usadas e seu custo**: ao registrar, concluir ou editar um serviço, anotam-se as peças usadas (as da máquina aparecem primeiro); elas saem do estoque e ficam salvas com o serviço e o preço daquele momento, então o custo não muda mesmo que o preço mude depois. Ao corrigi-las, o estoque é ajustado. Cada item pode ter preço unitário (moeda configurável). `Máquinas > 💶 Custo de peças` mostra o custo por máquina, incluindo as submáquinas, por ano e exportável para Excel; o histórico, o PDF, o Excel e o CSV as incluem Os custos só são vistos pelos administradores.
@@ -848,7 +849,7 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Notificações push** de serviços urgentes e **vídeos** nos serviços
 - **Vários PCs ao mesmo tempo**, servidor sem janela (Raspberry Pi, NAS, Docker) e acesso web
 - **Várias unidades ou plantas** com dados e indicadores por unidade
-- Mais idiomas (italiano, alemão…) e aplicativo para iPhone
+- Mais idiomas (italiano…) e aplicativo para iPhone
 
 Feito recentemente: encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 

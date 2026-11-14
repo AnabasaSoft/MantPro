@@ -6,6 +6,7 @@
   <a href="README.gl.md"><img src="https://img.shields.io/badge/Galego-6e7781?style=for-the-badge" alt="Galego"></a>
   <a href="README.pt.md"><img src="https://img.shields.io/badge/Portugu%C3%AAs-6e7781?style=for-the-badge" alt="Português"></a>
   <a href="README.fr.md"><img src="https://img.shields.io/badge/Fran%C3%A7ais-0969da?style=for-the-badge" alt="Français"></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/Deutsch-6e7781?style=for-the-badge" alt="Deutsch"></a>
 </p>
 
 # MantPro
@@ -181,7 +182,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **📥 Importer depuis Excel/CSV** : `Fichier > Importer depuis Excel/CSV…` (administrateurs uniquement) importe machines, articles du magasin, rappels récurrents, utilisateurs, travaux en attente et historique des travaux depuis un modèle téléchargeable ou depuis votre propre Excel (une feuille ou le classeur entier en une fois), en associant les colonnes automatiquement, avec un aperçu ligne par ligne et une sauvegarde préalable. Les emplacements (zones, rayonnages, tablettes) et machines parentes inexistants sont créés automatiquement, et les utilisateurs reçoivent un mot de passe temporaire à changer à la première connexion
 - **🏭 Suivi des machines** : arborescence de machines et sous-machines avec photo jointe, compteur d'interventions par année et par mois et association directe depuis chaque intervention enregistrée ou modifiée (voir [Machines](#-machines))
 - **📊 Export** : vers PDF, CSV et Excel, avec filtre facultatif par technicien et indiquant la machine/sous-machine de chaque intervention, le cas échéant
-- **📖 Aide intégrée** : `Aide > 📖 Instructions` ouvre un manuel complet par rubriques (premiers pas, utilisateurs, chaque onglet, menus, applications mobiles et problèmes fréquents), avec index et recherche, dans les 7 langues. Avec **F1**, il s'ouvre directement à la rubrique de l'onglet où vous êtes
+- **📖 Aide intégrée** : `Aide > 📖 Instructions` ouvre un manuel complet par rubriques (premiers pas, utilisateurs, chaque onglet, menus, applications mobiles et problèmes fréquents), avec index et recherche, dans les 8 langues. Avec **F1**, il s'ouvre directement à la rubrique de l'onglet où vous êtes
 - **👥 Statistiques par technicien** : bouton du tableau de bord affichant les interventions de chaque technicien par année et par mois, les pannes, les préventifs, les heures d'arrêt et les tâches en attente qui lui sont assignées en ce moment, avec un graphique en barres ; filtrable par type (toutes, interventions et pannes ou maintenance préventive) et exportable en PDF (avec logo) et Excel
 - **🔩 Pièces de rechange par machine** : quels articles du magasin chaque machine porte et en quelle quantité, avec leur stock et leur emplacement, et dans quelles machines chaque article est utilisé (voir [Machines](#-machines))
 - **💶 Pièces utilisées et leur coût** : en enregistrant, en clôturant ou en modifiant une intervention, on note les pièces utilisées (celles de la machine sont proposées en premier) ; elles sortent du stock et sont enregistrées avec l'intervention et le prix du moment, donc le coût ne change pas si le prix change ensuite. Les corriger ajuste le stock. Chaque article peut avoir un prix unitaire (devise configurable). `Machines > 💶 Coût des pièces` affiche le coût par machine, sous-machines comprises, par année et exportable vers Excel ; l'historique, le PDF, l'Excel et le CSV les incluent Les coûts ne sont visibles que par les administrateurs.
@@ -871,7 +872,7 @@ Ce qui arrive, sans dates et sans ordre figé :
 - **Notifications push** des interventions urgentes et **vidéos** dans les interventions
 - **Plusieurs PC à la fois**, serveur sans fenêtre (Raspberry Pi, NAS, Docker) et accès web
 - **Plusieurs sites ou usines** avec données et indicateurs par site
-- Plus de langues (italien, allemand…) et application iPhone
+- Plus de langues (italien…) et application iPhone
 
 Fait récemment : commande suggérée et commandes enregistrées, fournisseurs et fournisseur habituel de chaque article, coût de maintenance dans le tableau de bord, préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
