@@ -89,3 +89,15 @@ herramientas/
 
 # MantPro Cloud
 MantPro-Cloud/
+
+# Ficheros vacíos que crea el sandbox de Claude Code en la raíz (no son del proyecto)
+/.bash_profile
+/.bashrc
+/.gitconfig
+/.gitmodules
+/.idea
+/.profile
+/.ripgreprc
+/.vscode
+/.zprofile
+/.zshrc
