@@ -29,6 +29,10 @@ jobs:
       uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
+        # Versión fija (la misma que en local): con «stable» a secas la CI cogía la
+        # última publicada, y el 2026-11-14 los dos APK fallaron sin haber cambiado
+        # nada que lo explicara (en local, con esta versión, compilaban bien).
+        flutter-version: '3.47.7'
 
     - name: Instalar Dependencias Flutter
       run: flutter pub get
@@ -122,6 +126,10 @@ jobs:
       uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
+        # Versión fija (la misma que en local): con «stable» a secas la CI cogía la
+        # última publicada, y el 2026-11-14 los dos APK fallaron sin haber cambiado
+        # nada que lo explicara (en local, con esta versión, compilaban bien).
+        flutter-version: '3.47.7'
 
     - name: Instalar Dependencias Flutter
       run: flutter pub get
