@@ -45,8 +45,9 @@ class StockSincronizador {
     try {
       final req = http.MultipartRequest('POST', Uri.parse(url));
       req.headers.addAll(AuthService.cabeceras());
+      req.headers.addAll(cabeceraOperacion(item));
       for (final entrada in item.entries) {
-        if (entrada.key == 'fotoPath' || omitir.contains(entrada.key) || entrada.value == null) continue;
+        if (entrada.key == 'fotoPath' || entrada.key == 'op' || omitir.contains(entrada.key) || entrada.value == null) continue;
         req.fields[entrada.key] = entrada.value.toString();
       }
       final fotoPath = item['fotoPath'] as String?;
@@ -107,7 +108,7 @@ class StockSincronizador {
     try {
       final res = await http.post(
         Uri.parse('$esquemaPC://$ip/api/stock/material/${item['materialId']}/movimiento'),
-        headers: AuthService.cabeceras(),
+        headers: {...AuthService.cabeceras(), ...cabeceraOperacion(item)},
         body: {
           'tipo': item['tipo'].toString(),
           'cantidad': item['cantidad'].toString(),
@@ -174,6 +175,26 @@ class StockSincronizador {
     permisoDenegadoNotifier.value = [...permisoDenegadoNotifier.value, descripcion];
   }
 
+  /// Quita de la cola [colaKey] los elementos ya enviados, por su 'localId', volviendo a leer la cola en
+  /// ese momento: mientras se enviaba se ha podido añadir o cambiar algo (otro guardado, el envío inmediato),
+  /// y guardar la copia leída al empezar lo pisaría y se perdería.
+  static Future<void> _quitarDeCola(SharedPreferences prefs, String colaKey, Iterable<Map<String, dynamic>> enviados) async {
+    final ids = enviados.map((e) => e['localId']).toSet();
+    if (ids.isEmpty) return;
+    final cola = leerColaMapas(prefs, colaKey);
+    cola.removeWhere((e) => ids.contains(e['localId']));
+    await prefs.setString(colaKey, json.encode(cola));
+  }
+
+  /// Igual que [_quitarDeCola] para la cola de borrados, que solo guarda ids.
+  static Future<void> _quitarBorrados(SharedPreferences prefs, Iterable<int> enviados) async {
+    final quitar = enviados.toSet();
+    if (quitar.isEmpty) return;
+    final cola = leerColaIds(prefs, kStockColaBorrados);
+    cola.removeWhere(quitar.contains);
+    await prefs.setString(kStockColaBorrados, json.encode(cola));
+  }
+
   /// Intenta enviar solo el elemento [localId] de la cola [colaKey], con un
   /// tiempo de espera acotado por el propio envío. Se usa justo después de
   /// guardar algo, para poder decirle al usuario si ya está en el PC o si se
@@ -200,8 +221,7 @@ class StockSincronizador {
     if (resultado != _ResultadoEnvio.error) {
       // ok o sinPermiso: en ambos casos se quita de la cola (si es sinPermiso
       // reintentarlo no serviría de nada) y se avisa al usuario si procede.
-      cola.removeWhere((e) => e['localId'] == localId);
-      await prefs.setString(colaKey, json.encode(cola));
+      await _quitarDeCola(prefs, colaKey, [item]);
     }
     if (resultado == _ResultadoEnvio.sinPermiso) {
       _avisarSinPermiso(item['nombre']?.toString() ?? tt('lbl_articulo', 'Artículo'));
@@ -217,10 +237,7 @@ class StockSincronizador {
     if (!AuthService.autenticado) return false;
     final resultado = await _enviarBorrado(ip, id);
     if (resultado != _ResultadoEnvio.error) {
-      final prefs = await SharedPreferences.getInstance();
-      final cola = leerColaIds(prefs, kStockColaBorrados);
-      cola.remove(id);
-      await prefs.setString(kStockColaBorrados, json.encode(cola));
+      await _quitarBorrados(await SharedPreferences.getInstance(), [id]);
     }
     if (resultado == _ResultadoEnvio.sinPermiso) {
       _avisarSinPermiso(tt('msg_borrado_articulo', 'Borrado de artículo'));
@@ -258,10 +275,7 @@ class StockSincronizador {
         _avisarSinPermiso(item['nombre']?.toString() ?? tt('lbl_articulo', 'Artículo'));
       }
     }
-    for (final item in nuevosQuitar) {
-      colaNuevos.remove(item);
-    }
-    await prefs.setString(kStockColaNuevos, json.encode(colaNuevos));
+    await _quitarDeCola(prefs, kStockColaNuevos, nuevosQuitar);
 
     // 2. Ediciones de artículos existentes
     final colaEdiciones = leerColaMapas(prefs, kStockColaEdiciones);
@@ -274,10 +288,7 @@ class StockSincronizador {
         _avisarSinPermiso(item['nombre']?.toString() ?? tt('lbl_articulo', 'Artículo'));
       }
     }
-    for (final item in edicionesQuitar) {
-      colaEdiciones.remove(item);
-    }
-    await prefs.setString(kStockColaEdiciones, json.encode(colaEdiciones));
+    await _quitarDeCola(prefs, kStockColaEdiciones, edicionesQuitar);
 
     // 3. Movimientos (entradas/salidas)
     final colaMovimientos = leerColaMapas(prefs, kStockColaMovimientos);
@@ -290,10 +301,7 @@ class StockSincronizador {
         _avisarSinPermiso(tt('lbl_movimiento_stock', 'Movimiento de stock'));
       }
     }
-    for (final item in movimientosQuitar) {
-      colaMovimientos.remove(item);
-    }
-    await prefs.setString(kStockColaMovimientos, json.encode(colaMovimientos));
+    await _quitarDeCola(prefs, kStockColaMovimientos, movimientosQuitar);
 
     // 3b. Revisiones diarias del almacén
     for (final item in leerColaMapas(prefs, kStockColaRevisiones)) {
@@ -316,10 +324,7 @@ class StockSincronizador {
         _avisarSinPermiso(tt('msg_borrado_articulo', 'Borrado de artículo'));
       }
     }
-    for (final id in borradosQuitar) {
-      colaBorrados.remove(id);
-    }
-    await prefs.setString(kStockColaBorrados, json.encode(colaBorrados));
+    await _quitarBorrados(prefs, borradosQuitar);
 
     // 5. Refrescamos las cachés de lectura y los roles del usuario (por si
     // han cambiado en el PC mientras la app estaba conectada).

@@ -27,13 +27,14 @@ import re
 import logging
 import threading
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory, g
+from flask import Flask, Response, request, jsonify, make_response, send_from_directory, g
 try:
     from PyQt6.QtCore import pyqtSignal, QThread
 except ImportError:      # servidor de MantPro Cloud: sin escritorio ni Qt, solo se usa `app`
     from ..nucleo.sin_qt import pyqtSignal, QThread
 
 from .. import idiomas
+from ..nucleo import operaciones_movil
 from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
@@ -152,6 +153,10 @@ class ServidorSincronizacion(QThread):
         self.puerto_https = self.server_port + 1
         self.huella = None   # huella del certificado, cuando HTTPS está en marcha
         usuarios.configurar_db(db_path)
+        try:
+            operaciones_movil.purgar(db_path)    # las operaciones del móvil ya hechas se olvidan a los 45 días
+        except Exception:
+            pass
 
         # Reutilizamos get_db_connection (timeout=20 + modo WAL) para que
         # este hilo (servidor Flask para las apps móviles) no lance
@@ -203,8 +208,37 @@ class ServidorSincronizacion(QThread):
                 # Para el registro de cambios: lo que se haga en esta petición
                 # lo ha hecho este usuario desde este móvil.
                 usuarios.fijar_actor_peticion(u, usuarios.dispositivo_de_token(_token_peticion()))
-                return func(*args, **kwargs)
+                return _una_sola_vez(u, func, args, kwargs)
             return envoltorio
+
+        def _una_sola_vez(u, func, args, kwargs):
+            """Una operación que el móvil manda con su identificador (cabecera X-MantPro-Op, ver
+            nucleo/operaciones_movil.py) se aplica una sola vez: si vuelve a llegar (se perdió la
+            respuesta, o la cola se vació por dos sitios) se devuelve la respuesta que ya se dio.
+            Sin la cabecera (apps antiguas, lecturas) todo sigue como siempre."""
+            op = request.headers.get(operaciones_movil.CABECERA, "")
+            if request.method not in ("POST", "PUT", "DELETE") or not operaciones_movil.op_valida(op):
+                return func(*args, **kwargs)
+            estado, guardada = operaciones_movil.reclamar(self.db_path, u["id"], op, request.path)
+            if estado == operaciones_movil.HECHA:
+                codigo, cuerpo, tipo = guardada
+                resp = Response(cuerpo, status=codigo, content_type=tipo)
+                resp.headers["X-MantPro-Op-Repetida"] = "1"
+                return resp
+            if estado == operaciones_movil.EN_CURSO:
+                # La primera aún se está aplicando: el móvil la deja en su cola y la reintenta luego
+                return jsonify({"status": "error", "error": "en_curso",
+                                "message": "Esta operación ya se está aplicando."}), 409
+            try:
+                resp = make_response(func(*args, **kwargs))
+            except BaseException:
+                operaciones_movil.soltar(self.db_path, u["id"], op)
+                raise
+            if resp.status_code >= 500 or resp.is_streamed:
+                operaciones_movil.soltar(self.db_path, u["id"], op)     # no se aplicó: el reintento debe aplicarla
+            else:
+                operaciones_movil.terminar(self.db_path, u["id"], op, resp.status_code, resp.get_data(), resp.content_type)
+            return resp
 
         self._usuario_peticion = _usuario_peticion
 

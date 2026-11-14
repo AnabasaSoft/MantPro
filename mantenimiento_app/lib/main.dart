@@ -334,6 +334,61 @@ Future<http.Response> httpPostAuth(Uri url, {Object? body, Map<String, String>? 
   return res;
 }
 
+/// Identificador único de una operación de las colas, creado al meterla en la cola. Viaja en la
+/// cabecera X-MantPro-Op y el PC la aplica una sola vez aunque el móvil la mande varias (se perdió la
+/// respuesta, o la cola se vació por dos sitios a la vez: la pestaña y la sincronización general).
+String nuevaOperacion() {
+  final r = Random.secure();
+  final azar = List.generate(4, (_) => r.nextInt(1 << 16).toRadixString(36).padLeft(4, '0')).join();
+  return 'mp-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$azar';
+}
+
+/// Cabecera con el identificador [op] (vacía para lo que se metió en la cola antes de existir esto).
+Map<String, String> cabeceraOperacion(Object? op) =>
+    op is String && op.isNotEmpty ? {'X-MantPro-Op': op} : const {};
+
+/// La cola «deshacer aviso completado» solo guarda ids de aviso: sus identificadores de operación van
+/// en este mapa aparte (id del aviso -> operación). Importa: repetir un «deshacer» en el PC borraría
+/// también el preventivo de la vez anterior.
+const String _claveOpsRestaurar = 'avisos_cola_restaurar_ops';
+
+/// {id del aviso: {'op': identificador, 't': milisegundos}}. No se borran al enviar (la otra
+/// sincronización puede estar a punto de mandar el mismo «deshacer» y lo mandaría sin identificador):
+/// se olvidan pasados 30 días.
+Future<Map<String, dynamic>> _opsRestaurar(SharedPreferences prefs) async {
+  try {
+    return Map<String, dynamic>.from(json.decode(prefs.getString(_claveOpsRestaurar) ?? '{}') as Map);
+  } catch (_) {
+    return {};
+  }
+}
+
+Future<void> guardarOpRestaurar(String idAviso, String op) async {
+  final prefs = await SharedPreferences.getInstance();
+  final ahora = DateTime.now().millisecondsSinceEpoch;
+  final ops = await _opsRestaurar(prefs)
+    ..removeWhere((_, v) => v is! Map || ahora - ((v['t'] as num?) ?? 0) > const Duration(days: 30).inMilliseconds)
+    ..[idAviso] = {'op': op, 't': ahora};
+  await prefs.setString(_claveOpsRestaurar, json.encode(ops));
+}
+
+Future<String?> opRestaurar(String idAviso) async {
+  final v = (await _opsRestaurar(await SharedPreferences.getInstance()))[idAviso];
+  return v is Map ? v['op'] as String? : null;
+}
+
+/// Quita de la cola guardada [clave] los elementos ya enviados, volviendo a leerla en ese momento:
+/// mientras se enviaba se ha podido añadir algo (otro guardado, la otra sincronización), y guardar la
+/// copia leída al empezar lo pisaría. Compara cada elemento entero (mapas, ids o textos).
+Future<void> quitarDeColaGuardada(SharedPreferences prefs, String clave, Iterable<Object?> enviados) async {
+  final quitar = enviados.map(json.encode).toSet();
+  if (quitar.isEmpty) return;
+  List<dynamic> cola = [];
+  try { cola = json.decode(prefs.getString(clave) ?? '[]') as List<dynamic>; } catch (_) { return; }
+  cola.removeWhere((e) => quitar.contains(json.encode(e)));
+  await prefs.setString(clave, json.encode(cola));
+}
+
 /// Avisa al PC de que la app pasa a segundo plano o se cierra, para que en
 /// "Sesiones de dispositivos" salga "Sin conexión" al momento. Si no llega (sin
 /// red), el PC lo deduce igualmente al dejar de recibir las comprobaciones.
@@ -1062,6 +1117,8 @@ class Registro {
   /// Tiempo trabajado (minutos) y cuántas personas; se apunta después.
   int? minutosTrabajo;
   int personas;
+  /// Identificador de la operación al enviarlo al PC (ver [nuevaOperacion]); solo en la cola de envío.
+  String? op;
 
   Registro({
     this.id,
@@ -1083,6 +1140,7 @@ class Registro {
     this.checklist,
     this.minutosTrabajo,
     this.personas = 1,
+    this.op,
   }) : materiales = materiales ?? [],
        fotosExtra = fotosExtra ?? [],
        serverFotosExtra = serverFotosExtra ?? [];
@@ -1107,6 +1165,7 @@ class Registro {
     'checklist': checklist,
     'minutosTrabajo': minutosTrabajo,
     'personas': personas,
+    if (op != null) 'op': op,
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -1132,6 +1191,7 @@ class Registro {
     checklist: json['checklist'] is Map ? Map<String, dynamic>.from(json['checklist']) : null,
     minutosTrabajo: json['minutosTrabajo'],
     personas: json['personas'] ?? 1,
+    op: json['op'] as String?,
   );
 }
 
@@ -1825,7 +1885,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('registros_pendientes', json.encode(_pendientes.map((r) => r.toJson()).toList()));
   }
-  void _addRegistro(Registro r) { setState(() => _pendientes.add(r)); _guardarDatos(); }
+  void _addRegistro(Registro r) { r.op ??= nuevaOperacion(); setState(() => _pendientes.add(r)); _guardarDatos(); }
   void _editarRegistro(int index, Registro r) { setState(() => _pendientes[index] = r); _guardarDatos(); }
   Future<void> _sincronizar([String? nuevaUrl]) async {
     final prefs = await SharedPreferences.getInstance();
@@ -1838,6 +1898,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
       try {
         var req = http.MultipartRequest('POST', uri);
         req.headers.addAll(AuthService.cabeceras());
+        req.headers.addAll(cabeceraOperacion(item.op));
         req.fields['titulo'] = item.titulo;
         req.fields['detalles'] = item.detalles;
         req.fields['tags'] = item.tags;
@@ -2055,7 +2116,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     List<Map<String, dynamic>> so = []; for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) so.add(t); }
     if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
 
-    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString()}, descripcion: tt('lbl_revertir_trabajo', 'Revertir trabajo'))) rv.add(t); }
+    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString()}, descripcion: tt('lbl_revertir_trabajo', 'Revertir trabajo'), op: t['op'])) rv.add(t); }
     if (rv.isNotEmpty) setState(() { for (var t in rv) _colaRevertir.remove(t); });
 
     await _guardarCache();
@@ -2105,9 +2166,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   // y se avisa al usuario mediante permisoDenegadoNotifier. Cualquier otro
   // fallo (red, servidor caído) devuelve false y el elemento se queda en la
   // cola para el siguiente intento.
-  Future<bool> _apiPost(String ep, Map<String, String> b, {String? descripcion}) async {
+  Future<bool> _apiPost(String ep, Map<String, String> b, {String? descripcion, Object? op}) async {
     try {
-      final res = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/$ep"), body: b);
+      final res = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/$ep"), body: b, headers: cabeceraOperacion(op));
       if (res.statusCode == 403) { avisarSinPermisoTrabajos(descripcion ?? ep); return true; }
       return res.statusCode == 200;
     } catch (e) { return false; }
@@ -2116,6 +2177,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     try {
       var r = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$_urlPC/api/$ep"));
       r.headers.addAll(AuthService.cabeceras());
+      r.headers.addAll(cabeceraOperacion(d['op']));
       if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
       r.fields['titulo'] = d['titulo'];
       r.fields['detalles'] = d['detalles'];
@@ -2239,7 +2301,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final ce = prefs.getString('historial_cola_ediciones');
           if (ce != null) { try { edicionesHist = List<Map<String, dynamic>>.from(json.decode(ce)); } catch (_) {} }
           edicionesHist.removeWhere((e) => e['id'] == idOriginal);
-          edicionesHist.add({'id': idOriginal, 'detalles': descFinal, 'tags': r.tags, 'fotoPath': r.imagePath, 'fotoPathDespues': r.imagePathDespues,
+          edicionesHist.add({'id': idOriginal, 'op': nuevaOperacion(), 'detalles': descFinal, 'tags': r.tags, 'fotoPath': r.imagePath, 'fotoPathDespues': r.imagePathDespues,
               'fotosExtra': r.fotosExtra, 'fotosExtraMantener': r.serverFotosExtra});
           await prefs.setString('historial_cola_ediciones', json.encode(edicionesHist));
 
@@ -2275,6 +2337,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         // --- AÑADIMOS FECHA ---
         Map<String, dynamic> mapTemp = {
           'id': p.id,
+          'op': nuevaOperacion(),
           'titulo': r.titulo,
           'detalles': r.detalles,
           'tags': r.tags,
@@ -2307,7 +2370,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
         if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
         setState(() { _tagsLocales[k] = r.tags; _galeriaLocales[k] = r.fotosExtra; });
-        Map<String, dynamic> mapTempEdit = {'id': p.id, 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad,
+        Map<String, dynamic> mapTempEdit = {'id': p.id, 'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad,
             'fotosExtra': r.fotosExtra, 'galeriaClave': k};
         setState(() {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
@@ -2485,7 +2548,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             if (r.tags.isNotEmpty) setState(() => _tagsLocales[ru] = r.tags);
             String d = "${r.detalles} [REF:$ru]";
             if (r.fotosExtra.isNotEmpty) setState(() => _galeriaLocales[ru] = r.fotosExtra);
-            Map<String, dynamic> mapTempNuevo = {'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId,
+            Map<String, dynamic> mapTempNuevo = {'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId,
                 'fotosExtra': r.fotosExtra, 'galeriaClave': ru};
             setState(() => _colaNuevos.add(mapTempNuevo));
             setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad, especialidadId: r.especialidadId)));
@@ -2608,8 +2671,8 @@ class _TabAvisosState extends State<TabAvisos> {
     setState(() => _cargando = true);
 
     await sincronizarLecturas(_urlPC!);
-    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2700,7 +2763,7 @@ class _TabAvisosState extends State<TabAvisos> {
       if (elegidos == null) return;   // cancelado: el aviso sigue como estaba
       materiales = elegidos;
     }
-    setState(() => _colaCompletados.add({'id': a.id.toString(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
+    setState(() => _colaCompletados.add({'id': a.id.toString(), 'op': nuevaOperacion(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
         if (materiales.isNotEmpty) 'materiales': json.encode(materiales),
         if (minutos != null) 'minutos_trabajo': '$minutos', if (minutos != null) 'personas': '$personas',
         if (lectura != null) ...{'lectura': '$lectura', 'lectura_uid': nuevoUidLectura(), 'lectura_contador': '${contador!['contador_id']}',
@@ -2709,6 +2772,7 @@ class _TabAvisosState extends State<TabAvisos> {
   Future<void> _descompletar(AvisoPC a) async {
     if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_deshecho")))); return; }
     if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_desmarcar")), content: Text(t("msg_volver_pendiente")), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_cancelar_mayus"))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_desmarcar_mayus"), style: const TextStyle(color: Colors.white)))])) != true) return;
+    await guardarOpRestaurar(a.id.toString(), nuevaOperacion());
     setState(() => _colaRestaurar.add(a.id.toString())); await _guardarColas(); _sincronizar();
   }
   @override Widget build(BuildContext context) {
@@ -2805,6 +2869,7 @@ class _TabHistorialState extends State<TabHistorial> {
       try {
         var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$_urlPC/api/editar_historial"));
         req.headers.addAll(AuthService.cabeceras());
+        req.headers.addAll(cabeceraOperacion(e['op']));
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
@@ -3008,7 +3073,7 @@ class _TabHistorialState extends State<TabHistorial> {
         minutosTrabajo: ep.containsKey('minutos_trabajo') ? ep['minutos_trabajo'] : r.minutosTrabajo,
         personas: ep.containsKey('minutos_trabajo') ? (ep['personas'] ?? 1) : r.personas),
         esHistorial: true, onSave: (re) async {
-      Map<String, dynamic> ne = {'id': r.id.toString(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
+      Map<String, dynamic> ne = {'id': r.id.toString(), 'op': nuevaOperacion(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
           'fotosExtra': re.fotosExtra, 'fotosExtraMantener': re.serverFotosExtra,
           // Repuestos usados: el PC ajusta el stock por la diferencia
           'materiales': re.materiales,
@@ -3050,7 +3115,7 @@ class _TabHistorialState extends State<TabHistorial> {
     // Guardamos 'idTemp' (el id del comodín en Pendientes) y el registro original completo:
     // si el usuario completa este mismo trabajo desde Pendientes antes de sincronizar,
     // hace falta poder cancelar esta reversión y restaurar el historial sin duplicar nada.
-    cola.add({'id': r.id.toString(), 'titulo': tituloNuevo, 'detalles': detallesNuevo, 'idTemp': idTemp, 'registro': r.toJson()});
+    cola.add({'id': r.id.toString(), 'op': nuevaOperacion(), 'titulo': tituloNuevo, 'detalles': detallesNuevo, 'idTemp': idTemp, 'registro': r.toJson()});
     await prefs.setString('cola_revertir', json.encode(cola));
 
     List<Map<String, dynamic>> pc = [];
@@ -3935,6 +4000,7 @@ class SincronizadorGlobal {
         try {
           var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$ip/api/upload"));
           req.headers.addAll(AuthService.cabeceras());
+          req.headers.addAll(cabeceraOperacion(item.op));
           req.fields['titulo'] = item.titulo;
           req.fields['detalles'] = item.detalles;
           req.fields['tags'] = item.tags;
@@ -3954,8 +4020,7 @@ class SincronizadorGlobal {
           if ((await req.send()).statusCode == 200) enviados.add(item);
         } catch (e) {}
       }
-      for (var e in enviados) { pendientes.remove(e); }
-      await prefs.setString('registros_pendientes', json.encode(pendientes.map((r) => r.toJson()).toList()));
+      await quitarDeColaGuardada(prefs, 'registros_pendientes', enviados.map((r) => r.toJson()));
     }
 
     // 2. PENDIENTES PC
@@ -3968,13 +4033,14 @@ class SincronizadorGlobal {
     List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/eliminar_pendiente"), body: {'id': id.toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
 
-    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
+    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()}, headers: cabeceraOperacion(t['op'])); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
     for (var t in rv) { colaRevertir.remove(t); }
 
     Future<bool> apiMultipart(String ep, Map<String, dynamic> d) async {
       try {
         var r = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$ip/api/$ep"));
         r.headers.addAll(AuthService.cabeceras());
+        r.headers.addAll(cabeceraOperacion(d['op']));
         if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
         r.fields['titulo'] = d['titulo'];
         r.fields['detalles'] = d['detalles'];
@@ -4005,11 +4071,12 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> so = []; for (var t in colaSalida) { if (await apiMultipart('completar_pendiente', t)) so.add(t); }
     for (var t in so) { colaSalida.remove(t); }
 
-    await prefs.setString('cola_borrados', json.encode(colaBorrados));
-    await prefs.setString('cola_nuevos', json.encode(colaNuevos));
-    await prefs.setString('cola_ediciones', json.encode(colaEdiciones));
-    await prefs.setString('cola_salida', json.encode(colaSalida));
-    await prefs.setString('cola_revertir', json.encode(colaRevertir));
+    // Se quita solo lo enviado, volviendo a leer cada cola (ver quitarDeColaGuardada)
+    await quitarDeColaGuardada(prefs, 'cola_borrados', bo);
+    await quitarDeColaGuardada(prefs, 'cola_nuevos', no);
+    await quitarDeColaGuardada(prefs, 'cola_ediciones', eo);
+    await quitarDeColaGuardada(prefs, 'cola_salida', so);
+    await quitarDeColaGuardada(prefs, 'cola_revertir', rv);
 
     // 3. AVISOS (y antes, las lecturas de contadores apuntadas en las máquinas)
     await sincronizarLecturas(ip);
@@ -4018,13 +4085,11 @@ class SincronizadorGlobal {
     if (cc != null) { colaCompletados = (json.decode(cc) as List<dynamic>).map((e) => Map<String, String>.from(e)).toList(); }
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
-    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
-    for (var id in ro) { colaRestaurar.remove(id); }
-    for (var item in co) { colaCompletados.remove(item); }
-    await prefs.setString('avisos_cola_completados', json.encode(colaCompletados));
-    await prefs.setString('avisos_cola_restaurar', json.encode(colaRestaurar));
+    await quitarDeColaGuardada(prefs, 'avisos_cola_completados', co);
+    await quitarDeColaGuardada(prefs, 'avisos_cola_restaurar', ro);
 
     // 4. HISTORIAL
     List<Map<String, dynamic>> histEdiciones = prefs.getString('historial_cola_ediciones') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('historial_cola_ediciones')!)) : [];
@@ -4033,6 +4098,7 @@ class SincronizadorGlobal {
       try {
         var req = http.MultipartRequest('POST', Uri.parse("$esquemaPC://$ip/api/editar_historial"));
         req.headers.addAll(AuthService.cabeceras());
+        req.headers.addAll(cabeceraOperacion(e['op']));
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
@@ -4045,8 +4111,7 @@ class SincronizadorGlobal {
         if (res.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_editar_historial', 'Editar historial')); hok.add(e); } else if (res.statusCode == 200) hok.add(e);
       } catch (e) {}
     }
-    for (var s in hok) { histEdiciones.remove(s); }
-    await prefs.setString('historial_cola_ediciones', json.encode(histEdiciones));
+    await quitarDeColaGuardada(prefs, 'historial_cola_ediciones', hok);
 
     // 5. DESCARGA DE DATOS, todo a la vez (son JSON pequeños)
     progreso(tt('msg_sync_descargando', 'Descargando datos…'));

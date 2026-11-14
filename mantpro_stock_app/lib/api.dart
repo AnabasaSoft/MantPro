@@ -449,6 +449,21 @@ const String kStockCacheZonas = 'stock_cache_zonas';
 const String kStockCacheMateriales = 'stock_cache_materiales';
 const String kStockCacheBajoMinimo = 'stock_cache_bajo_minimo';
 const String kStockCacheRepuestos = 'stock_cache_repuestos';
+/// Identificador único de una operación de la cola, creado al meterla en ella. Viaja en la cabecera
+/// X-MantPro-Op y el PC la aplica una sola vez aunque el móvil la mande varias (se perdió la respuesta,
+/// o la cola se vació por dos sitios a la vez: el envío inmediato y la sincronización en segundo plano).
+String nuevaOperacion() {
+  final r = Random.secure();
+  final azar = List.generate(4, (_) => r.nextInt(1 << 16).toRadixString(36).padLeft(4, '0')).join();
+  return 'st-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-$azar';
+}
+
+/// Cabecera con el identificador de [item] (vacía para lo que se metió en la cola antes de existir esto).
+Map<String, String> cabeceraOperacion(Map item) {
+  final op = item['op'];
+  return op is String && op.isNotEmpty ? {'X-MantPro-Op': op} : const {};
+}
+
 const String kStockColaNuevos = 'stock_cola_nuevos';
 const String kStockColaEdiciones = 'stock_cola_ediciones';
 const String kStockColaMovimientos = 'stock_cola_movimientos';
@@ -875,7 +890,7 @@ class StockApi {
     final colaKey = esNuevo ? kStockColaNuevos : kStockColaEdiciones;
     if (esNuevo) {
       final cola = leerColaMapas(prefs, kStockColaNuevos);
-      cola.add({'localId': localId, ...campos, 'fotoPath': foto?.path});
+      cola.add({'localId': localId, 'op': nuevaOperacion(), ...campos, 'fotoPath': foto?.path});
       await prefs.setString(kStockColaNuevos, json.encode(cola));
       avisarCambioLocal();
     } else {
@@ -888,6 +903,7 @@ class StockApi {
       cola.removeWhere((e) => e['id'] == id);
       cola.add({
         'localId': localId,
+        'op': nuevaOperacion(),
         'id': id,
         ...campos,
         'fotoPath': borrarFoto ? null : (foto?.path ?? fotoPathAnterior),
@@ -938,7 +954,7 @@ class StockApi {
     final ip = await _ip();
     final localId = DateTime.now().microsecondsSinceEpoch;
     final cola = leerColaMapas(prefs, kStockColaMovimientos);
-    cola.add({'localId': localId, 'materialId': materialId, 'tipo': tipo, 'cantidad': cantidad, 'motivo': motivo});
+    cola.add({'localId': localId, 'op': nuevaOperacion(), 'materialId': materialId, 'tipo': tipo, 'cantidad': cantidad, 'motivo': motivo});
     await prefs.setString(kStockColaMovimientos, json.encode(cola));
     avisarCambioLocal();
 
