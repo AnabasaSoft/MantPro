@@ -6,6 +6,10 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+## 3.10.6 — 2026-11-14
+
+Incluye también lo publicado en 3.10.4 (2026-11-03) y 3.10.5 (2026-11-06), que no tuvieron sección propia en este registro.
+
 ### Novedades
 - **🇩🇪 Alemán (Deutsch) en las tres aplicaciones.** MantPro (PC), MantPro y MantPro Stock (móvil) se pueden usar en alemán, con la ayuda (F1) y el README traducidos. Las fechas cortas salen como DD.MM.AAAA, los textos propios de Qt (botones estándar, selector de ficheros) usan su traducción oficial alemana y el importador de Excel/CSV reconoce también las cabeceras, frecuencias, prioridades y roles escritos en alemán (y fechas con puntos).
 - **🎬 Vídeos en la colección de fotos de un trabajo.** En **MantPro (móvil)**, la colección de un trabajo o pendiente tiene un botón **«Grabar vídeo»** (como mucho 30 segundos) y «Elegir de la galería» admite ahora fotos y vídeos. Los vídeos salen con un icono de reproducir y se ven **dentro de la app**, deslizando entre fotos y vídeos; funcionan sin conexión, y los que solo están en el PC se descargan al abrirlos (no se bajan solos con el historial, para no gastar datos). La foto de **antes** y la de **después** siguen siendo siempre fotos. En el **PC**, la colección enseña los vídeos con su icono y el doble clic los abre con el reproductor del sistema; también se pueden añadir vídeos desde el PC. El PDF nombra los vídeos de cada trabajo y el Excel pone «Vídeo: nombre» en su casilla. Cada vídeo puede pesar hasta **100 MB** (MP4, MOV, 3GP, M4V o WebM) y se comprueba que de verdad es un vídeo; lo que no cumpla se rechaza con un aviso. Los vídeos viajan y se sincronizan con **MantPro Cloud** igual que las fotos (cuentan para el espacio del plan).
