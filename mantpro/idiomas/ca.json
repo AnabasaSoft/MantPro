@@ -1372,6 +1372,7 @@
   "title_nube": "MantPro Cloud",
   "lbl_nube_sin_sesion": "Aquest PC no està connectat a MantPro Cloud.",
   "lbl_nube_info": "MantPro Cloud guarda les teves dades al núvol i les manté al dia entre diversos PCs i els mòbils, encara que no estiguin a la mateixa xarxa. Inicia la sessió amb el compte que et vam donar en contractar-lo.\n\nMantPro continua funcionant igual en aquest PC sense el núvol: si no inicies la sessió, no canvia res.",
+  "lbl_nube_proximamente": "Properament. Escriu a {correo} i tindràs un 30 % de descompte durant els primers 6 mesos de funcionament del servei.",
   "nube_correo": "Correu",
   "nube_password": "Contrasenya",
   "btn_nube_iniciar": "Inicia la sessió",

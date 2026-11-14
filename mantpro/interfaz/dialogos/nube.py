@@ -195,6 +195,14 @@ class DialogoNube(QDialog):
             "MantPro Cloud guarda tus datos en la nube y los mantiene al día entre varios PCs y los móviles, "
             "aunque no estén en la misma red. Inicia sesión con la cuenta que te dimos al contratarlo.\n\n"
             "MantPro sigue funcionando igual en este PC sin la nube: si no inicias sesión, no cambia nada.")))
+        # El servicio aún no admite altas: se avisa y se da el correo (como enlace) para pedirlo
+        correo = "anabasasoft@gmail.com"
+        proximamente = self._etiqueta("🎁 " + tt("lbl_nube_proximamente",
+            "Próximamente. Escribe a {correo} y tendrás un 30 % de descuento durante los primeros 6 meses "
+            "de funcionamiento del servicio.").format(correo=f'<a href="mailto:{correo}">{correo}</a>'), True)
+        proximamente.setTextFormat(Qt.TextFormat.RichText)
+        proximamente.setOpenExternalLinks(True)
+        l.addWidget(proximamente)
         form = QFormLayout()
         self.campo_correo = QLineEdit()
         self.campo_correo.setPlaceholderText(tt("nube_correo", "Correo"))

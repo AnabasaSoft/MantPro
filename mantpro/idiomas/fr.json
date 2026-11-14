@@ -1372,6 +1372,7 @@
   "title_nube": "MantPro Cloud",
   "lbl_nube_sin_sesion": "Ce PC n'est pas connecté à MantPro Cloud.",
   "lbl_nube_info": "MantPro Cloud conserve vos données dans le cloud et les tient à jour entre plusieurs PC et téléphones, même s'ils ne sont pas sur le même réseau. Connectez-vous avec le compte que nous vous avons remis lors de la souscription.\n\nMantPro fonctionne exactement de la même façon sur ce PC sans le cloud : si vous ne vous connectez pas, rien ne change.",
+  "lbl_nube_proximamente": "Bientôt disponible. Écrivez à {correo} pour bénéficier de 30 % de réduction pendant les 6 premiers mois de fonctionnement du service.",
   "nube_correo": "E-mail",
   "nube_password": "Mot de passe",
   "btn_nube_iniciar": "Se connecter",

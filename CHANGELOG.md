@@ -37,6 +37,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **Desactivar la conexión sin cifrar** (*Herramientas → 🔐 Sesiones de dispositivos*, solo administradores): la columna nueva «Cifrado» muestra si cada móvil se conecta por la conexión cifrada o todavía sin cifrar (app anterior a la 3.10.3), y abajo se avisa de cuántos quedan. Cuando no queda ninguno, un botón desactiva la conexión sin cifrar y el PC pasa a atender solo por HTTPS (también las fotos, que por HTTP se servían sin sesión). Los móviles con la app ya actualizada pero vinculados con el QR antiguo siguen pasando solos a la conexión cifrada. Se puede volver a permitir desde el mismo sitio.
 
 ### Mejoras
+- **MantPro Cloud «próximamente»**: la ventana *Herramientas → MantPro Cloud…* avisa, cuando no hay sesión iniciada, de que el servicio llega pronto y de que escribiendo a anabasasoft@gmail.com (enlace directo al correo) los primeros clientes tendrán un 30 % de descuento durante los primeros 6 meses. En los 8 idiomas.
 - **Ventana de acceso del PC**: muestra el logo de MantPro en lugar del de AnabasaSoft.
 - **Apps del móvil**: al buscar actualizaciones sin que haya una nueva, el aviso dice qué versión tienes instalada («✅ Ya tienes la última versión instalada: v3.10.4»).
 - **Apps del móvil compiladas desde el código** (pruebas en local): muestran «Dev Version», como el PC, en vez de un número inventado, y no buscan actualizaciones. Las de GitHub siguen mostrando la versión de su tag.

@@ -1372,6 +1372,7 @@
   "title_nube": "MantPro Cloud",
   "lbl_nube_sin_sesion": "PC hau ez dago MantPro Cloud-ekin konektatuta.",
   "lbl_nube_info": "MantPro Cloud-ek zure datuak hodeian gordetzen ditu eta eguneratuta mantentzen ditu hainbat ordenagailu eta mugikorren artean, sare berean ez badaude ere. Hasi saioa kontratatzean eman genizun kontuarekin.\n\nMantPro berdin-berdin funtzionatzen du PC honetan hodeirik gabe: saioa hasten ez baduzu, ez da ezer aldatzen.",
+  "lbl_nube_proximamente": "Laster. Idatzi {correo} helbidera eta % 30eko deskontua izango duzu zerbitzuaren lehen 6 hilabeteetan.",
   "nube_correo": "Posta elektronikoa",
   "nube_password": "Pasahitza",
   "btn_nube_iniciar": "Hasi saioa",
