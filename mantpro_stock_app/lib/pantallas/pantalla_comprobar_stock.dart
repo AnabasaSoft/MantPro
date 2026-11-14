@@ -25,8 +25,10 @@ import '../i18n/strings.dart';
 import '../modelos.dart';
 
 /// Pantalla que se abre al pulsar la notificación diaria de comprobación de
-/// stock: elige 5 materiales al azar del almacén y deja corregir la cantidad
-/// actual de cada uno sin tener que buscarlos manualmente.
+/// stock o el botón «Revisión del almacén» de la barra superior: elige 5
+/// materiales al azar del almacén y deja corregir la cantidad actual de cada
+/// uno sin tener que buscarlos manualmente. Si se cierra a medias, al volver a
+/// abrirla el mismo día sigue con los mismos artículos y lo ya revisado.
 class PantallaComprobarStock extends StatefulWidget {
   const PantallaComprobarStock({super.key});
 

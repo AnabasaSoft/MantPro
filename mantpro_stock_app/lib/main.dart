@@ -644,6 +644,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     } else if (estado == AppLifecycleState.resumed) {
       _iniciarTemporizadores(enPantalla: true);
       latidoPC();
+      // Por si ha cambiado el día: el globo de la revisión pasa a la de hoy.
+      if (mounted) setState(() {});
     } else if (estado == AppLifecycleState.detached) {
       _pararTemporizadores();
       avisarDesconexionPC();
@@ -735,6 +737,37 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Botón para abrir la revisión diaria del almacén sin depender de la
+  /// notificación de las 8:00 (si se cerró sin terminar, o se descartó el
+  /// aviso). La pantalla retoma la revisión de hoy con los mismos artículos y
+  /// lo ya revisado. Mientras falte alguno, el globo dice cuántos quedan; se
+  /// refresca solo al marcar un artículo (guardarRevision avisa del cambio).
+  Widget _botonRevision() {
+    return ValueListenableBuilder<int>(
+      valueListenable: datosSincronizadosNotifier,
+      builder: (_, __, ___) => FutureBuilder<Map<String, dynamic>?>(
+        future: StockApi.revisionDeHoy(),
+        builder: (_, snap) {
+          final lineas = (snap.data?['lineas'] as List?) ?? const [];
+          final faltan = lineas.where((l) => l['revisado'] != true).length;
+          return IconButton(
+            tooltip: t("lbl_revision_stock"),
+            icon: Badge(
+              isLabelVisible: faltan > 0,
+              label: Text('$faltan'),
+              child: const Icon(Icons.fact_check),
+            ),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PantallaComprobarStock()));
+              if (mounted) setState(() {});
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -759,6 +792,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               ),
             ),
             actions: [
+            _botonRevision(),
             IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
             IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
             IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
