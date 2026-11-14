@@ -46,6 +46,7 @@
 - [Machines](#-machines)
 - [Stock du magasin](#-stock-du-magasin)
 - [Synchronisation PC-mobile](#-synchronisation-pc-mobile)
+- [MantPro Cloud](#-mantpro-cloud)
 - [Sauvegardes](#-sauvegardes)
 - [Contribuer](#-contribuer)
 - [Feuille de route](#-feuille-de-route)
@@ -819,6 +820,26 @@ C'est désactivé par défaut.
 
 ---
 
+## 🌐 MantPro Cloud
+
+> **Bientôt disponible.**
+
+MantPro est et restera **gratuit et open source** : tout ce qui est décrit dans ce README fonctionne sur votre PC, sans compte ni connexion internet, et sans limite de techniciens ni de machines.
+
+**MantPro Cloud** sera un service **optionnel et payant** pour ceux qui ont besoin de plus qu'un réseau local :
+
+- **Plusieurs PC avec les mêmes données** : chaque PC garde sa propre base de données et fonctionne hors ligne ; dès qu'il a du réseau, il envoie et récupère les modifications.
+- **Les mobiles se synchronisent depuis n'importe où** (4G ou n'importe quel Wi-Fi), pas seulement sur le réseau du bureau. Si le cloud n'est pas disponible, ils continuent de se synchroniser avec le PC comme d'habitude.
+- **Photos et vidéos dans le cloud**, partagées entre PC et mobiles.
+- **Sauvegardes automatiques hors site**, en plus de celles que fait votre PC.
+- **Essai gratuit de 30 jours.**
+
+Vos données restent les vôtres : si vous arrêtez de payer, le PC continue de fonctionner avec tout ce qu'il a en local ; il cesse simplement de se synchroniser.
+
+> 🎁 **Prix spécial pour les premiers clients :** écrivez à [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) pour bénéficier de **30 % de réduction pendant les 6 premiers mois** de fonctionnement du service.
+
+---
+
 ## 💾 Sauvegardes
 
 MantPro fait des **sauvegardes automatiques** (les bases de données, et les
@@ -869,12 +890,12 @@ Ce qui arrive, sans dates et sans ordre figé :
 - **Documentation technique par machine** (manuels, plans et schémas en PDF)
 - **Criticité des machines (ABC)**, pour décider où investir en maintenance
 - **Demandes d'intervention** depuis la production ou d'autres services, qui créent une intervention en attente
-- **Notifications push** des interventions urgentes et **vidéos** dans les interventions
+- **Notifications push** des interventions urgentes
 - **Plusieurs PC à la fois**, serveur sans fenêtre (Raspberry Pi, NAS, Docker) et accès web
 - **Plusieurs sites ou usines** avec données et indicateurs par site
 - Plus de langues (italien…) et application iPhone
 
-Fait récemment : commande suggérée et commandes enregistrées, fournisseurs et fournisseur habituel de chaque article, coût de maintenance dans le tableau de bord, préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
+Fait récemment : allemand dans les trois applications, vidéos dans la collection de photos des interventions, commande suggérée et commandes enregistrées, fournisseurs et fournisseur habituel de chaque article, coût de maintenance dans le tableau de bord, préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

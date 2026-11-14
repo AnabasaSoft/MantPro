@@ -46,6 +46,7 @@
 - [Machinery](#-machinery)
 - [Warehouse Stock](#-warehouse-stock)
 - [PC-Mobile Sync](#-pc-mobile-sync)
+- [MantPro Cloud](#-mantpro-cloud)
 - [Backups](#-backups)
 - [Contributing](#-contributing)
 - [Roadmap](#-roadmap)
@@ -785,6 +786,26 @@ to write down. It is off by default.
 
 ---
 
+## 🌐 MantPro Cloud
+
+> **Coming soon.**
+
+MantPro is and will remain **free and open source**: everything in this README works on your PC, with no accounts or internet connection, and no limit on technicians or machines.
+
+**MantPro Cloud** will be an **optional, paid service** for those who need more than a local network:
+
+- **Several PCs sharing the same data**: each PC keeps its own database and works offline; when it has a connection, it uploads and downloads the changes.
+- **Phones sync from anywhere** (4G or any Wi-Fi), not just on the office network. If the cloud is unavailable, they keep syncing with the PC as always.
+- **Photos and videos in the cloud**, shared between PCs and phones.
+- **Automatic off-site backups**, on top of the ones your PC makes.
+- **30-day free trial.**
+
+Your data is still yours: if you stop paying, the PC keeps working with everything it has locally; it just stops syncing.
+
+> 🎁 **Special price for early customers:** write to [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) to get **30% off during the first 6 months** of the service.
+
+---
+
 ## 💾 Backups
 
 MantPro makes **automatic backups** (the databases, plus the photos in
@@ -832,12 +853,12 @@ What's coming, without dates and in no fixed order:
 - **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
 - **Machine criticality (ABC)**, to decide where to invest maintenance
 - **Work requests** from production or other departments that create a pending job
-- **Push notifications** of urgent jobs and **videos** in jobs
+- **Push notifications** of urgent jobs
 - **Several PCs at once**, a headless server (Raspberry Pi, NAS, Docker) and web access
 - **Several sites or plants** with separate data and KPIs per site
 - More languages (Italian…) and an iPhone app
 
-Recently done: suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
+Recently done: German in the three applications, videos in the jobs' photo collection, suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

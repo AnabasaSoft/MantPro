@@ -46,6 +46,7 @@
 - [Makineria](#-makineria)
 - [Biltegiko stocka](#-biltegiko-stocka)
 - [PC-mugikor sinkronizazioa](#-pc-mugikor-sinkronizazioa)
+- [MantPro Cloud](#-mantpro-cloud)
 - [Babeskopiak](#-babeskopiak)
 - [Lagundu](#-lagundu)
 - [Bide-orria](#-bide-orria)
@@ -805,6 +806,26 @@ berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator.
 
 ---
 
+## 🌐 MantPro Cloud
+
+> **Laster.**
+
+MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azaltzen den guztiak zure PCan funtzionatzen du, konturik eta interneteko konexiorik gabe, eta teknikari zein makina mugarik gabe.
+
+**MantPro Cloud** zerbitzu **aukerakoa eta ordainpekoa** izango da, sare lokal bat baino gehiago behar dutenentzat:
+
+- **PC batzuk datu berberekin**: PC bakoitzak bere datu-basea gordetzen du eta konexiorik gabe lan egiten du; sarea duenean, aldaketak igo eta jaisten ditu.
+- **Mugikorrak edonondik sinkronizatzen dira** (4G edo edozein wifi), ez bulegoko sarean bakarrik. Hodeia erabilgarri ez badago, PCarekin sinkronizatzen jarraitzen dute, beti bezala.
+- **Argazkiak eta bideoak hodeian**, PCen eta mugikorren artean partekatuta.
+- **Babeskopia automatikoak plantatik kanpo**, zure PCak egiten dituenez gain.
+- **30 eguneko doako proba.**
+
+Zure datuak zureak dira: ordaintzeari uzten badiozu, PCak lokalean duen guztiarekin funtzionatzen jarraitzen du; sinkronizatzeari uzten dio, besterik ez.
+
+> 🎁 **Prezio berezia lehen bezeroentzat:** idatzi [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) helbidera eta **% 30eko deskontua** izango duzu zerbitzuaren **lehen 6 hilabeteetan**.
+
+---
+
 ## 💾 Babeskopiak
 
 MantPro-k **kopia automatikoak** egiten ditu (datu-baseak, eta argazkiak
@@ -853,12 +874,12 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Makina bakoitzaren dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFn)
 - **Makinen kritikotasuna (ABC)**, mantentzean non inbertitu erabakitzeko
 - **Lan-eskaerak** ekoizpenetik edo beste sail batzuetatik, zain dagoen lan bat sortzen dutenak
-- Lan larrien **push jakinarazpenak** eta lanetako **bideoak**
+- Lan larrien **push jakinarazpenak**
 - **Hainbat PC aldi berean**, leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker) eta web bidezko sarbidea
 - **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
 - Hizkuntza gehiago (italiera…) eta iPhonerako aplikazioa
 
-Berriki egina: eskaera iradokia eta gordetako eskaerak, hornitzaileak eta artikulu bakoitzaren ohiko hornitzailea, mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
+Berriki egina: alemana hiru aplikazioetan, bideoak lanen argazki-bilduman, eskaera iradokia eta gordetako eskaerak, hornitzaileak eta artikulu bakoitzaren ohiko hornitzailea, mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

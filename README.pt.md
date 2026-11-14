@@ -46,6 +46,7 @@
 - [Máquinas](#-máquinas)
 - [Estoque do almoxarifado](#-estoque-do-almoxarifado)
 - [Sincronização PC-celular](#-sincronização-pc-celular)
+- [MantPro Cloud](#-mantpro-cloud)
 - [Cópias de segurança](#-cópias-de-segurança)
 - [Contribuir](#-contribuir)
 - [Roteiro](#-roteiro)
@@ -798,6 +799,26 @@ sistema e é mostrada uma chave de recuperação para você anotar. Vem desativa
 
 ---
 
+## 🌐 MantPro Cloud
+
+> **Em breve.**
+
+O MantPro é e continuará sendo **gratuito e de código aberto**: tudo o que este README explica funciona no seu PC, sem contas nem conexão à internet, e sem limite de técnicos ou máquinas.
+
+O **MantPro Cloud** será um serviço **opcional e pago** para quem precisa de mais do que uma rede local:
+
+- **Vários PCs com os mesmos dados**: cada PC mantém seu próprio banco de dados e trabalha sem conexão; quando tem rede, envia e baixa as alterações.
+- **Os celulares sincronizam de qualquer lugar** (4G ou qualquer Wi-Fi), não só na rede do escritório. Se a nuvem não estiver disponível, continuam sincronizando com o PC como sempre.
+- **Fotos e vídeos na nuvem**, compartilhados entre PCs e celulares.
+- **Cópias de segurança automáticas fora da planta**, além das que o seu PC já faz.
+- **Teste grátis de 30 dias.**
+
+Seus dados continuam sendo seus: se você deixar de pagar, o PC continua funcionando com tudo o que tem localmente; apenas deixa de sincronizar.
+
+> 🎁 **Preço especial para os primeiros clientes:** escreva para [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) e ganhe **30% de desconto durante os primeiros 6 meses** de funcionamento do serviço.
+
+---
+
 ## 💾 Cópias de segurança
 
 O MantPro faz **cópias automáticas** (os bancos de dados, e as fotos em ZIP
@@ -846,12 +867,12 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Documentação técnica por máquina** (manuais, desenhos e esquemas em PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir em manutenção
 - **Solicitações de serviço** da produção ou de outros departamentos que criam um serviço pendente
-- **Notificações push** de serviços urgentes e **vídeos** nos serviços
+- **Notificações push** de serviços urgentes
 - **Vários PCs ao mesmo tempo**, servidor sem janela (Raspberry Pi, NAS, Docker) e acesso web
 - **Várias unidades ou plantas** com dados e indicadores por unidade
 - Mais idiomas (italiano…) e aplicativo para iPhone
 
-Feito recentemente: encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
+Feito recentemente: alemão nos três aplicativos, vídeos na coleção de fotos dos serviços, encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

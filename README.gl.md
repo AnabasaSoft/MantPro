@@ -46,6 +46,7 @@
 - [Maquinaria](#-maquinaria)
 - [Stock do almacén](#-stock-do-almacén)
 - [Sincronización PC-móbil](#-sincronización-pc-móbil)
+- [MantPro Cloud](#-mantpro-cloud)
 - [Copias de seguranza](#-copias-de-seguranza)
 - [Contribuír](#-contribuír)
 - [Folla de ruta](#-folla-de-ruta)
@@ -790,6 +791,26 @@ móstrase unha chave de recuperación para apuntala. Vén desactivado.
 
 ---
 
+## 🌐 MantPro Cloud
+
+> **Proximamente.**
+
+MantPro é e seguirá sendo **gratuíto e de código aberto**: todo o que se explica neste README funciona no teu PC, sen contas nin conexión a internet, e sen límite de técnicos nin máquinas.
+
+**MantPro Cloud** será un servizo **opcional e de pagamento** para quen precise máis ca unha rede local:
+
+- **Varios PC cos mesmos datos**: cada PC conserva a súa base de datos e traballa sen conexión; cando ten rede, sobe e baixa os cambios.
+- **Os móbiles sincronizan desde calquera sitio** (4G ou calquera wifi), non só na rede da oficina. Se a nube non está dispoñible, seguen sincronizando co PC coma sempre.
+- **Fotos e vídeos na nube**, compartidos entre PC e móbiles.
+- **Copias de seguranza automáticas fóra da planta**, ademais das que fai o teu PC.
+- **Proba gratuíta de 30 días.**
+
+Os teus datos seguen sendo teus: se deixas de pagar, o PC segue funcionando con todo o que ten en local; só deixa de sincronizar.
+
+> 🎁 **Prezo especial para os primeiros clientes:** escribe a [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) e terás un **30 % de desconto durante os primeiros 6 meses** de funcionamento do servizo.
+
+---
+
 ## 💾 Copias de seguranza
 
 MantPro fai **copias automáticas** (as bases de datos, e as fotos en ZIP
@@ -837,12 +858,12 @@ O que vén, sen datas e sen unha orde pechada:
 - **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir en mantemento
 - **Solicitudes de traballo** desde produción ou outros departamentos que crean un pendente
-- **Notificacións push** de traballos urxentes e **vídeos** nos traballos
+- **Notificacións push** de traballos urxentes
 - **Varios PC á vez**, servidor sen xanela (Raspberry Pi, NAS, Docker) e acceso web
 - **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano…) e app para iPhone
 
-Feito hai pouco: pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: alemán nas tres aplicacións, vídeos na colección de fotos dos traballos, pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
