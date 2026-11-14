@@ -39,12 +39,6 @@ android {
         versionName = flutter.versionName
     }
 
-    packaging {
-        jniLibs {
-            keepDebugSymbols.add("**/*.so")
-        }
-    }
-
     signingConfigs {
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String?
