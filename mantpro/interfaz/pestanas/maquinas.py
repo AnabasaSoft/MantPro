@@ -209,7 +209,10 @@ class PestanaMaquinas:
         if id_maquina is None: return
         if not almacen.listar_materiales():
             QMessageBox.information(self, t("aviso"), tt("msg_almacen_vacio_repuestos", "Todavía no hay artículos en el almacén. Dalos de alta en la pestaña Stock de almacén.")); return
-        dlg = DialogoRepuestoMaquina(self, nombre, ya_vinculados={r["material_id"] for r in self._repuestos_actuales})
+        from ...nucleo import almacenes   # los artículos de los almacenes que se ven desde la sede de la máquina
+        dlg = DialogoRepuestoMaquina(self, nombre, ya_vinculados={r["material_id"] for r in self._repuestos_actuales},
+                                     almacen_ids=almacenes.ids_de_sede(sedes.sede_de_maquina(id_maquina))
+                                     if sedes.hay_varias() else None)
         if dlg.exec():
             almacen.guardar_repuesto(id_maquina, *dlg.get_data())
             self.refrescar_repuestos_maquina()

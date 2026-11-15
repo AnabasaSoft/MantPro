@@ -34,7 +34,7 @@ from ...idiomas import t
 from ... import idiomas
 from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, maquinas, consumos, usuarios, proveedores, pedidos
+from ...nucleo import almacen, almacenes, maquinas, consumos, usuarios, proveedores, pedidos
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -111,9 +111,11 @@ class DialogoNuevaEstanteria(QDialog):
 
 
 class DialogoConfigurarAlmacen(QDialog):
-    """Gestión de la estructura del almacén: estanterías > baldas > secciones. Solo admin."""
-    def __init__(self, parent=None):
+    """Gestión de la estructura del almacén: estanterías > baldas > secciones. Solo admin.
+    [almacen_id]: el almacén cuya estructura se configura (None = el principal)."""
+    def __init__(self, parent=None, almacen_id=None):
         super().__init__(parent)
+        self.almacen_id = almacenes.efectivo(almacen_id)
         self.setWindowTitle(tt("title_configurar_almacen", "Configurar almacén"))
         self.resize(560, 520)
         l = QVBoxLayout()
@@ -189,7 +191,7 @@ class DialogoConfigurarAlmacen(QDialog):
         preferir_id) la selección actual, y refresca el árbol para la zona
         que quede seleccionada."""
         zona_previa = preferir_id if preferir_id is not None else self.combo_zona.currentData()
-        self._zonas = almacen.listar_zonas()
+        self._zonas = almacen.listar_zonas(self.almacen_id)
         self.combo_zona.blockSignals(True)
         self.combo_zona.clear()
         for zona in self._zonas:
@@ -205,7 +207,7 @@ class DialogoConfigurarAlmacen(QDialog):
     def nueva_zona(self):
         nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona_almacen", "Nueva zona"), tt("lbl_nombre_zona_almacen", "Nombre de la zona"))
         if ok and nombre.strip():
-            zona_id = almacen.crear_zona(nombre.strip())
+            zona_id = almacen.crear_zona(nombre.strip(), self.almacen_id)
             self._cargar_zonas(preferir_id=zona_id)
 
     def renombrar_zona(self):
@@ -248,7 +250,7 @@ class DialogoConfigurarAlmacen(QDialog):
         col_balda = QColor("#6fcf7a") if oscuro else QColor("#1e6620")
         col_suelo = QColor("#e0b34d") if oscuro else QColor("#8a6210")
         col_sec = QColor("#c98be0") if oscuro else QColor("#6a2d8a")
-        self._estructura = almacen.listar_estructura(self.combo_zona.currentData())
+        self._estructura = almacen.listar_estructura(self.combo_zona.currentData(), almacen_ids=self.almacen_id)
         for est in self._estructura:
             item_est = QTreeWidgetItem([f"🗄️ {est['nombre']}"])
             item_est.setData(0, Qt.ItemDataRole.UserRole, ("estanteria", est["id"]))
@@ -468,9 +470,11 @@ def _seccion_destino(seccion_id, balda_id):
 
 
 class DialogoSeleccionarUbicacion(QDialog):
-    """Elige estantería/balda/sección de destino, sin más datos, para mover uno o varios materiales a la vez."""
-    def __init__(self, parent=None):
+    """Elige estantería/balda/sección de destino, sin más datos, para mover uno o varios materiales a la vez
+    (dentro de [almacen_id]; para llevarlos a otro almacén está el traspaso)."""
+    def __init__(self, parent=None, almacen_id=None):
         super().__init__(parent)
+        self.almacen_id = almacenes.efectivo(almacen_id)
         self.setWindowTitle(tt("title_mover_material", "Mover a..."))
         self.resize(360, 200)
         l = QVBoxLayout()
@@ -478,7 +482,7 @@ class DialogoSeleccionarUbicacion(QDialog):
         l.addWidget(QLabel(tt("lbl_estanteria", "Estantería"))); l.addWidget(self.combo_estanteria)
         l.addWidget(QLabel(tt("lbl_balda", "Balda"))); l.addWidget(self.combo_balda)
         l.addWidget(QLabel(tt("lbl_seccion", "Sección"))); l.addWidget(self.combo_seccion)
-        self._estructura = almacen.listar_estructura()
+        self._estructura = almacen.listar_estructura(almacen_ids=self.almacen_id)
         for est in self._estructura:
             self.combo_estanteria.addItem(est["nombre"], est["id"])
         self.combo_estanteria.currentIndexChanged.connect(self._actualizar_baldas)
@@ -526,9 +530,11 @@ class DialogoSeleccionarUbicacion(QDialog):
 
 
 class DialogoEditarMaterial(QDialog):
-    """Alta/edición de un material del almacén, con ubicación y foto opcional."""
-    def __init__(self, parent=None, material=None):
+    """Alta/edición de un material del almacén, con ubicación y foto opcional. Las ubicaciones
+    son las de su almacén ([almacen_id] en un alta; None = el principal)."""
+    def __init__(self, parent=None, material=None, almacen_id=None):
         super().__init__(parent)
+        self.almacen_id = almacenes.efectivo(material["almacen_id"] if material else almacen_id)
         self.material = material
         self.es_nuevo = material is None
         self.ruta_foto_seleccionada = ""
@@ -625,7 +631,7 @@ class DialogoEditarMaterial(QDialog):
         l.addWidget(QLabel(tt("lbl_estanteria", "Estantería"))); l.addWidget(self.combo_estanteria)
         l.addWidget(QLabel(tt("lbl_balda", "Balda"))); l.addWidget(self.combo_balda)
         l.addWidget(QLabel(tt("lbl_seccion", "Sección"))); l.addWidget(self.combo_seccion)
-        self._estructura = almacen.listar_estructura()
+        self._estructura = almacen.listar_estructura(almacen_ids=self.almacen_id)
         self.combo_estanteria.addItem(tt("txt_sin_ubicacion", "— Sin ubicación —"), None)
         for est in self._estructura:
             self.combo_estanteria.addItem(est["nombre"], est["id"])
@@ -985,7 +991,9 @@ class DialogoHistorialAlmacen(QDialog):
         btn_cerrar = QPushButton(t("btn_cerrar")); btn_cerrar.clicked.connect(self.accept); pie.addWidget(btn_cerrar)
         l.addLayout(pie)
 
-        self.movimientos = almacen.listar_movimientos()
+        # Los de los almacenes que se ven desde la sede elegida en la ventana principal
+        sede = parent.sede_filtro() if hasattr(parent, "sede_filtro") else None
+        self.movimientos = almacen.listar_movimientos(almacen_ids=almacenes.ids_de_sede(sede))
         self._filtrar()
 
     @staticmethod
@@ -1043,8 +1051,9 @@ class DialogoHistorialAlmacen(QDialog):
 class DialogoExportarStock(QDialog):
     """Elige formato (PDF/CSV/Excel) y alcance (todo, una zona o una estantería)
     para exportar el stock de almacén."""
-    def __init__(self, parent=None, zona_inicial=None, opcion_en_minimo=False):
+    def __init__(self, parent=None, zona_inicial=None, opcion_en_minimo=False, almacen_id=None):
         super().__init__(parent)
+        self.almacen_id = almacenes.efectivo(almacen_id)
         self.setWindowTitle(tt("title_exportar_stock", "Exportar stock de almacén"))
         self.chk_en_minimo = None
         l = QVBoxLayout()
@@ -1060,7 +1069,7 @@ class DialogoExportarStock(QDialog):
         f = QFormLayout(g_alcance)
         self.combo_zona = QComboBox()
         self.combo_zona.addItem(tt("txt_todas_zonas", "Todas las zonas"), None)
-        for zona in almacen.listar_zonas():
+        for zona in almacen.listar_zonas(self.almacen_id):
             self.combo_zona.addItem(zona["nombre"], zona["id"])
         idx = self.combo_zona.findData(zona_inicial)
         self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
@@ -1088,7 +1097,7 @@ class DialogoExportarStock(QDialog):
     def _cargar_estanterias(self):
         self.combo_estanteria.clear()
         self.combo_estanteria.addItem(tt("txt_todas_estanterias", "Todas las estanterías"), None)
-        for est in almacen.listar_estructura(self.combo_zona.currentData()):
+        for est in almacen.listar_estructura(self.combo_zona.currentData(), almacen_ids=self.almacen_id):
             self.combo_estanteria.addItem(est["nombre"], est["id"])
 
     def get_data(self):

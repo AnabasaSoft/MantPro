@@ -18,12 +18,12 @@
 # Deberías haber recibido una copia de la Licencia Pública General Affero de
 # GNU junto con este programa. Si no, consulta <https://www.gnu.org/licenses/>.
 
-"""Varias sedes en la ventana principal: el selector «Sede» (arriba a la derecha,
+"""Varias sedes en la ventana principal: el selector «Sede» (a la derecha de la barra de menús,
 solo con más de una sede activa), la sede con la que se filtran las pestañas y
 la que llevan los registros nuevos, y Herramientas → Sedes."""
 
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QWidget
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QSettings, Qt
 
 from ..comun import tt
 from ...nucleo import sedes, usuarios
@@ -45,7 +45,8 @@ class AccionesSedes:
         h.addWidget(self.lbl_sede)
         h.addWidget(self.combo_sede)
         self.caja_sede = caja
-        self.tabs.setCornerWidget(caja)
+        # En la esquina de la barra de menús: en la de pestañas quitaba sitio y las pestañas no cabían
+        self.menuBar().setCornerWidget(caja, Qt.Corner.TopRightCorner)
         self.combo_sede.currentIndexChanged.connect(self._al_elegir_sede)
         self.refrescar_selector_sede()
 
@@ -79,6 +80,8 @@ class AccionesSedes:
 
     def refrescar_por_sede(self):
         """Vuelve a pintar todo lo que depende de la sede elegida."""
+        if hasattr(self, "_cargar_almacenes_stock"):   # Stock: los almacenes que se ven desde la sede
+            self._cargar_almacenes_stock()
         self.refresh_all()
         if hasattr(self, "combo_maquina_entry"):     # Registrar: solo las máquinas de la sede
             from ..comun import _poblar_combo_maquinas
@@ -95,6 +98,16 @@ class AccionesSedes:
         """Sede de lo que se crea ahora sin máquina (pendientes, avisos, trabajos):
         la elegida en el selector o, con «Todas», la principal (None)."""
         return self.sede_filtro()
+
+    def gestionar_almacenes(self):
+        """Herramientas → Almacenes (solo administradores)."""
+        if not usuarios.es_admin():
+            return
+        from ..dialogos.almacenes import DialogoAlmacenes
+        d = DialogoAlmacenes(self)
+        d.exec()
+        if d.cambiado:
+            self.refrescar_por_sede()
 
     def gestionar_sedes(self):
         """Herramientas → Sedes (solo administradores)."""

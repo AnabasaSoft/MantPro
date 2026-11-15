@@ -458,6 +458,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
              (tt("menu_usuarios", "👥 Gestión de usuarios"), self.gestionar_usuarios, admin),
              (tt("menu_auditoria", "📋 Registro de cambios"), self.ver_auditoria, admin),
              (tt("menu_sedes", "🏢 Sedes…"), self.gestionar_sedes, admin),
+             (tt("menu_almacenes", "🏬 Almacenes…"), self.gestionar_almacenes, admin),
              (tt("menu_revisiones_almacen", "📦 Historial de revisiones del almacén"), self.ver_revisiones_almacen, admin),
              (tt("menu_cifrado_bd", "🔐 Cifrado de las bases de datos…"), self.configurar_cifrado_bd, admin)],
             # Calendario

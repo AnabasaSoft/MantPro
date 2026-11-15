@@ -460,9 +460,9 @@ def pc_vacio(cons):
             elif tabla == "usuario_roles":
                 if n > 1:
                     return False
-            elif tabla == "sedes":
-                # La sede principal la crea MantPro solo (con uuid fijo): no cuenta como dato propio
-                if n > 1 or (n == 1 and not cons[base].execute("SELECT principal FROM sedes").fetchone()[0]):
+            elif tabla in ("sedes", "almacenes"):
+                # La sede y el almacén principales los crea MantPro solo (con uuid fijo): no cuentan
+                if n > 1 or (n == 1 and not cons[base].execute(f"SELECT principal FROM {tabla}").fetchone()[0]):
                     return False
             elif tabla == "auditoria":
                 admin = cons[base].execute("SELECT id FROM usuarios WHERE login = 'admin'").fetchone()

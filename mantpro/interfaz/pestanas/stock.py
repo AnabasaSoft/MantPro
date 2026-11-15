@@ -44,7 +44,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen, maquinas, proveedores, consumos, pedidos, compras
+from ...nucleo import usuarios, almacen, almacenes, maquinas, proveedores, consumos, pedidos, compras
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -60,6 +60,12 @@ class PestanaStock:
         l = QVBoxLayout()
 
         barra = QHBoxLayout()
+        # Almacén (solo con varios): siempre se trabaja en uno concreto, de los que se ven desde la sede elegida
+        self.lbl_almacen_stock = QLabel(tt("lbl_almacen", "Almacén"))
+        self.combo_almacen_stock = QComboBox()
+        self.combo_almacen_stock.currentIndexChanged.connect(self._al_cambiar_almacen_stock)
+        barra.addWidget(self.lbl_almacen_stock)
+        barra.addWidget(self.combo_almacen_stock)
         self.stock_buscar = QLineEdit(); self.stock_buscar.setPlaceholderText(tt("ph_buscar_material", "Buscar material..."))
         self.stock_buscar.setMinimumWidth(170)
         self.stock_buscar.textChanged.connect(self.refresh_stock)
@@ -75,7 +81,14 @@ class PestanaStock:
         btn_salida = QPushButton(tt("btn_salida_stock", "📤 Salida")); btn_salida.setStyleSheet("background-color:#d35400; color:white;"); btn_salida.clicked.connect(lambda: self.stock_registrar_movimiento("salida"))
         btn_exportar = QPushButton(tt("btn_exportar_stock", "📄 Exportar")); btn_exportar.clicked.connect(lambda: self.stock_exportar())
         btn_historial = QPushButton(tt("btn_historial_almacen", "📜 Historial")); btn_historial.clicked.connect(self.stock_ver_historial)
-        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, btn_exportar, btn_historial): barra.addWidget(b)
+        self.btn_traspasar = QPushButton(tt("btn_traspasar", "🔁 Traspasar"))
+        self.btn_traspasar.clicked.connect(lambda: self.stock_traspasar())
+        # Dos filas (arriba, qué se ve y la gestión; abajo, las acciones): en una sola la
+        # ventana no podía estrecharse por debajo de unos 1600 píxeles
+        barra_acciones = QHBoxLayout()
+        for b in (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, self.btn_traspasar, btn_exportar, btn_historial):
+            barra_acciones.addWidget(b)
+        barra_acciones.addStretch()
         self.btn_proveedores = QPushButton(tt("btn_proveedores", "🏭 Proveedores"))
         self.btn_proveedores.clicked.connect(self.stock_gestionar_proveedores)
         barra.addWidget(self.btn_proveedores)
@@ -86,6 +99,7 @@ class PestanaStock:
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
         barra.addWidget(self.btn_configurar_almacen)
         l.addLayout(barra)
+        l.addLayout(barra_acciones)
 
         split = QSplitter(Qt.Orientation.Vertical)
         self.tabla_stock = QTableWidget(0, 6)
@@ -122,7 +136,34 @@ class PestanaStock:
         l.addWidget(split)
 
         self.tab_stock.setLayout(l)
+        self._cargar_almacenes_stock()
+
+    def _cargar_almacenes_stock(self):
+        """Rellena el desplegable de almacenes (los que se ven desde la sede elegida), conservando
+        el elegido si sigue a la vista, y después las zonas. Con un solo almacén no se ve."""
+        if not hasattr(self, "combo_almacen_stock"): return
+        previo = self.combo_almacen_stock.currentData()
+        self.combo_almacen_stock.blockSignals(True)
+        self.combo_almacen_stock.clear()
+        for a in almacenes.listar(self.sede_filtro()):
+            self.combo_almacen_stock.addItem(("🌐 " if a["comun"] else "") + a["nombre"], a["id"])
+        idx = self.combo_almacen_stock.findData(previo)
+        self.combo_almacen_stock.setCurrentIndex(idx if idx >= 0 else 0)
+        self.combo_almacen_stock.blockSignals(False)
+        varios = almacenes.hay_varios()
+        for w in (self.lbl_almacen_stock, self.combo_almacen_stock, self.btn_traspasar):
+            w.setVisible(varios)
         self._cargar_zonas_stock()
+
+    def almacen_stock(self):
+        """Almacén en el que se trabaja en la pestaña de stock (id concreto)."""
+        combo = getattr(self, "combo_almacen_stock", None)
+        elegido = combo.currentData() if combo is not None else None
+        return elegido if elegido is not None else almacenes.principal_id()
+
+    def _al_cambiar_almacen_stock(self, _idx):
+        self._cargar_zonas_stock()
+        self.refresh_stock()
 
     def _cargar_zonas_stock(self):
         """Rellena el desplegable de zonas de la pestaña de stock, conservando
@@ -132,7 +173,7 @@ class PestanaStock:
         self.combo_zona_stock.blockSignals(True)
         self.combo_zona_stock.clear()
         self.combo_zona_stock.addItem(tt("txt_todas_zonas", "Todas las zonas"), None)
-        for zona in almacen.listar_zonas():
+        for zona in almacen.listar_zonas(self.almacen_stock()):
             self.combo_zona_stock.addItem(zona["nombre"], zona["id"])
         idx = self.combo_zona_stock.findData(zona_previa)
         self.combo_zona_stock.setCurrentIndex(idx if idx >= 0 else 0)
@@ -192,7 +233,9 @@ class PestanaStock:
         if hasattr(self, "btn_pedido_sugerido"):
             self.btn_pedido_sugerido.setVisible(usuarios.es_admin())   # pedidos: solo administradores
         # También los que están justo en el mínimo (sin color: ni rojo ni verde)
-        materiales = almacen.materiales_bajo_minimo(incluir_en_minimo=True)
+        # De todos los almacenes que se ven desde la sede elegida
+        materiales = almacen.materiales_bajo_minimo(incluir_en_minimo=True,
+                                                    almacen_ids=almacenes.ids_de_sede(self.sede_filtro()))
         header = self.tabla_stock_alertas.horizontalHeader()
         # Al pulsar una cabecera para ordenar, Qt guarda esa columna y sentido en
         # el propio header; los recuperamos para que el orden elegido por el
@@ -228,6 +271,7 @@ class PestanaStock:
         if not material_id: return
         m = almacen.obtener_material(material_id)
         if not m: return
+        self._elegir_almacen_stock(m["almacen_id"])
         self.tabs.setCurrentWidget(self.tab_stock)
         self.stock_buscar.setText(m.get("codigo") or m["nombre"])
         self.refresh_stock()
@@ -304,7 +348,7 @@ class PestanaStock:
         if not hasattr(self, "tabla_stock"): return
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
         zona_id = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
-        materiales = almacen.listar_materiales(texto or None, zona_id)
+        materiales = almacen.listar_materiales(texto or None, zona_id, almacen_ids=self.almacen_stock())
         # La selección se guarda por id de material, no por número de fila:
         # al reescribir y reordenar la tabla, la misma fila pasa a ser otro
         # material y la barra de selección saltaba a uno cualquiera.
@@ -373,6 +417,13 @@ class PestanaStock:
             self.lbl_usado_en_stock.setVisible(True)
         # El nombre del artículo, a la vista: sin él, un traslado ("De Estantería
         # 11 > Balda B a Estantería 12 > Balda C") no dice qué se ha movido.
+        if almacenes.hay_varios():
+            otros = [f"{n}: {st:g}" for n, st, mid in almacenes.stock_por_almacen(material_id) if mid != material_id]
+            if otros:
+                texto = self.lbl_usado_en_stock.text()
+                self.lbl_usado_en_stock.setText((texto + "\n" if texto else "") + "🏬 " +
+                                                tt("lbl_en_otros_almacenes", "En otros almacenes: {lista}").format(lista=", ".join(otros)))
+                self.lbl_usado_en_stock.setVisible(True)
         material = almacen.obtener_material(material_id) or {}
         nombre = material.get("nombre") or ""
         self.lbl_historial_stock.setText(tt("lbl_historial_de", "Historial de movimientos: {nombre}").format(nombre=nombre))
@@ -388,8 +439,17 @@ class PestanaStock:
     def stock_ver_historial(self):
         DialogoHistorialAlmacen(self, al_elegir_material=self._ir_a_material_stock).exec()
 
+    def _elegir_almacen_stock(self, almacen_id):
+        """Pone en el desplegable el almacén [almacen_id] (None = principal), si está a la vista."""
+        idx = self.combo_almacen_stock.findData(almacenes.efectivo(almacen_id))
+        if idx >= 0 and idx != self.combo_almacen_stock.currentIndex():
+            self.combo_almacen_stock.setCurrentIndex(idx)
+
     def _ir_a_material_stock(self, material_id):
         """Selecciona el artículo en la tabla (quitando filtros si no está a la vista)."""
+        m = almacen.obtener_material(material_id)
+        if m:
+            self._elegir_almacen_stock(m["almacen_id"])
         for _ in range(2):
             for fila in range(self.tabla_stock.rowCount()):
                 item = self.tabla_stock.item(fila, 0)
@@ -406,13 +466,13 @@ class PestanaStock:
 
     def stock_exportar(self, solo_bajo_minimo=False):
         zona_actual = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
-        dlg = DialogoExportarStock(self, zona_actual, opcion_en_minimo=solo_bajo_minimo)
+        dlg = DialogoExportarStock(self, zona_actual, opcion_en_minimo=solo_bajo_minimo, almacen_id=self.almacen_stock())
         if solo_bajo_minimo:
             dlg.setWindowTitle(tt("title_exportar_bajo_minimo", "Exportar stock bajo mínimo"))
         if not dlg.exec(): return
         formato, zona_id, est_id, ambito = dlg.get_data()
 
-        materiales = almacen.listar_materiales(None, zona_id, est_id)
+        materiales = almacen.listar_materiales(None, zona_id, est_id, almacen_ids=self.almacen_stock())
         if solo_bajo_minimo:
             con_minimo = dlg.incluir_en_minimo()
             materiales = [m for m in materiales if self._bajo_minimo(m) or (con_minimo and almacen.esta_en_minimo(m))]
@@ -535,7 +595,7 @@ class PestanaStock:
             return None
 
     def stock_anadir_material(self):
-        dlg = DialogoEditarMaterial(self)
+        dlg = DialogoEditarMaterial(self, almacen_id=self.almacen_stock())
         if dlg.exec():
             d = dlg.get_data()
             if not d["nombre"]: return
@@ -543,7 +603,8 @@ class PestanaStock:
             nuevo_id = almacen.crear_material(d["codigo"], d["nombre"], d["descripcion"], d["unidad"], d["stock_minimo"],
                                                d["seccion_id"], foto_guardada, d["stock_inicial"],
                                                usuarios.id_actual(), usuarios.nombre_actual(),
-                                               precio=d["precio"] if usuarios.es_admin() else None)
+                                               precio=d["precio"] if usuarios.es_admin() else None,
+                                               almacen_id=self.almacen_stock())
             almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
             if usuarios.es_admin():   # proveedores y datos de pedido: solo administradores
                 proveedores.fijar_proveedor_habitual(nuevo_id, d["proveedor_id"])
@@ -592,7 +653,7 @@ class PestanaStock:
         ids = ids if ids is not None else self._materiales_seleccionados()
         if not ids:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
-        dlg = DialogoSeleccionarUbicacion(self)
+        dlg = DialogoSeleccionarUbicacion(self, almacen_id=self.almacen_stock())
         if not dlg.exec(): return
         seccion_id = dlg.get_seccion_id()
         for material_id in ids:
@@ -615,6 +676,22 @@ class PestanaStock:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_stock_insuficiente", "No hay stock suficiente para esta salida."))
             self.refresh_stock()
 
+    def stock_traspasar(self, material_id=None):
+        """Lleva stock del artículo seleccionado a otro almacén (lo crea allí si no está)."""
+        material_id = material_id or self._material_seleccionado()
+        if not material_id:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
+        from ..dialogos.almacenes import DialogoTraspaso, texto_error
+        material = almacen.obtener_material(material_id)
+        dlg = DialogoTraspaso(self, material)
+        if dlg.exec():
+            destino, cantidad = dlg.get_data()
+            _, err = almacenes.traspasar(material_id, destino, cantidad, usuarios.id_actual(), usuarios.nombre_actual())
+            if err:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+            self.refresh_stock()
+            self.refresh_historial_stock()
+
     def stock_abrir_pedidos(self, *_, sugerido=False):
         """Pedidos de material (solo administradores). Con [sugerido], abre antes el pedido sugerido."""
         if not usuarios.es_admin(): return
@@ -635,6 +712,6 @@ class PestanaStock:
 
     def stock_configurar_almacen(self):
         if not usuarios.es_admin(): return
-        DialogoConfigurarAlmacen(self).exec()
+        DialogoConfigurarAlmacen(self, almacen_id=self.almacen_stock()).exec()
         self._cargar_zonas_stock()
         self.refresh_stock()

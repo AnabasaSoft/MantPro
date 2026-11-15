@@ -48,6 +48,12 @@ def traducir_motivo_movimiento(motivo):
     if motivo.startswith(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):
         trabajo = motivo[len(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):]
         return tt("motivo_usado_en_trabajo", "Usado en trabajo: {trabajo}").format(trabajo=trabajo)
+    from ..nucleo import almacenes
+    if motivo.startswith(almacenes.PREFIJO_TRASPASO_A):
+        return tt("motivo_traspaso_a", "Traspaso a: {almacen}").format(almacen=motivo[len(almacenes.PREFIJO_TRASPASO_A):])
+    if motivo.startswith(almacenes.PREFIJO_TRASPASO_DESDE):
+        return tt("motivo_traspaso_desde", "Traspaso desde: {almacen}").format(
+            almacen=motivo[len(almacenes.PREFIJO_TRASPASO_DESDE):])
     return motivo
 
 

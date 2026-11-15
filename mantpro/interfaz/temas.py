@@ -258,7 +258,7 @@ class Temas:
         QMenu { background-color: #d4d0c8; border-width: 2px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; }
         QMenu::item:selected { background-color: #000080; color: white; }
         QTabWidget::pane { border-width: 2px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; background: #d4d0c8; }
-        QTabBar::tab { background: #d4d0c8; border-width: 1px 2px 0 1px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; padding: 4px 14px; margin-right: 1px; margin-top: 2px; }
+        QTabBar::tab { background: #d4d0c8; border-width: 1px 2px 0 1px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; padding: 4px 7px; margin-right: 1px; margin-top: 2px; }
         QTabBar::tab:selected { background: #d4d0c8; font-weight: bold; margin-top: 0; padding-bottom: 6px; }
         QPushButton { background-color: #d4d0c8; border-width: 2px; border-style: solid; border-color: #ffffff #404040 #404040 #ffffff; padding: 4px 12px; min-height: 20px; color: black; }
         QPushButton:pressed { border-width: 2px; border-style: solid; border-color: #808080 #ffffff #ffffff #808080; }
@@ -316,7 +316,7 @@ class Temas:
         QMenu::item { padding: 6px 24px; }
         QMenu::item:selected { background-color: #0078d4; color: white; border-radius: 3px; }
         QTabWidget::pane { border: 1px solid #d0d0d0; background: #f3f3f3; border-radius: 4px; }
-        QTabBar::tab { background: #e6e6e6; color: #444; padding: 8px 20px; border-top-left-radius: 4px; border-top-right-radius: 4px; margin-right: 2px; }
+        QTabBar::tab { background: #e6e6e6; color: #444; padding: 8px 9px; border-top-left-radius: 4px; border-top-right-radius: 4px; margin-right: 2px; }
         QTabBar::tab:selected { background: #0078d4; color: white; font-weight: bold; }
         QTabBar::tab:hover:!selected { background: #d4d4d4; }
         QPushButton { background-color: #e6e6e6; border: 1px solid #c0c0c0; border-radius: 5px; padding: 6px 14px; }
@@ -357,7 +357,7 @@ class Temas:
         self.setStyleSheet("""
         QMainWindow, QWidget { background-color: #2b2b2b; color: #e0e0e0; font-family: "Segoe UI", sans-serif; font-size: 14px; }
         QTabWidget::pane { border: 1px solid #444; background: #2b2b2b; border-radius: 4px; }
-        QTabBar::tab { background: #3c3c3c; color: #b0b0b0; padding: 8px 20px; border-top-left-radius: 4px; margin-right: 2px; }
+        QTabBar::tab { background: #3c3c3c; color: #b0b0b0; padding: 8px 9px; border-top-left-radius: 4px; margin-right: 2px; }
         QTabBar::tab:selected { background: #3daee9; color: white; font-weight: bold; }
         QPushButton { background-color: #3c3c3c; border: 1px solid #555; border-radius: 6px; padding: 6px 12px; color: #e0e0e0; }
         QPushButton:hover { background-color: #505050; border: 1px solid #3daee9; }

@@ -35,7 +35,7 @@ except ImportError:      # servidor de MantPro Cloud: sin escritorio ni Qt, solo
 
 from .. import idiomas
 from ..nucleo import operaciones_movil
-from ..nucleo import certificado, usuarios, almacen, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
+from ..nucleo import certificado, usuarios, almacen, almacenes, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -1397,21 +1397,42 @@ class ServidorSincronizacion(QThread):
                 return func(*args, **kwargs)
             return envoltorio
 
+        def _almacen_peticion():
+            """Almacén pedido con ?almacen=<id> (o el campo almacen_id del formulario). Sin él, el
+            principal: una app que aún no sabe de almacenes ve lo de siempre y nunca los mezcla."""
+            valor = request.args.get('almacen') or request.form.get('almacen_id')
+            try:
+                return almacenes.efectivo(int(valor)) if valor else almacenes.principal_id()
+            except (TypeError, ValueError):
+                return almacenes.principal_id()
+
+        @self.app.route('/api/stock/almacenes', methods=['GET'])
+        @requiere_token
+        def api_stock_almacenes():
+            """Almacenes activos (para elegir en MantPro Stock), con el nombre de su sede."""
+            from ..nucleo import sedes
+            nombres_sedes = sedes.nombres()
+            lista = [{"id": a["id"], "nombre": a["nombre"], "comun": bool(a["comun"]), "principal": bool(a["principal"]),
+                      "sede_id": sedes.efectiva(a["sede_id"]),
+                      "sede": "" if a["comun"] else nombres_sedes.get(sedes.efectiva(a["sede_id"]), "")}
+                     for a in almacenes.listar()]
+            return jsonify({"status": "ok", "almacenes": lista, "principal": almacenes.principal_id()})
+
         @self.app.route('/api/stock/estructura', methods=['GET'])
         @requiere_token
         def api_stock_estructura():
-            return jsonify({"status": "ok", "estanterias": almacen.listar_estructura()})
+            return jsonify({"status": "ok", "estanterias": almacen.listar_estructura(almacen_ids=_almacen_peticion())})
 
         @self.app.route('/api/stock/zonas', methods=['GET'])
         @requiere_token
         def api_stock_zonas():
-            return jsonify({"status": "ok", "zonas": almacen.listar_zonas()})
+            return jsonify({"status": "ok", "zonas": almacen.listar_zonas(_almacen_peticion())})
 
         @self.app.route('/api/stock/materiales', methods=['GET'])
         @requiere_token
         def api_stock_materiales():
             filtro = request.args.get('q') or None
-            materiales = almacen.listar_materiales(filtro)
+            materiales = almacen.listar_materiales(filtro, almacen_ids=_almacen_peticion())
             admin = usuarios.es_admin(g.usuario_mantpro)
             for m in materiales:
                 m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
@@ -1422,7 +1443,7 @@ class ServidorSincronizacion(QThread):
         @self.app.route('/api/stock/bajo_minimo', methods=['GET'])
         @requiere_token
         def api_stock_bajo_minimo():
-            materiales = almacen.materiales_bajo_minimo()
+            materiales = almacen.materiales_bajo_minimo(almacen_ids=_almacen_peticion())
             admin = usuarios.es_admin(g.usuario_mantpro)
             for m in materiales:
                 m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
@@ -1479,7 +1500,8 @@ class ServidorSincronizacion(QThread):
                     seccion_id, filename or None, float(datos.get('stock_inicial') or 0),
                     usuario['id'], usuario['nombre'],
                     # Los precios solo los pone un administrador
-                    precio=consumos.numero(datos.get('precio')) if usuarios.es_admin(usuario) else None)
+                    precio=consumos.numero(datos.get('precio')) if usuarios.es_admin(usuario) else None,
+                    almacen_id=_almacen_peticion())
                 if datos.get('proveedor_id') and usuarios.es_admin(usuario):
                     proveedores.fijar_proveedor_habitual(material_id, datos.get('proveedor_id'))
                 self.stock_actualizado.emit()

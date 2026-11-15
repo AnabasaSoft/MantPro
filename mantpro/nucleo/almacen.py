@@ -161,10 +161,16 @@ def inicializar():
     # estantería que, por lo que sea, se quede sin zona asignada). ---
     huerfanas = cur.execute("SELECT COUNT(*) AS n FROM estanterias WHERE zona_id IS NULL").fetchone()["n"]
     if huerfanas:
-        zona = cur.execute("SELECT id FROM zonas ORDER BY id LIMIT 1").fetchone()
+        cols_zonas = _columnas(con, "zonas")   # al principio: del almacén principal (si ya hay almacenes)
+        zona = cur.execute("SELECT id FROM zonas" + (" WHERE almacen_id IS NULL" if "almacen_id" in cols_zonas else "")
+                           + " ORDER BY id LIMIT 1").fetchone()
         zona_id = zona["id"] if zona else cur.execute(
             "INSERT INTO zonas (nombre) VALUES ('Almacén')").lastrowid
         cur.execute("UPDATE estanterias SET zona_id=? WHERE zona_id IS NULL", (zona_id,))
+
+    # Varios almacenes (nucleo/almacenes.py): tabla, almacen_id en materiales y zonas, almacén principal
+    from . import almacenes
+    almacenes.inicializar(con)
 
     con.commit()
     con.close()
@@ -172,21 +178,25 @@ def inicializar():
 
 # ---------------------------------------------------------------------- zonas
 
-def crear_zona(nombre):
-    """Crea una zona de almacén (espacio físico que agrupa estanterías)."""
+def crear_zona(nombre, almacen_id=None):
+    """Crea una zona de almacén (espacio físico que agrupa estanterías) en [almacen_id]
+    (None = el principal)."""
+    from . import almacenes
     con = _conn()
     cur = con.cursor()
-    cur.execute("INSERT INTO zonas (nombre) VALUES (?)", (nombre,))
+    cur.execute("INSERT INTO zonas (nombre, almacen_id) VALUES (?, ?)", (nombre, almacenes.guardable(almacen_id)))
     zona_id = cur.lastrowid
     con.commit()
     con.close()
     return zona_id
 
 
-def listar_zonas():
+def listar_zonas(almacen_ids=None):
+    """Zonas de [almacen_ids] (un id, una lista o None = de todos los almacenes)."""
+    from . import almacenes
     con = _conn()
     zonas = sorted(
-        (dict(row) for row in con.execute("SELECT * FROM zonas")),
+        (dict(row) for row in con.execute("SELECT * FROM zonas WHERE " + almacenes.condicion(almacen_ids))),
         key=lambda z: _clave_orden_natural(z["nombre"]))
     con.close()
     return zonas
@@ -513,15 +523,31 @@ def _clave_orden_natural(nombre):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', nombre or "")]
 
 
-def listar_estructura(zona_id=None):
+def almacen_de_seccion(seccion_id):
+    """Almacén (efectivo) en el que está una sección, o None si no existe."""
+    from . import almacenes
+    con = _conn()
+    fila = con.execute("""
+        SELECT z.almacen_id FROM secciones s JOIN baldas b ON s.balda_id = b.id
+        JOIN estanterias e ON b.estanteria_id = e.id JOIN zonas z ON e.zona_id = z.id
+        WHERE s.id = ?""", (seccion_id,)).fetchone()
+    con.close()
+    return almacenes.efectivo(fila[0]) if fila else None
+
+
+def listar_estructura(zona_id=None, almacen_ids=None):
     """Devuelve la estructura completa anidada:
     [{id, nombre, tiene_hueco_suelo, zona_id, baldas: [{id, numero, secciones: [{id, nombre}, ...]}, ...]}, ...]
     Las baldas se devuelven ordenadas de arriba hacia abajo (más intuitivo visualmente),
     dejando la balda 0 (hueco de suelo) siempre al final.
     Si se indica zona_id, solo devuelve las estanterías de esa zona."""
+    from . import almacenes
     con = _conn()
     if zona_id is not None:
         filas = con.execute("SELECT * FROM estanterias WHERE zona_id=?", (zona_id,))
+    elif almacen_ids is not None:
+        filas = con.execute("SELECT * FROM estanterias WHERE zona_id IN (SELECT id FROM zonas WHERE "
+                            + almacenes.condicion(almacen_ids) + ")")
     else:
         filas = con.execute("SELECT * FROM estanterias")
     estanterias = sorted(
@@ -567,13 +593,16 @@ def obtener_ubicacion_texto(seccion_id, formato_balda="Balda {n}", texto_suelo="
 # ---------------------------------------------------------------- materiales
 
 def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
-                    stock_inicial=0, usuario_id=None, usuario_nombre=None):
+                    stock_inicial=0, usuario_id=None, usuario_nombre=None, almacen_id=None):
+    from . import almacenes
+    if seccion_id:   # ubicado: está en el almacén de su ubicación
+        almacen_id = almacen_de_seccion(seccion_id) or almacen_id
     con = _conn()
     cur = con.cursor()
     cur.execute("""
-        INSERT INTO materiales (codigo, nombre, descripcion, unidad, stock_actual, stock_minimo, seccion_id, foto)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (codigo, nombre, descripcion, unidad, 0, stock_minimo, seccion_id, foto))
+        INSERT INTO materiales (codigo, nombre, descripcion, unidad, stock_actual, stock_minimo, seccion_id, foto, almacen_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (codigo, nombre, descripcion, unidad, 0, stock_minimo, seccion_id, foto, almacenes.guardable(almacen_id)))
     material_id = cur.lastrowid
     con.commit()
     con.close()
@@ -736,11 +765,13 @@ def obtener_material(material_id):
     return dict(fila) if fila else None
 
 
-def listar_materiales(filtro_texto=None, zona_id=None, estanteria_id=None):
+def listar_materiales(filtro_texto=None, zona_id=None, estanteria_id=None, almacen_ids=None):
     """Si se indica zona_id (o estanteria_id), solo devuelve los materiales ubicados
-    en esa zona (o estantería); los que no tienen ubicación quedan fuera del filtro."""
+    en esa zona (o estantería); los que no tienen ubicación quedan fuera del filtro.
+    [almacen_ids]: solo los de ese almacén o almacenes (None = todos)."""
+    from . import almacenes
     con = _conn()
-    condiciones = []
+    condiciones = [almacenes.condicion(almacen_ids, "m.almacen_id")]
     parametros = []
     if filtro_texto:
         patron = f"%{filtro_texto}%"
@@ -776,14 +807,17 @@ def esta_en_minimo(m):
     return m["stock_minimo"] > 0 and m["stock_actual"] == m["stock_minimo"]
 
 
-def materiales_bajo_minimo(incluir_en_minimo=False):
+def materiales_bajo_minimo(incluir_en_minimo=False, almacen_ids=None):
     """Materiales sin stock (aunque no tengan mínimo configurado) o por debajo
-    de su mínimo; con [incluir_en_minimo], también los que están justo en él."""
+    de su mínimo; con [incluir_en_minimo], también los que están justo en él.
+    [almacen_ids]: solo los de ese almacén o almacenes (None = todos)."""
+    from . import almacenes
     con = _conn()
     condicion = "stock_actual <= 0 OR stock_actual < stock_minimo"
     if incluir_en_minimo:
         condicion += " OR (stock_minimo > 0 AND stock_actual = stock_minimo)"
-    filas = con.execute(f"SELECT * FROM materiales WHERE {condicion} ORDER BY nombre").fetchall()
+    filas = con.execute(f"SELECT * FROM materiales WHERE ({condicion}) AND {almacenes.condicion(almacen_ids)} "
+                        "ORDER BY nombre").fetchall()
     con.close()
     return [dict(f) for f in filas]
 
@@ -831,14 +865,17 @@ def registrar_movimiento(material_id, tipo, cantidad, usuario_id, usuario_nombre
     return True, None
 
 
-def listar_movimientos(limite=2000):
+def listar_movimientos(limite=2000, almacen_ids=None):
     """Últimos movimientos de todo el almacén (entradas, salidas y traslados),
     del más reciente al más antiguo, con el código y el nombre del artículo.
-    Los de artículos ya borrados no aparecen: se borran con el artículo."""
+    Los de artículos ya borrados no aparecen: se borran con el artículo.
+    [almacen_ids]: solo los de ese almacén o almacenes (None = todos)."""
+    from . import almacenes
     con = _conn()
-    filas = con.execute("""
+    filas = con.execute(f"""
         SELECT mv.*, m.codigo AS material_codigo, m.nombre AS material_nombre
         FROM movimientos mv JOIN materiales m ON m.id = mv.material_id
+        WHERE {almacenes.condicion(almacen_ids, "m.almacen_id")}
         ORDER BY mv.fecha DESC, mv.id DESC LIMIT ?""", (limite,)).fetchall()
     con.close()
     return [dict(f) for f in filas]
@@ -892,9 +929,9 @@ _fijar_maquinas_sin_registro = fijar_maquinas_de_material
 
 
 def crear_material(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
-                   stock_inicial=0, usuario_id=None, usuario_nombre=None, precio=None):
+                   stock_inicial=0, usuario_id=None, usuario_nombre=None, precio=None, almacen_id=None):
     material_id = _crear_material_sin_registro(codigo, nombre, descripcion, unidad, stock_minimo, seccion_id, foto,
-                                               stock_inicial, usuario_id, usuario_nombre)
+                                               stock_inicial, usuario_id, usuario_nombre, almacen_id)
     if precio is not None:
         _fijar_precio(material_id, precio)
     despues = _foto_material(material_id)

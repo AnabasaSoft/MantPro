@@ -240,7 +240,7 @@ class DialogoRepuestoMaquina(QDialog):
     """Elegir un artículo del almacén como repuesto de una máquina, con la
     cantidad que lleva montada y una nota. Con «repuesto» se edita uno ya
     vinculado (el artículo no se cambia, solo la cantidad y la nota)."""
-    def __init__(self, parent, nombre_maquina, repuesto=None, ya_vinculados=()):
+    def __init__(self, parent, nombre_maquina, repuesto=None, ya_vinculados=(), almacen_ids=None):
         super().__init__(parent)
         self.repuesto = repuesto
         self.setWindowTitle(tt("title_repuesto_maquina", "Repuesto de {maquina}").format(maquina=nombre_maquina))
@@ -253,10 +253,14 @@ class DialogoRepuestoMaquina(QDialog):
             l.addWidget(self.buscar)
             self.lista = QListWidget()
             self.lista.itemDoubleClicked.connect(lambda _: self._validar_aceptar())
-            for m in almacen.listar_materiales():
+            from ...nucleo import almacenes
+            nombres_alm = almacenes.nombres() if almacenes.hay_varios() else {}
+            for m in almacen.listar_materiales(almacen_ids=almacen_ids):
                 if m["id"] in ya_vinculados:
                     continue
                 texto = f"[{m['codigo']}] {m['nombre']}" if m.get("codigo") else m["nombre"]
+                if nombres_alm:   # con varios almacenes, de cuál es
+                    texto += f"  · {nombres_alm.get(almacenes.efectivo(m['almacen_id']), '')}"
                 stock = f"{m['stock_actual']:g} {m.get('unidad') or ''}".strip()
                 item = QListWidgetItem(f"{texto}   ({stock})")
                 item.setData(Qt.ItemDataRole.UserRole, m["id"])

@@ -323,13 +323,16 @@ TABLAS = {
         "dias_especiales": {"tipo": "clave", "identidad": "{r}.fecha", "refs": {}},
     },
     "alma": {
-        "zonas": {"tipo": "entidad", "refs": {}},
+        # Almacenes: el principal tiene uuid fijo ("almacen-principal"), así dos PCs no crean dos.
+        "almacenes": {"tipo": "entidad", "refs": {"sede_id": "mant.sedes"}},
+        "zonas": {"tipo": "entidad", "refs": {"almacen_id": "alma.almacenes"}},
         "estanterias": {"tipo": "entidad", "refs": {"zona_id": "alma.zonas"}},
         "baldas": {"tipo": "entidad", "refs": {"estanteria_id": "alma.estanterias"}},
         "secciones": {"tipo": "entidad", "refs": {"balda_id": "alma.baldas"}},
         "proveedores": {"tipo": "entidad", "refs": {}},
         "materiales": {"tipo": "entidad", "derivadas": ("stock_actual",),
-                       "refs": {"seccion_id": "alma.secciones", "proveedor_id": "alma.proveedores"}},
+                       "refs": {"seccion_id": "alma.secciones", "proveedor_id": "alma.proveedores",
+                                "almacen_id": "alma.almacenes", "articulo_id": "alma.materiales"}},
         "movimientos": {"tipo": "inmutable", "refs": {"material_id": "alma.materiales", "usuario_id": "mant.usuarios"}},
         "maquina_repuestos": {"tipo": "enlace", "clave_natural": ("maquina_id", "material_id"),
                               "refs": {"maquina_id": "mant.maquinas", "material_id": "alma.materiales"}},
