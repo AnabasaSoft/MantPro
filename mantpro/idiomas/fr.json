@@ -1520,5 +1520,6 @@
   "alm_title_traspaso": "Transférer vers un autre entrepôt",
   "alm_lbl_traspaso": "{articulo} — dans « {origen} » il y a {stock:g} {unidad}",
   "alm_lbl_destino": "Entrepôt de destination",
-  "alm_lbl_cantidad": "Quantité"
+  "alm_lbl_cantidad": "Quantité",
+  "txt_sede_sin_almacen": "— Ce site n'a pas d'entrepôt —"
 }

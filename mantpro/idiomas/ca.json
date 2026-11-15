@@ -1520,5 +1520,6 @@
   "alm_title_traspaso": "Traspassa a un altre magatzem",
   "alm_lbl_traspaso": "{articulo} — a «{origen}» n'hi ha {stock:g} {unidad}",
   "alm_lbl_destino": "Magatzem de destinació",
-  "alm_lbl_cantidad": "Quantitat"
+  "alm_lbl_cantidad": "Quantitat",
+  "txt_sede_sin_almacen": "— Aquesta seu no té magatzem —"
 }

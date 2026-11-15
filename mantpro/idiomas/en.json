@@ -1520,5 +1520,6 @@
   "alm_title_traspaso": "Transfer to another warehouse",
   "alm_lbl_traspaso": "{articulo} — “{origen}” has {stock:g} {unidad}",
   "alm_lbl_destino": "Destination warehouse",
-  "alm_lbl_cantidad": "Quantity"
+  "alm_lbl_cantidad": "Quantity",
+  "txt_sede_sin_almacen": "— This site has no warehouse —"
 }

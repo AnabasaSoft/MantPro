@@ -1520,5 +1520,6 @@
   "alm_title_traspaso": "In ein anderes Lager umlagern",
   "alm_lbl_traspaso": "{articulo} — in „{origen}“ sind {stock:g} {unidad}",
   "alm_lbl_destino": "Ziellager",
-  "alm_lbl_cantidad": "Menge"
+  "alm_lbl_cantidad": "Menge",
+  "txt_sede_sin_almacen": "— Dieser Standort hat kein Lager —"
 }

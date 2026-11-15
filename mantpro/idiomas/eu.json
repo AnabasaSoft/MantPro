@@ -1520,5 +1520,6 @@
   "alm_title_traspaso": "Eskualdatu beste biltegi batera",
   "alm_lbl_traspaso": "{articulo} — «{origen}» biltegian {stock:g} {unidad} daude",
   "alm_lbl_destino": "Helburuko biltegia",
-  "alm_lbl_cantidad": "Kopurua"
+  "alm_lbl_cantidad": "Kopurua",
+  "txt_sede_sin_almacen": "— Egoitza honek ez du biltegirik —"
 }

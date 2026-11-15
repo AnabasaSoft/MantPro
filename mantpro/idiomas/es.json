@@ -1520,5 +1520,6 @@
   "alm_title_traspaso": "Traspasar a otro almacén",
   "alm_lbl_traspaso": "{articulo} — en «{origen}» hay {stock:g} {unidad}",
   "alm_lbl_destino": "Almacén de destino",
-  "alm_lbl_cantidad": "Cantidad"
+  "alm_lbl_cantidad": "Cantidad",
+  "txt_sede_sin_almacen": "— Esta sede no tiene almacén —"
 }

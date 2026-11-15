@@ -98,6 +98,9 @@ class PestanaStock:
         self.btn_configurar_almacen = QPushButton(tt("btn_configurar_almacen", "⚙️ Configurar almacén"))
         self.btn_configurar_almacen.clicked.connect(self.stock_configurar_almacen)
         barra.addWidget(self.btn_configurar_almacen)
+        # Lo que no tiene sentido si la sede elegida no tiene almacén
+        self._botones_con_almacen = (btn_add, btn_edit, btn_del, btn_entrada, btn_salida, self.btn_traspasar,
+                                     btn_exportar, self.btn_configurar_almacen)
         l.addLayout(barra)
         l.addLayout(barra_acciones)
 
@@ -138,28 +141,43 @@ class PestanaStock:
         self.tab_stock.setLayout(l)
         self._cargar_almacenes_stock()
 
-    def _cargar_almacenes_stock(self):
-        """Rellena el desplegable de almacenes (los que se ven desde la sede elegida), conservando
-        el elegido si sigue a la vista, y después las zonas. Con un solo almacén no se ve."""
+    def _cargar_almacenes_stock(self, cambio_de_sede=False):
+        """Rellena el desplegable de almacenes (los que se ven desde la sede elegida) y después las
+        zonas. Conserva el elegido si sigue a la vista; [cambio_de_sede] elige el primero propio de la
+        sede (no uno común). Si la sede no tiene ninguno, lo dice y no enseña nada (nunca el de otra sede)."""
         if not hasattr(self, "combo_almacen_stock"): return
-        previo = self.combo_almacen_stock.currentData()
+        previo = None if cambio_de_sede else self.combo_almacen_stock.currentData()
+        lista = almacenes.listar(self.sede_filtro())
         self.combo_almacen_stock.blockSignals(True)
         self.combo_almacen_stock.clear()
-        for a in almacenes.listar(self.sede_filtro()):
+        for a in lista:
             self.combo_almacen_stock.addItem(("🌐 " if a["comun"] else "") + a["nombre"], a["id"])
-        idx = self.combo_almacen_stock.findData(previo)
-        self.combo_almacen_stock.setCurrentIndex(idx if idx >= 0 else 0)
+        if not lista:
+            self.combo_almacen_stock.addItem(tt("txt_sede_sin_almacen", "— Esta sede no tiene almacén —"), None)
+        idx = self.combo_almacen_stock.findData(previo) if previo is not None else -1
+        if idx < 0:   # el primero propio de la sede; si no hay, el primero (común)
+            idx = next((i for i, a in enumerate(lista) if not a["comun"]), 0)
+        self.combo_almacen_stock.setCurrentIndex(idx)
         self.combo_almacen_stock.blockSignals(False)
-        varios = almacenes.hay_varios()
-        for w in (self.lbl_almacen_stock, self.combo_almacen_stock, self.btn_traspasar):
-            w.setVisible(varios)
+        from ...nucleo import sedes
+        for w in (self.lbl_almacen_stock, self.combo_almacen_stock):
+            w.setVisible(almacenes.hay_varios() or sedes.hay_varias())
+        self.btn_traspasar.setVisible(almacenes.hay_varios())
+        for b in getattr(self, "_botones_con_almacen", ()):
+            b.setEnabled(bool(lista))
         self._cargar_zonas_stock()
 
     def almacen_stock(self):
-        """Almacén en el que se trabaja en la pestaña de stock (id concreto)."""
+        """Almacén en el que se trabaja en la pestaña de stock, o None si la sede elegida no tiene."""
         combo = getattr(self, "combo_almacen_stock", None)
-        elegido = combo.currentData() if combo is not None else None
-        return elegido if elegido is not None else almacenes.principal_id()
+        if combo is None:
+            return almacenes.principal_id()
+        return combo.currentData()
+
+    def _ids_stock(self):
+        """Para filtrar listados: [el almacén elegido], o [] (nada) si la sede no tiene almacén."""
+        elegido = self.almacen_stock()
+        return [] if elegido is None else [elegido]
 
     def _al_cambiar_almacen_stock(self, _idx):
         self._cargar_zonas_stock()
@@ -173,7 +191,7 @@ class PestanaStock:
         self.combo_zona_stock.blockSignals(True)
         self.combo_zona_stock.clear()
         self.combo_zona_stock.addItem(tt("txt_todas_zonas", "Todas las zonas"), None)
-        for zona in almacen.listar_zonas(self.almacen_stock()):
+        for zona in almacen.listar_zonas(self._ids_stock()):
             self.combo_zona_stock.addItem(zona["nombre"], zona["id"])
         idx = self.combo_zona_stock.findData(zona_previa)
         self.combo_zona_stock.setCurrentIndex(idx if idx >= 0 else 0)
@@ -348,7 +366,7 @@ class PestanaStock:
         if not hasattr(self, "tabla_stock"): return
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
         zona_id = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
-        materiales = almacen.listar_materiales(texto or None, zona_id, almacen_ids=self.almacen_stock())
+        materiales = almacen.listar_materiales(texto or None, zona_id, almacen_ids=self._ids_stock())
         # La selección se guarda por id de material, no por número de fila:
         # al reescribir y reordenar la tabla, la misma fila pasa a ser otro
         # material y la barra de selección saltaba a uno cualquiera.
@@ -472,7 +490,7 @@ class PestanaStock:
         if not dlg.exec(): return
         formato, zona_id, est_id, ambito = dlg.get_data()
 
-        materiales = almacen.listar_materiales(None, zona_id, est_id, almacen_ids=self.almacen_stock())
+        materiales = almacen.listar_materiales(None, zona_id, est_id, almacen_ids=self._ids_stock())
         if solo_bajo_minimo:
             con_minimo = dlg.incluir_en_minimo()
             materiales = [m for m in materiales if self._bajo_minimo(m) or (con_minimo and almacen.esta_en_minimo(m))]

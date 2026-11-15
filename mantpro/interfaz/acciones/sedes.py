@@ -81,7 +81,7 @@ class AccionesSedes:
     def refrescar_por_sede(self):
         """Vuelve a pintar todo lo que depende de la sede elegida."""
         if hasattr(self, "_cargar_almacenes_stock"):   # Stock: los almacenes que se ven desde la sede
-            self._cargar_almacenes_stock()
+            self._cargar_almacenes_stock(cambio_de_sede=True)
         self.refresh_all()
         if hasattr(self, "combo_maquina_entry"):     # Registrar: solo las máquinas de la sede
             from ..comun import _poblar_combo_maquinas
