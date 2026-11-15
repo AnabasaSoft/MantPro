@@ -793,11 +793,11 @@ móstrase unha chave de recuperación para apuntala. Vén desactivado.
 
 ## 🌐 MantPro Cloud
 
-> **Proximamente.**
+> **Xa dispoñible:** [proba 30 días de balde](https://mantpro-cloud.com/gl/registro/) · [A miña conta](https://mantpro-cloud.com/gl/cuenta/)
 
 MantPro é e seguirá sendo **gratuíto e de código aberto**: todo o que se explica neste README funciona no teu PC, sen contas nin conexión a internet, e sen límite de técnicos nin máquinas.
 
-**MantPro Cloud** será un servizo **opcional e de pagamento** para quen precise máis ca unha rede local:
+**MantPro Cloud** é un servizo **opcional e de pagamento** para quen precise máis ca unha rede local:
 
 - **Varios PC cos mesmos datos**: cada PC conserva a súa base de datos e traballa sen conexión; cando ten rede, sobe e baixa os cambios.
 - **Os móbiles sincronizan desde calquera sitio** (4G ou calquera wifi), non só na rede da oficina. Se a nube non está dispoñible, seguen sincronizando co PC coma sempre.
@@ -807,7 +807,7 @@ MantPro é e seguirá sendo **gratuíto e de código aberto**: todo o que se exp
 
 Os teus datos seguen sendo teus: se deixas de pagar, o PC segue funcionando con todo o que ten en local; só deixa de sincronizar.
 
-> 🎁 **Prezo especial para os primeiros clientes:** escribe a [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) e terás un **30 % de desconto durante os primeiros 6 meses** de funcionamento do servizo.
+> 🎁 **Prezo especial para os primeiros clientes:** co código **PRIMEROS30** tes un **30 % de desconto durante os primeiros 6 meses**.
 
 ---
 

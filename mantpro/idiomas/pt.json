@@ -1372,7 +1372,7 @@
   "title_nube": "MantPro Cloud",
   "lbl_nube_sin_sesion": "Este PC não está ligado ao MantPro Cloud.",
   "lbl_nube_info": "O MantPro Cloud guarda os seus dados na nuvem e mantém-nos atualizados entre vários PCs e telemóveis, mesmo que não estejam na mesma rede. Inicie sessão com a conta que lhe demos ao contratar.\n\nO MantPro continua a funcionar da mesma forma neste PC sem a nuvem: se não iniciar sessão, nada muda.",
-  "lbl_nube_proximamente": "Em breve. Escreva para {correo} e ganhe 30% de desconto durante os primeiros 6 meses de funcionamento do serviço.",
+  "lbl_nube_contratar": "Ainda não tem conta? {inicio}Crie uma em mantpro-cloud.com{fin}: 30 dias de teste grátis, sem cobrar nada até o dia 31. Com o código PRIMEROS30, 30% de desconto durante 6 meses.",
   "nube_correo": "E-mail",
   "nube_password": "Palavra-passe",
   "btn_nube_iniciar": "Iniciar sessão",

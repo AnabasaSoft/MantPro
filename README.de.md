@@ -800,11 +800,11 @@ deaktiviert.
 
 ## 🌐 MantPro Cloud
 
-> **Demnächst verfügbar.**
+> **Jetzt verfügbar:** [30 Tage kostenlos testen](https://mantpro-cloud.com/de/registro/) · [Mein Konto](https://mantpro-cloud.com/de/cuenta/)
 
 MantPro ist und bleibt **kostenlos und Open Source**: Alles, was in diesem README beschrieben ist, funktioniert auf Ihrem PC – ohne Konto, ohne Internetverbindung und ohne Begrenzung bei Technikern oder Maschinen.
 
-**MantPro Cloud** wird ein **optionaler, kostenpflichtiger Dienst** für alle, die mehr als ein lokales Netzwerk brauchen:
+**MantPro Cloud** ist ein **optionaler, kostenpflichtiger Dienst** für alle, die mehr als ein lokales Netzwerk brauchen:
 
 - **Mehrere PCs mit denselben Daten**: Jeder PC behält seine eigene Datenbank und arbeitet offline; sobald er eine Verbindung hat, lädt er die Änderungen hoch und herunter.
 - **Handys synchronisieren von überall** (4G oder jedes WLAN), nicht nur im Büronetz. Ist die Cloud nicht erreichbar, synchronisieren sie wie gewohnt mit dem PC.
@@ -814,7 +814,7 @@ MantPro ist und bleibt **kostenlos und Open Source**: Alles, was in diesem READM
 
 Ihre Daten bleiben Ihre Daten: Wenn Sie nicht mehr zahlen, arbeitet der PC mit allem weiter, was er lokal hat; er synchronisiert nur nicht mehr.
 
-> 🎁 **Sonderpreis für die ersten Kunden:** Schreiben Sie an [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) und erhalten Sie **30 % Rabatt in den ersten 6 Monaten** des Dienstes.
+> 🎁 **Sonderpreis für die ersten Kunden:** Mit dem Code **PRIMEROS30** erhalten Sie **30 % Rabatt in den ersten 6 Monaten**.
 
 ---
 

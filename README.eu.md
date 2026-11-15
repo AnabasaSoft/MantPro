@@ -808,11 +808,11 @@ berreskuratze-gako bat erakusten da idazteko. Desaktibatuta dator.
 
 ## 🌐 MantPro Cloud
 
-> **Laster.**
+> **Eskuragarri orain:** [probatu 30 egun doan](https://mantpro-cloud.com/eu/registro/) · [Nire kontua](https://mantpro-cloud.com/eu/cuenta/)
 
 MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azaltzen den guztiak zure PCan funtzionatzen du, konturik eta interneteko konexiorik gabe, eta teknikari zein makina mugarik gabe.
 
-**MantPro Cloud** zerbitzu **aukerakoa eta ordainpekoa** izango da, sare lokal bat baino gehiago behar dutenentzat:
+**MantPro Cloud** zerbitzu **aukerakoa eta ordainpekoa** da, sare lokal bat baino gehiago behar dutenentzat:
 
 - **PC batzuk datu berberekin**: PC bakoitzak bere datu-basea gordetzen du eta konexiorik gabe lan egiten du; sarea duenean, aldaketak igo eta jaisten ditu.
 - **Mugikorrak edonondik sinkronizatzen dira** (4G edo edozein wifi), ez bulegoko sarean bakarrik. Hodeia erabilgarri ez badago, PCarekin sinkronizatzen jarraitzen dute, beti bezala.
@@ -822,7 +822,7 @@ MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azal
 
 Zure datuak zureak dira: ordaintzeari uzten badiozu, PCak lokalean duen guztiarekin funtzionatzen jarraitzen du; sinkronizatzeari uzten dio, besterik ez.
 
-> 🎁 **Prezio berezia lehen bezeroentzat:** idatzi [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) helbidera eta **% 30eko deskontua** izango duzu zerbitzuaren **lehen 6 hilabeteetan**.
+> 🎁 **Prezio berezia lehen bezeroentzat:** **PRIMEROS30** kodearekin **% 30eko deskontua** duzu **lehen 6 hilabeteetan**.
 
 ---
 

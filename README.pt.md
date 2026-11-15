@@ -801,11 +801,11 @@ sistema e é mostrada uma chave de recuperação para você anotar. Vem desativa
 
 ## 🌐 MantPro Cloud
 
-> **Em breve.**
+> **Já disponível:** [teste grátis por 30 dias](https://mantpro-cloud.com/pt/registro/) · [Minha conta](https://mantpro-cloud.com/pt/cuenta/)
 
 O MantPro é e continuará sendo **gratuito e de código aberto**: tudo o que este README explica funciona no seu PC, sem contas nem conexão à internet, e sem limite de técnicos ou máquinas.
 
-O **MantPro Cloud** será um serviço **opcional e pago** para quem precisa de mais do que uma rede local:
+O **MantPro Cloud** é um serviço **opcional e pago** para quem precisa de mais do que uma rede local:
 
 - **Vários PCs com os mesmos dados**: cada PC mantém seu próprio banco de dados e trabalha sem conexão; quando tem rede, envia e baixa as alterações.
 - **Os celulares sincronizam de qualquer lugar** (4G ou qualquer Wi-Fi), não só na rede do escritório. Se a nuvem não estiver disponível, continuam sincronizando com o PC como sempre.
@@ -815,7 +815,7 @@ O **MantPro Cloud** será um serviço **opcional e pago** para quem precisa de m
 
 Seus dados continuam sendo seus: se você deixar de pagar, o PC continua funcionando com tudo o que tem localmente; apenas deixa de sincronizar.
 
-> 🎁 **Preço especial para os primeiros clientes:** escreva para [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) e ganhe **30% de desconto durante os primeiros 6 meses** de funcionamento do serviço.
+> 🎁 **Preço especial para os primeiros clientes:** com o código **PRIMEROS30** você tem **30% de desconto nos primeiros 6 meses**.
 
 ---
 

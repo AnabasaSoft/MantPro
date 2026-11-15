@@ -788,11 +788,11 @@ to write down. It is off by default.
 
 ## 🌐 MantPro Cloud
 
-> **Coming soon.**
+> **Now available:** [try it free for 30 days](https://mantpro-cloud.com/en/registro/) · [My account](https://mantpro-cloud.com/en/cuenta/)
 
 MantPro is and will remain **free and open source**: everything in this README works on your PC, with no accounts or internet connection, and no limit on technicians or machines.
 
-**MantPro Cloud** will be an **optional, paid service** for those who need more than a local network:
+**MantPro Cloud** is an **optional, paid service** for those who need more than a local network:
 
 - **Several PCs sharing the same data**: each PC keeps its own database and works offline; when it has a connection, it uploads and downloads the changes.
 - **Phones sync from anywhere** (4G or any Wi-Fi), not just on the office network. If the cloud is unavailable, they keep syncing with the PC as always.
@@ -802,7 +802,7 @@ MantPro is and will remain **free and open source**: everything in this README w
 
 Your data is still yours: if you stop paying, the PC keeps working with everything it has locally; it just stops syncing.
 
-> 🎁 **Special price for early customers:** write to [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) to get **30% off during the first 6 months** of the service.
+> 🎁 **Special price for early customers:** with the code **PRIMEROS30** you get **30% off for the first 6 months**.
 
 ---
 

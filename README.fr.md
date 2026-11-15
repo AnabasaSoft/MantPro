@@ -822,11 +822,11 @@ C'est désactivé par défaut.
 
 ## 🌐 MantPro Cloud
 
-> **Bientôt disponible.**
+> **Disponible :** [essai gratuit de 30 jours](https://mantpro-cloud.com/fr/registro/) · [Mon compte](https://mantpro-cloud.com/fr/cuenta/)
 
 MantPro est et restera **gratuit et open source** : tout ce qui est décrit dans ce README fonctionne sur votre PC, sans compte ni connexion internet, et sans limite de techniciens ni de machines.
 
-**MantPro Cloud** sera un service **optionnel et payant** pour ceux qui ont besoin de plus qu'un réseau local :
+**MantPro Cloud** est un service **optionnel et payant** pour ceux qui ont besoin de plus qu'un réseau local :
 
 - **Plusieurs PC avec les mêmes données** : chaque PC garde sa propre base de données et fonctionne hors ligne ; dès qu'il a du réseau, il envoie et récupère les modifications.
 - **Les mobiles se synchronisent depuis n'importe où** (4G ou n'importe quel Wi-Fi), pas seulement sur le réseau du bureau. Si le cloud n'est pas disponible, ils continuent de se synchroniser avec le PC comme d'habitude.
@@ -836,7 +836,7 @@ MantPro est et restera **gratuit et open source** : tout ce qui est décrit dans
 
 Vos données restent les vôtres : si vous arrêtez de payer, le PC continue de fonctionner avec tout ce qu'il a en local ; il cesse simplement de se synchroniser.
 
-> 🎁 **Prix spécial pour les premiers clients :** écrivez à [anabasasoft@gmail.com](mailto:anabasasoft@gmail.com) pour bénéficier de **30 % de réduction pendant les 6 premiers mois** de fonctionnement du service.
+> 🎁 **Prix spécial pour les premiers clients :** avec le code **PRIMEROS30**, vous bénéficiez de **30 % de réduction pendant les 6 premiers mois**.
 
 ---
 

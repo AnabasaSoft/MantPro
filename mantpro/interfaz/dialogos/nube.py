@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLin
 from PyQt6.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 
-from ...idiomas import t, formato_fecha_localizada
+from ...idiomas import t, formato_fecha_localizada, get_idioma
 from ..comun import tt
 from ...nucleo import nube, sincro_fotos, sincro_nube
 
@@ -195,14 +195,15 @@ class DialogoNube(QDialog):
             "MantPro Cloud guarda tus datos en la nube y los mantiene al día entre varios PCs y los móviles, "
             "aunque no estén en la misma red. Inicia sesión con la cuenta que te dimos al contratarlo.\n\n"
             "MantPro sigue funcionando igual en este PC sin la nube: si no inicias sesión, no cambia nada.")))
-        # El servicio aún no admite altas: se avisa y se da el correo (como enlace) para pedirlo
-        correo = "anabasasoft@gmail.com"
-        proximamente = self._etiqueta("🎁 " + tt("lbl_nube_proximamente",
-            "Próximamente. Escribe a {correo} y tendrás un 30 % de descuento durante los primeros 6 meses "
-            "de funcionamiento del servicio.").format(correo=f'<a href="mailto:{correo}">{correo}</a>'), True)
-        proximamente.setTextFormat(Qt.TextFormat.RichText)
-        proximamente.setOpenExternalLinks(True)
-        l.addWidget(proximamente)
+        # Quien aún no tiene cuenta la crea en la web (en el idioma del programa), con la prueba gratuita
+        url = nube.url_registro(get_idioma())
+        contratar = self._etiqueta("🎁 " + tt("lbl_nube_contratar",
+            "¿Aún no tienes cuenta? {inicio}Créala en mantpro-cloud.com{fin}: 30 días de prueba gratis, sin cobrar nada "
+            "hasta el día 31. Con el código PRIMEROS30, 30 % de descuento durante 6 meses.").format(
+                inicio=f'<a href="{url}">', fin="</a>"), True)
+        contratar.setTextFormat(Qt.TextFormat.RichText)
+        contratar.setOpenExternalLinks(True)
+        l.addWidget(contratar)
         form = QFormLayout()
         self.campo_correo = QLineEdit()
         self.campo_correo.setPlaceholderText(tt("nube_correo", "Correo"))
