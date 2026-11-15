@@ -31,7 +31,7 @@ from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import AvisoEditDialog
-from ...nucleo import usuarios, checklists, consumos, contadores
+from ...nucleo import usuarios, checklists, consumos, contadores, sedes
 from ..dialogos.contadores import CamposContadorAviso, pedir_lectura
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.basedatos import get_db_connection
@@ -97,7 +97,8 @@ class PestanaAvisos:
         if tit and error:
             QMessageBox.warning(self, t("lbl_crear_nuevo_aviso"), error); return
         nuevo_id = self.db.agregar_aviso(tit, i, f, dur, uid, nombre, especialidad_id,
-                                         contador=self.in_av_contador.config()) if tit else None
+                                         contador=self.in_av_contador.config(),
+                                         sede_id=self.sede_para_nuevo()) if tit else None
         if nuevo_id:
             if self.in_av_checklist.currentData():
                 checklists.asignar("aviso", nuevo_id, self.in_av_checklist.currentData())
@@ -127,7 +128,7 @@ class PestanaAvisos:
         (y, si no están asignados, coinciden con alguna de sus especialidades
         o no tienen ninguna), pero no los asignados a otro técnico ni los
         restringidos a una especialidad que no tiene."""
-        avisos = self.db.obtener_avisos()
+        avisos = self.db.obtener_avisos(sede=self.sede_filtro())
         if usuarios.es_admin():
             return avisos
         uid = usuarios.id_actual()
@@ -326,7 +327,8 @@ class PestanaAvisos:
             hoy = QDate.currentDate().toString("yyyy-MM-dd")
             self.db.marcar_aviso_completado(id_aviso, hoy, True)
             tags = "Preventivo, Aviso Recurrente"
-            tarea_id = self.db.agregar_tarea(hoy, desc_historial, tags)
+            tarea_id = self.db.agregar_tarea(hoy, desc_historial, tags,
+                                             sede_id=sedes.sede_de("avisos_recurrentes", id_aviso))
             if tarea_id and lista[0]:
                 checklists.guardar_resultado(tarea_id, lista[0], lista[1])
             if info and tarea_id:

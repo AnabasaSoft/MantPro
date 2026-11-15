@@ -32,7 +32,7 @@ from PyQt6.QtGui import QIcon, QColor, QPixmap
 from ...idiomas import t
 from ..comun import _estilo_check_etiqueta, traducir_tags_bd, tt
 from ..dialogos.trabajos import EditDialog
-from ...nucleo import usuarios, checklists, consumos, mano_obra
+from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes
 from ..dialogos.checklists import DialogoRellenarChecklist, resumen_texto, texto_tiempo_export
 
 class PestanaHistorial:
@@ -130,7 +130,7 @@ class PestanaHistorial:
     def search(self):
         texto = self.s_in.text().strip(); fecha = None
         if self.s_chk_date.isChecked(): fecha = self.s_date.date().toString("yyyy-MM-dd")
-        resultados = self.db.buscar_tareas_avanzado(texto, fecha)
+        resultados = self.db.buscar_tareas_avanzado(texto, fecha, sede=self.sede_filtro())
         self.fill_t(self.s_table, resultados)
         filtros_activos = []
         if self.chk_s_urg.isChecked(): filtros_activos.append("urgente")
@@ -150,7 +150,7 @@ class PestanaHistorial:
         self.statusBar().showMessage(t("msg_mostrando_resultados").format(n=filas_visibles), 3000)
 
     def refresh_history(self):
-        datos = self.db.obtener_todas_cronologico()
+        datos = self.db.obtener_todas_cronologico(sede=self.sede_filtro())
         self.fill_t(self.h_table, datos)
         self.recargar_combo_historial()
         self.aplicar_filtros_historial()
@@ -501,7 +501,8 @@ class PestanaHistorial:
         detalles = "\n".join(lineas[1:]).strip()
 
         lista_previa = checklists.resultado_de(i)
-        nuevo_pendiente = self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None)
+        nuevo_pendiente = self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None,
+                                                    sede_id=sedes.sede_de("tareas", i))
         if not nuevo_pendiente:
             QMessageBox.critical(self, t("aviso"), tt("msg_error_revertir", "No se ha podido revertir el trabajo a pendiente."))
             return

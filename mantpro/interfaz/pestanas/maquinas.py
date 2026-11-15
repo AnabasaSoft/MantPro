@@ -36,7 +36,7 @@ from ..dialogos.maquinas import DialogoEditarMaquina, DialogoRepuestoMaquina
 from ..widgets.fotos import VisorFoto
 from ..widgets.graficos import GraficoCircularTrabajos
 from ..widgets.ordenables import _ItemArbolOrdenable, _ItemTablaOrdenable
-from ...nucleo import almacen, etiquetas, maquinas, usuarios
+from ...nucleo import almacen, etiquetas, maquinas, sedes, usuarios
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaMaquinas:
@@ -403,7 +403,10 @@ class PestanaMaquinas:
         por_padre = {}
         for m in todas:
             por_padre.setdefault(m["padre_id"], []).append(m)
+        sede = self.sede_filtro()     # solo las máquinas de la sede elegida (las submáquinas van con su raíz)
         for m in por_padre.get(None, []):
+            if not sedes.de_la_sede(m.get("sede_id"), sede):
+                continue
             item = self._crear_nodo_maquina(m)
             self.arbol_maquinas.addTopLevelItem(item)
             if id_seleccionado == m["id"]:
@@ -493,7 +496,9 @@ class PestanaMaquinas:
         en los desplegables, sumando en cada máquina de nivel superior los trabajos de sus submáquinas."""
         anio = self.combo_anio_grafico.currentData()
         zona_id = self.combo_zona_grafico.currentData()
-        top_level = [m for m in maquinas.listar_maquinas() if m["padre_id"] is None]
+        sede = self.sede_filtro()
+        top_level = [m for m in maquinas.listar_maquinas()
+                     if m["padre_id"] is None and sedes.de_la_sede(m.get("sede_id"), sede)]
         if zona_id is not None:
             top_level = [m for m in top_level if m["zona_id"] == zona_id]
 
@@ -548,11 +553,12 @@ class PestanaMaquinas:
         return self._guardar_foto_maquina(datos["ruta_foto_seleccionada"])
 
     def _maquina_nueva(self):
-        dlg = DialogoEditarMaquina(self)
+        dlg = DialogoEditarMaquina(self, sede_sugerida=self.sede_filtro())
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
-            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
+            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"],
+                                     sede_id=datos["sede_id"])
             self.refrescar_arbol_maquinas()
 
     def _maquina_nueva_sub(self):
@@ -565,7 +571,8 @@ class PestanaMaquinas:
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
-            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
+            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"],
+                                     sede_id=datos["sede_id"])
             self.refrescar_arbol_maquinas()
 
     def _maquina_editar(self):
@@ -581,6 +588,9 @@ class PestanaMaquinas:
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
             maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
+            # Una máquina raíz puede cambiar de sede (con sus submáquinas y sus trabajos)
+            if datos["padre_id"] is None and datos["sede_id"] != sedes.efectiva(maquina.get("sede_id")):
+                sedes.asignar_maquina(datos_item["id"], datos["sede_id"])
             self.refrescar_arbol_maquinas()
             self._maquina_mostrar_foto_seleccionada()
 

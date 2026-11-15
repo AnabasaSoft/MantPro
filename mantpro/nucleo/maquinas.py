@@ -140,15 +140,21 @@ def zonas_disponibles():
 
 # ---------------------------------------------------------------- CRUD máquinas
 
-def agregar_maquina(nombre, padre_id=None, notas="", foto=None, zona_id=None):
+def agregar_maquina(nombre, padre_id=None, notas="", foto=None, zona_id=None, sede_id=None):
     con = _conn()
-    con.execute(
+    cur = con.execute(
         "INSERT INTO maquinas (nombre, padre_id, notas, creado, foto, zona_id) VALUES (?, ?, ?, ?, ?, ?)",
         (nombre.strip(), padre_id, (notas or "").strip(),
          datetime.now().isoformat(timespec="seconds"), foto, zona_id),
     )
+    nuevo = cur.lastrowid
     con.commit()
     con.close()
+    # Una máquina raíz lleva la sede elegida; una submáquina, la de su superior (disparador)
+    if padre_id is None and sede_id is not None:
+        from . import sedes
+        sedes.asignar_maquina(nuevo, sede_id)
+    return nuevo
 
 
 def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None, zona_id=None):
@@ -159,6 +165,9 @@ def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None, zona_id=N
     )
     con.commit()
     con.close()
+    # Si ahora cuelga de otra máquina, pasa (con sus submáquinas y trabajos) a la sede de esa
+    from . import sedes
+    sedes.al_mover_maquina(id_maquina)
 
 
 def nombres_parecidos(nombre, padre_id, excluir_id=None):
@@ -180,7 +189,7 @@ def listar_maquinas():
     """Todas las máquinas (planas, con su padre_id y su zona), ordenadas por nombre."""
     con = _conn()
     filas = con.execute(
-        "SELECT m.id, m.nombre, m.padre_id, m.notas, m.foto, m.zona_id, z.nombre AS zona_nombre "
+        "SELECT m.id, m.nombre, m.padre_id, m.notas, m.foto, m.zona_id, z.nombre AS zona_nombre, m.sede_id "
         "FROM maquinas m LEFT JOIN zonas z ON z.id = m.zona_id "
         "ORDER BY m.nombre COLLATE NOCASE"
     ).fetchall()
@@ -191,7 +200,7 @@ def listar_maquinas():
 def obtener_maquina(id_maquina):
     con = _conn()
     fila = con.execute(
-        "SELECT id, nombre, padre_id, notas, foto, zona_id FROM maquinas WHERE id=?", (id_maquina,)
+        "SELECT id, nombre, padre_id, notas, foto, zona_id, sede_id FROM maquinas WHERE id=?", (id_maquina,)
     ).fetchone()
     con.close()
     return dict(fila) if fila else None
@@ -509,14 +518,12 @@ _borrar_maquina_sin_registro = borrar_maquina
 _borrar_zona_sin_registro = borrar_zona
 
 
-def agregar_maquina(nombre, padre_id=None, notas="", foto=None, zona_id=None):
-    _agregar_maquina_sin_registro(nombre, padre_id, notas, foto, zona_id)
-    con = _conn()
-    nuevo = con.execute("SELECT MAX(id) FROM maquinas").fetchone()[0]
-    con.close()
+def agregar_maquina(nombre, padre_id=None, notas="", foto=None, zona_id=None, sede_id=None):
+    nuevo = _agregar_maquina_sin_registro(nombre, padre_id, notas, foto, zona_id, sede_id)
     foto_m = _foto_maquina(nuevo) if nuevo else {}
     _usuarios.auditar("maquinas", "crear", mapa_rutas_completas().get(nuevo, nombre),
                       cambios=_usuarios.diferencias({}, foto_m, _ETIQ_MAQUINA))
+    return nuevo
 
 
 def actualizar_maquina(id_maquina, nombre, padre_id, notas, foto=None, zona_id=None):

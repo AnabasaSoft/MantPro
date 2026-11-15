@@ -25,6 +25,7 @@ import os
 import re
 
 from . import usuarios, almacen, maquinas, checklists, contadores
+from . import sedes as _sedes
 from .rutas import DATA_DIR
 
 # Función auxiliar para conectar de forma SEGURA
@@ -107,6 +108,11 @@ class GestorBaseDatos:
         # preventivos por contador
         contadores.configurar_db(self.db_name)
         contadores.inicializar()
+        # Varias sedes: sede_id en máquinas, trabajos, pendientes y avisos + sede principal
+        # (al final: necesita que ya existan esas tablas)
+        from . import sedes
+        sedes.configurar_db(self.db_name)
+        sedes.inicializar()
 
     def conectar(self):
         # timeout=20: igual que en almacen.py/usuarios.py/maquinas.py, para no
@@ -161,12 +167,13 @@ class GestorBaseDatos:
         except: return None
 
     def agregar_aviso(self, titulo, fecha_inicio, frecuencia, duracion, asignado_a=None, asignado_nombre=None, especialidad_id=None,
-                      contador=None):
-        """[contador]: preventivo por contador (ver contadores.fijar_aviso), o None si es solo por fecha."""
+                      contador=None, sede_id=None):
+        """[contador]: preventivo por contador (ver contadores.fijar_aviso), o None si es solo por fecha.
+        [sede_id]: sede del aviso (None = la principal)."""
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO avisos_recurrentes (titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, asignado_a, asignado_nombre, especialidad_id) VALUES (?,?,?,?,?,?,?,?)',
-                      (titulo, fecha_inicio, frecuencia, duracion, "", asignado_a, asignado_nombre, especialidad_id))
+            c.execute('INSERT INTO avisos_recurrentes (titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, asignado_a, asignado_nombre, especialidad_id, sede_id) VALUES (?,?,?,?,?,?,?,?,?)',
+                      (titulo, fecha_inicio, frecuencia, duracion, "", asignado_a, asignado_nombre, especialidad_id, _sedes.guardable(sede_id)))
             nuevo_id = c.lastrowid
             conn.commit(); conn.close()
             if contador:
@@ -188,11 +195,13 @@ class GestorBaseDatos:
             return True
         except: return False
 
-    def obtener_avisos(self):
+    def obtener_avisos(self, sede=None):
+        """[sede]: solo los de esa sede (None = todos; ver sedes.condicion)."""
         try:
             conn = self.conectar(); c = conn.cursor()
             c.execute('SELECT id, titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada, '
-                      'asignado_a, COALESCE(asignado_nombre,\'\'), especialidad_id FROM avisos_recurrentes')
+                      'asignado_a, COALESCE(asignado_nombre,\'\'), especialidad_id FROM avisos_recurrentes '
+                      'WHERE ' + _sedes.condicion(sede))
             return c.fetchall()
         except: return []
     def borrar_aviso(self, i):
@@ -219,32 +228,34 @@ class GestorBaseDatos:
             conn.commit(); conn.close(); return True
         except: return False
 
-    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, horas_paro=None):
-        """Guarda un registro atribuido al usuario que ha iniciado sesión."""
+    def agregar_tarea(self, f, d, t, usuario_id=None, usuario_nombre=None, maquina_id=None, horas_paro=None, sede_id=None):
+        """Guarda un registro atribuido al usuario que ha iniciado sesión. Con máquina, la sede
+        es la de la máquina (disparador); sin máquina, [sede_id] (None = la principal)."""
         if usuario_id is None: usuario_id = usuarios.id_actual()
         if usuario_nombre is None: usuario_nombre = usuarios.nombre_actual()
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id,horas_paro) VALUES (?,?,?,?,?,?,?)',
-                      (f, d, t, usuario_id, usuario_nombre, maquina_id, horas_paro))
+            c.execute('INSERT INTO tareas (fecha,descripcion,tags,usuario_id,usuario_nombre,maquina_id,horas_paro,sede_id) VALUES (?,?,?,?,?,?,?,?)',
+                      (f, d, t, usuario_id, usuario_nombre, maquina_id, horas_paro,
+                       None if maquina_id else _sedes.guardable(sede_id)))
             nuevo_id = c.lastrowid
             conn.commit(); conn.close(); return nuevo_id   # id del trabajo (cierto, como antes)
         except Exception as e:
             print(f"Error agregar_tarea: {e}"); return False
-    def obtener_todas_cronologico(self, filtro_usuario=None):
+    def obtener_todas_cronologico(self, filtro_usuario=None, sede=None):
         try:
             conn=self.conectar(); c=conn.cursor()
-            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id FROM tareas"
+            sql = "SELECT id,fecha,descripcion,tags,COALESCE(usuario_nombre,''),maquina_id FROM tareas WHERE " + _sedes.condicion(sede)
             params = []
             if filtro_usuario:
-                sql += " WHERE usuario_nombre = ?"
+                sql += " AND usuario_nombre = ?"
                 params.append(filtro_usuario)
             sql += " ORDER BY fecha DESC, id DESC"
             c.execute(sql, params)
             return c.fetchall()
         except: return []
-    def obtener_tareas_por_fecha(self,f):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT id,descripcion,tags FROM tareas WHERE fecha=?',(f,)); return c.fetchall()
+    def obtener_tareas_por_fecha(self, f, sede=None):
+        try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT id,descripcion,tags FROM tareas WHERE fecha=? AND ' + _sedes.condicion(sede),(f,)); return c.fetchall()
         except: return []
     def borrar_tarea(self, i):
         try:
@@ -281,16 +292,16 @@ class GestorBaseDatos:
             c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id, horas_paro FROM tareas WHERE id=?", (i,))
             return c.fetchone()
         except: return None
-    def buscar_tareas_avanzado(self, texto, fecha=None):
+    def buscar_tareas_avanzado(self, texto, fecha=None, sede=None):
         try:
             conn = self.conectar(); c = conn.cursor(); param_texto = f"%{texto}%"
-            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?)"
+            query = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE (descripcion LIKE ? OR tags LIKE ?) AND " + _sedes.condicion(sede)
             parametros = [param_texto, param_texto]
             if fecha: query += " AND fecha = ?"; parametros.append(fecha)
             query += " ORDER BY fecha DESC, id DESC"; c.execute(query, parametros); return c.fetchall()
         except: return []
-    def obtener_fechas_con_tareas(self):
-        try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT DISTINCT fecha FROM tareas'); return [x[0] for x in c.fetchall()]
+    def obtener_fechas_con_tareas(self, sede=None):
+        try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT DISTINCT fecha FROM tareas WHERE ' + _sedes.condicion(sede)); return [x[0] for x in c.fetchall()]
         except: return []
     def obtener_todas_las_descripciones(self):
         try:
@@ -307,20 +318,22 @@ class GestorBaseDatos:
     def obtener_dias_especiales(self):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT fecha,tipo FROM dias_especiales'); return {r[0]:r[1] for r in c.fetchall()}
         except: return {}
-    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media", especialidad_id=None):
+    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media", especialidad_id=None, sede_id=None):
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad,especialidad_id) VALUES (?,?,?,?,?,?)',
-                      (t, d, asignado_a, asignado_nombre, prioridad, especialidad_id))
+            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad,especialidad_id,sede_id) VALUES (?,?,?,?,?,?,?)',
+                      (t, d, asignado_a, asignado_nombre, prioridad, especialidad_id, _sedes.guardable(sede_id)))
             nuevo_id = c.lastrowid
             conn.commit(); conn.close(); return nuevo_id
         except Exception as e:
             print(f"Error agregar_pendiente: {e}"); return False
-    def obtener_pendientes(self):
-        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id)."""
+    def obtener_pendientes(self, sede=None):
+        """Devuelve (id, titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id).
+        [sede]: solo los de esa sede (None = todos)."""
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,''),COALESCE(prioridad,'Media'),especialidad_id FROM pendientes ORDER BY id DESC")
+            c.execute("SELECT id,titulo,detalles,asignado_a,COALESCE(asignado_nombre,''),COALESCE(prioridad,'Media'),especialidad_id FROM pendientes "
+                      "WHERE " + _sedes.condicion(sede) + " ORDER BY id DESC")
             return c.fetchall()
         except: return []
     def asignar_pendiente(self, id_p, asignado_a, asignado_nombre):

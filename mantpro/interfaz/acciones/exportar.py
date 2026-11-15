@@ -58,7 +58,7 @@ class AccionesExportar:
         archivo = self.guardar_archivo_dialogo(t("title_exportar_csv"), nombre_defecto, "CSV (*.csv)")
         if not archivo: return
         try:
-            datos = self.db.obtener_todas_cronologico(filtro_usuario)
+            datos = self.db.obtener_todas_cronologico(filtro_usuario, sede=self.sede_filtro())
             mapa_maquinas = maquinas.mapa_rutas_completas()
             listas = checklists.resultados_de([tarea[0] for tarea in datos])
             usados = consumos.materiales_de_trabajos([tarea[0] for tarea in datos]); moneda = consumos.moneda()
@@ -168,7 +168,7 @@ class AccionesExportar:
                 return {'image_data': buffer, 'x_scale': escala, 'y_scale': escala,
                         'x_offset': 5, 'y_offset': 5, 'object_position': 1}
 
-            datos = self.db.obtener_todas_cronologico(filtro_usuario)
+            datos = self.db.obtener_todas_cronologico(filtro_usuario, sede=self.sede_filtro())
             mapa_maquinas = maquinas.mapa_rutas_completas()
             # Colección de fotos: una columna por foto a partir de la H
             # («Colección 1», «Colección 2»…), tantas como tenga el trabajo que más.
@@ -408,7 +408,7 @@ class AccionesExportar:
         if indicadores["num_averias"] == 0:
             return None
 
-        registros = self.db.obtener_todas_cronologico()
+        registros = self.db.obtener_todas_cronologico(sede=self.sede_filtro())
         if fecha_inicio and fecha_fin:
             registros = [r for r in registros if r[1] and fecha_inicio <= r[1] <= fecha_fin]
         total = len(registros)

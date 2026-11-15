@@ -100,7 +100,7 @@ class PestanaCalendario:
                 it.setBackground(QColor(color_bg)); it.setForeground(Qt.GlobalColor.white)
                 self.task_list.addItem(it)
 
-        ts = self.db.obtener_tareas_por_fecha(sds)
+        ts = self.db.obtener_tareas_por_fecha(sds, sede=self.sede_filtro())
         if not ts and self.task_list.count() == 0: self.task_list.addItem(t("msg_dia_no_laborable") if ets else t("msg_nada_registrado"))
         for tarea in ts:
             # --- LIMPIEZA VISUAL COMPLETA ---
@@ -142,7 +142,7 @@ class PestanaCalendario:
         tcols = {"Vacaciones": "black", "Puente": "white", "Día Libre": "black", "Festivo (Manual)": "ddd"}
         for s, tipo_dia in self.db.obtener_dias_especiales().items(): fm = QTextCharFormat(); fm.setBackground(QBrush(QColor(cols.get(tipo_dia, "#555")))); fm.setForeground(QBrush(QColor(tcols.get(tipo_dia, "black")))); self.calendar.setDateTextFormat(QDate.fromString(s, "yyyy-MM-dd"), fm)
         ft = QTextCharFormat(); ft.setBackground(QBrush(QColor("#A5D6A7"))); ft.setForeground(QBrush(Qt.GlobalColor.black)); ft.setFontWeight(750)
-        for f in self.db.obtener_fechas_con_tareas(): self.calendar.setDateTextFormat(QDate.fromString(f, "yyyy-MM-dd"), ft)
+        for f in self.db.obtener_fechas_con_tareas(sede=self.sede_filtro()): self.calendar.setDateTextFormat(QDate.fromString(f, "yyyy-MM-dd"), ft)
         self.calendar.setUpdatesEnabled(True)
 
     def edit_cal(self, i): self.proc_edit(i.data(Qt.ItemDataRole.UserRole))

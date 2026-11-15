@@ -6,6 +6,12 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Novedades
+- **🏢 Varias sedes (primera parte)**: en *Herramientas → Sedes…* (administradores) se dan de alta plantas propias o empresas cliente que mantienes, con su CIF, dirección y contacto. Con más de una sede activa aparece arriba a la derecha el selector «Sede»: el calendario, los avisos, el historial, el buscador, los pendientes, las máquinas, el panel y las exportaciones muestran solo lo de esa sede (o todo, con «Todas las sedes»), y cada PC recuerda la suya. Lo que ya había pasa a ser de la sede principal, sin tocar nada. La sede se elige en las máquinas principales; sus submáquinas y sus trabajos van con ella, y al completar un pendiente o un aviso (también desde el móvil) el trabajo se queda en su sede. Se sincroniza con MantPro Cloud. Quien tiene una sola sede no ve ningún cambio.
+
+### Correcciones
+- **☁️ Sincronización con MantPro Cloud**: un cambio que otro disparador de la base de datos hacía en un registro recién creado, antes de que tuviera su identificador de sincronización, hacía fallar el alta. Ya no pasa.
+
 ## 3.10.7 — 2026-11-15
 
 ### Mejoras

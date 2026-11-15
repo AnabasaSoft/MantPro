@@ -35,6 +35,7 @@ from .acciones.copias import AccionesCopias
 from .acciones.exportar import AccionesExportar
 from .acciones.importacion import AccionesImportacion
 from .acciones.nube import AccionesNube
+from .acciones.sedes import AccionesSedes
 from .acciones.usuarios import AccionesUsuarios
 from .comun import abrir_url_externa, instalar_traductor_qt, resource_path, tt
 from .dialogos.ayuda import DialogoAyuda
@@ -61,7 +62,7 @@ from ..version import APP_VERSION, GESTOR_PAQUETES, REPO_NAME, REPO_OWNER
 # 4. APLICACIÓN PRINCIPAL
 # ==========================================
 
-class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistrar, PestanaAvisos, PestanaHistorial, PestanaPendientes, PestanaMaquinas, PestanaStock, AccionesCopias, AccionesExportar, AccionesImportacion, AccionesNube, AccionesUsuarios, QMainWindow):
+class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistrar, PestanaAvisos, PestanaHistorial, PestanaPendientes, PestanaMaquinas, PestanaStock, AccionesCopias, AccionesExportar, AccionesImportacion, AccionesNube, AccionesUsuarios, AccionesSedes, QMainWindow):
     def __init__(self):
         super().__init__()
         self.db = GestorBaseDatos()
@@ -152,6 +153,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.barra_pestanas = BarraPestanasActividad(self.tabs)
         self.tabs.setTabBar(self.barra_pestanas)
         self.barra_pestanas.set_tab_widget(self.tabs)
+        self.crear_selector_sede()     # antes de poblar: las pestañas ya filtran por la sede elegida
         self._poblar_tabs()
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
@@ -199,6 +201,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         if 0 <= indice_actual < self.tabs.count():
             self.tabs.setCurrentIndex(indice_actual)
         self.tabs.blockSignals(False)
+        self.refrescar_selector_sede()
 
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
 
@@ -454,6 +457,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             [(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"), self.cambiar_mi_password, True),
              (tt("menu_usuarios", "👥 Gestión de usuarios"), self.gestionar_usuarios, admin),
              (tt("menu_auditoria", "📋 Registro de cambios"), self.ver_auditoria, admin),
+             (tt("menu_sedes", "🏢 Sedes…"), self.gestionar_sedes, admin),
              (tt("menu_revisiones_almacen", "📦 Historial de revisiones del almacén"), self.ver_revisiones_almacen, admin),
              (tt("menu_cifrado_bd", "🔐 Cifrado de las bases de datos…"), self.configurar_cifrado_bd, admin)],
             # Calendario

@@ -33,7 +33,7 @@ from ...idiomas import t
 from ..comun import traducir_prioridad, tt
 from ..dialogos.trabajos import CompleteDialog, DialogoEditarPendiente
 from ..widgets.fotos import GaleriaFotosWidget
-from ...nucleo import usuarios, checklists, consumos, mano_obra
+from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -102,7 +102,8 @@ class PestanaPendientes:
         nombre = self.combo_asignar.currentText() if uid is not None else None
         prioridad = self.combo_prioridad_todo.currentData()
         especialidad_id = self.combo_especialidad_todo.currentData()
-        nuevo_id = self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id) if tit else None
+        nuevo_id = self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id,
+                                             sede_id=self.sede_para_nuevo()) if tit else None
         if nuevo_id:
             if self.combo_checklist_todo.currentData():
                 checklists.asignar("pendiente", nuevo_id, self.combo_checklist_todo.currentData())
@@ -264,7 +265,7 @@ class PestanaPendientes:
         self.todo_list.clear()
         if hasattr(self, 'b_asig_todo'):
             self.b_asig_todo.setEnabled(usuarios.es_admin())
-        ps = self.db.obtener_pendientes()
+        ps = self.db.obtener_pendientes(sede=self.sede_filtro())
 
         # Filtro por técnico asignado
         filtro = self.combo_filtro_todos.currentData() if hasattr(self, 'combo_filtro_todos') else "TODOS"
@@ -376,7 +377,7 @@ class PestanaPendientes:
             desc_final = con_fotos_galeria(desc_final, fotos_coleccion)
 
             # Guardar en Historial y borrar de Pendientes
-            tarea_id = self.db.agregar_tarea(fecha, desc_final, tags)
+            tarea_id = self.db.agregar_tarea(fecha, desc_final, tags, sede_id=sedes.sede_de("pendientes", id_pendiente))
             if tarea_id:
                 consumos.registrar_consumo(tarea_id, dialogo.repuestos.items(), usuarios.id_actual(),
                                            usuarios.nombre_actual(), titulo, fecha)

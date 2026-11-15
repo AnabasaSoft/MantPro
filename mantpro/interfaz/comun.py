@@ -205,12 +205,14 @@ def _estilo_label_dialogo():
     return f"font-weight: bold; font-size: 14px; color: {'#ccc' if oscuro else '#444'};"
 
 
-def _poblar_combo_maquinas(combo, seleccion_id=None):
+def _poblar_combo_maquinas(combo, seleccion_id=None, sede=None):
     """Rellena un QComboBox con el árbol de máquinas (indentado por nivel) y una
-    primera opción de 'sin máquina', dejando seleccionada la máquina indicada."""
+    primera opción de 'sin máquina', dejando seleccionada la máquina indicada.
+    [sede]: solo las máquinas de esa sede (None = todas)."""
+    from ..nucleo import sedes
     combo.clear()
     combo.addItem(tt("lbl_sin_maquina", "— Sin máquina —"), None)
-    todas = maquinas.listar_maquinas()
+    todas = [m for m in maquinas.listar_maquinas() if sedes.de_la_sede(m.get("sede_id"), sede)]
     por_padre = {}
     for m in todas:
         por_padre.setdefault(m["padre_id"], []).append(m)

@@ -75,7 +75,7 @@ class PestanaRegistrar:
         fila_maquina_entry = QHBoxLayout()
         fila_maquina_entry.addWidget(QLabel(tt("lbl_maquina", "Máquina") + ":"))
         self.combo_maquina_entry = QComboBox()
-        _poblar_combo_maquinas(self.combo_maquina_entry)
+        _poblar_combo_maquinas(self.combo_maquina_entry, sede=self.sede_filtro())
         fila_maquina_entry.addWidget(self.combo_maquina_entry, 1)
         l.addLayout(fila_maquina_entry)
         l.addWidget(QLabel(t("lbl_etiquetas_rapidas")))
@@ -163,7 +163,8 @@ class PestanaRegistrar:
         if manuales: lista_tags.append(manuales)
         maquina_id = self.combo_maquina_entry.currentData()
         horas_paro = self.spin_horas_paro_entry.value() if self.chk_averia.isChecked() else None
-        tarea_id = self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, horas_paro=horas_paro)
+        tarea_id = self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, horas_paro=horas_paro,
+                                         sede_id=self.sede_para_nuevo())
         if tarea_id:
             # Repuestos usados: salen del stock y quedan con el trabajo y su precio
             consumos.registrar_consumo(tarea_id, self.repuestos_entry.items(), usuarios.id_actual(),

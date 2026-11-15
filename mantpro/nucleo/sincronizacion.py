@@ -122,9 +122,12 @@ def preparar_tabla(con, tabla, identidad=None, solo_si=None, uuid_desde=None, ig
     distintas = " OR ".join(f"OLD.{c} IS NOT NEW.{c}" for c in columnas
                             if c != "uuid" and c not in ignorar)
     cond_cambio = f" AND ({distintas})" if ignorar and distintas else ""
+    # NEW.uuid IS NOT NULL: otro disparador (p. ej. el que copia la sede de la máquina en
+    # nucleo/sedes.py) puede modificar la fila recién insertada ANTES de que el alta le
+    # asigne el uuid; ese cambio no se anota (el 'i' de después ya sube la fila completa).
     con.execute(f"""
         CREATE TRIGGER sync_{t}_au AFTER UPDATE ON {t}
-        WHEN OLD.uuid IS NEW.uuid AND {_NO_SILENCIADO}{cond_cambio}
+        WHEN OLD.uuid IS NEW.uuid AND NEW.uuid IS NOT NULL AND {_NO_SILENCIADO}{cond_cambio}
         BEGIN
             INSERT INTO cambios (tabla, uuid, op) VALUES ('{t}', NEW.uuid, 'u');
         END
@@ -297,12 +300,17 @@ TABLAS = {
         "moviles": {"tipo": "entidad", "uuid_desde": "dispositivo_id", "silenciosas": ("visto",),
                     "refs": {"usuario_id": "mant.usuarios"}},
         "zonas": {"tipo": "entidad", "refs": {}},
-        "maquinas": {"tipo": "entidad", "refs": {"padre_id": "mant.maquinas", "zona_id": "mant.zonas"}},
-        "tareas": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios", "maquina_id": "mant.maquinas"}},
+        # Sedes: la principal tiene uuid fijo ("sede-principal"), así dos PCs no crean dos.
+        "sedes": {"tipo": "entidad", "refs": {}},
+        "maquinas": {"tipo": "entidad", "refs": {"padre_id": "mant.maquinas", "zona_id": "mant.zonas",
+                                                 "sede_id": "mant.sedes"}},
+        "tareas": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios", "maquina_id": "mant.maquinas",
+                                               "sede_id": "mant.sedes"}},
         "pendientes": {"tipo": "entidad", "refs": {"asignado_a": "mant.usuarios", "especialidad_id": "mant.especialidades",
-                                                   "checklist_id": "mant.checklist_plantillas"}},
+                                                   "checklist_id": "mant.checklist_plantillas", "sede_id": "mant.sedes"}},
         "avisos_recurrentes": {"tipo": "entidad", "refs": {"asignado_a": "mant.usuarios", "especialidad_id": "mant.especialidades",
-                                                           "checklist_id": "mant.checklist_plantillas", "contador_id": "mant.contadores"}},
+                                                           "checklist_id": "mant.checklist_plantillas", "contador_id": "mant.contadores",
+                                                           "sede_id": "mant.sedes"}},
         "checklist_plantillas": {"tipo": "entidad", "refs": {}},
         "checklist_puntos": {"tipo": "entidad", "refs": {"plantilla_id": "mant.checklist_plantillas"}},
         "checklist_resultados": {"tipo": "entidad", "refs": {"tarea_id": "mant.tareas"}},

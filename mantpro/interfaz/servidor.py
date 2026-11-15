@@ -578,6 +578,8 @@ class ServidorSincronizacion(QThread):
 
                 with get_db_connection(self.db_path) as conn:
                     c = conn.cursor()
+                    # El trabajo se queda en la sede del pendiente
+                    fila_sede = c.execute('SELECT sede_id FROM pendientes WHERE id=?', (id_pend,)).fetchone()
                     c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
                     if c.rowcount == 0:
                         # El pendiente no existe (id inválido, ya completado o aún no
@@ -585,9 +587,9 @@ class ServidorSincronizacion(QThread):
                         # para no duplicar el trabajo.
                         return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
                     # Usamos el INSERT completo para alimentar todas las columnas
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre) VALUES (?,?,?,?,?,?,?)',
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, sede_id) VALUES (?,?,?,?,?,?,?,?)',
                               (fecha_final, desc_final, tags, _raw_desc_para_bd(raw_desc, ruta_local), filename,
-                               usuario['id'], usuario['nombre']))
+                               usuario['id'], usuario['nombre'], fila_sede[0] if fila_sede else None))
                     nueva_tarea = c.lastrowid
                     # Lista de comprobación rellenada en el móvil (JSON)
                     lista = checklists.normalizar_items(request.form.get('checklist', ''))
@@ -1047,9 +1049,10 @@ class ServidorSincronizacion(QThread):
                 if not existe:
                     print("Insertando nueva tarea en historial...")
                     usuario_aviso = g.usuario_mantpro
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, usuario_id, usuario_nombre) VALUES (?,?,?,?,?)',
+                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, usuario_id, usuario_nombre, sede_id) '
+                              'VALUES (?,?,?,?,?,(SELECT sede_id FROM avisos_recurrentes WHERE id=?))',
                               (fecha_final, desc_historial, tags_historial,
-                               usuario_aviso['id'], usuario_aviso['nombre']))
+                               usuario_aviso['id'], usuario_aviso['nombre'], id_aviso))
                     tarea_id = c.lastrowid
                     tarea_nueva = True
                 else:
@@ -1350,8 +1353,9 @@ class ServidorSincronizacion(QThread):
 
                 lista_previa = checklists.resultado_de(id_t)
                 try:
-                    c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre) VALUES (?,?,?,?)',
-                              (titulo, detalles, uid_original, unombre_original or None))
+                    c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,sede_id) '
+                              'VALUES (?,?,?,?,(SELECT sede_id FROM tareas WHERE id=?))',
+                              (titulo, detalles, uid_original, unombre_original or None, id_t))
                     nuevo_pendiente = c.lastrowid
                     # Vuelve con su lista de comprobación, si la plantilla sigue existiendo
                     if lista_previa:

@@ -30,11 +30,11 @@ from PyQt6.QtGui import QPixmap
 from ...idiomas import t
 from ..comun import _estilo_zona_arrastre, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, maquinas
+from ...nucleo import almacen, maquinas, sedes
 
 class DialogoEditarMaquina(QDialog):
     """Alta/edición de una máquina del listado de maquinaria."""
-    def __init__(self, parent=None, maquina=None, padre_sugerido=None, excluir_ids=None):
+    def __init__(self, parent=None, maquina=None, padre_sugerido=None, excluir_ids=None, sede_sugerida=None):
         super().__init__(parent)
         self.maquina = maquina
         self.es_nueva = maquina is None
@@ -70,6 +70,21 @@ class DialogoEditarMaquina(QDialog):
         if idx >= 0:
             self.combo_padre.setCurrentIndex(idx)
         l.addWidget(self.combo_padre)
+
+        # Sede (solo con varias sedes): se elige en las máquinas raíz; una submáquina va con su superior
+        self.combo_sede = QComboBox()
+        for s in sedes.listar():
+            self.combo_sede.addItem(s["nombre"], s["id"])
+        sede_actual = sedes.efectiva(maquina.get("sede_id")) if maquina else (sede_sugerida or sedes.principal_id())
+        self.combo_sede.setCurrentIndex(max(0, self.combo_sede.findData(sede_actual)))
+        self.lbl_sede = QLabel(tt("lbl_sede_maquina", "Sede"))
+        if sedes.hay_varias():
+            l.addWidget(self.lbl_sede)
+            l.addWidget(self.combo_sede)
+        else:
+            self.lbl_sede.hide(); self.combo_sede.hide()
+        self.combo_padre.currentIndexChanged.connect(self._actualizar_sede_activa)
+        self._actualizar_sede_activa()
 
         l.addWidget(QLabel(tt("lbl_zona_maquina", "Zona / Ubicación (opcional)")))
         h_zona = QHBoxLayout()
@@ -201,10 +216,19 @@ class DialogoEditarMaquina(QDialog):
                 return
         self.accept()
 
+    def _actualizar_sede_activa(self, *_):
+        padre = self.combo_padre.currentData()
+        self.combo_sede.setEnabled(padre is None)
+        self.combo_sede.setToolTip("" if padre is None else
+                                   tt("tip_sede_de_superior", "Una submáquina está en la sede de su máquina superior."))
+        if padre is not None:
+            self.combo_sede.setCurrentIndex(max(0, self.combo_sede.findData(sedes.sede_de_maquina(padre))))
+
     def get_data(self):
         return {
             "nombre": self.campo_nombre.text().strip(),
             "padre_id": self.combo_padre.currentData(),
+            "sede_id": self.combo_sede.currentData(),
             "zona_id": self.combo_zona.currentData(),
             "notas": self.campo_notas.toPlainText().strip(),
             "ruta_foto_seleccionada": self.ruta_foto_seleccionada,
