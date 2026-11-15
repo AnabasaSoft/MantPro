@@ -68,26 +68,6 @@ class AccionesUsuarios:
         except Exception:
             return set()
 
-    def avisar_dias_sin_revision_almacen(self):
-        """Al abrir MantPro (solo administradores): avisa una vez si en los
-        últimos días laborables nadie hizo la revisión diaria del almacén,
-        con los móviles que sí revisan. Luego se ve en el historial."""
-        if not usuarios.es_admin():
-            return
-        from ..dialogos.revisiones_almacen import texto_dias_sin_revision, texto_moviles
-        try:
-            aviso = texto_dias_sin_revision(self._festivos_iso())
-            if not aviso:
-                return
-            texto = aviso
-            moviles = texto_moviles()
-            if moviles:
-                texto += "\n\n" + moviles
-        except Exception:
-            return
-        QMessageBox.warning(self, tt("rev_titulo", "Historial de revisiones del almacén"),
-                            texto + "\n\n" + tt("rev_aviso_ver", "Más detalles en Herramientas → Historial de revisiones del almacén."))
-
     def gestionar_usuarios(self):
         if not usuarios.es_admin():
             QMessageBox.warning(self, t("title_error"),

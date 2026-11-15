@@ -1202,7 +1202,6 @@
   "rev_aviso_dias": "Keine Lagerprüfung an den letzten {n} (Arbeits-)Tagen: {dias}.",
   "rev_moviles_titulo": "📱 Handys, die in den letzten {n} Tagen geprüft haben:",
   "rev_moviles_linea": "{movil} ({usuario}) · zuletzt: {fecha} · Prüfungen: {n}",
-  "rev_aviso_ver": "Mehr Details unter Werkzeuge → Verlauf der Lagerprüfungen.",
   "rev_sin_registros": "Mit diesen Filtern gibt es keine Prüfungen.",
   "rev_fichero": "Lagerpruefungen",
   "rev_hoja": "Lagerprüfungen",

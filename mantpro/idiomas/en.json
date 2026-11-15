@@ -1202,7 +1202,6 @@
   "rev_aviso_dias": "No warehouse check in the last {n} days (working days): {dias}.",
   "rev_moviles_titulo": "📱 Phones that have done checks in the last {n} days:",
   "rev_moviles_linea": "{movil} ({usuario}) · last: {fecha} · checks: {n}",
-  "rev_aviso_ver": "More details in Tools → Warehouse check history.",
   "rev_sin_registros": "There are no checks with these filters.",
   "rev_fichero": "Warehouse_checks",
   "rev_hoja": "Warehouse checks",

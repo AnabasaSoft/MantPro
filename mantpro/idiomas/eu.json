@@ -1202,7 +1202,6 @@
   "rev_aviso_dias": "Biltegiaren berrikuspenik ez azken {n} egunetan (lanegunak): {dias}.",
   "rev_moviles_titulo": "📱 Azken {n} egunetan berrikuspenak egin dituzten mugikorrak:",
   "rev_moviles_linea": "{movil} ({usuario}) · azkena: {fecha} · berrikuspenak: {n}",
-  "rev_aviso_ver": "Xehetasun gehiago Tresnak → Biltegiaren berrikuspenen historia atalean.",
   "rev_sin_registros": "Ez dago berrikuspenik iragazki hauekin.",
   "rev_fichero": "Biltegiaren_berrikuspenak",
   "rev_hoja": "Biltegiaren berrikuspenak",
