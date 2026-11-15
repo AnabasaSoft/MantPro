@@ -25,6 +25,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
+import 'almacenes.dart';
 
 /// Sincroniza con el PC todo lo que se haya guardado en el móvil mientras no
 /// había conexión: artículos nuevos, ediciones y movimientos de stock. Sigue
@@ -329,17 +330,23 @@ class StockSincronizador {
     // 5. Refrescamos las cachés de lectura y los roles del usuario (por si
     // han cambiado en el PC mientras la app estaba conectada).
     try {
-      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura'))
+      // Almacenes que ve (antes que lo demás: decide de qué almacén se baja todo)
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/almacenes'))
+          .timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) await AlmacenesCache.guardarRespuesta(res.body);
+    } catch (_) {}
+    try {
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheEstructura, res.body);
     } catch (_) {}
     try {
-      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/materiales'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/materiales').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheMateriales, res.body);
     } catch (_) {}
     try {
-      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/bajo_minimo'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/bajo_minimo').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheBajoMinimo, res.body);
     } catch (_) {}

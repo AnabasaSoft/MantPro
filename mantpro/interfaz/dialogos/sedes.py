@@ -220,3 +220,34 @@ class DialogoSedes(QDialog):
             return
         self.cambiado = True
         self.refrescar()
+
+
+class DialogoSeleccionSedes(QDialog):
+    """Un tick por sede activa: las que puede ver un técnico. Sin ninguna marcada, las ve todas."""
+    def __init__(self, parent=None, seleccionadas=None):
+        super().__init__(parent)
+        from PyQt6.QtWidgets import QCheckBox
+        self.setWindowTitle(tt("sede_title_usuario", "Sedes que ve"))
+        self.setModal(True)
+        self.resize(340, 320)
+        seleccionadas = set(seleccionadas or [])
+        l = QVBoxLayout(self)
+        ayuda = QLabel(tt("sede_ayuda_usuario", "Marca las sedes que puede ver. Sin ninguna marcada, las ve todas."))
+        ayuda.setWordWrap(True)
+        l.addWidget(ayuda)
+        self._checks = []
+        for s in sedes.listar():
+            chk = QCheckBox(s["nombre"])
+            chk.setChecked(s["id"] in seleccionadas)
+            chk.setProperty("sede_id", s["id"])
+            l.addWidget(chk)
+            self._checks.append(chk)
+        l.addStretch()
+        b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar"))
+        b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))
+        b.accepted.connect(self.accept); b.rejected.connect(self.reject)
+        l.addWidget(b)
+
+    def seleccion(self):
+        return [c.property("sede_id") for c in self._checks if c.isChecked()]

@@ -129,6 +129,14 @@ def inicializar():
             WHERE id = NEW.id;
         END
     """)
+    # Qué sedes ve cada usuario (fase 2). Sin filas = todas; un administrador, siempre todas.
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS usuario_sedes (
+            usuario_id INTEGER NOT NULL,
+            sede_id    INTEGER NOT NULL,
+            PRIMARY KEY (usuario_id, sede_id)
+        )
+    """)
     if not con.execute("SELECT 1 FROM sedes WHERE principal = 1").fetchone():
         con.execute("INSERT INTO sedes (nombre, tipo, principal, uuid) VALUES (?, ?, 1, ?)",
                     (_t("sede_principal_nombre"), TIPO_PROPIA, UUID_PRINCIPAL))
@@ -182,22 +190,96 @@ def guardable(sede_id):
     return int(sede_id)
 
 
-def condicion(sede_id, columna="sede_id"):
-    """Trozo de WHERE que deja solo los registros de [sede_id] (None = todas).
-    Los registros sin sede cuentan como de la principal. Solo enteros: se puede
-    interpolar sin riesgo."""
-    if sede_id is None:
+def _lista(sede):
+    """[sede] como lista de ids (un id, una lista) o None (todas)."""
+    if sede is None:
+        return None
+    if isinstance(sede, (list, tuple, set)):
+        return [int(x) for x in sede]
+    return [int(sede)]
+
+
+def condicion(sede, columna="sede_id"):
+    """Trozo de WHERE que deja solo los registros de [sede]: un id, una lista de ids
+    (las sedes de un técnico) o None (todas). Los registros sin sede cuentan como de
+    la principal. Solo enteros: se puede interpolar sin riesgo."""
+    ids = _lista(sede)
+    if ids is None:
         return "1=1"
-    sede_id = int(sede_id)
+    texto = ",".join(str(i) for i in ids) or "NULL"
     pid = principal_id()
     if pid is None:
-        return f"{columna} = {sede_id}"
-    return f"COALESCE({columna}, {int(pid)}) = {sede_id}"
+        return f"{columna} IN ({texto})"
+    return f"COALESCE({columna}, {int(pid)}) IN ({texto})"
 
 
-def de_la_sede(registro_sede_id, sede_id):
-    """Para filtrar en Python: ¿un registro con [registro_sede_id] es de [sede_id] (None = todas)?"""
-    return sede_id is None or efectiva(registro_sede_id) == sede_id
+def de_la_sede(registro_sede_id, sede):
+    """Para filtrar en Python: ¿un registro con [registro_sede_id] es de [sede]
+    (un id, una lista o None = todas)?"""
+    ids = _lista(sede)
+    return ids is None or efectiva(registro_sede_id) in ids
+
+
+# ---------------------------------------------------------------- qué sedes ve cada usuario
+
+def de_usuario(usuario_id):
+    """Ids de las sedes marcadas a un usuario ([] si ninguna = las ve todas)."""
+    con = _conn()
+    ids = [f[0] for f in con.execute("SELECT sede_id FROM usuario_sedes WHERE usuario_id = ? ORDER BY sede_id",
+                                     (usuario_id,))]
+    con.close()
+    return ids
+
+
+def permitidas(usuario=None):
+    """Sedes que puede ver [usuario] (dict de sesión; por defecto el de este PC):
+    None = todas (administrador, o sin ninguna marcada), o la lista de ids."""
+    u = usuario if usuario is not None else _usuarios.SESION_ACTUAL
+    if not u or _usuarios.es_admin(u):
+        return None
+    ids = de_usuario(u.get("id"))
+    return ids or None
+
+
+def fijar_de_usuario(usuario_id, sede_ids):
+    """Marca las sedes que ve un usuario (lista vacía = todas)."""
+    sede_ids = sorted({int(i) for i in (sede_ids or [])})
+    antes = de_usuario(usuario_id)
+    if antes == sede_ids:
+        return
+    con = _conn()
+    if sede_ids:
+        con.execute("DELETE FROM usuario_sedes WHERE usuario_id = ? AND sede_id NOT IN (%s)"
+                    % ",".join("?" * len(sede_ids)), [usuario_id, *sede_ids])
+    else:   # ninguna marcada = todas (ojo: «NOT IN (NULL)» no borraría nada)
+        con.execute("DELETE FROM usuario_sedes WHERE usuario_id = ?", (usuario_id,))
+    for sid in sede_ids:
+        con.execute("INSERT OR IGNORE INTO usuario_sedes (usuario_id, sede_id) VALUES (?, ?)", (usuario_id, sid))
+    con.commit()
+    nombre = con.execute("SELECT nombre FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
+    con.close()
+    todas = nombres()
+    _usuarios.auditar("usuarios", "editar", nombre[0] if nombre else str(usuario_id),
+                      detalle=_t("sede_aud_usuario").format(
+                          sedes=", ".join(todas.get(i, str(i)) for i in sede_ids) or _t("sede_todas")))
+
+
+def visibles(usuario=None):
+    """Sedes activas que puede ver [usuario] (dicts)."""
+    ids = permitidas(usuario)
+    return [s for s in listar() if ids is None or s["id"] in ids]
+
+
+def para_nuevo(sede, usuario=None):
+    """Sede de algo nuevo cuando lo elegido es [sede] (un id, una lista o None): ese id; con
+    varias, la principal si se puede, si no la primera permitida."""
+    ids = _lista(sede)
+    if ids is None:
+        return None
+    if len(ids) == 1:
+        return ids[0]
+    pid = principal_id()
+    return pid if pid in ids else (ids[0] if ids else None)
 
 
 def sede_de(tabla, registro_id):
@@ -311,6 +393,7 @@ def borrar(sede_id):
     if any(en_uso(sede_id).values()):
         return "en_uso"
     con = _conn()
+    con.execute("DELETE FROM usuario_sedes WHERE sede_id = ?", (sede_id,))
     con.execute("DELETE FROM sedes WHERE id = ?", (sede_id,))
     con.commit()
     con.close()

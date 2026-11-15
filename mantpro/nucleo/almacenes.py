@@ -86,7 +86,7 @@ def inicializar(con):
 
 def listar(sede=None, incluir_inactivos=False):
     """Almacenes como dicts (el principal primero). Con [sede], solo los que se ven
-    desde ella: los suyos y los comunes. `sede` es un id de nucleo/sedes (None = todos)."""
+    desde ella: los suyos y los comunes. `sede`: un id de nucleo/sedes, una lista o None (todos)."""
     from . import sedes
     con = _conn()
     sql = "SELECT * FROM almacenes" + ("" if incluir_inactivos else " WHERE activo = 1")
@@ -94,7 +94,7 @@ def listar(sede=None, incluir_inactivos=False):
     con.close()
     if sede is None:
         return filas
-    return [a for a in filas if a["comun"] or sedes.efectiva(a["sede_id"]) == sede]
+    return [a for a in filas if a["comun"] or sedes.de_la_sede(a["sede_id"], sede)]
 
 
 def obtener(almacen_id):

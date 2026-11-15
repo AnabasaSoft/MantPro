@@ -50,6 +50,8 @@ const Map<String, String> traduccionesEs = {
     "msg_cerrar_sesion": "¿Seguro que quieres cerrar la sesión?",
 
     "tab_almacen": "Almacén",
+
+    "lbl_almacen": "Almacén",
     "tab_buscar": "Buscar",
     "tab_bajo_minimo": "Bajo mínimo",
 

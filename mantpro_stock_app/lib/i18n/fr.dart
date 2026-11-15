@@ -48,6 +48,7 @@ const Map<String, String> traduccionesFr = {
   "btn_cerrar_sesion": "Se déconnecter",
   "msg_cerrar_sesion": "Voulez-vous vraiment vous déconnecter ?",
   "tab_almacen": "Magasin",
+  "lbl_almacen": "Entrepôt",
   "tab_buscar": "Rechercher",
   "tab_bajo_minimo": "Sous le minimum",
   "ph_buscar_material": "Rechercher par nom, code, description...",

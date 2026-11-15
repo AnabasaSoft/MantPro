@@ -73,7 +73,7 @@ class DialogoEditarMaquina(QDialog):
 
         # Sede (solo con varias sedes): se elige en las máquinas raíz; una submáquina va con su superior
         self.combo_sede = QComboBox()
-        for s in sedes.listar():
+        for s in sedes.visibles():
             self.combo_sede.addItem(s["nombre"], s["id"])
         sede_actual = sedes.efectiva(maquina.get("sede_id")) if maquina else (sede_sugerida or sedes.principal_id())
         self.combo_sede.setCurrentIndex(max(0, self.combo_sede.findData(sede_actual)))

@@ -35,7 +35,7 @@ except ImportError:      # servidor de MantPro Cloud: sin escritorio ni Qt, solo
 
 from .. import idiomas
 from ..nucleo import operaciones_movil
-from ..nucleo import certificado, usuarios, almacen, almacenes, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
+from ..nucleo import certificado, usuarios, almacen, almacenes, sedes, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -258,6 +258,79 @@ class ServidorSincronizacion(QThread):
                 return func(*args, **kwargs)
             return envoltorio
 
+        # --- SEDES (nucleo/sedes.py) ------------------------------------------
+        # Cada técnico solo recibe y toca lo de sus sedes (sin ninguna marcada, o
+        # administrador: todas). 403 = «sin permiso»: el móvil lo quita de su cola.
+        def _filtro_sede():
+            """Sedes con las que filtrar esta petición: las del técnico (None = todas) o, con
+            ?sede=<id> de una de ellas, solo esa."""
+            permitidas = sedes.permitidas(g.usuario_mantpro)
+            try:
+                pedida = int(request.args.get('sede') or 0) or None
+            except (TypeError, ValueError):
+                pedida = None
+            if pedida is not None and (permitidas is None or pedida in permitidas):
+                return [pedida]
+            return permitidas
+
+        def _sede_no_permitida():
+            return jsonify({"status": "error", "error": "sede_no_permitida",
+                            "message": "Ese registro es de una sede que tu usuario no ve."}), 403
+
+        def _almacenes_permitidos():
+            return {a["id"] for a in almacenes.listar(sedes.permitidas(g.usuario_mantpro))}
+
+        def requiere_sede(tabla, campo="id"):
+            """El registro [tabla].[campo] (de la URL o del formulario) tiene que ser de una sede
+            del técnico. Para «materiales», de un almacén que ve."""
+            from functools import wraps
+
+            def decorador(func):
+                @wraps(func)
+                def envoltorio(*args, **kwargs):
+                    permitidas = sedes.permitidas(g.usuario_mantpro)
+                    if permitidas is not None:
+                        valor = kwargs.get(campo) or request.form.get(campo) or \
+                            (request.get_json(silent=True) or {}).get(campo)
+                        try:
+                            registro_id = int(valor) if valor else None
+                        except (TypeError, ValueError):
+                            registro_id = None
+                        if registro_id is not None:
+                            if tabla == "materiales":
+                                m = almacen.obtener_material(registro_id)
+                                if m and almacenes.efectivo(m["almacen_id"]) not in _almacenes_permitidos():
+                                    return _sede_no_permitida()
+                            elif not sedes.de_la_sede(sedes.sede_de(tabla, registro_id), permitidas):
+                                return _sede_no_permitida()
+                    return func(*args, **kwargs)
+                return envoltorio
+            return decorador
+
+        def _sede_para_alta():
+            """(sede_id para guardar, None) de algo nuevo sin máquina: la que manda el móvil
+            (sede_id) si el técnico la ve; si no manda, la principal o la primera de las suyas.
+            (None, respuesta 403) si manda una que no ve."""
+            permitidas = sedes.permitidas(g.usuario_mantpro)
+            try:
+                pedida = int(request.form.get('sede_id') or 0) or None
+            except (TypeError, ValueError):
+                pedida = None
+            if pedida is not None:
+                if permitidas is not None and pedida not in permitidas:
+                    return None, _sede_no_permitida()
+                return sedes.guardable(pedida), None
+            return sedes.guardable(sedes.para_nuevo(permitidas)), None
+
+        @self.app.route('/api/sedes', methods=['GET'])
+        @requiere_token
+        def api_sedes():
+            """Sedes que ve este técnico (para el selector de la app) y si está limitado a ellas."""
+            lista = [{"id": s_["id"], "nombre": s_["nombre"], "tipo": s_["tipo"], "principal": bool(s_["principal"])}
+                     for s_ in sedes.visibles(g.usuario_mantpro)]
+            return jsonify({"status": "ok", "sedes": lista,
+                            "limitado": sedes.permitidas(g.usuario_mantpro) is not None})
+
         @self.app.route('/api/login', methods=['POST'])
         def api_login():
             datos = request.get_json(silent=True) or request.form
@@ -377,6 +450,14 @@ class ServidorSincronizacion(QThread):
                     maquina_id = int(maquina_id_raw) if maquina_id_raw else None
                 except (TypeError, ValueError):
                     maquina_id = None
+                # Con máquina, la sede es la suya (y tiene que ser de las del técnico); sin ella, la elegida
+                permitidas = sedes.permitidas(usuario)
+                if maquina_id and permitidas is not None and not sedes.de_la_sede(
+                        (maquinas.obtener_maquina(maquina_id) or {}).get("sede_id"), permitidas):
+                    return _sede_no_permitida()
+                sede_alta, error_sede = (None, None) if maquina_id else _sede_para_alta()
+                if error_sede is not None:
+                    return error_sede
 
                 # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
                 desc_final = titulo
@@ -394,9 +475,9 @@ class ServidorSincronizacion(QThread):
                 # Usamos el bloque with para asegurar el guardado
                 with get_db_connection(self.db_path) as conn:
                     cursor = conn.cursor()
-                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, maquina_id) VALUES (?,?,?,?,?,?,?,?)',
+                    cursor.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, maquina_id, sede_id) VALUES (?,?,?,?,?,?,?,?,?)',
                                    (fecha_final, desc_final, tags, _raw_desc_para_bd(raw_desc, ruta_local), filename,
-                                    usuario['id'], usuario['nombre'], maquina_id))
+                                    usuario['id'], usuario['nombre'], maquina_id, sede_alta))
                     nueva_tarea = cursor.lastrowid
                     conn.commit()
 
@@ -417,7 +498,9 @@ class ServidorSincronizacion(QThread):
                 # Con sus contadores (horas, ciclos, km) y la última lectura,
                 # para apuntar lecturas desde la ficha de la máquina sin conexión
                 por_maquina = contadores.por_maquina()
-                return jsonify([{**m, "contadores": por_maquina.get(m["id"], [])} for m in maquinas.listar_maquinas()])
+                filtro = _filtro_sede()   # solo las de las sedes del técnico (con su sede, para filtrar en el móvil)
+                return jsonify([{**m, "sede_id": sedes.efectiva(m.get("sede_id")), "contadores": por_maquina.get(m["id"], [])}
+                                for m in maquinas.listar_maquinas() if sedes.de_la_sede(m.get("sede_id"), filtro)])
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
 
@@ -453,6 +536,11 @@ class ServidorSincronizacion(QThread):
             artículo («Se usa en…»)."""
             try:
                 rutas = maquinas.mapa_rutas_completas()
+                # Solo las máquinas de las sedes del técnico
+                permitidas = sedes.permitidas(g.usuario_mantpro)
+                if permitidas is not None:
+                    rutas = {m["id"]: rutas.get(m["id"], m["nombre"]) for m in maquinas.listar_maquinas()
+                             if sedes.de_la_sede(m.get("sede_id"), permitidas)}
                 materiales = {m["id"]: m for m in almacen.listar_materiales()}
                 ubicaciones = {}
                 resultado = []
@@ -499,13 +587,18 @@ class ServidorSincronizacion(QThread):
                               f"({condicion_especialidad})) ORDER BY id DESC",
                               (u['id'], *especialidades_u))
                 filas = c.fetchall()
+                # Solo los de las sedes del técnico; cada uno lleva su sede
+                sede_de_pendiente = dict(c.execute("SELECT id, sede_id FROM pendientes").fetchall())
+                filtro = _filtro_sede()
+                filas = [r for r in filas if sedes.de_la_sede(sede_de_pendiente.get(r[0]), filtro)]
                 conn.close()
                 especialidades_por_id = {e['id']: e['nombre'] for e in usuarios.listar_especialidades()}
                 con_lista = checklists.checklists_de("pendiente")
                 datos = [{"id": r[0], "titulo": r[1], "detalles": r[2],
                           "asignado_a": r[3], "asignado": r[4], "prioridad": r[5],
                           "especialidad_id": r[6], "especialidad": especialidades_por_id.get(r[6]),
-                          "checklist_id": con_lista.get(r[0])} for r in filas]
+                          "checklist_id": con_lista.get(r[0]),
+                          "sede_id": sedes.efectiva(sede_de_pendiente.get(r[0]))} for r in filas]
                 return jsonify(datos)
             except Exception as e: return jsonify({"error": str(e)}), 500
 
@@ -529,6 +622,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/completar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_sede("pendientes")
         @requiere_tecnico
         def api_completar_pendiente():
             try:
@@ -647,8 +741,12 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
                 # Un pendiente creado desde el móvil queda asignado a quien lo crea
                 usuario = g.usuario_mantpro
-                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id) VALUES (?,?,?,?,?,?)',
-                          (titulo, detalles, usuario['id'], usuario['nombre'], prioridad, especialidad_id))
+                sede_alta, error_sede = _sede_para_alta()
+                if error_sede is not None:
+                    conn.close()
+                    return error_sede
+                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id, sede_id) VALUES (?,?,?,?,?,?,?)',
+                          (titulo, detalles, usuario['id'], usuario['nombre'], prioridad, especialidad_id, sede_alta))
                 nuevo_id = c.lastrowid
                 conn.commit()
                 conn.close()
@@ -664,6 +762,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/editar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_sede("pendientes")
         @requiere_tecnico
         def api_editar_pendiente():
             try:
@@ -701,6 +800,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/eliminar_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_sede("pendientes")
         @requiere_tecnico
         def api_eliminar_pendiente():
             # (Mantener código original)
@@ -730,16 +830,18 @@ class ServidorSincronizacion(QThread):
                 conn = self._conn()
                 c = conn.cursor()
                 # 1. Contar pendientes
-                c.execute("SELECT COUNT(*) FROM pendientes")
+                donde_sede = sedes.condicion(_filtro_sede())
+                c.execute("SELECT COUNT(*) FROM pendientes WHERE " + donde_sede)
                 n_pendientes = c.fetchone()[0]
 
                 # 2. Contar registros del mes actual
                 mes_actual = datetime.now().strftime("%Y-%m")
-                c.execute("SELECT COUNT(*) FROM tareas WHERE fecha LIKE ?", (f"{mes_actual}%",))
+                c.execute("SELECT COUNT(*) FROM tareas WHERE fecha LIKE ? AND " + donde_sede, (f"{mes_actual}%",))
                 n_mes = c.fetchone()[0]
 
                 # 3. Contar avisos activos (lógica simplificada para SQL)
-                c.execute("SELECT titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada FROM avisos_recurrentes")
+                c.execute("SELECT titulo, fecha_inicio, frecuencia, duracion_dias, ultima_completada FROM avisos_recurrentes WHERE "
+                          + donde_sede)
                 avisos = c.fetchall()
                 n_avisos = 0
                 hoy = datetime.now().date() # Usamos objeto date de Python para calcular rápido aquí
@@ -777,7 +879,9 @@ class ServidorSincronizacion(QThread):
                 c = conn.cursor()
 
                 mes = request.args.get('mes', '')
-                sql = "SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE 1=1"
+                # Solo los de las sedes del técnico (o la pedida con ?sede=)
+                sql = ("SELECT id, fecha, descripcion, tags, COALESCE(usuario_nombre,''), maquina_id, sede_id FROM tareas WHERE "
+                       + sedes.condicion(_filtro_sede()))
                 params = []
 
                 if query:
@@ -818,6 +922,7 @@ class ServidorSincronizacion(QThread):
 
                     maquina_id = r[5] if len(r) > 5 else None
                     resultados.append({
+                        "sede_id": sedes.efectiva(r[6]),
                         "id": r[0],
                         "fecha": r[1],
                         "descripcion": desc_limpia,
@@ -869,6 +974,10 @@ class ServidorSincronizacion(QThread):
                               f"WHERE asignado_a = ? OR (asignado_a IS NULL AND ({condicion_especialidad}))",
                               (u['id'], *especialidades_u))
                     raw_avisos = c.fetchall()
+                # Solo los de las sedes del técnico; cada uno lleva su sede
+                sede_de_aviso = dict(c.execute("SELECT id, sede_id FROM avisos_recurrentes").fetchall())
+                filtro = _filtro_sede()
+                raw_avisos = [a for a in raw_avisos if sedes.de_la_sede(sede_de_aviso.get(a[0]), filtro)]
                 conn.close()
 
                 lista_procesada = []
@@ -975,6 +1084,7 @@ class ServidorSincronizacion(QThread):
                         # completada) para que el móvil pueda recalcular el ciclo por su cuenta
                         # con la fecha del propio teléfono, aunque lleve meses sin sincronizar.
                         "fecha_inicio_raw": finicio,
+                        "sede_id": sedes.efectiva(sede_de_aviso.get(aid)),
                         "duracion_dias": dur,
                         "ultima_completada": ult or "",
                         "asignado_a": asignado_a,
@@ -996,6 +1106,7 @@ class ServidorSincronizacion(QThread):
         # ---------------------------------------------------------
         @self.app.route('/api/completar_aviso', methods=['POST'])
         @requiere_token
+        @requiere_sede("avisos_recurrentes")
         @requiere_tecnico
         def api_completar_aviso():
             print("\n" + "="*40)
@@ -1118,7 +1229,8 @@ class ServidorSincronizacion(QThread):
             try:
                 conn = self._conn()
                 c = conn.cursor()
-                c.execute("SELECT id, descripcion FROM tareas ORDER BY fecha DESC, id DESC")
+                c.execute("SELECT id, descripcion FROM tareas WHERE " + sedes.condicion(sedes.permitidas(g.usuario_mantpro))
+                          + " ORDER BY fecha DESC, id DESC")
                 resultados = []
                 for id_t, desc in c.fetchall():
                     foto = None
@@ -1134,6 +1246,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/editar_historial', methods=['POST'])
         @requiere_token
+        @requiere_sede("tareas")
         @requiere_tecnico
         def api_editar_historial():
             try:
@@ -1260,6 +1373,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/descompletar_aviso', methods=['POST'])
         @requiere_token
+        @requiere_sede("avisos_recurrentes")
         @requiere_tecnico
         def api_descompletar_aviso():
             try:
@@ -1309,6 +1423,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/revertir_pendiente', methods=['POST'])
         @requiere_token
+        @requiere_sede("tareas")
         @requiere_tecnico
         def api_revertir_pendiente():
             # Deshace la finalización de un trabajo: lo saca del historial y lo
@@ -1398,13 +1513,17 @@ class ServidorSincronizacion(QThread):
             return envoltorio
 
         def _almacen_peticion():
-            """Almacén pedido con ?almacen=<id> (o el campo almacen_id del formulario). Sin él, el
-            principal: una app que aún no sabe de almacenes ve lo de siempre y nunca los mezcla."""
+            """[almacén] pedido con ?almacen=<id> (o el campo almacen_id del formulario). Sin él, el
+            principal: una app que aún no sabe de almacenes ve lo de siempre y nunca los mezcla.
+            Si el técnico no ve ese almacén (no es de sus sedes), [] (nada)."""
             valor = request.args.get('almacen') or request.form.get('almacen_id')
+            if valor == "todos":   # los de todos los almacenes que ve (repuestos usados en la app MantPro)
+                return sorted(_almacenes_permitidos())
             try:
-                return almacenes.efectivo(int(valor)) if valor else almacenes.principal_id()
+                elegido = almacenes.efectivo(int(valor)) if valor else almacenes.principal_id()
             except (TypeError, ValueError):
-                return almacenes.principal_id()
+                elegido = almacenes.principal_id()
+            return [elegido] if elegido in _almacenes_permitidos() else []
 
         @self.app.route('/api/stock/almacenes', methods=['GET'])
         @requiere_token
@@ -1415,7 +1534,7 @@ class ServidorSincronizacion(QThread):
             lista = [{"id": a["id"], "nombre": a["nombre"], "comun": bool(a["comun"]), "principal": bool(a["principal"]),
                       "sede_id": sedes.efectiva(a["sede_id"]),
                       "sede": "" if a["comun"] else nombres_sedes.get(sedes.efectiva(a["sede_id"]), "")}
-                     for a in almacenes.listar()]
+                     for a in almacenes.listar(sedes.permitidas(g.usuario_mantpro))]
             return jsonify({"status": "ok", "almacenes": lista, "principal": almacenes.principal_id()})
 
         @self.app.route('/api/stock/estructura', methods=['GET'])
@@ -1434,8 +1553,11 @@ class ServidorSincronizacion(QThread):
             filtro = request.args.get('q') or None
             materiales = almacen.listar_materiales(filtro, almacen_ids=_almacen_peticion())
             admin = usuarios.es_admin(g.usuario_mantpro)
+            nombres_alm = almacenes.nombres()
             for m in materiales:
                 m["ubicacion"] = almacen.obtener_ubicacion_texto(m.get("seccion_id"))
+                m["almacen_id"] = almacenes.efectivo(m.get("almacen_id"))
+                m["almacen"] = nombres_alm.get(m["almacen_id"], "")
                 if not admin:
                     _quitar_datos_de_compras(m)
             return jsonify({"status": "ok", "materiales": materiales})
@@ -1484,6 +1606,8 @@ class ServidorSincronizacion(QThread):
             try:
                 usuario = g.usuario_mantpro
                 datos = request.form
+                if not _almacen_peticion():   # un almacén que el técnico no ve (de otra sede)
+                    return _sede_no_permitida()
                 nombre = (datos.get('nombre') or '').strip()
                 if not nombre:
                     return jsonify({"status": "error", "message": "El nombre del material es obligatorio."}), 400
@@ -1501,7 +1625,7 @@ class ServidorSincronizacion(QThread):
                     usuario['id'], usuario['nombre'],
                     # Los precios solo los pone un administrador
                     precio=consumos.numero(datos.get('precio')) if usuarios.es_admin(usuario) else None,
-                    almacen_id=_almacen_peticion())
+                    almacen_id=(_almacen_peticion() or [None])[0])
                 if datos.get('proveedor_id') and usuarios.es_admin(usuario):
                     proveedores.fijar_proveedor_habitual(material_id, datos.get('proveedor_id'))
                 self.stock_actualizado.emit()
@@ -1511,6 +1635,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/stock/material/<int:material_id>', methods=['POST'])
         @requiere_token
+        @requiere_sede("materiales", "material_id")
         @requiere_almacen
         def api_stock_editar_material(material_id):
             try:
@@ -1555,6 +1680,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/stock/material/<int:material_id>', methods=['DELETE'])
         @requiere_token
+        @requiere_sede("materiales", "material_id")
         @requiere_almacen
         def api_stock_borrar_material(material_id):
             try:
@@ -1569,6 +1695,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/stock/material/<int:material_id>/movimiento', methods=['POST'])
         @requiere_token
+        @requiere_sede("materiales", "material_id")
         @requiere_almacen
         def api_stock_movimiento(material_id):
             try:

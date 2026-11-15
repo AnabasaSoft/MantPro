@@ -147,6 +147,8 @@ const Map<String, String> traduccionesEu = {
     "btn_anadir_material": "Materiala gehitu",
     "lbl_maquina": "Makina",
     "lbl_sin_maquina": "— Makinarik ez —",
+    "lbl_sede": "Egoitza",
+    "sede_todas_mias": "Nire egoitza guztiak",
     "msg_sin_materiales": "Ez da materialik erabili",
     "lbl_cantidad": "Kopurua",
     "hint_buscar_material": "Materiala bilatu...",

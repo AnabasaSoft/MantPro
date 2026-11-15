@@ -52,6 +52,8 @@ const Map<String, String> traduccionesCa = {
     "msg_cerrar_sesion": "Segur que vols tancar la sessió?",
 
     "tab_almacen": "Magatzem",
+
+    "lbl_almacen": "Magatzem",
     "tab_buscar": "Cercar",
     "tab_bajo_minimo": "Per sota del mínim",
 

@@ -168,6 +168,8 @@ const Map<String, String> traduccionesPt = {
   "btn_anadir_material": "Adicionar material",
   "lbl_maquina": "Máquina",
   "lbl_sin_maquina": "— Sem máquina —",
+  "lbl_sede": "Sede",
+  "sede_todas_mias": "Todas as minhas sedes",
   "msg_sin_materiales": "Nenhum material foi usado",
   "lbl_cantidad": "Quantidade",
   "hint_buscar_material": "Buscar material...",

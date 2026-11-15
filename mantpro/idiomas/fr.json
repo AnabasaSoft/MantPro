@@ -1521,5 +1521,12 @@
   "alm_lbl_traspaso": "{articulo} — dans « {origen} » il y a {stock:g} {unidad}",
   "alm_lbl_destino": "Entrepôt de destination",
   "alm_lbl_cantidad": "Quantité",
-  "txt_sede_sin_almacen": "— Ce site n'a pas d'entrepôt —"
+  "txt_sede_sin_almacen": "— Ce site n'a pas d'entrepôt —",
+  "sede_aud_usuario": "Sites visibles : {sedes}",
+  "sede_todas_mias": "Tous mes sites",
+  "usuarios_col_sedes": "Sites",
+  "usuarios_sedes": "🏢 Sites",
+  "usuarios_sedes_admin": "Un administrateur voit toujours tous les sites.",
+  "sede_title_usuario": "Sites visibles",
+  "sede_ayuda_usuario": "Cochez les sites qu'il peut voir. Si aucun n'est coché, il les voit tous."
 }

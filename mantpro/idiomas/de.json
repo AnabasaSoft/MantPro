@@ -1521,5 +1521,12 @@
   "alm_lbl_traspaso": "{articulo} — in „{origen}“ sind {stock:g} {unidad}",
   "alm_lbl_destino": "Ziellager",
   "alm_lbl_cantidad": "Menge",
-  "txt_sede_sin_almacen": "— Dieser Standort hat kein Lager —"
+  "txt_sede_sin_almacen": "— Dieser Standort hat kein Lager —",
+  "sede_aud_usuario": "Sichtbare Standorte: {sedes}",
+  "sede_todas_mias": "Alle meine Standorte",
+  "usuarios_col_sedes": "Standorte",
+  "usuarios_sedes": "🏢 Standorte",
+  "usuarios_sedes_admin": "Ein Administrator sieht immer alle Standorte.",
+  "sede_title_usuario": "Sichtbare Standorte",
+  "sede_ayuda_usuario": "Markieren Sie die Standorte, die er sehen darf. Ist keiner markiert, sieht er alle."
 }

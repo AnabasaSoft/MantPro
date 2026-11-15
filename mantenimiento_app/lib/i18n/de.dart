@@ -168,6 +168,8 @@ const Map<String, String> traduccionesDe = {
   "btn_anadir_material": "Material hinzufügen",
   "lbl_maquina": "Maschine",
   "lbl_sin_maquina": "— Ohne Maschine —",
+  "lbl_sede": "Standort",
+  "sede_todas_mias": "Alle meine Standorte",
   "msg_sin_materiales": "Es wurde kein Material verbraucht",
   "lbl_cantidad": "Menge",
   "hint_buscar_material": "Material suchen...",

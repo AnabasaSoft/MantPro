@@ -168,6 +168,8 @@ const Map<String, String> traduccionesFr = {
   "btn_anadir_material": "Ajouter un article",
   "lbl_maquina": "Machine",
   "lbl_sin_maquina": "— Sans machine —",
+  "lbl_sede": "Site",
+  "sede_todas_mias": "Tous mes sites",
   "msg_sin_materiales": "Aucun article utilisé",
   "lbl_cantidad": "Quantité",
   "hint_buscar_material": "Rechercher un article...",

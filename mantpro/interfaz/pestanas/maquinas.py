@@ -556,7 +556,7 @@ class PestanaMaquinas:
         return self._guardar_foto_maquina(datos["ruta_foto_seleccionada"])
 
     def _maquina_nueva(self):
-        dlg = DialogoEditarMaquina(self, sede_sugerida=self.sede_filtro())
+        dlg = DialogoEditarMaquina(self, sede_sugerida=self.sede_para_nuevo())
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)

@@ -1521,5 +1521,12 @@
   "alm_lbl_traspaso": "{articulo} — a «{origen}» n'hi ha {stock:g} {unidad}",
   "alm_lbl_destino": "Magatzem de destinació",
   "alm_lbl_cantidad": "Quantitat",
-  "txt_sede_sin_almacen": "— Aquesta seu no té magatzem —"
+  "txt_sede_sin_almacen": "— Aquesta seu no té magatzem —",
+  "sede_aud_usuario": "Seus que veu: {sedes}",
+  "sede_todas_mias": "Totes les meves seus",
+  "usuarios_col_sedes": "Seus",
+  "usuarios_sedes": "🏢 Seus",
+  "usuarios_sedes_admin": "Un administrador veu sempre totes les seus.",
+  "sede_title_usuario": "Seus que veu",
+  "sede_ayuda_usuario": "Marca les seus que pot veure. Sense cap de marcada, les veu totes."
 }

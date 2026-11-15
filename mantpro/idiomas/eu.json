@@ -1521,5 +1521,12 @@
   "alm_lbl_traspaso": "{articulo} — «{origen}» biltegian {stock:g} {unidad} daude",
   "alm_lbl_destino": "Helburuko biltegia",
   "alm_lbl_cantidad": "Kopurua",
-  "txt_sede_sin_almacen": "— Egoitza honek ez du biltegirik —"
+  "txt_sede_sin_almacen": "— Egoitza honek ez du biltegirik —",
+  "sede_aud_usuario": "Ikusten dituen egoitzak: {sedes}",
+  "sede_todas_mias": "Nire egoitza guztiak",
+  "usuarios_col_sedes": "Egoitzak",
+  "usuarios_sedes": "🏢 Egoitzak",
+  "usuarios_sedes_admin": "Administratzaile batek egoitza guztiak ikusten ditu beti.",
+  "sede_title_usuario": "Ikusten dituen egoitzak",
+  "sede_ayuda_usuario": "Markatu ikus ditzakeen egoitzak. Bat ere markatu gabe, denak ikusten ditu."
 }

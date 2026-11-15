@@ -35,6 +35,7 @@ import 'conexion_segura.dart';
 import 'api.dart';
 import 'rutas_servidor.dart';
 import 'sincronizador.dart';
+import 'almacenes.dart';
 import 'pantallas/pantalla_almacen.dart';
 import 'pantallas/pantalla_buscar.dart';
 import 'pantallas/pantalla_bajo_minimo.dart';
@@ -245,6 +246,7 @@ void main() async {
   if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
   // Rutas del PC y de la nube: se recuerda la activa y se vuelve a decidir sin esperar (la app es offline).
   await RutasServidor.cargar();
+  await AlmacenesCache.cargar();   // almacenes que ve y el elegido (sin conexión)
   unawaited(RutasServidor.resolver(forzar: true));
 
   tz.initializeTimeZones();
@@ -792,6 +794,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               ),
             ),
             actions: [
+            // Al cambiar de almacén: se enseña al momento lo guardado de ese almacén y se baja lo último
+            BotonAlmacen(alCambiar: () { datosSincronizadosNotifier.value++; _sincronizarPeriodico(); }),
             _botonRevision(),
             IconButton(tooltip: t("tooltip_buscar_actualizaciones"), icon: const Icon(Icons.system_update), onPressed: () => comprobarActualizacionGitHub(context, forzar: true)),
             IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),

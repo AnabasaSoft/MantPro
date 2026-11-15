@@ -52,6 +52,8 @@ const Map<String, String> traduccionesGl = {
     "msg_cerrar_sesion": "Seguro que queres pechar a sesión?",
 
     "tab_almacen": "Almacén",
+
+    "lbl_almacen": "Almacén",
     "tab_buscar": "Buscar",
     "tab_bajo_minimo": "Por baixo do mínimo",
 

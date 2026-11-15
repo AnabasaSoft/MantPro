@@ -59,8 +59,12 @@ class AccionesSedes:
         guardada = QSettings("MyCompany", "MantenimientoApp").value(CLAVE_AJUSTE, "")
         self.combo_sede.blockSignals(True)
         self.combo_sede.clear()
-        self.combo_sede.addItem(tt("sede_todas", "Todas las sedes"), None)
-        for s in sedes.listar():
+        # Un técnico con sedes marcadas solo ve esas (y «Todas mis sedes»)
+        restringido = sedes.permitidas() is not None
+        visibles = sedes.visibles()
+        self.combo_sede.addItem(tt("sede_todas_mias", "Todas mis sedes") if restringido
+                                else tt("sede_todas", "Todas las sedes"), None)
+        for s in visibles:
             self.combo_sede.addItem(s["nombre"], s["id"])
         indice = 0
         if guardada not in ("", None):
@@ -71,7 +75,7 @@ class AccionesSedes:
                 indice = 0
         self.combo_sede.setCurrentIndex(indice)
         self.combo_sede.blockSignals(False)
-        self.caja_sede.setVisible(sedes.hay_varias())
+        self.caja_sede.setVisible(len(visibles) > 1)
 
     def _al_elegir_sede(self, _indice):
         valor = self.combo_sede.currentData()
@@ -89,15 +93,19 @@ class AccionesSedes:
                                    sede=self.sede_filtro())
 
     def sede_filtro(self):
-        """Sede con la que se filtran las pestañas (None = todas). Con una sola sede, None."""
-        if not hasattr(self, "combo_sede") or not sedes.hay_varias():
-            return None
-        return self.combo_sede.currentData()
+        """Con qué se filtran las pestañas: la sede elegida (id); con «Todas», None (todas) o,
+        para un técnico con sedes marcadas, la lista de las suyas (aunque el selector no se vea)."""
+        permitidas = sedes.permitidas()
+        if hasattr(self, "combo_sede") and sedes.hay_varias():
+            elegida = self.combo_sede.currentData()
+            if elegida is not None and (permitidas is None or elegida in permitidas):
+                return elegida
+        return permitidas
 
     def sede_para_nuevo(self):
-        """Sede de lo que se crea ahora sin máquina (pendientes, avisos, trabajos):
-        la elegida en el selector o, con «Todas», la principal (None)."""
-        return self.sede_filtro()
+        """Sede de lo que se crea ahora sin máquina (pendientes, avisos, trabajos): la elegida;
+        con «Todas», la principal (si el técnico la ve; si no, la primera de las suyas)."""
+        return sedes.para_nuevo(self.sede_filtro())
 
     def gestionar_almacenes(self):
         """Herramientas → Almacenes (solo administradores)."""

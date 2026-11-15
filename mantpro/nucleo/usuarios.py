@@ -1122,6 +1122,10 @@ def borrar_usuario(usuario_id):
     con.execute("DELETE FROM sesiones WHERE usuario_id = ?", (usuario_id,))
     con.execute("DELETE FROM usuario_roles WHERE usuario_id = ?", (usuario_id,))
     con.execute("DELETE FROM usuario_especialidades WHERE usuario_id = ?", (usuario_id,))
+    try:   # qué sedes ve (nucleo/sedes.py); la tabla puede no existir aún en una base vieja
+        con.execute("DELETE FROM usuario_sedes WHERE usuario_id = ?", (usuario_id,))
+    except Exception:      # noqa: BLE001
+        pass
     con.execute("UPDATE moviles SET usuario_id = NULL WHERE usuario_id = ?", (usuario_id,))
     con.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
     con.commit()

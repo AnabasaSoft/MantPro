@@ -302,6 +302,8 @@ TABLAS = {
         "zonas": {"tipo": "entidad", "refs": {}},
         # Sedes: la principal tiene uuid fijo ("sede-principal"), así dos PCs no crean dos.
         "sedes": {"tipo": "entidad", "refs": {}},
+        "usuario_sedes": {"tipo": "enlace", "clave_natural": ("usuario_id", "sede_id"),
+                          "refs": {"usuario_id": "mant.usuarios", "sede_id": "mant.sedes"}},
         "maquinas": {"tipo": "entidad", "refs": {"padre_id": "mant.maquinas", "zona_id": "mant.zonas",
                                                  "sede_id": "mant.sedes"}},
         "tareas": {"tipo": "entidad", "refs": {"usuario_id": "mant.usuarios", "maquina_id": "mant.maquinas",

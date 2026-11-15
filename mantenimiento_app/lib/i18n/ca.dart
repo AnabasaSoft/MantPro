@@ -148,6 +148,8 @@ const Map<String, String> traduccionesCa = {
     "btn_anadir_material": "Afegir material",
     "lbl_maquina": "Màquina",
     "lbl_sin_maquina": "— Sense màquina —",
+    "lbl_sede": "Seu",
+    "sede_todas_mias": "Totes les meves seus",
     "msg_sin_materiales": "No s'ha utilitzat cap material",
     "lbl_cantidad": "Quantitat",
     "hint_buscar_material": "Cercar material...",

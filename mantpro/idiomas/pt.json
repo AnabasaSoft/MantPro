@@ -1521,5 +1521,12 @@
   "alm_lbl_traspaso": "{articulo} — em «{origen}» há {stock:g} {unidad}",
   "alm_lbl_destino": "Armazém de destino",
   "alm_lbl_cantidad": "Quantidade",
-  "txt_sede_sin_almacen": "— Esta sede não tem armazém —"
+  "txt_sede_sin_almacen": "— Esta sede não tem armazém —",
+  "sede_aud_usuario": "Sedes que vê: {sedes}",
+  "sede_todas_mias": "Todas as minhas sedes",
+  "usuarios_col_sedes": "Sedes",
+  "usuarios_sedes": "🏢 Sedes",
+  "usuarios_sedes_admin": "Um administrador vê sempre todas as sedes.",
+  "sede_title_usuario": "Sedes que vê",
+  "sede_ayuda_usuario": "Marque as sedes que pode ver. Sem nenhuma marcada, vê todas."
 }

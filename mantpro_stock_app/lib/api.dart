@@ -35,6 +35,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'modelos.dart';
 import 'i18n/strings.dart';
 import 'sincronizador.dart';
+import 'almacenes.dart';
 
 /// true = hay sesión iniciada. AuthGate lo escucha para mostrar login o app.
 final ValueNotifier<bool> sesionNotifier = ValueNotifier(false);
@@ -444,10 +445,11 @@ class ApiException implements Exception {
 // Claves de SharedPreferences para la caché de lectura y las colas de
 // escrituras pendientes de sincronizar con el PC (igual que en la app de
 // trabajos: se guarda todo como JSON y SincronizadorStock lo va vaciando).
-const String kStockCacheEstructura = 'stock_cache_estructura';
-const String kStockCacheZonas = 'stock_cache_zonas';
-const String kStockCacheMateriales = 'stock_cache_materiales';
-const String kStockCacheBajoMinimo = 'stock_cache_bajo_minimo';
+// Las del almacén van por almacén (sufijo del elegido, ver almacenes.dart).
+String get kStockCacheEstructura => 'stock_cache_estructura${sufijoAlmacen()}';
+String get kStockCacheZonas => 'stock_cache_zonas${sufijoAlmacen()}';
+String get kStockCacheMateriales => 'stock_cache_materiales${sufijoAlmacen()}';
+String get kStockCacheBajoMinimo => 'stock_cache_bajo_minimo${sufijoAlmacen()}';
 const String kStockCacheRepuestos = 'stock_cache_repuestos';
 /// Identificador único de una operación de la cola, creado al meterla en ella. Viaja en la cabecera
 /// X-MantPro-Op y el PC la aplica una sola vez aunque el móvil la mande varias (se perdió la respuesta,
@@ -499,7 +501,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -530,7 +532,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/zonas'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/zonas').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -673,7 +675,7 @@ class StockApi {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
       final uri = Uri.parse('$esquemaPC://$ip/api/stock/materiales')
-          .replace(queryParameters: (q != null && q.isNotEmpty) ? {'q': q} : null);
+          .replace(queryParameters: {...paramsAlmacen(), if (q != null && q.isNotEmpty) 'q': q});
       final res = await httpGetAuth(uri).timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -705,7 +707,7 @@ class StockApi {
     try {
       final ip = await _ip();
       if (!await ConexionPC.accesible(ip)) throw _SinConexionPC();
-      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/bajo_minimo'))
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/bajo_minimo').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 4));
       final datos = json.decode(res.body);
       if (res.statusCode != 200 || datos['status'] != 'ok') {
@@ -890,7 +892,8 @@ class StockApi {
     final colaKey = esNuevo ? kStockColaNuevos : kStockColaEdiciones;
     if (esNuevo) {
       final cola = leerColaMapas(prefs, kStockColaNuevos);
-      cola.add({'localId': localId, 'op': nuevaOperacion(), ...campos, 'fotoPath': foto?.path});
+      cola.add({'localId': localId, 'op': nuevaOperacion(), ...campos, 'fotoPath': foto?.path,
+                if (almacenElegidoNotifier.value != null) 'almacen_id': '${almacenElegidoNotifier.value}'});
       await prefs.setString(kStockColaNuevos, json.encode(cola));
       avisarCambioLocal();
     } else {

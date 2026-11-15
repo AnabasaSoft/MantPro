@@ -50,6 +50,8 @@ const Map<String, String> traduccionesEu = {
     "msg_cerrar_sesion": "Ziur saioa amaitu nahi duzula?",
 
     "tab_almacen": "Biltegia",
+
+    "lbl_almacen": "Biltegia",
     "tab_buscar": "Bilatu",
     "tab_bajo_minimo": "Gutxienekotik behera",
 

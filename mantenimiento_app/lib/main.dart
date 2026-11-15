@@ -45,6 +45,7 @@ import 'conexion_segura.dart';
 import 'rutas_servidor.dart';
 import 'checklists.dart';
 import 'contadores.dart';
+import 'sedes.dart';
 
 
 // ==========================================================================
@@ -905,6 +906,7 @@ void main() async {
   if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
   // Rutas del PC y de la nube: se recuerda la activa y se vuelve a decidir sin esperar (la app es offline).
   await RutasServidor.cargar();
+  await SedesCache.cargar();   // sedes del técnico y la elegida (sin conexión)
   unawaited(RutasServidor.resolver(forzar: true));
 
   tz.initializeTimeZones();
@@ -1009,7 +1011,7 @@ class MaquinasCache {
   /// Construye la lista indentada (nombre visible, id) para un desplegable.
   static List<MapEntry<String, int?>> arbol(List<Map<String, dynamic>> planas) {
     final porPadre = <dynamic, List<Map<String, dynamic>>>{};
-    for (var m in planas) {
+    for (var m in planas.where((m) => enSedeElegida(m['sede_id']))) {   // solo las de la sede elegida
       porPadre.putIfAbsent(m['padre_id'], () => []).add(m);
     }
     final resultado = <MapEntry<String, int?>>[MapEntry(t("lbl_sin_maquina"), null)];
@@ -1119,6 +1121,8 @@ class Registro {
   int personas;
   /// Identificador de la operación al enviarlo al PC (ver [nuevaOperacion]); solo en la cola de envío.
   String? op;
+  /// Sede: la elegida al crearlo (se envía si no tiene máquina) o la que trae del PC.
+  int? sedeId;
 
   Registro({
     this.id,
@@ -1141,6 +1145,7 @@ class Registro {
     this.minutosTrabajo,
     this.personas = 1,
     this.op,
+    this.sedeId,
   }) : materiales = materiales ?? [],
        fotosExtra = fotosExtra ?? [],
        serverFotosExtra = serverFotosExtra ?? [];
@@ -1166,6 +1171,7 @@ class Registro {
     'minutosTrabajo': minutosTrabajo,
     'personas': personas,
     if (op != null) 'op': op,
+    'sedeId': sedeId,
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -1192,6 +1198,7 @@ class Registro {
     minutosTrabajo: json['minutosTrabajo'],
     personas: json['personas'] ?? 1,
     op: json['op'] as String?,
+    sedeId: json['sedeId'],
   );
 }
 
@@ -1208,7 +1215,9 @@ class PendientePC {
   String? especialidad;
   /// Plantilla de lista de comprobación asignada en el PC (null = sin lista).
   int? checklistId;
-  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad, this.checklistId});
+  /// Sede del trabajo (null = desconocida: se ve siempre).
+  int? sedeId;
+  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad, this.checklistId, this.sedeId});
   factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
         id: json['id'],
         titulo: json['titulo'],
@@ -1219,12 +1228,13 @@ class PendientePC {
         especialidadId: json['especialidad_id'],
         especialidad: json['especialidad'],
         checklistId: json['checklist_id'],
+        sedeId: json['sede_id'],
       );
   Map<String, dynamic> toJson() => {
         'id': id, 'titulo': titulo, 'detalles': detalles,
         'asignado_a': asignadoA, 'asignado': asignado, 'prioridad': prioridad,
         'especialidad_id': especialidadId, 'especialidad': especialidad,
-        'checklist_id': checklistId,
+        'checklist_id': checklistId, 'sede_id': sedeId,
       };
   /// true si el trabajo es del usuario que tiene la sesión abierta.
   bool get esMio => asignadoA != null && asignadoA == AuthService.usuarioId;
@@ -1245,9 +1255,11 @@ class AvisoPC {
   /// unidad, maquina_id, maquina, cada, antelacion, solo_contador, actual,
   /// fecha_actual, proximo, estimada. null = solo por fecha.
   Map<String, dynamic>? contador;
-  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId, this.contador});
+  /// Sede del aviso (null = desconocida: se ve siempre).
+  int? sedeId;
+  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId, this.contador, this.sedeId});
   factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0, checklistId: json['checklist_id'],
-      contador: json['contador'] is Map ? Map<String, dynamic>.from(json['contador']) : null);
+      contador: json['contador'] is Map ? Map<String, dynamic>.from(json['contador']) : null, sedeId: json['sede_id']);
 }
 
 /// Prioridad para ordenar avisos con los más urgentes primero:
@@ -1580,6 +1592,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           onPopInvoked: (didPop) { if (!didPop) _irAPestana(0); },
           child: Scaffold(
             appBar: AppBar(title: Text(titulo), actions: [
+              const BotonSede(),   // solo con más de una sede
               IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: tt('tooltip_escanear_maquina', 'Escanear el QR de una máquina'), onPressed: _escanearMaquina),
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
@@ -1885,7 +1898,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('registros_pendientes', json.encode(_pendientes.map((r) => r.toJson()).toList()));
   }
-  void _addRegistro(Registro r) { r.op ??= nuevaOperacion(); setState(() => _pendientes.add(r)); _guardarDatos(); }
+  void _addRegistro(Registro r) { r.op ??= nuevaOperacion(); r.sedeId ??= sedeElegidaNotifier.value; setState(() => _pendientes.add(r)); _guardarDatos(); }
   void _editarRegistro(int index, Registro r) { setState(() => _pendientes[index] = r); _guardarDatos(); }
   Future<void> _sincronizar([String? nuevaUrl]) async {
     final prefs = await SharedPreferences.getInstance();
@@ -1909,6 +1922,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
 
         if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
         if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
+        if (item.maquinaId == null && item.sedeId != null) req.fields['sede_id'] = item.sedeId.toString();
 
         if (item.imagePath != null && File(item.imagePath!).existsSync()) {
           req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
@@ -1934,7 +1948,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
             }).toList();
             await cachearFotosHistorial(urlUsar, nuevosH);
             final prefs = await SharedPreferences.getInstance();
@@ -2015,7 +2029,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 
   /// Lista visible según el filtro (los de la cola de salida se ven siempre).
   List<PendientePC> get _listaVisible =>
-      _soloMios ? _listaPC.where((p) => p.esMio).toList() : _listaPC;
+      _listaPC.where((p) => enSedeElegida(p.sedeId) && (!_soloMios || p.esMio)).toList();
 
   Future<void> _cambiarFiltro(bool valor) async {
     final prefs = await SharedPreferences.getInstance();
@@ -2041,9 +2055,10 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
   Map<String, List<String>> _galeriaLocales = {};
   bool _cargando = false; String? _urlPC;
 
-  @override void initState() { super.initState(); _cargarCache(); datosSincronizadosNotifier.addListener(_alSincronizar); }
+  @override void initState() { super.initState(); _cargarCache(); datosSincronizadosNotifier.addListener(_alSincronizar); sedeElegidaNotifier.addListener(_alCambiarSede); }
+  void _alCambiarSede() { if (mounted) setState(() {}); }
   void _alSincronizar() { if (mounted) _cargarCache(); }
-  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); super.dispose(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); sedeElegidaNotifier.removeListener(_alCambiarSede); super.dispose(); }
   Future<void> _cargarCache() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -2130,7 +2145,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2184,6 +2199,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
       if (d.containsKey('prioridad') && d['prioridad'] != null) r.fields['prioridad'] = d['prioridad'];
       if (d.containsKey('especialidad_id') && d['especialidad_id'] != null) r.fields['especialidad_id'] = d['especialidad_id'].toString();
+      if (d['sede_id'] != null) r.fields['sede_id'] = d['sede_id'].toString();
 
       // --- ENVÍO DE FECHA ---
       if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
@@ -2548,10 +2564,11 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
             if (r.tags.isNotEmpty) setState(() => _tagsLocales[ru] = r.tags);
             String d = "${r.detalles} [REF:$ru]";
             if (r.fotosExtra.isNotEmpty) setState(() => _galeriaLocales[ru] = r.fotosExtra);
+            final sedeNueva = sedeElegidaNotifier.value;   // va a la sede elegida (null = la que decida el PC)
             Map<String, dynamic> mapTempNuevo = {'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId,
-                'fotosExtra': r.fotosExtra, 'galeriaClave': ru};
+                'fotosExtra': r.fotosExtra, 'galeriaClave': ru, 'sede_id': sedeNueva};
             setState(() => _colaNuevos.add(mapTempNuevo));
-            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad, especialidadId: r.especialidadId)));
+            setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad, especialidadId: r.especialidadId, sedeId: sedeNueva)));
             _guardarCache();
             _sincronizarTodo(silencioso: true);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_pendiente_creado"))));
@@ -2618,13 +2635,16 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
 class TabAvisos extends StatefulWidget { const TabAvisos({super.key}); @override State<TabAvisos> createState() => _TabAvisosState(); }
 class _TabAvisosState extends State<TabAvisos> {
   List<AvisoPC> _avisos = [];
+  /// Los de la sede elegida (ver sedes.dart).
+  List<AvisoPC> get _avisosVisibles => _avisos.where((a) => enSedeElegida(a.sedeId)).toList();
+  void _alCambiarSede() { if (mounted) setState(() {}); }
   List<Map<String, String>> _colaCompletados = [];
   List<String> _colaRestaurar = [];
   bool _cargando = false; String? _urlPC;
 
-  @override void initState() { super.initState(); _inicializar(); datosSincronizadosNotifier.addListener(_alSincronizar); }
+  @override void initState() { super.initState(); _inicializar(); datosSincronizadosNotifier.addListener(_alSincronizar); sedeElegidaNotifier.addListener(_alCambiarSede); }
   void _alSincronizar() { if (mounted) _inicializar(); }
-  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); super.dispose(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); sedeElegidaNotifier.removeListener(_alCambiarSede); super.dispose(); }
   Future<void> _inicializar() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _urlPC = prefs.getString('pc_ip_url'));
@@ -2686,7 +2706,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2785,10 +2805,10 @@ class _TabAvisosState extends State<TabAvisos> {
     return Scaffold(
       body: Column(children: [
         if (p > 0) Container(width: double.infinity, color: Colors.orangeAccent, padding: const EdgeInsets.all(8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.cloud_upload, color: Colors.white, size: 16), const SizedBox(width: 8), Text(t("msg_cambios_pendientes").replaceAll('{p}', p.toString()), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
-          Expanded(child: _avisos.isEmpty
+          Expanded(child: _avisosVisibles.isEmpty
           ? RefreshIndicator(onRefresh: _sincronizar, child: ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), Center(child:Text(t("msg_no_hay_avisos")))]))
-          : RefreshIndicator(onRefresh: _sincronizar, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(10), itemCount: _avisos.length, itemBuilder: (ctx, i) {
-            final a = _avisos[i]; String id = a.id.toString(); bool ec = _colaCompletados.any((x) => x['id'] == id); bool er = _colaRestaurar.contains(id);
+          : RefreshIndicator(onRefresh: _sincronizar, child: ListView.builder(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(10), itemCount: _avisosVisibles.length, itemBuilder: (ctx, i) {
+            final a = _avisosVisibles[i]; String id = a.id.toString(); bool ec = _colaCompletados.any((x) => x['id'] == id); bool er = _colaRestaurar.contains(id);
             String st = traducirEstadoAviso(a.estado); String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
             Color c = cl == 'red' ? Colors.redAccent : (cl == 'orange' ? Colors.orange : (cl == 'green' ? Colors.green : Colors.blue));
             Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red' || cl == 'orange') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
@@ -2808,6 +2828,9 @@ class _TabAvisosState extends State<TabAvisos> {
 class TabHistorial extends StatefulWidget { const TabHistorial({super.key}); @override State<TabHistorial> createState() => _TabHistorialState(); }
 class _TabHistorialState extends State<TabHistorial> {
   List<Registro> _registros = []; List<Map<String, dynamic>> _colaEdiciones = [];
+  /// Los de la sede elegida (ver sedes.dart).
+  List<Registro> get _registrosVisibles => _registros.where((r) => enSedeElegida(r.sedeId)).toList();
+  void _alCambiarSede() { if (mounted) setState(() {}); }
   bool _cargando = false; String? _urlPC; final _searchCtrl = TextEditingController();
   static const int _porPagina = 50;
   String _filtroAno = "TODO"; String _filtroMes = "TODO";
@@ -2834,12 +2857,13 @@ class _TabHistorialState extends State<TabHistorial> {
     super.initState();
     _inicializarHistorial();
     datosSincronizadosNotifier.addListener(_alSincronizar);
+    sedeElegidaNotifier.addListener(_alCambiarSede);
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 400) _cargarMas();
     });
   }
   void _alSincronizar() { if (mounted) _inicializarHistorial(); }
-  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); _scrollCtrl.dispose(); super.dispose(); }
+  @override void dispose() { datosSincronizadosNotifier.removeListener(_alSincronizar); sedeElegidaNotifier.removeListener(_alCambiarSede); _scrollCtrl.dispose(); super.dispose(); }
   Future<void> _inicializarHistorial() async {
     await _actualizarAnios();
     final prefs = await SharedPreferences.getInstance();
@@ -2927,7 +2951,7 @@ class _TabHistorialState extends State<TabHistorial> {
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null,
+    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], sedeId: i['sede_id'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null,
         materiales: (i['materiales'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList(),
         minutosTrabajo: i['minutos_trabajo'], personas: i['personas'] ?? 1)).toList();
     final dir = await getApplicationDocumentsDirectory();
@@ -3172,15 +3196,15 @@ class _TabHistorialState extends State<TabHistorial> {
             if (_filtroAno != "TODO") SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: ["TODO", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].asMap().entries.map((e) { List<String> n = [t("mes_todo"), t("mes_01_corto"), t("mes_02_corto"), t("mes_03_corto"), t("mes_04_corto"), t("mes_05_corto"), t("mes_06_corto"), t("mes_07_corto"), t("mes_08_corto"), t("mes_09_corto"), t("mes_10_corto"), t("mes_11_corto"), t("mes_12_corto")]; return Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: ChoiceChip(label: Text(n[e.key]), selected: _filtroMes == e.value, onSelected: (sel) { if (sel) { setState(() => _filtroMes = e.value); _buscar(_searchCtrl.text); } })); }).toList())),
 
               Padding(padding: const EdgeInsets.all(8.0), child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: t("ph_buscar_historial"), suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: () => _buscar(_searchCtrl.text)), border: const OutlineInputBorder(), filled: _urlPC == null, fillColor: _urlPC == null ? Colors.red.withOpacity(0.05) : null), onSubmitted: _buscar)),
-          Expanded(child: RefreshIndicator(onRefresh: _sincronizarCompleto, child: _registros.isEmpty
+          Expanded(child: RefreshIndicator(onRefresh: _sincronizarCompleto, child: _registrosVisibles.isEmpty
           ? ListView(children:[SizedBox(height:MediaQuery.of(context).size.height*0.3), Center(child:Text(t("msg_sin_historial")))])
-          : ListView.builder(controller: _scrollCtrl, itemCount: _registros.length + (_hayMas ? 1 : 0), itemBuilder: (ctx, i) {
-            if (i >= _registros.length) {
+          : ListView.builder(controller: _scrollCtrl, itemCount: _registrosVisibles.length + (_hayMas ? 1 : 0), itemBuilder: (ctx, i) {
+            if (i >= _registrosVisibles.length) {
               // Centinela final: dispara la carga de la siguiente página y muestra el indicador.
               WidgetsBinding.instance.addPostFrameCallback((_) => _cargarMas());
               return const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))));
             }
-            final r = _registros[i]; Widget w;
+            final r = _registrosVisibles[i]; Widget w;
             w = _widgetFoto(r.imagePath, r.serverImageName) ?? _widgetFoto(r.imagePathDespues, r.serverImageNameDespues)
                 // Miniatura: la primera foto de la colección que no sea un vídeo.
                 ?? (r.fotosExtra.where((f) => !esVideoNombre(f)).isNotEmpty ? _widgetFoto(r.fotosExtra.firstWhere((f) => !esVideoNombre(f)), null) : null)
@@ -3848,7 +3872,7 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
     setState(() => _buscando = true);
     bool ok = false;
     try {
-      final res = await httpGetAuth(Uri.parse("$esquemaPC://${widget.urlPC}/api/stock/materiales?q=${Uri.encodeQueryComponent(q)}")).timeout(const Duration(seconds: 5));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://${widget.urlPC}/api/stock/materiales?almacen=todos&q=${Uri.encodeQueryComponent(q)}")).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         _resultados = List<Map<String, dynamic>>.from(data['materiales'] ?? []);
@@ -4008,6 +4032,7 @@ class SincronizadorGlobal {
           if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
           if (item.minutosTrabajo != null) { req.fields['minutos_trabajo'] = '${item.minutosTrabajo}'; req.fields['personas'] = '${item.personas}'; }
         if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
+        if (item.maquinaId == null && item.sedeId != null) req.fields['sede_id'] = item.sedeId.toString();
           if (item.imagePath != null && File(item.imagePath!).existsSync()) {
             req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
           }
@@ -4047,6 +4072,7 @@ class SincronizadorGlobal {
         if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
         if (d.containsKey('prioridad') && d['prioridad'] != null) r.fields['prioridad'] = d['prioridad'];
         if (d.containsKey('especialidad_id') && d['especialidad_id'] != null) r.fields['especialidad_id'] = d['especialidad_id'].toString();
+        if (d['sede_id'] != null) r.fields['sede_id'] = d['sede_id'].toString();
         if (d.containsKey('fecha') && d['fecha'] != null) r.fields['fecha'] = d['fecha'];
         if (d['materiales'] != null && (d['materiales'] as List).isNotEmpty) r.fields['materiales'] = json.encode(d['materiales']);
         r.fields.addAll(camposChecklist(d['checklist']));
@@ -4130,7 +4156,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         nuevosH = dH.map((i) => <String, dynamic>{
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
         }).toList();
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');
@@ -4141,7 +4167,14 @@ class SincronizadorGlobal {
         await podarHistorialCache(ip);
       } catch (_) {}
     }
+    Future<void> descargarSedes() async {
+      try {
+        final res = await httpGetAuth(Uri.parse("$esquemaPC://$ip/api/sedes")).timeout(const Duration(seconds: 10));
+        if (res.statusCode == 200) await SedesCache.guardarRespuesta(res.body);
+      } catch (_) {}
+    }
     await Future.wait([
+      descargarSedes(),
       MaquinasCache.sincronizar(ip),
       RepuestosCache.sincronizar(ip),
       descargar('pendientes', 'trabajos_pc'),

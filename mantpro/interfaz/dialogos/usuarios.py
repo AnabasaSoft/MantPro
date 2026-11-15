@@ -35,7 +35,7 @@ from PyQt6.QtGui import QPixmap
 
 import os
 from datetime import datetime
-from ...nucleo import seguridad, usuarios
+from ...nucleo import sedes, seguridad, usuarios
 
 try:
     from ...idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
@@ -382,7 +382,7 @@ class DialogoGestionUsuarios(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.tabla = QTableWidget(0, 7)
+        self.tabla = QTableWidget(0, 8)
         self.tabla.setHorizontalHeaderLabels([
             t("usuarios_col_login", "Usuario"),
             t("usuarios_col_nombre", "Nombre"),
@@ -391,8 +391,11 @@ class DialogoGestionUsuarios(QDialog):
             t("usuarios_col_estado", "Estado"),
             t("usuarios_col_acceso", "Último acceso"),
             "ID",
+            t("usuarios_col_sedes", "Sedes"),
         ])
         self.tabla.setColumnHidden(6, True)
+        # Qué sedes ve cada uno: solo con varias sedes
+        self.tabla.setColumnHidden(7, not sedes.hay_varias())
         self.tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.horizontalHeader().setSectionResizeMode(
@@ -427,6 +430,8 @@ class DialogoGestionUsuarios(QDialog):
         boton_reset = QPushButton(t("usuarios_reset", "🔑 Restablecer contraseña"))
         boton_rol = QPushButton(t("usuarios_cambiar_rol", "🎚 Cambiar rol"))
         boton_especialidad = QPushButton(t("usuarios_cambiar_especialidad", "🔧 Especialidad"))
+        boton_sedes = QPushButton(t("usuarios_sedes", "🏢 Sedes"))
+        boton_sedes.setVisible(sedes.hay_varias())
         boton_estado = QPushButton(t("usuarios_activar", "🚫 Activar / Desactivar"))
         boton_borrar = QPushButton(t("usuarios_borrar", "🗑️ Borrar usuario"))
         boton_gestionar_especialidades = QPushButton(t("especialidades_titulo", "Especialidades") + "...")
@@ -434,6 +439,7 @@ class DialogoGestionUsuarios(QDialog):
         acciones.addWidget(boton_reset)
         acciones.addWidget(boton_rol)
         acciones.addWidget(boton_especialidad)
+        acciones.addWidget(boton_sedes)
         acciones.addWidget(boton_estado)
         acciones.addWidget(boton_borrar)
         acciones.addStretch()
@@ -445,6 +451,7 @@ class DialogoGestionUsuarios(QDialog):
         boton_reset.clicked.connect(self._reset)
         boton_rol.clicked.connect(self._cambiar_rol)
         boton_especialidad.clicked.connect(self._cambiar_especialidad)
+        boton_sedes.clicked.connect(self._cambiar_sedes)
         boton_estado.clicked.connect(self._alternar_estado)
         boton_borrar.clicked.connect(self._borrar_usuario)
         boton_gestionar_especialidades.clicked.connect(self._gestionar_especialidades)
@@ -526,8 +533,14 @@ class DialogoGestionUsuarios(QDialog):
 
     def refrescar(self):
         datos = usuarios.listar_usuarios()
+        nombres_sedes = sedes.nombres()
         self.tabla.setRowCount(len(datos))
         for fila, u in enumerate(datos):
+            suyas = sedes.de_usuario(u["id"])
+            if usuarios.es_admin(u) or not suyas:   # sin ninguna marcada, o administrador: todas
+                texto_sedes = t("sede_todas", "Todas las sedes")
+            else:
+                texto_sedes = ", ".join(nombres_sedes.get(i, str(i)) for i in suyas)
             valores = [
                 u["login"],
                 u["nombre"],
@@ -536,6 +549,7 @@ class DialogoGestionUsuarios(QDialog):
                 t("activo", "Activo") if u["activo"] else t("inactivo", "Inactivo"),
                 u.get("ultimo_acceso") or "—",
                 str(u["id"]),
+                texto_sedes,
             ]
             for col, valor in enumerate(valores):
                 item = QTableWidgetItem(valor)
@@ -588,6 +602,22 @@ class DialogoGestionUsuarios(QDialog):
         ok, mensaje = usuarios.actualizar_usuario(uid, especialidad_ids=dlg.seleccion())
         if not ok:
             QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        self.refrescar()
+
+    def _cambiar_sedes(self):
+        uid = self._seleccionado()
+        if uid is None:
+            return
+        actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
+        if actual and usuarios.es_admin(actual):
+            QMessageBox.information(self, t("aviso", "Aviso"),
+                                    t("usuarios_sedes_admin", "Un administrador ve siempre todas las sedes."))
+            return
+        from .sedes import DialogoSeleccionSedes
+        dlg = DialogoSeleccionSedes(self, sedes.de_usuario(uid))
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        sedes.fijar_de_usuario(uid, dlg.seleccion())
         self.refrescar()
 
     def _gestionar_especialidades(self):
