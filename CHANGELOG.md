@@ -6,6 +6,8 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+## 3.10.7 — 2026-11-15
+
 ### Mejoras
 - **☁️ MantPro Cloud ya se puede contratar**: la ventana *Herramientas → MantPro Cloud…* ya no dice «Próximamente»; quien no tiene cuenta encuentra un enlace para crearla en mantpro-cloud.com, en el idioma del programa, con 30 días de prueba gratis y el código PRIMEROS30. Los README de los 8 idiomas lo anuncian como disponible, con enlaces al alta y a «Mi cuenta».
 - **📱 La app MantPro (móvil) pesa mucho menos**: el APK pasa de unos 538 MB a unos 80 MB, porque ya no lleva dentro los símbolos de depuración de sus bibliotecas (no los usa nadie al ejecutarla). Las actualizaciones desde la propia app se descargan antes y gastan muchos menos datos. MantPro Stock ya era ligera.
