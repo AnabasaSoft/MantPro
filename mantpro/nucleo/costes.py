@@ -29,12 +29,13 @@ from datetime import date
 from . import consumos, mano_obra, maquinas
 
 
-def _trabajos_con_coste(fecha_inicio=None, fecha_fin=None):
+def _trabajos_con_coste(fecha_inicio=None, fecha_fin=None, sede=None):
     """[{id, fecha, maquina_id, importe, sin_precio}] de los trabajos que
     tienen repuestos o tiempo trabajado, dentro del rango si se indica
     ('YYYY-MM-DD'). `importe` suma repuestos y mano de obra con precio;
     `sin_precio` avisa de que a algún concepto le falta el precio."""
-    sql = "SELECT id, fecha, maquina_id FROM tareas WHERE fecha IS NOT NULL AND fecha != ''"
+    from . import sedes   # [sede]: solo los de esa sede (None = todas)
+    sql = "SELECT id, fecha, maquina_id FROM tareas WHERE fecha IS NOT NULL AND fecha != '' AND " + sedes.condicion(sede)
     parametros = []
     if fecha_inicio and fecha_fin:
         sql += " AND fecha BETWEEN ? AND ?"
@@ -76,7 +77,7 @@ def _meses_hasta(hoy, n_meses):
     return meses[::-1]
 
 
-def resumen(n_meses=12, top_n=8, hoy=None):
+def resumen(n_meses=12, top_n=8, hoy=None, sede=None):
     """Datos del Dashboard:
     {"mes": importe del mes actual, "anio": importe del año actual,
      "sin_precio": hay conceptos sin precio (el total se queda corto),
@@ -85,7 +86,8 @@ def resumen(n_meses=12, top_n=8, hoy=None):
                 (sumando sus submáquinas) con más coste en el año actual}."""
     hoy = hoy or date.today()
     meses = _meses_hasta(hoy, n_meses)
-    trabajos = _trabajos_con_coste(meses[0] + "-01", f"{hoy.year:04d}-12-31")
+    from . import sedes
+    trabajos = _trabajos_con_coste(meses[0] + "-01", f"{hoy.year:04d}-12-31", sede)
     clave_mes = f"{hoy.year:04d}-{hoy.month:02d}"
     prefijo_anio = f"{hoy.year:04d}-"
     por_mes = {m: 0.0 for m in meses}
@@ -106,7 +108,7 @@ def resumen(n_meses=12, top_n=8, hoy=None):
                 por_maquina[t["maquina_id"]] = por_maquina.get(t["maquina_id"], 0.0) + t["importe"]
     ranking = []
     for m in maquinas.listar_maquinas():
-        if m["padre_id"] is not None:
+        if m["padre_id"] is not None or not sedes.de_la_sede(m.get("sede_id"), sede):
             continue
         total = sum(por_maquina.get(i, 0.0) for i in maquinas.descendientes_ids(m["id"]))
         if total > 0:

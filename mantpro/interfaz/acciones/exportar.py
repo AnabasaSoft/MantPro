@@ -48,12 +48,36 @@ class AccionesExportar:
     Mixin de MaintenanceApp: sus métodos usan el estado de la ventana
     principal (self.db, self.tabs...) como si estuvieran en la propia clase."""
 
+    def _lineas_sede(self):
+        """Datos de la sede elegida para los informes: [nombre, «CIF: …», dirección, contacto…],
+        o [] si no hay una sola sede elegida (o solo hay una sede)."""
+        from ...nucleo import sedes
+        elegida = self.sede_filtro()
+        if not isinstance(elegida, int) or not sedes.hay_varias():
+            return []
+        s = sedes.obtener(elegida)
+        if not s:
+            return []
+        lineas = [s["nombre"]]
+        if s.get("cif"):
+            lineas.append(f'{tt("sede_lbl_cif", "CIF / NIF")}: {s["cif"]}')
+        if s.get("direccion"):
+            lineas.append(s["direccion"])
+        contacto = " · ".join(x for x in (s.get("contacto"), s.get("telefono"), s.get("email")) if x)
+        if contacto:
+            lineas.append(contacto)
+        return lineas
+
+    def _sufijo_sede(self):
+        lineas = self._lineas_sede()
+        return "_" + re.sub(r'[<>:\"/\\|?*\s]+', '_', lineas[0]) if lineas else ""
+
     def exportar_csv(self):
         dlg = DialogoFiltroTecnico(self, t("title_exportar_csv"))
         if not dlg.exec(): return
         filtro_usuario = dlg.get_filtro()
         nombre_limpio = re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario) if filtro_usuario else ""
-        sufijo = f"_{nombre_limpio}" if nombre_limpio else ""
+        sufijo = (f"_{nombre_limpio}" if nombre_limpio else "") + self._sufijo_sede()
         nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}{sufijo}.csv"
         archivo = self.guardar_archivo_dialogo(t("title_exportar_csv"), nombre_defecto, "CSV (*.csv)")
         if not archivo: return
@@ -103,7 +127,7 @@ class AccionesExportar:
         if not dlg.exec(): return
         filtro_usuario = dlg.get_filtro()
         nombre_limpio = re.sub(r'[<>:\"/\\\\|?*]', '', filtro_usuario) if filtro_usuario else ""
-        sufijo = f"_{nombre_limpio}" if nombre_limpio else ""
+        sufijo = (f"_{nombre_limpio}" if nombre_limpio else "") + self._sufijo_sede()
         nombre_defecto = f"Mantenimiento_{QDate.currentDate().toString('yyyyMMdd')}{sufijo}.xlsx"
         archivo = self.guardar_archivo_dialogo(t("title_exportar_excel"), nombre_defecto, "Excel (*.xlsx)")
         if not archivo: return
@@ -119,6 +143,9 @@ class AccionesExportar:
             # Nuevos encabezados
             headers = [tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")]
             for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
+            datos_sede = self._lineas_sede()
+            if datos_sede:   # la sede (nombre, CIF, dirección…) en el encabezado de cada página impresa
+                worksheet.set_header("&L&B" + " · ".join(datos_sede).replace("&", "&&"))
 
             # Ajuste de anchura de columnas
             worksheet.set_column('A:A', 5)
@@ -307,7 +334,11 @@ class AccionesExportar:
         if not dlg.exec(): return
         modo, inicio, fin, filtro_usuario, incluir_graficos = dlg.get_data()
         sufijo_u = f" — {filtro_usuario}" if filtro_usuario else ""
-        cond_u = " AND usuario_nombre = ?" if filtro_usuario else ""
+        lineas_sede = self._lineas_sede()
+        if lineas_sede:
+            sufijo_u = f" — {lineas_sede[0]}" + sufijo_u
+        from ...nucleo import sedes as _sedes   # solo los trabajos de la sede elegida
+        cond_u = " AND " + _sedes.condicion(self.sede_filtro()) + (" AND usuario_nombre = ?" if filtro_usuario else "")
         param_u = [filtro_usuario] if filtro_usuario else []
 
         try:
@@ -373,6 +404,8 @@ class AccionesExportar:
             for trabajo in lista_trabajos:
                 ini_rango, fin_rango = trabajo["rango"] if trabajo["rango"] else (None, None)
                 trabajo["graficos"] = self._generar_graficos_pdf(ini_rango, fin_rango)
+        for trabajo in lista_trabajos:
+            trabajo["sede"] = lineas_sede[1:] if lineas_sede else []   # datos de la sede bajo el título
 
         # Configurar UI de progreso
         self.progreso_pdf = QDialog(self)
@@ -404,7 +437,7 @@ class AccionesExportar:
         que un PDF exportado por rango o por mes muestre sus propias
         estadísticas y no las de todo el histórico. Si no hay ninguna avería
         registrada en el periodo, no genera nada."""
-        indicadores = maquinas.indicadores_fiabilidad_global(fecha_inicio, fecha_fin)
+        indicadores = maquinas.indicadores_fiabilidad_global(fecha_inicio, fecha_fin, sede=self.sede_filtro())
         if indicadores["num_averias"] == 0:
             return None
 
@@ -424,11 +457,11 @@ class AccionesExportar:
         ancho, alto = 760, 260
         color_fondo_pdf = "#f0f0f0"
         grafico_ranking = GraficoBarrasRanking(color="#c0392b", color_texto="#000000", color_fondo=color_fondo_pdf)
-        grafico_ranking.establecer_datos(maquinas.ranking_averias(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin))
+        grafico_ranking.establecer_datos(maquinas.ranking_averias(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, sede=self.sede_filtro()))
         grafico_ranking.resize(ancho, alto)
 
         grafico_mensual = GraficoBarrasMensual(color="#e67e22", color_texto="#000000", color_fondo=color_fondo_pdf)
-        grafico_mensual.establecer_datos(maquinas.averias_por_mes(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin))
+        grafico_mensual.establecer_datos(maquinas.averias_por_mes(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, sede=self.sede_filtro()))
         grafico_mensual.resize(ancho, alto)
 
         grafico_pie = GraficoCircularTrabajos(color_texto="#000000", color_fondo=color_fondo_pdf)

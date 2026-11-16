@@ -47,6 +47,18 @@ def nombre_tipo(tipo):
             else tt("sede_tipo_propia", "Planta propia"))
 
 
+class _ConfigSede:
+    """Para reutilizar los diálogos de país/región: lee lo de la sede y, si no tiene, lo general."""
+    def __init__(self, db, sede):
+        self.db, self.sede = db, sede
+
+    def get_config(self, clave):
+        propio = {"country_iso": "pais_iso", "region_iso": "region_iso", "parent_iso": "parent_iso"}.get(clave)
+        if propio and self.sede.get("pais_iso"):
+            return self.sede.get(propio)
+        return self.db.get_config(clave)
+
+
 class DialogoEditarSede(QDialog):
     """Alta o edición de una sede."""
     def __init__(self, parent=None, sede=None):
@@ -113,10 +125,10 @@ class DialogoSedes(QDialog):
         ayuda.setWordWrap(True)
         l.addWidget(ayuda)
 
-        self.tabla = QTableWidget(0, 5)
+        self.tabla = QTableWidget(0, 6)
         self.tabla.setHorizontalHeaderLabels([
             tt("sede_hdr_nombre", "SEDE"), tt("sede_hdr_tipo", "TIPO"), tt("sede_hdr_cif", "CIF / NIF"),
-            tt("sede_hdr_contacto", "CONTACTO"), tt("sede_hdr_estado", "ESTADO")])
+            tt("sede_hdr_contacto", "CONTACTO"), tt("sede_hdr_festivos", "FESTIVOS"), tt("sede_hdr_estado", "ESTADO")])
         cab = self.tabla.horizontalHeader()
         cab.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         cab.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
@@ -132,9 +144,10 @@ class DialogoSedes(QDialog):
         h = QHBoxLayout()
         self.btn_nueva = QPushButton(tt("sede_btn_nueva", "➕ Nueva sede")); self.btn_nueva.clicked.connect(self.nueva)
         self.btn_editar = QPushButton(tt("sede_btn_editar", "✏️ Editar")); self.btn_editar.clicked.connect(self.editar)
+        self.btn_festivos = QPushButton(tt("sede_btn_festivos", "📅 Festivos…")); self.btn_festivos.clicked.connect(self.festivos)
         self.btn_activar = QPushButton(tt("sede_btn_desactivar", "🚫 Desactivar")); self.btn_activar.clicked.connect(self.activar)
         self.btn_borrar = QPushButton(tt("sede_btn_borrar", "🗑️ Borrar")); self.btn_borrar.clicked.connect(self.borrar)
-        for b in (self.btn_nueva, self.btn_editar, self.btn_activar, self.btn_borrar):
+        for b in (self.btn_nueva, self.btn_editar, self.btn_festivos, self.btn_activar, self.btn_borrar):
             h.addWidget(b)
         h.addStretch()
         btn_cerrar = QPushButton(t("btn_cerrar")); btn_cerrar.clicked.connect(self.accept)
@@ -149,7 +162,9 @@ class DialogoSedes(QDialog):
         for fila, s in enumerate(lista):
             nombre = s["nombre"] + ("  ⭐" if s["principal"] else "")
             estado = tt("sede_activa", "Activa") if s["activa"] else tt("sede_inactiva", "Desactivada")
-            for col, valor in enumerate((nombre, nombre_tipo(s["tipo"]), s["cif"] or "", s["contacto"] or "", estado)):
+            festivos = (" / ".join(x for x in (s.get("pais_iso"), s.get("region_iso")) if x)
+                        if s.get("pais_iso") else tt("sede_festivos_generales", "Los generales"))
+            for col, valor in enumerate((nombre, nombre_tipo(s["tipo"]), s["cif"] or "", s["contacto"] or "", festivos, estado)):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, s["id"])
@@ -167,6 +182,7 @@ class DialogoSedes(QDialog):
     def _actualizar_botones(self):
         s = self._seleccionada()
         self.btn_editar.setEnabled(s is not None)
+        self.btn_festivos.setEnabled(s is not None and hasattr(self.parent(), "gestor_festivos"))
         self.btn_borrar.setEnabled(s is not None and not s["principal"])
         self.btn_activar.setEnabled(s is not None and not s["principal"])
         self.btn_activar.setText(tt("sede_btn_activar", "✔️ Activar") if s and not s["activa"]
@@ -194,6 +210,38 @@ class DialogoSedes(QDialog):
                 return
             self.cambiado = True
             self.refrescar(s["id"])
+
+    def festivos(self):
+        """País y región de los festivos de la sede (como Herramientas → País y región, pero
+        solo para ella). «Los generales» = los de la empresa."""
+        s = self._seleccionada()
+        ventana = self.parent()
+        if not s or not hasattr(ventana, "gestor_festivos"):
+            return
+        r = QMessageBox.question(self, tt("sede_btn_festivos", "📅 Festivos…"),
+                                 tt("sede_festivos_pregunta", "¿Quieres que «{nombre}» tenga sus propios festivos? "
+                                                              "Si dices que no, usará los generales de la empresa.").format(nombre=s["nombre"]),
+                                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel)
+        if r == QMessageBox.StandardButton.Cancel:
+            return
+        if r == QMessageBox.StandardButton.No:
+            sedes.fijar_festivos(s["id"], None)
+        else:
+            from .sistema import DialogoSeleccionPais, DialogoSeleccionRegion
+            config = _ConfigSede(ventana.db, s)
+            dlg = DialogoSeleccionPais(ventana.gestor_festivos, config, self)
+            if not dlg.exec():
+                return
+            _nombre, pais = dlg.get_selection()
+            region = parent = None
+            if pais == "ES":
+                dlg_r = DialogoSeleccionRegion(config, self)
+                if not dlg_r.exec():
+                    return
+                _n, region, parent = dlg_r.get_selection()
+            sedes.fijar_festivos(s["id"], pais, region, parent)
+        self.cambiado = True
+        self.refrescar(s["id"])
 
     def activar(self):
         s = self._seleccionada()

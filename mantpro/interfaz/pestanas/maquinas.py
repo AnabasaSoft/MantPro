@@ -488,7 +488,7 @@ class PestanaMaquinas:
         self.combo_zona_grafico.blockSignals(True)
         self.combo_zona_grafico.clear()
         self.combo_zona_grafico.addItem(tt("opcion_todas_las_zonas", "TODAS"), None)
-        for z in maquinas.zonas_disponibles():
+        for z in maquinas.zonas_disponibles(self.sede_filtro()):
             self.combo_zona_grafico.addItem(z["nombre"], z["id"])
         indice = self.combo_zona_grafico.findData(zona_actual)
         self.combo_zona_grafico.setCurrentIndex(indice if indice >= 0 else 0)

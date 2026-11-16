@@ -38,15 +38,17 @@ def es_preventivo(tags):
     return _es(tags, "aviso recurrente") or _es(tags, "preventivo")
 
 
-def anios_disponibles(ruta_db):
-    """Años con algún trabajo en el historial, del más reciente al más antiguo."""
+def anios_disponibles(ruta_db, sede=None):
+    """Años con algún trabajo en el historial, del más reciente al más antiguo. [sede]: solo esa (None = todas)."""
+    from . import sedes
     con = conectar(ruta_db)
-    filas = con.execute("SELECT DISTINCT substr(fecha, 1, 4) FROM tareas WHERE fecha GLOB '[0-9][0-9][0-9][0-9]*' ORDER BY 1 DESC").fetchall()
+    filas = con.execute("SELECT DISTINCT substr(fecha, 1, 4) FROM tareas WHERE fecha GLOB '[0-9][0-9][0-9][0-9]*' AND "
+                        + sedes.condicion(sede) + " ORDER BY 1 DESC").fetchall()
     con.close()
     return [int(f[0]) for f in filas]
 
 
-def por_tecnico(ruta_db, anio=None, tipo=None):
+def por_tecnico(ruta_db, anio=None, tipo=None, sede=None):
     """Lista de dicts, uno por técnico, ordenada de más a menos trabajos:
     nombre, total, meses (12 contadores, solo si se pide un año), averias,
     preventivos, horas_paro y pendientes (asignados ahora mismo). Los
@@ -59,10 +61,12 @@ def por_tecnico(ruta_db, anio=None, tipo=None):
     # minutos_trabajo: tiempo trabajado apuntado en el trabajo (ver mano_obra.py)
     columnas = {f[1] for f in con.execute("PRAGMA table_info(tareas)")}
     minutos = "minutos_trabajo" if "minutos_trabajo" in columnas else "NULL"
-    sql = f"SELECT COALESCE(NULLIF(TRIM(usuario_nombre), ''), ?), fecha, tags, horas_paro, {minutos} FROM tareas"
+    from . import sedes   # [sede]: solo los trabajos y pendientes de esa sede (None = todas)
+    sql = (f"SELECT COALESCE(NULLIF(TRIM(usuario_nombre), ''), ?), fecha, tags, horas_paro, {minutos} FROM tareas "
+           "WHERE " + sedes.condicion(sede))
     parametros = [usuarios.ETIQUETA_HISTORICO]
     if anio:
-        sql += " WHERE substr(fecha, 1, 4) = ?"
+        sql += " AND substr(fecha, 1, 4) = ?"
         parametros.append(str(anio))
     datos = {}
     for nombre, fecha, tags, horas, min_trabajo in con.execute(sql, parametros):
@@ -82,7 +86,8 @@ def por_tecnico(ruta_db, anio=None, tipo=None):
         if preventivo:
             d["preventivos"] += 1
     for nombre, n in [] if tipo == "preventivos" else con.execute("SELECT asignado_nombre, COUNT(*) FROM pendientes "
-                                 "WHERE TRIM(COALESCE(asignado_nombre, '')) <> '' GROUP BY asignado_nombre"):
+                                 "WHERE TRIM(COALESCE(asignado_nombre, '')) <> '' AND " + sedes.condicion(sede)
+                                 + " GROUP BY asignado_nombre"):
         datos.setdefault(nombre, {"nombre": nombre, "total": 0, "meses": [0] * 12, "averias": 0,
                                   "preventivos": 0, "horas_paro": 0.0, "pendientes": 0, "horas_trabajo": 0.0})["pendientes"] = n
     con.close()

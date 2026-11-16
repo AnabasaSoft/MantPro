@@ -21,6 +21,7 @@
 """Tareas en segundo plano: actualizaciones, PDF, copias y restauración."""
 
 import requests
+import html
 import os
 import shutil
 import re
@@ -161,6 +162,8 @@ class GeneradorPDFThread(QThread):
                     except: pass
 
                 elements.append(Paragraph(trabajo["titulo"], styles['Title']))
+                for linea in trabajo.get("sede") or []:   # datos de la sede (CIF, dirección, contacto)
+                    elements.append(Paragraph(html.escape(linea), styles['Normal']))
                 elements.append(Spacer(1, 12))
 
                 style_cell = styles["BodyText"]; style_cell.fontSize = 9

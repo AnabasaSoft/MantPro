@@ -92,12 +92,23 @@ class GestorFestivos:
     def __init__(self, db_instance):
         self.db = db_instance
         self.year = datetime.now().year
+        # Sede elegida en la ventana (dict de nucleo/sedes): si tiene región propia, manda la suya
+        self.sede = None
+
+    def _de_sede(self):
+        return self.sede if self.sede and self.sede.get("pais_iso") else None
 
     def obtener_config_pais(self):
+        s = self._de_sede()
+        if s:
+            return s["pais_iso"]
         # Por defecto España, para no romper instalaciones existentes
         return self.db.get_config("country_iso") or "ES"
 
     def obtener_config_region(self):
+        s = self._de_sede()
+        if s:
+            return s.get("region_iso") or "", s.get("parent_iso") or ""
         pais = self.obtener_config_pais()
         # Si no hay región guardada y el país es España, mantenemos el valor por defecto histórico (Bizkaia)
         default_prov = "ES-BI" if pais == "ES" else ""

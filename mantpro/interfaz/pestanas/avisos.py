@@ -114,12 +114,15 @@ class PestanaAvisos:
         if datos:
             dlg = AvisoEditDialog(self, datos[1], datos[2], datos[3], datos[4], datos[6], datos[8],
                                   checklist_id=checklists.checklist_de("aviso", id_aviso),
-                                  contador=contadores.config_aviso(id_aviso))
+                                  contador=contadores.config_aviso(id_aviso),
+                                  sede_id=sedes.sede_de("avisos_recurrentes", id_aviso))
             if dlg.exec():
                 new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad = dlg.get_data()
                 self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad,
                                          contador=dlg.contador())
                 checklists.asignar("aviso", id_aviso, dlg.checklist_id())
+                if dlg.sede_elegida() is not None:
+                    sedes.poner_sede("avisos_recurrentes", id_aviso, dlg.sede_elegida())
                 self.refresh_avisos(); self.update_calendar_list()
 
     def _avisos_visibles(self):

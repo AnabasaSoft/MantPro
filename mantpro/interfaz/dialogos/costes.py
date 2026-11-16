@@ -46,6 +46,10 @@ class DialogoCosteRepuestos(QDialog):
     def __init__(self, parent, db, maquina_inicial=None):
         super().__init__(parent)
         self.db = db
+        # Solo la sede elegida en la ventana principal (None = todas)
+        from ...nucleo import sedes as _sedes
+        self._sedes = _sedes
+        self.sede = parent.sede_filtro() if hasattr(parent, "sede_filtro") else None
         self.moneda = consumos.moneda()
         self.setWindowTitle(tt("title_costes_maquina", "Costes por máquina"))
         self.resize(1050, 620)
@@ -53,7 +57,7 @@ class DialogoCosteRepuestos(QDialog):
         f = QHBoxLayout()
         f.addWidget(QLabel(tt("lbl_anio", "Año") + ":"))
         self.combo_anio = QComboBox(); self.combo_anio.addItem(tt("filtro_todos", "Todos"), None)
-        for anio in maquinas.anios_disponibles():
+        for anio in maquinas.anios_disponibles(self.sede):
             self.combo_anio.addItem(anio, anio)
         if self.combo_anio.count() > 1:
             self.combo_anio.setCurrentIndex(1)
@@ -119,7 +123,7 @@ class DialogoCosteRepuestos(QDialog):
         """{maquina_id: datos} sumando a cada máquina lo de sus submáquinas."""
         anio = self.combo_anio.currentData()
         con = self.db.conectar()
-        sql = "SELECT id, fecha, maquina_id FROM tareas WHERE maquina_id IS NOT NULL"
+        sql = "SELECT id, fecha, maquina_id FROM tareas WHERE maquina_id IS NOT NULL AND " + self._sedes.condicion(self.sede)
         filas = con.execute(sql + (" AND substr(fecha,1,4)=?" if anio else ""), (anio,) if anio else ()).fetchall()
         con.close()
         propios = consumos.consumo_por_tareas(filas)
@@ -141,7 +145,7 @@ class DialogoCosteRepuestos(QDialog):
             if tid in tiempos or tid in con_materiales:
                 trabajos_con_coste.setdefault(mid, set()).add(tid)
         totales = {}
-        for maq in {m["id"] for m in maquinas.listar_maquinas()}:
+        for maq in {m["id"] for m in maquinas.listar_maquinas() if self._sedes.de_la_sede(m.get("sede_id"), self.sede)}:
             acum = {"importe": 0.0, "sin_precio": False, "trabajos": 0, "articulos": {},
                     "horas": 0.0, "mano_obra": 0.0, "mano_sin_precio": False}
             ids_trab = set()

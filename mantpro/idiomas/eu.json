@@ -1528,5 +1528,10 @@
   "usuarios_sedes": "🏢 Egoitzak",
   "usuarios_sedes_admin": "Administratzaile batek egoitza guztiak ikusten ditu beti.",
   "sede_title_usuario": "Ikusten dituen egoitzak",
-  "sede_ayuda_usuario": "Markatu ikus ditzakeen egoitzak. Bat ere markatu gabe, denak ikusten ditu."
+  "sede_ayuda_usuario": "Markatu ikus ditzakeen egoitzak. Bat ere markatu gabe, denak ikusten ditu.",
+  "sede_aud_festivos": "Jaiegunak: {region}",
+  "sede_hdr_festivos": "JAIEGUNAK",
+  "sede_btn_festivos": "📅 Jaiegunak…",
+  "sede_festivos_generales": "Orokorrak",
+  "sede_festivos_pregunta": "«{nombre}» egoitzak bere jaiegunak izatea nahi duzu? Ezetz esaten baduzu, enpresaren jaiegun orokorrak erabiliko ditu."
 }

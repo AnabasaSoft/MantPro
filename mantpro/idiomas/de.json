@@ -1528,5 +1528,10 @@
   "usuarios_sedes": "🏢 Standorte",
   "usuarios_sedes_admin": "Ein Administrator sieht immer alle Standorte.",
   "sede_title_usuario": "Sichtbare Standorte",
-  "sede_ayuda_usuario": "Markieren Sie die Standorte, die er sehen darf. Ist keiner markiert, sieht er alle."
+  "sede_ayuda_usuario": "Markieren Sie die Standorte, die er sehen darf. Ist keiner markiert, sieht er alle.",
+  "sede_aud_festivos": "Feiertage: {region}",
+  "sede_hdr_festivos": "FEIERTAGE",
+  "sede_btn_festivos": "📅 Feiertage…",
+  "sede_festivos_generales": "Allgemeine",
+  "sede_festivos_pregunta": "Soll „{nombre}“ eigene Feiertage haben? Wenn nicht, gelten die allgemeinen des Unternehmens."
 }

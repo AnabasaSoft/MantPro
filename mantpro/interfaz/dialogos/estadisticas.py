@@ -53,6 +53,8 @@ class DialogoEstadisticasTecnicos(QDialog):
     def __init__(self, parent, ruta_db):
         super().__init__(parent)
         self.ruta_db = ruta_db
+        # Solo la sede elegida en la ventana principal (None = todas)
+        self.sede = parent.sede_filtro() if hasattr(parent, "sede_filtro") else None
         self.setWindowTitle(tt("title_estadisticas_tecnicos", "Estadísticas por técnico"))
         self.resize(1320, 640)
         l = QVBoxLayout(self)
@@ -61,7 +63,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         barra.addWidget(QLabel(tt("lbl_anio_grafico", "Año:")))
         self.combo_anio = QComboBox()
         self.combo_anio.addItem(tt("opcion_todos_los_anios", "TODOS"), None)
-        for anio in estadisticas.anios_disponibles(ruta_db):
+        for anio in estadisticas.anios_disponibles(ruta_db, self.sede):
             self.combo_anio.addItem(str(anio), anio)
         if self.combo_anio.count() > 1:
             self.combo_anio.setCurrentIndex(1)  # el año más reciente
@@ -102,7 +104,7 @@ class DialogoEstadisticasTecnicos(QDialog):
     def _cargar(self):
         anio = self.combo_anio.currentData()
         tipo = self.combo_tipo.currentData()
-        datos = estadisticas.por_tecnico(self.ruta_db, anio, tipo)
+        datos = estadisticas.por_tecnico(self.ruta_db, anio, tipo, self.sede)
         for d in datos:
             if d["nombre"] == usuarios.ETIQUETA_HISTORICO:
                 d["nombre"] = tt("lbl_tecnico_historico", "Histórico (sin usuario)")

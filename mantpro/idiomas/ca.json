@@ -1528,5 +1528,10 @@
   "usuarios_sedes": "🏢 Seus",
   "usuarios_sedes_admin": "Un administrador veu sempre totes les seus.",
   "sede_title_usuario": "Seus que veu",
-  "sede_ayuda_usuario": "Marca les seus que pot veure. Sense cap de marcada, les veu totes."
+  "sede_ayuda_usuario": "Marca les seus que pot veure. Sense cap de marcada, les veu totes.",
+  "sede_aud_festivos": "Festius: {region}",
+  "sede_hdr_festivos": "FESTIUS",
+  "sede_btn_festivos": "📅 Festius…",
+  "sede_festivos_generales": "Els generals",
+  "sede_festivos_pregunta": "Vols que «{nombre}» tingui els seus propis festius? Si dius que no, farà servir els generals de l'empresa."
 }

@@ -1528,5 +1528,10 @@
   "usuarios_sedes": "🏢 Sites",
   "usuarios_sedes_admin": "Un administrateur voit toujours tous les sites.",
   "sede_title_usuario": "Sites visibles",
-  "sede_ayuda_usuario": "Cochez les sites qu'il peut voir. Si aucun n'est coché, il les voit tous."
+  "sede_ayuda_usuario": "Cochez les sites qu'il peut voir. Si aucun n'est coché, il les voit tous.",
+  "sede_aud_festivos": "Jours fériés : {region}",
+  "sede_hdr_festivos": "JOURS FÉRIÉS",
+  "sede_btn_festivos": "📅 Jours fériés…",
+  "sede_festivos_generales": "Ceux de l'entreprise",
+  "sede_festivos_pregunta": "Voulez-vous que « {nombre} » ait ses propres jours fériés ? Sinon, il utilisera ceux de l'entreprise."
 }

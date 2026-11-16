@@ -94,6 +94,11 @@ def inicializar():
             uuid      TEXT
         )
     """)
+    # Festivos de la sede (vacío = los generales de la empresa, en config)
+    cols_sedes = {f[1] for f in con.execute("PRAGMA table_info(sedes)")}
+    for col in ("pais_iso", "region_iso", "parent_iso"):
+        if col not in cols_sedes:
+            con.execute(f"ALTER TABLE sedes ADD COLUMN {col} TEXT")
     for tabla in TABLAS_CON_SEDE:
         cols = {f[1] for f in con.execute(f"PRAGMA table_info({tabla})")}
         if "sede_id" not in cols:
@@ -463,6 +468,21 @@ def al_mover_maquina(maquina_id):
         _poner_sede_arbol(con, maquina_id, efectiva(fila[0]))
         con.commit()
     con.close()
+
+
+def fijar_festivos(sede_id, pais_iso=None, region_iso=None, parent_iso=None):
+    """Región de festivos propia de la sede. Sin país = los generales de la empresa."""
+    s = obtener(sede_id)
+    if not s:
+        return
+    pais_iso = (pais_iso or "").strip() or None
+    valores = (pais_iso, (region_iso or None) if pais_iso else None, (parent_iso or None) if pais_iso else None)
+    con = _conn()
+    con.execute("UPDATE sedes SET pais_iso = ?, region_iso = ?, parent_iso = ? WHERE id = ?", (*valores, sede_id))
+    con.commit()
+    con.close()
+    _usuarios.auditar("configuracion", "editar", _t("sede_auditoria").format(nombre=s["nombre"]),
+                      detalle=_t("sede_aud_festivos").format(region=" / ".join(v for v in valores if v) or "—"))
 
 
 def poner_sede(tabla, registro_id, sede_id):

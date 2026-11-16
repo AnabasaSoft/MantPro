@@ -49,6 +49,7 @@ class AccionesSedes:
         self.menuBar().setCornerWidget(caja, Qt.Corner.TopRightCorner)
         self.combo_sede.currentIndexChanged.connect(self._al_elegir_sede)
         self.refrescar_selector_sede()
+        self._aplicar_festivos_sede()
 
     def refrescar_selector_sede(self):
         """Rellena el selector (tras crear/cambiar sedes o cambiar de idioma) y lo oculta
@@ -82,8 +83,16 @@ class AccionesSedes:
         QSettings("MyCompany", "MantenimientoApp").setValue(CLAVE_AJUSTE, "" if valor is None else str(valor))
         self.refrescar_por_sede()
 
+    def _aplicar_festivos_sede(self):
+        """El calendario usa los festivos de la sede elegida (si tiene región propia)."""
+        gestor = getattr(self, "gestor_festivos", None)
+        if gestor is not None:
+            elegida = self.sede_filtro()
+            gestor.sede = sedes.obtener(elegida) if isinstance(elegida, int) else None
+
     def refrescar_por_sede(self):
         """Vuelve a pintar todo lo que depende de la sede elegida."""
+        self._aplicar_festivos_sede()
         if hasattr(self, "_cargar_almacenes_stock"):   # Stock: los almacenes que se ven desde la sede
             self._cargar_almacenes_stock(cambio_de_sede=True)
         self.refresh_all()

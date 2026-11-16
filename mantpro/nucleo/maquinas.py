@@ -99,10 +99,15 @@ def inicializar():
 
 # ---------------------------------------------------------------- zonas (ubicaciones)
 
-def listar_zonas():
-    """Todas las zonas dadas de alta, ordenadas por nombre."""
+def listar_zonas(sede=None):
+    """Zonas dadas de alta, ordenadas por nombre. [sede]: las que usan máquinas de esa sede
+    más las que todavía no usa ninguna máquina (None = todas)."""
     con = _conn()
-    filas = con.execute("SELECT id, nombre FROM zonas ORDER BY nombre COLLATE NOCASE").fetchall()
+    sql = "SELECT id, nombre FROM zonas"
+    if sede is not None:
+        sql += (" WHERE id IN (SELECT zona_id FROM maquinas WHERE zona_id IS NOT NULL AND " + _sedes_cond(sede) + ")"
+                " OR id NOT IN (SELECT zona_id FROM maquinas WHERE zona_id IS NOT NULL)")
+    filas = con.execute(sql + " ORDER BY nombre COLLATE NOCASE").fetchall()
     con.close()
     return [dict(f) for f in filas]
 
@@ -127,11 +132,12 @@ def borrar_zona(id_zona):
     con.close()
 
 
-def zonas_disponibles():
-    """Zonas (id, nombre) con al menos una máquina asignada, ordenadas por nombre."""
+def zonas_disponibles(sede=None):
+    """Zonas (id, nombre) con al menos una máquina asignada (de [sede]; None = todas), por nombre."""
     con = _conn()
     filas = con.execute(
         "SELECT DISTINCT z.id, z.nombre FROM zonas z JOIN maquinas m ON m.zona_id = z.id "
+        "WHERE " + _sedes_cond(sede, "m.sede_id") + " "
         "ORDER BY z.nombre COLLATE NOCASE"
     ).fetchall()
     con.close()
@@ -286,11 +292,22 @@ def contar_trabajos(id_maquina, fecha_inicio=None, fecha_fin=None):
     return _contar_tareas(id_maquina, fecha_inicio, fecha_fin)
 
 
-def _ranking_por(contador, top_n=8, fecha_inicio=None, fecha_fin=None):
+def _sedes_cond(sede, columna="sede_id"):
+    """WHERE de sede (nucleo/sedes.py); None = todas."""
+    from . import sedes
+    return sedes.condicion(sede, columna)
+
+
+def _de_sede(m, sede):
+    from . import sedes
+    return sedes.de_la_sede(m.get("sede_id"), sede)
+
+
+def _ranking_por(contador, top_n=8, fecha_inicio=None, fecha_fin=None, sede=None):
     """Base común de ranking_trabajos/ranking_averias: suma contador() sobre
     cada máquina de nivel superior (incluyendo sus submáquinas) y devuelve
     las top_n con más total, de más a menos, descartando las que están a 0."""
-    top_level = [m for m in listar_maquinas() if m["padre_id"] is None]
+    top_level = [m for m in listar_maquinas() if m["padre_id"] is None and _de_sede(m, sede)]
 
     def total(id_maquina):
         return sum(contador(i, fecha_inicio, fecha_fin) for i in descendientes_ids(id_maquina))
@@ -302,13 +319,13 @@ def _ranking_por(contador, top_n=8, fecha_inicio=None, fecha_fin=None):
     return [par for par in datos if par[1] > 0][:top_n]
 
 
-def ranking_trabajos(top_n=8, fecha_inicio=None, fecha_fin=None):
+def ranking_trabajos(top_n=8, fecha_inicio=None, fecha_fin=None, sede=None):
     """Máquinas de nivel superior con más trabajos en total (sumando las de sus
     submáquinas), de más a menos, sea cual sea la etiqueta del trabajo (avería,
     urgente, preventivo...), para el ranking "más solicitadas" del dashboard.
     Solo incluye máquinas con al menos un trabajo. Si se indican
     fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta los de ese rango."""
-    return _ranking_por(contar_trabajos, top_n, fecha_inicio, fecha_fin)
+    return _ranking_por(contar_trabajos, top_n, fecha_inicio, fecha_fin, sede)
 
 
 def anios_de_maquina(id_maquina):
@@ -324,13 +341,13 @@ def anios_de_maquina(id_maquina):
     return [(f[0], f[1]) for f in filas]
 
 
-def anios_disponibles():
+def anios_disponibles(sede=None):
     """Años (texto 'YYYY') con al menos un trabajo vinculado a alguna máquina,
-    de más reciente a más antiguo."""
+    de más reciente a más antiguo. [sede]: solo de esa sede (None = todas)."""
     con = _conn()
     filas = con.execute(
         "SELECT DISTINCT substr(fecha,1,4) AS anio FROM tareas "
-        "WHERE maquina_id IS NOT NULL AND fecha IS NOT NULL AND fecha != '' "
+        "WHERE maquina_id IS NOT NULL AND fecha IS NOT NULL AND fecha != '' AND " + _sedes_cond(sede) + " "
         "ORDER BY anio DESC"
     ).fetchall()
     con.close()
@@ -399,13 +416,14 @@ def indicadores_fiabilidad(id_maquina):
     return {"num_averias": len(filas), "mtbf_dias": mtbf_dias, "mttr_horas": mttr_horas}
 
 
-def indicadores_fiabilidad_global(fecha_inicio=None, fecha_fin=None):
+def indicadores_fiabilidad_global(fecha_inicio=None, fecha_fin=None, sede=None):
     """Igual que indicadores_fiabilidad, pero con las averías de todas las
     máquinas juntas (y las que no tienen máquina asignada), para dar una
     cifra de fiabilidad de toda la planta en el dashboard. Si se indican
     fecha_inicio/fecha_fin (formato 'YYYY-MM-DD'), solo se tienen en cuenta
     las averías de ese rango (p. ej. para un PDF exportado por rango)."""
-    sql = "SELECT fecha, horas_paro FROM tareas WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != ''"
+    sql = ("SELECT fecha, horas_paro FROM tareas WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != '' AND "
+           + _sedes_cond(sede))
     parametros = []
     if fecha_inicio and fecha_fin:
         sql += " AND fecha BETWEEN ? AND ?"
@@ -440,22 +458,23 @@ def contar_averias(id_maquina, fecha_inicio=None, fecha_fin=None):
     return _contar_tareas(id_maquina, fecha_inicio, fecha_fin, solo_averias=True)
 
 
-def ranking_averias(top_n=8, fecha_inicio=None, fecha_fin=None):
+def ranking_averias(top_n=8, fecha_inicio=None, fecha_fin=None, sede=None):
     """Máquinas de nivel superior con más averías (sumando las de sus
     submáquinas), de más a menos, para el ranking de "más problemáticas"
     del dashboard. Solo incluye máquinas con al menos una avería. Si se
     indican fecha_inicio/fecha_fin ('YYYY-MM-DD'), solo cuenta las averías
     de ese rango (p. ej. para un PDF exportado por rango)."""
-    return _ranking_por(contar_averias, top_n, fecha_inicio, fecha_fin)
+    return _ranking_por(contar_averias, top_n, fecha_inicio, fecha_fin, sede)
 
 
-def averias_por_mes(n_meses=12, fecha_inicio=None, fecha_fin=None):
+def averias_por_mes(n_meses=12, fecha_inicio=None, fecha_fin=None, sede=None):
     """Nº de averías registradas por mes, en orden cronológico. Devuelve una
     lista de tuplas ('YYYY-MM', cantidad). Sin fecha_inicio/fecha_fin,
     cubre los últimos n_meses meses (incluido el actual), como en el
     dashboard. Con fecha_inicio/fecha_fin ('YYYY-MM-DD'), cubre en su lugar
     todos los meses de ese rango (p. ej. para un PDF exportado por rango)."""
-    sql = "SELECT substr(fecha,1,7) AS mes, COUNT(*) AS n FROM tareas WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != ''"
+    sql = ("SELECT substr(fecha,1,7) AS mes, COUNT(*) AS n FROM tareas WHERE tags LIKE '%Avería%' AND fecha IS NOT NULL AND fecha != '' AND "
+           + _sedes_cond(sede))
     parametros = []
     if fecha_inicio and fecha_fin:
         sql += " AND fecha BETWEEN ? AND ?"

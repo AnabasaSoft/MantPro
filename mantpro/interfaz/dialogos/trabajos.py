@@ -35,7 +35,22 @@ from ...idiomas import t
 from ..comun import (_crear_checks_etiquetas, _estilo_label_dialogo, _estilo_zona_arrastre,
                      _poblar_combo_maquinas, _tags_desde_checks, tt)
 from ..widgets.fotos import DialogoSelectorFoto, GaleriaFotosWidget, LabelArrastrable, VisorFoto
-from ...nucleo import usuarios
+from ...nucleo import sedes, usuarios
+
+
+def _combo_sede(dialogo, sede_id):
+    """Desplegable para cambiar la sede de un pendiente o aviso (solo con varias sedes visibles).
+    Devuelve el widget a añadir o None. dialogo.sede_elegida() da la elegida."""
+    visibles = sedes.visibles()
+    dialogo._combo_sede = None
+    if len(visibles) < 2:
+        return None
+    combo = QComboBox()
+    for s in visibles:
+        combo.addItem(s["nombre"], s["id"])
+    combo.setCurrentIndex(max(0, combo.findData(sedes.efectiva(sede_id))))
+    dialogo._combo_sede = combo
+    return combo
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria, quitar_marcas_foto
 
 def _montar_con_desplazamiento(dialogo, contenido, botones):
@@ -250,7 +265,7 @@ class EditDialog(QDialog):
 
 
 class DialogoEditarPendiente(QDialog):
-    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None, fotos_coleccion=None, checklist_id=None):
+    def __init__(self, parent=None, titulo="", detalles="", ruta_foto="", prioridad="Media", asignado_a=None, especialidad_id=None, fotos_coleccion=None, checklist_id=None, sede_id=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_tarea_pendiente"))
         self.fotos_coleccion_iniciales = fotos_coleccion or []
@@ -291,6 +306,12 @@ class DialogoEditarPendiente(QDialog):
         llenar_combo_plantillas(self.combo_checklist, checklist_id)
         fila_checklist.addWidget(self.combo_checklist, 1)
         l.addLayout(fila_checklist)
+        combo = _combo_sede(self, sede_id)
+        if combo is not None:
+            fila_sede = QHBoxLayout()
+            fila_sede.addWidget(QLabel(tt("lbl_sede_maquina", "Sede") + ":"))
+            fila_sede.addWidget(combo, 1)
+            l.addLayout(fila_sede)
         # Un técnico solo puede fijar la asignación/especialidad al CREAR un
         # trabajo; modificarlas en uno ya existente es cosa exclusiva de admin.
         if not usuarios.es_admin():
@@ -334,6 +355,11 @@ class DialogoEditarPendiente(QDialog):
         especialidad_id = self.combo_especialidad.currentData()
         return (self.t.text().strip(), self.d.toPlainText().strip(), self.ruta_foto_seleccionada,
                 self.combo_prioridad.currentData(), uid, nombre, especialidad_id, self.galeria.nombres())
+
+    def sede_elegida(self):
+        """Sede elegida en el desplegable (None si no se muestra: no cambia)."""
+        combo = getattr(self, "_combo_sede", None)
+        return combo.currentData() if combo is not None else None
 
     def checklist_id(self):
         return self.combo_checklist.currentData()
@@ -391,7 +417,7 @@ class CompleteDialog(QDialog):
 
 class AvisoEditDialog(QDialog):
     def __init__(self, parent=None, titulo="", inicio="", freq="", duracion=1, asignado_a=None, especialidad_id=None, checklist_id=None,
-                 contador=None):
+                 contador=None, sede_id=None):
         super().__init__(parent)
         self.setWindowTitle(t("title_editar_aviso")); self.resize(540, 820)
         l = QVBoxLayout(); l.setSpacing(15); l.setContentsMargins(20, 20, 20, 20); lbl_style = _estilo_label_dialogo()
@@ -420,6 +446,11 @@ class AvisoEditDialog(QDialog):
         self.combo_checklist = QComboBox(); self.combo_checklist.setMinimumHeight(35)
         llenar_combo_plantillas(self.combo_checklist, checklist_id)
         l.addWidget(self.combo_checklist)
+        combo = _combo_sede(self, sede_id)
+        if combo is not None:
+            l.addWidget(QLabel(tt("lbl_sede_maquina", "Sede") + ":", styleSheet=lbl_style))
+            combo.setMinimumHeight(35)
+            l.addWidget(combo)
         # Preventivo por contador (horas, ciclos, km), solo o «lo que antes llegue»
         from .contadores import CamposContadorAviso
         self.campos_contador = CamposContadorAviso(self, contador)
@@ -434,6 +465,11 @@ class AvisoEditDialog(QDialog):
         nombre = self.combo_asignar.currentText() if uid is not None else None
         especialidad_id = self.combo_especialidad.currentData()
         return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentText(), self.dur.value(), uid, nombre, especialidad_id)
+
+    def sede_elegida(self):
+        """Sede elegida en el desplegable (None si no se muestra: no cambia)."""
+        combo = getattr(self, "_combo_sede", None)
+        return combo.currentData() if combo is not None else None
 
     def checklist_id(self):
         return self.combo_checklist.currentData()

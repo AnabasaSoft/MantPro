@@ -121,7 +121,7 @@ class PestanaDashboard:
             w.setVisible(ver)
         if not ver:
             return
-        r = costes.resumen()
+        r = costes.resumen(sede=self.sede_filtro())
         # «≥» avisa de que a algún repuesto u hora le falta el precio y el total se queda corto
         marca = "≥ " if r["sin_precio"] else ""
         self.lbl_coste_mes.setText(marca + self._importe_largo(r["mes"]))
@@ -164,10 +164,11 @@ class PestanaDashboard:
         todos = self.db.obtener_pendientes(sede=self.sede_filtro()); self.lbl_count_todos.setText(str(len(todos))); self.lbl_count_todos.setStyleSheet("color: #f1c40f; font-size: 32px; font-weight: bold;")
         registros = self.db.obtener_todas_cronologico(sede=self.sede_filtro()); mes_actual = hoy.toString("yyyy-MM"); count_mes = sum(1 for r in registros if r[1].startswith(mes_actual))
         self.lbl_count_regs.setText(str(count_mes)); self.lbl_count_regs.setStyleSheet("color: #3daee9; font-size: 32px; font-weight: bold;")
-        self.grafico_ranking_averias.establecer_datos(maquinas.ranking_trabajos())
-        self.grafico_averias_mes.establecer_datos(maquinas.averias_por_mes())
+        sede = self.sede_filtro()   # gráficos e indicadores de la sede elegida
+        self.grafico_ranking_averias.establecer_datos(maquinas.ranking_trabajos(sede=sede))
+        self.grafico_averias_mes.establecer_datos(maquinas.averias_por_mes(sede=sede))
         self._refrescar_costes()
-        indicadores = maquinas.indicadores_fiabilidad_global()
+        indicadores = maquinas.indicadores_fiabilidad_global(sede=sede)
         mtbf = indicadores["mtbf_dias"]
         self.lbl_mtbf_global.setText(f"{mtbf:.0f} {tt('lbl_dias_abrev', 'días')}" if mtbf is not None else "--")
         mttr = indicadores["mttr_horas"]

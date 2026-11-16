@@ -1528,5 +1528,10 @@
   "usuarios_sedes": "🏢 Sedes",
   "usuarios_sedes_admin": "Um administrador vê sempre todas as sedes.",
   "sede_title_usuario": "Sedes que vê",
-  "sede_ayuda_usuario": "Marque as sedes que pode ver. Sem nenhuma marcada, vê todas."
+  "sede_ayuda_usuario": "Marque as sedes que pode ver. Sem nenhuma marcada, vê todas.",
+  "sede_aud_festivos": "Feriados: {region}",
+  "sede_hdr_festivos": "FERIADOS",
+  "sede_btn_festivos": "📅 Feriados…",
+  "sede_festivos_generales": "Os gerais",
+  "sede_festivos_pregunta": "Quer que «{nombre}» tenha os seus próprios feriados? Se disser que não, usará os gerais da empresa."
 }

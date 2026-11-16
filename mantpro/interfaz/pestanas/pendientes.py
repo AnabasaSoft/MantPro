@@ -427,7 +427,8 @@ class PestanaPendientes:
         # Abrimos el diálogo con el texto LIMPIO
         dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual, asignado_actual_id, especialidad_actual_id,
                                      fotos_coleccion=fotos_galeria(detalles_raw),
-                                     checklist_id=checklists.checklist_de("pendiente", pid))
+                                     checklist_id=checklists.checklist_de("pendiente", pid),
+                                     sede_id=sedes.sede_de("pendientes", pid))
 
         if dlg.exec():
             nuevo_t, nuevo_d, nueva_foto, nueva_prioridad, nuevo_asignado_id, nuevo_asignado_nombre, nueva_especialidad_id, fotos_coleccion = dlg.get_data()
@@ -466,6 +467,8 @@ class PestanaPendientes:
                 # Guardamos en BD (con la REF oculta de nuevo)
                 if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad, nueva_especialidad_id):
                     checklists.asignar("pendiente", pid, dlg.checklist_id())
+                    if dlg.sede_elegida() is not None:
+                        sedes.poner_sede("pendientes", pid, dlg.sede_elegida())
                     if usuarios.es_admin():
                         self.db.asignar_pendiente(pid, nuevo_asignado_id, nuevo_asignado_nombre)
                     self.refresh_todos()

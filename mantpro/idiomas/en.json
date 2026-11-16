@@ -1528,5 +1528,10 @@
   "usuarios_sedes": "🏢 Sites",
   "usuarios_sedes_admin": "An administrator always sees all sites.",
   "sede_title_usuario": "Sites visible",
-  "sede_ayuda_usuario": "Tick the sites this user can see. With none ticked, they see all of them."
+  "sede_ayuda_usuario": "Tick the sites this user can see. With none ticked, they see all of them.",
+  "sede_aud_festivos": "Holidays: {region}",
+  "sede_hdr_festivos": "HOLIDAYS",
+  "sede_btn_festivos": "📅 Holidays…",
+  "sede_festivos_generales": "Company default",
+  "sede_festivos_pregunta": "Should “{nombre}” have its own holidays? If you say no, it will use the company's general ones."
 }

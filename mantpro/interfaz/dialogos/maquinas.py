@@ -134,7 +134,8 @@ class DialogoEditarMaquina(QDialog):
     def _recargar_combo_zona(self, zona_id_seleccionada=None):
         self.combo_zona.clear()
         self.combo_zona.addItem(tt("txt_sin_zona", "— Sin zona —"), None)
-        for z in maquinas.listar_zonas():
+        ventana = self.parent()   # las zonas de la sede elegida en la ventana principal
+        for z in maquinas.listar_zonas(ventana.sede_filtro() if hasattr(ventana, "sede_filtro") else None):
             self.combo_zona.addItem(z["nombre"], z["id"])
         idx = self.combo_zona.findData(zona_id_seleccionada)
         self.combo_zona.setCurrentIndex(idx if idx >= 0 else 0)
