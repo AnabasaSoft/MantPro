@@ -45,6 +45,7 @@
 - [Usuários e acesso](#-usuários-e-acesso)
 - [Máquinas](#-máquinas)
 - [Estoque do almoxarifado](#-estoque-do-almoxarifado)
+- [Sedes e almoxarifados](#-sedes-e-almoxarifados)
 - [Sincronização PC-celular](#-sincronização-pc-celular)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Cópias de segurança](#-cópias-de-segurança)
@@ -178,6 +179,10 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **📦 Controle do estoque do almoxarifado**: estrutura configurável de estantes, prateleiras e seções, ficha de materiais com foto, entradas/saídas com histórico e alertas de estoque abaixo do mínimo
 - **📄 Exportar o estoque**: botão "📄 Exportar" na aba de estoque para gerar o almoxarifado inteiro, uma zona ou uma estante em PDF, CSV ou Excel, ordenado por localização; a aba de estoque abaixo do mínimo também tem seu botão para exportar apenas os materiais em alerta
 - **🏭 Fornecedores e fornecedor habitual**: lista de fornecedores (nome, pessoa de contacto, telefone, e-mail e notas) a partir do botão «🏭 Fornecedores» da aba de estoque, e campo «Fornecedor habitual» em cada artigo. Histórico de preços por fornecedor para administradores («💶 Preços por fornecedor…» na ficha, e fornecedor e preço nas entradas de estoque). Estoque objetivo e múltiplo de encomenda por artigo, com a quantidade que se sugeriria encomendar. Encomenda sugerida (o que encomendar agora, descontando o que já está encomendado e por chegar) e encomendas guardadas com a sua data, que se enviam por e-mail, WhatsApp, telefone ou impressas; cada entrada de estoque desconta o pendente. Só administradores
+- **🏢 Várias sedes**: plantas próprias ou empresas clientes que você mantém, cada uma com seu CNPJ/NIF, endereço, contato e feriados. Com mais de uma sede, aparece no topo o seletor «Sede», que filtra máquinas, serviços, pendências, avisos, painel, estatísticas, custos e relatórios (o PDF e o Excel trazem os dados da sede, para entregar ao cliente). Cada técnico pode ver só as suas sedes (veja [Sedes e almoxarifados](#-sedes-e-almoxarifados))
+- **🏬 Vários almoxarifados**: o almoxarifado principal e quantos forem necessários por sede (por exemplo, uma van) ou comuns a todas, cada um com seu estoque, mínimos, localizações e endereço de entrega, e transferências de estoque entre almoxarifados
+- **🛒 Pedidos por almoxarifado**: o pedido sugerido é calculado almoxarifado por almoxarifado e cada pedido leva o endereço de entrega do seu almoxarifado; também é possível agrupá-los num só pedido por fornecedor, com as linhas separadas por almoxarifado
+- **📦 Revisão do almoxarifado por almoxarifado**: cada almoxarifado tem seu ciclo de revisão (diário, semanal ou mensal) e seu número de artigos por revisão, e a revisão é ativada ou desativada por sede
 - **🗑️ Tempo máximo de armazenamento**: `Ferramentas` permite excluir do histórico os serviços mais antigos que um número de anos, meses ou dias, com suas fotos e uma cópia de segurança prévia (somente administradores)
 - **📥 Importar do Excel/CSV**: `Arquivo > Importar do Excel/CSV…` (somente administradores) traz máquinas, itens do almoxarifado, avisos recorrentes, usuários, pendentes e histórico de trabalhos antigo de um modelo para baixar ou do seu próprio Excel (uma planilha ou a pasta de trabalho inteira de uma vez), associando as colunas automaticamente, com pré-visualização linha a linha e cópia de segurança prévia. Localizações (zonas, estantes, prateleiras) e máquinas superiores que não existirem são criadas automaticamente, e os usuários recebem uma senha temporária que terão de alterar no primeiro acesso
 - **🏭 Controle de máquinas**: árvore de máquinas e submáquinas com foto anexada, contador de serviços por ano e mês e vínculo direto a partir de cada serviço registrado ou editado (veja [Máquinas](#-máquinas))
@@ -211,6 +216,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **⏰ Lembretes diários**: notificação automática às 8:00 (horário local) se houver serviços pendentes não concluídos
 - **🧰 Material usado**: adicione ao serviço o material do almoxarifado que você usou, buscando pelo nome ou código; ele é descontado do estoque automaticamente ao salvar (veja [Material usado em um serviço](#-estoque-do-almoxarifado)). Ao concluir um aviso também é possível anotar peças, as da máquina aparecem primeiro, e ao corrigir um serviço do histórico o estoque é ajustado
 - **🏭 Vincular máquina**: escolha em uma lista a máquina ou submáquina em que o serviço foi feito, tanto ao criar um registro novo quanto ao editar um já sincronizado do histórico
+- **🏢 Seletor de sede**: com várias sedes, um seletor no topo filtra o painel, as pendências, os avisos, o histórico e as máquinas, também sem conexão; o que é criado vai para a sede escolhida. Cada técnico só vê as suas sedes
 - **🔄 Conectado em segundo plano**: enquanto o aplicativo está aberto, mesmo em segundo plano, ele continua sincronizando com o PC e mostra uma notificação («Conectado ao PC» / «Sem conexão com o PC») com um botão «Fechar». Ao fechá-lo totalmente, ele para de gastar bateria
 - **📶 Primeira sincronização com progresso**: barra de progresso ao baixar os dados e as fotos, com download em paralelo para ser mais rápido
 - **🏷️ Escanear a máquina**: o botão de escanear lê a etiqueta QR de uma máquina e abre sua ficha, sem conexão: onde ela está, seus últimos serviços, suas **peças de reposição** com o estoque do almoxarifado, e um botão para registrar um serviço já vinculado a ela
@@ -233,6 +239,7 @@ serviços.
 - **🔄 Atualização automática**: a tela se atualiza sozinha ao detectar alterações, feitas tanto no próprio celular quanto no PC
 - **🔌 Modo offline**: sem conexão com o PC, o aplicativo não fica esperando: consulta os dados salvos e permite registrar cadastros, edições, entradas e saídas na hora, que são enviados sozinhos ao PC assim que ele voltar a estar acessível
 - **🔔 Lembrete diário de conferência de estoque**: notificação automática às 8:00 (horário local) convidando a conferir a quantidade real de 5 materiais do almoxarifado, escolhidos ao acaso e diferentes a cada dia; ao tocá-la, abre-se uma tela para corrigir a quantidade de cada um sem precisar procurá-los. Se não houver nenhum material cadastrado, nenhuma notificação é exibida. Se for fechada a meio ou o aviso for descartado, o botão 📋 «Revisão do almoxarifado» da barra superior volta a abri-la a qualquer momento do dia, com os mesmos artigos e o que já foi conferido (um balão indica quantos faltam)
+- **🏬 Vários almoxarifados**: um seletor no topo, com os almoxarifados agrupados por sede, escolhe em que almoxarifado se trabalha (só os das sedes do usuário). A revisão segue o ciclo desse almoxarifado (diário, semanal ou mensal) e seu número de artigos, e não é pedida se a sede dele a tiver desativada
 - **🔄 Conectado em segundo plano**: como o MantPro, continua sincronizando em segundo plano, com sua notificação; o ícone de usuário fica **verde** se há conexão com o PC e **vermelho** se não há
 - **🔩 Usado em**: cada item mostra em quais máquinas é usado como peça de reposição e quantos cada uma leva, também sem conexão
 - **🔍 Aviso de duplicados**: ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome muito parecido, comparando com os itens salvos no celular (funciona sem conexão)
@@ -490,6 +497,8 @@ remover a função ou desativar o último que restar.
 - **Redefinir senha**: útil quando alguém a esquece. Ao alterá-la, todas as
   sessões abertas dessa pessoa no celular são encerradas automaticamente.
 - **Alterar a própria senha**: `Ferramentas` > `🔑 Alterar minha senha`.
+- **Sedes**: com várias sedes, o botão **🏢 Sedes** marca as que cada pessoa vê
+  (veja [Sedes e almoxarifados](#-sedes-e-almoxarifados)).
 
 ### Sessões de dispositivos
 
@@ -547,6 +556,8 @@ usuário e período, buscar por texto e exportar para Excel ou CSV.
 ### Histórico de revisões do almoxarifado
 
 Todo dia o MantPro Stock sugere revisar 5 itens do almoxarifado aleatórios. O aplicativo registra **quem fez, quando e se revisou os 5**, com a quantidade contada em comparação com a que o sistema indicava (também se feito sem conexão: é enviado quando o celular reconecta). Os administradores veem em `Ferramentas` > `📦 Histórico de revisões do almoxarifado`: ✅ completa, ⚠️ incompleta ou ❌ não revisada, com filtros por usuário, período e estado, e exportação para Excel ou CSV. Se em algum dos últimos 7 dias úteis ninguém fez a revisão, o MantPro avisa os administradores ao abrir (e mostra-o a vermelho no histórico), e o histórico indica **que celulares fizeram revisões** e quando foi a última de cada um.
+
+Com vários almoxarifados, cada revisão fica guardada com seu almoxarifado, e a janela tem seletores de sede e de almoxarifado e mostra o almoxarifado e a sede de cada artigo revisado. Cada almoxarifado é revisado segundo seu próprio ciclo (diário, semanal ou mensal) e com seu número de artigos, escolhidos na sua ficha, e o aviso do que falta é calculado almoxarifado por almoxarifado. A caixa «Revisão do armazém ativa nesta sede» ativa ou desativa a revisão para todos os almoxarifados de uma sede.
 
 ### Sessão no celular
 
@@ -695,6 +706,54 @@ ordenada por localização, para percorrer o almoxarifado com ela em mãos; o PD
 e o Excel incluem ainda a data, o número de materiais e quantos estão abaixo
 do mínimo (em vermelho). A própria tabela de estoque também é exibida ordenada
 por localização por padrão (Estante 1, 2… 10).
+
+---
+
+## 🏢 Sedes e almoxarifados
+
+> Para quem mantém várias plantas próprias ou trabalha para empresas clientes. Com
+> uma só sede nada muda: o seletor não aparece.
+
+### Sedes
+
+- **Cadastro**: `Ferramentas` > `🏢 Sedes…` (administradores): nome, tipo (própria ou
+  cliente), CNPJ/NIF, endereço, contato, telefone, e-mail e notas. A primeira sede é
+  criada sozinha com o nome da empresa, e todos os dados que já existiam passam a ser dela.
+- **Seletor**: com mais de uma sede ativa, a barra superior mostra «Sede: X / Todas».
+  Filtra todas as abas, o painel (com seus indicadores por sede), as estatísticas, os
+  custos e os relatórios; o PDF e o Excel trazem os dados da sede.
+- **Feriados por sede**: cada sede pode ter sua própria região de feriados; o
+  calendário usa os da sede escolhida.
+- **Cada registro com sua sede**: serviços, pendências e avisos ficam com a sede da
+  sua máquina ou a do seletor, e ela pode ser mudada ao editá-los. As zonas de máquinas
+  também são de cada sede.
+
+### Quais sedes cada usuário vê
+
+Em `Ferramentas` > `👥 Gerenciamento de usuários`, o botão **🏢 Sedes** marca as sedes
+de cada pessoa (técnicos e almoxarifado). Sem nenhuma marcada, ela vê todas, e um
+administrador vê sempre todas. Vale no PC, na API e nos dois aplicativos: o celular só
+recebe os dados das suas sedes e não pode gravar em outras.
+
+### Almoxarifados
+
+- **Cadastro**: `Ferramentas` > `🏬 Armazéns…` (administradores). Cada almoxarifado é
+  de uma sede ou **comum** (visível de todas). O almoxarifado de sempre é o principal,
+  da sede principal.
+- **Estoque por almoxarifado**: cada artigo tem seu estoque, mínimo e localização em
+  cada almoxarifado. A aba de estoque tem uma lista de almoxarifados, e **Transferir**
+  move estoque de um para outro. As peças de reposição das máquinas e dos serviços saem
+  dos almoxarifados da sua sede.
+- **Endereço de entrega**: o da ficha do almoxarifado ou, se estiver vazio, o da sua sede.
+- **Pedidos**: o pedido sugerido é calculado almoxarifado por almoxarifado e pode ser
+  filtrado por almoxarifado. Cada pedido vai para o seu almoxarifado e leva o endereço
+  de entrega no texto, no e-mail, no WhatsApp e no PDF. Com **Agrupar**, sai um só
+  pedido por fornecedor, com as linhas separadas por almoxarifado e seu local de entrega.
+- **Revisão do almoxarifado**: na ficha de cada almoxarifado escolhe-se o ciclo
+  (diário, semanal num dia da semana ou mensal num dia do mês) e quantos artigos são
+  contados de cada vez. O MantPro Stock segue o ciclo do almoxarifado escolhido, também
+  sem conexão. No histórico de revisões, a caixa «Revisão do armazém ativa nesta sede»
+  ativa ou desativa a revisão para todos os almoxarifados de uma sede.
 
 ---
 
@@ -869,10 +928,9 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Solicitações de serviço** da produção ou de outros departamentos que criam um serviço pendente
 - **Notificações push** de serviços urgentes
 - **Vários PCs ao mesmo tempo**, servidor sem janela (Raspberry Pi, NAS, Docker) e acesso web
-- **Várias unidades ou plantas** com dados e indicadores por unidade
 - Mais idiomas (italiano…) e aplicativo para iPhone
 
-Feito recentemente: alemão nos três aplicativos, vídeos na coleção de fotos dos serviços, encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
+Feito recentemente: várias sedes (seletor, relatórios, feriados e acesso de cada técnico às suas sedes) com vários almoxarifados, transferências, pedidos e revisões por almoxarifado, alemão nos três aplicativos, vídeos na coleção de fotos dos serviços, encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

@@ -45,6 +45,7 @@
 - [Erabiltzaileak eta sarbidea](#-erabiltzaileak-eta-sarbidea)
 - [Makineria](#-makineria)
 - [Biltegiko stocka](#-biltegiko-stocka)
+- [Egoitzak eta biltegiak](#-egoitzak-eta-biltegiak)
 - [PC-mugikor sinkronizazioa](#-pc-mugikor-sinkronizazioa)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Babeskopiak](#-babeskopiak)
@@ -181,6 +182,10 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **📦 Biltegiko stockaren kontrola**: Apalategi, apal eta ataleko egitura konfiguragarria, materialen fitxa argazkiarekin, sarrerak/irteerak historiarekin eta gutxienekoaren azpiko stockaren alertak
 - **📄 Stocka esportatu**: stock fitxako "📄 Esportatu" botoia, biltegi osoa, zona bat edo apalategi bakar bat PDF, CSV edo Excel formatura ateratzeko, kokapenaren arabera ordenatuta; gutxienekotik beherako stockaren fitxak ere badu bere botoia, alertan dauden materialak soilik esportatzeko
 - **🏭 Hornitzaileak eta ohiko hornitzailea**: hornitzaileen zerrenda (izena, harremanetarako pertsona, telefonoa, posta eta oharrak) stock fitxako «🏭 Hornitzaileak» botoitik, eta «Ohiko hornitzailea» eremua artikulu bakoitzean. Hornitzaile bakoitzaren prezioen historia administratzaileentzat («💶 Hornitzaileen prezioak…» fitxan, eta hornitzailea eta prezioa stockaren sarreretan). Artikulu bakoitzaren helburuko stocka eta eskaeraren multiploa, iradokiko litzatekeen kopuruarekin. Eskaera iradokia (orain zer eskatu, dagoeneko eskatuta eta iristeke dagoena kenduta) eta data duten gordetako eskaerak, posta, WhatsApp, telefono edo inprimatuta bidal daitezkeenak; stockaren sarrera bakoitzak iristeke dagoena kentzen du. Administratzaileak soilik
+- **🏢 Hainbat egoitza**: lantegi propioak edo mantentzen dituzun bezero-enpresak, bakoitza bere IFZ, helbide, harremanetarako pertsona eta jaiegunekin. Egoitza bat baino gehiago dagoenean, «Egoitza» hautatzailea agertzen da goian, eta makinak, lanak, egitekoak, abisuak, panela, estatistikak, kostuak eta txostenak iragazten ditu (PDFak eta Excelak egoitzaren datuak dituzte, bezeroari emateko). Teknikari bakoitzak bere egoitzak bakarrik ikus ditzake (ikus [Egoitzak eta biltegiak](#-egoitzak-eta-biltegiak))
+- **🏬 Hainbat biltegi**: biltegi nagusia eta egoitza bakoitzeko behar direnak (adibidez, furgoneta bat) edo guztientzako komunak, bakoitza bere stock, gutxieneko, kokapen eta entrega-helbidearekin, eta biltegien arteko stock-transferentziak
+- **🛒 Eskaerak biltegika**: iradokitako eskaera biltegiz biltegi kalkulatzen da, eta eskaera bakoitzak bere biltegiaren entrega-helbidea darama; hornitzaile bakoitzeko eskaera bakarrean ere elkar daitezke, lerroak biltegika bereizita
+- **📦 Biltegiaren berrikuspena biltegika**: biltegi bakoitzak bere berrikuspen-zikloa (egunero, astero edo hilero) eta berrikuspen bakoitzeko artikulu kopurua ditu, eta berrikuspena egoitzaka aktibatu edo desaktibatzen da
 - **🗑️ Gordetzeko gehieneko denbora**: `Tresnak` menutik historiatik ezaba daitezke urte, hilabete edo egun kopuru bat baino zaharragoak diren lanak, haien argazkiekin eta aurretik segurtasun-kopia bat eginez (administratzaileak soilik)
 - **📥 Excel/CSV-tik inportatu**: `Fitxategia > Excel/CSV-tik inportatu…` (administratzaileak soilik) menutik makinak, biltegiko artikuluak, abisu errepikakorrak, erabiltzaileak, egiteke daudenak eta lanen historia zaharra ekar daitezke, deskarga daitekeen txantiloi batetik edo zure Excel-etik (orri bat edo liburu osoa batera), zutabeak berez parekatuz, errenkadaz errenkadako aurrebistarekin eta aurretik segurtasun-kopia eginez. Ez dauden kokapenak (eremuak, apalategiak, apalak) eta goiko makinak berez sortzen dira, eta erabiltzaileek aldi baterako pasahitz bat jasotzen dute, lehen aldiz sartzean aldatu beharko dutena
 - **🏭 Makineriaren kontrola**: Makinen eta azpimakinen zuhaitza argazki erantsiarekin, urteko eta hilabeteko lan-kontagailua, eta erregistratutako edo editatutako lan bakoitzetik zuzeneko lotura (ikusi [Makineria](#-makineria))
@@ -214,6 +219,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **⏰ Eguneroko gogorarazleak**: Jakinarazpen automatikoa 8:00etan (ordu lokala) osatu gabeko lanak badaude
 - **🧰 Erabilitako materiala**: Gehitu lanari erabili duzun biltegiko materiala, izenaren edo kodearen arabera bilatuz; gordetzean stocketik automatikoki kentzen da (ikusi [Lan batean erabilitako materiala](#-biltegiko-stocka)). Abisu bat osatzean ere ordezko piezak idatz daitezke, makinarenak lehenengo agertzen dira, eta historiako lan bat zuzentzean stocka doitzen da
 - **🏭 Makina lotu**: Aukeratu goitibeherako zerrenda batean lana zein makinatan edo azpimakinatan egin den, bai erregistro berri bat sortzean, bai historian dagoeneko sinkronizatutako bat editatzean
+- **🏢 Egoitza-hautatzailea**: hainbat egoitza daudenean, goiko hautatzaile batek panela, egitekoak, abisuak, historia eta makinak iragazten ditu, konexiorik gabe ere; sortzen dena aukeratutako egoitzara doa. Teknikari bakoitzak bere egoitzak bakarrik ikusten ditu
 - **🔄 Atzeko planoan konektatuta**: aplikazioa irekita dagoen bitartean, atzeko planoan egon arren, ordenagailuarekin sinkronizatzen jarraitzen du eta jakinarazpen bat erakusten du («Ordenagailura konektatuta» / «Ordenagailuarekin konexiorik gabe») «Itxi» botoiarekin. Guztiz ixtean bateria gastatzeari uzten dio
 - **📶 Lehen sinkronizazioa aurrerapenarekin**: aurrerapen-barra datuak eta argazkiak deskargatzean, paraleloan deskargatuta azkarrago izan dadin
 - **🏷️ Makina eskaneatu**: eskaneatzeko botoiak makina baten QR etiketa irakurri eta haren fitxa irekitzen du, konexiorik gabe: non dagoen, azken lanak, bere **ordezko piezak** biltegiko stockarekin, eta hari lotutako lan bat erregistratzeko botoia
@@ -235,6 +241,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 - **🔄 Eguneratze automatikoa**: pantaila bere kabuz freskatzen da aldaketak detektatzean, aldaketa mugikorrean bertan nahiz PCan egin bada
 - **🔌 Konexiorik gabeko modua**: PCrekin konexiorik gabe aplikazioak ez du itxaroten: gordetako datuak erakusten ditu eta altak, edizioak, sarrerak eta irteerak berehala erregistratzen uzten du; PCra bere kabuz bidaltzen dira berriro eskuragarri dagoenean
 - **🔔 Stocka egiaztatzeko eguneroko gogorarazlea**: jakinarazpen automatikoa 8:00etan (ordu lokala), biltegiko 5 materialen benetako kantitatea berrikusteko gonbidatuz, ausaz aukeratuak eta egunero desberdinak; sakatzean, bakoitzaren kantitatea zuzentzeko pantaila bat irekitzen da, eskuz bilatu beharrik gabe. Altan emandako materialik ez badago, ez da jakinarazpenik erakusten. Erdizka ixten bada edo abisua baztertzen bada, goiko barrako 📋 «Biltegiaren berrikuspena» botoiak berriro irekitzen du eguneko edozein unetan, artikulu berekin eta jada berrikusitakoarekin (globo batek adierazten du zenbat falta diren)
+- **🏬 Hainbat biltegi**: goiko hautatzaile batek, biltegiak egoitzaka taldekatuta, zein biltegitan lan egiten den aukeratzen du (erabiltzailearen egoitzetakoak bakarrik). Berrikuspenak biltegi horren zikloa (egunero, astero edo hilero) eta artikulu kopurua jarraitzen ditu, eta ez da eskatzen haren egoitzak desaktibatuta badu
 - **🔄 Atzeko planoan konektatuta**: MantPro bezala, atzeko planoan sinkronizatzen jarraitzen du bere jakinarazpenarekin; erabiltzailearen ikonoa **berde** jartzen da ordenagailuarekin konexioa badago eta **gorri** ez badago
 - **🔩 Hemen erabiltzen da**: artikulu bakoitzak zein makinatan erabiltzen den ordezko pieza gisa eta bakoitzak zenbat daraman erakusten du, konexiorik gabe ere
 - **🔍 Bikoiztuen abisua**: artikulu bat sortzean edo editatzean, kode bera edo oso antzeko izena duen beste bat badagoen abisatzen du, mugikorrean gordetako artikuluekin alderatuta (konexiorik gabe dabil)
@@ -492,6 +499,8 @@ eragotzi egiten du geratzen den azkenari rola kentzea edo hura desaktibatzea.
 - **Pasahitza berrezarri**: norbaitek ahazten duenean erabilgarria. Aldatzean,
   pertsona horrek mugikorrean irekita dituen saio guztiak automatikoki ixten dira.
 - **Norberaren pasahitza aldatu**: `Tresnak` > `🔑 Aldatu nire pasahitza`.
+- **Egoitzak**: hainbat egoitza daudenean, **🏢 Egoitzak** botoiak pertsona
+  bakoitzak ikusten dituenak markatzen ditu (ikus [Egoitzak eta biltegiak](#-egoitzak-eta-biltegiak)).
 
 ### Gailuen saioak
 
@@ -551,6 +560,8 @@ daiteke, testuz bilatu eta Excelera edo CSVra esportatu.
 ### Biltegiaren berrikuspenen historia
 
 Egunero MantPro Stock-ek biltegiko ausazko 5 artikulu berrikustea proposatzen du. Aplikazioak **nork egin duen, noiz eta 5ak berrikusi dituen** jasotzen du, zenbatutako kopurua sistemak zioenarekin alderatuta (konexiorik gabe eginez gero ere: mugikorra berriro konektatzean bidaltzen da). Administratzaileek `Tresnak` > `📦 Biltegiaren berrikuspenen historia` atalean ikusten dute: ✅ osoa, ⚠️ osatu gabea edo ❌ berrikusi gabe, erabiltzaile, aldi eta egoeraren arabera iragaz daiteke eta Excel edo CSV formatuan esporta daiteke. Azken 7 lanegunetan egunen batean berrikuspenik egin ez bada, MantProk administratzaileei abisatzen die irekitzean (eta gorriz markatzen du historian), eta historiak **zer mugikorrek egin dituzten berrikuspenak** eta bakoitzaren azkena noiz izan zen adierazten du.
+
+Hainbat biltegi daudenean, berrikuspen bakoitza bere biltegiarekin gordetzen da, eta leihoak egoitza- eta biltegi-hautatzaileak ditu eta berrikusitako artikulu bakoitzaren biltegia eta egoitza erakusten ditu. Biltegi bakoitza bere zikloaren arabera berrikusten da (egunero, astero edo hilero), bere artikulu kopuruarekin, biak bere fitxan aukeratuta, eta falta denaren abisua biltegiz biltegi kalkulatzen da. «Biltegiaren berrikuspena aktibo egoitza honetan» laukiak egoitza bateko biltegi guztietarako aktibatzen edo desaktibatzen du.
 
 ### Saioa mugikorrean
 
@@ -699,6 +710,59 @@ kokapenaren arabera ordenatuta ateratzen da, biltegia eskuan hartuta
 ibiltzeko; PDFak eta Excelak data, material kopurua eta gutxienekoaren
 azpitik daudenak (gorriz) ere badituzte. Stock taula bera ere kokapenaren
 arabera ordenatuta erakusten da lehenespenez (1., 2.… 10. apalategia).
+
+---
+
+## 🏢 Egoitzak eta biltegiak
+
+> Lantegi propio batzuk mantentzen dituenarentzat edo bezero-enpresentzat lan egiten
+> duenarentzat. Egoitza bakarrarekin ez da ezer aldatzen: hautatzailea ez da agertzen.
+
+### Egoitzak
+
+- **Alta**: `Tresnak` > `🏢 Egoitzak…` (administratzaileak): izena, mota (propioa edo
+  bezeroa), IFZ, helbidea, harremanetarako pertsona, telefonoa, posta eta oharrak.
+  Lehen egoitza berez sortzen da enpresaren izenarekin, eta lehendik zeuden datu
+  guztiak esleitzen zaizkio.
+- **Hautatzailea**: egoitza aktibo bat baino gehiago dagoenean, goiko barrak «Egoitza:
+  X / Guztiak» erakusten du. Fitxa guztiak, panela (egoitzako adierazleekin),
+  estatistikak, kostuak eta txostenak iragazten ditu; PDFak eta Excelak egoitzaren
+  datuak dituzte.
+- **Jaiegunak egoitzaka**: egoitza bakoitzak bere jaiegun-eskualdea izan dezake;
+  egutegiak aukeratutako egoitzarenak erabiltzen ditu.
+- **Erregistro bakoitza bere egoitzarekin**: lanek, egitekoek eta abisuek beren
+  makinaren egoitza edo hautatzailekoa hartzen dute, eta editatzean alda daiteke.
+  Makinen guneak ere egoitza bakoitzekoak dira.
+
+### Erabiltzaile bakoitzak zein egoitza ikusten dituen
+
+`Tresnak` > `👥 Erabiltzaileen kudeaketa` atalean, **🏢 Egoitzak** botoiak pertsona
+bakoitzaren egoitzak markatzen ditu (teknikariak eta biltegikoak). Bat ere markatu
+gabe, guztiak ikusten ditu, eta administratzaile batek beti guztiak ikusten ditu. PCan,
+APIan eta bi aplikazioetan aplikatzen da: mugikorrak bere egoitzetako datuak bakarrik
+jasotzen ditu, eta ezin du besteetan idatzi.
+
+### Biltegiak
+
+- **Alta**: `Tresnak` > `🏬 Biltegiak…` (administratzaileak). Biltegi bakoitza egoitza
+  batekoa da edo **komuna** (guztietatik ikusten da). Betiko biltegia nagusia da,
+  egoitza nagusikoa.
+- **Stocka biltegika**: artikulu bakoitzak bere stocka, gutxienekoa eta kokapena ditu
+  biltegi bakoitzean. Stockaren fitxak biltegi-zerrenda du, eta **Transferitu** botoiak
+  stocka batetik bestera eramaten du. Makinen eta lanen ordezko piezak beren egoitzako
+  biltegietatik ateratzen dira.
+- **Entrega-helbidea**: biltegiaren fitxakoa edo, hutsik badago, haren egoitzarena.
+- **Eskaerak**: iradokitako eskaera biltegiz biltegi kalkulatzen da, eta biltegika
+  iragaz daiteke. Eskaera bakoitza bere biltegira doa, eta bere entrega-helbidea
+  darama testuan, posta elektronikoan, WhatsAppen eta PDFan. **Elkartu** aukerarekin,
+  eskaera bakarra egiten da hornitzaile bakoitzeko, lerroak biltegika eta entrega-lekuaz
+  bereizita.
+- **Biltegiaren berrikuspena**: biltegi bakoitzaren fitxan zikloa aukeratzen da
+  (egunero, astero asteko egun batean edo hilero hileko egun batean) eta aldi
+  bakoitzean zenbat artikulu zenbatzen diren. MantPro Stock-ek aukeratutako biltegiaren
+  zikloa jarraitzen du, konexiorik gabe ere. Berrikuspenen historian, «Biltegiaren
+  berrikuspena aktibo egoitza honetan» laukiak egoitza bateko biltegi guztietarako
+  aktibatzen edo desaktibatzen du.
 
 ---
 
@@ -876,10 +940,9 @@ Datozenak, datarik gabe eta ordena itxirik gabe:
 - **Lan-eskaerak** ekoizpenetik edo beste sail batzuetatik, zain dagoen lan bat sortzen dutenak
 - Lan larrien **push jakinarazpenak**
 - **Hainbat PC aldi berean**, leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker) eta web bidezko sarbidea
-- **Hainbat zentro edo lantegi**, zentro bakoitzeko datu eta adierazleekin
 - Hizkuntza gehiago (italiera…) eta iPhonerako aplikazioa
 
-Berriki egina: alemana hiru aplikazioetan, bideoak lanen argazki-bilduman, eskaera iradokia eta gordetako eskaerak, hornitzaileak eta artikulu bakoitzaren ohiko hornitzailea, mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
+Berriki egina: hainbat egoitza (hautatzailea, txostenak, jaiegunak eta teknikari bakoitzaren sarbidea bere egoitzetara) hainbat biltegirekin, transferentziak, eskaerak eta berrikuspenak biltegika, alemana hiru aplikazioetan, bideoak lanen argazki-bilduman, eskaera iradokia eta gordetako eskaerak, hornitzaileak eta artikulu bakoitzaren ohiko hornitzailea, mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

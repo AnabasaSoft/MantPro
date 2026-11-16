@@ -45,6 +45,7 @@
 - [Usuaris i accés](#-usuaris-i-accés)
 - [Maquinària](#-maquinària)
 - [Estoc del magatzem](#-estoc-del-magatzem)
+- [Seus i magatzems](#-seus-i-magatzems)
 - [Sincronització PC-mòbil](#-sincronització-pc-mòbil)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Còpies de seguretat](#-còpies-de-seguretat)
@@ -179,6 +180,10 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📦 Control de l'estoc del magatzem**: estructura de prestatgeries, prestatges i seccions configurable, fitxa de materials amb foto, entrades/sortides amb historial i alertes d'estoc per sota del mínim
 - **📄 Exportar l'estoc**: botó "📄 Exportar" a la pestanya d'estoc per treure el magatzem sencer, una zona o una prestatgeria a PDF, CSV o Excel, ordenat per ubicació; la pestanya d'estoc per sota del mínim també té el seu botó per exportar només els materials en alerta
 - **🏭 Proveïdors i proveïdor habitual**: llista de proveïdors (nom, persona de contacte, telèfon, correu i notes) des del botó «🏭 Proveïdors» de la pestanya d'estoc, i camp «Proveïdor habitual» a cada article. Historial de preus per proveïdor per a administradors («💶 Preus per proveïdor…» a la fitxa, i proveïdor i preu a les entrades d'estoc). Estoc objectiu i múltiple de comanda per article, amb la quantitat que se suggeriria demanar. Comanda suggerida (què demanar ara, descomptant el que ja està demanat i pendent d'arribar) i comandes desades amb la seva data, que s'envien per correu, WhatsApp, telèfon o impreses; cada entrada d'estoc descompta el pendent. Només administradors
+- **🏢 Diverses seus**: plantes pròpies o empreses client que mantens, cadascuna amb el seu NIF, adreça, contacte i festius. Amb més d'una seu apareix a dalt el selector «Seu», que filtra màquines, treballs, pendents, avisos, tauler, estadístiques, costos i informes (el PDF i l'Excel porten les dades de la seu, per lliurar-los al client). Cada tècnic pot veure només les seves seus (vegeu [Seus i magatzems](#-seus-i-magatzems))
+- **🏬 Diversos magatzems**: el magatzem principal i els que calguin per seu (per exemple, una furgoneta) o comuns a totes, cadascun amb el seu estoc, mínims, ubicacions i adreça de lliurament, i traspassos d'estoc entre magatzems
+- **🛒 Comandes per magatzem**: la comanda suggerida es calcula magatzem per magatzem i cada comanda porta l'adreça de lliurament del seu magatzem; també es poden agrupar en una sola comanda per proveïdor, amb les línies separades per magatzem
+- **📦 Revisió del magatzem per magatzem**: cada magatzem té el seu cicle de revisió (diari, setmanal o mensual) i el seu nombre d'articles per revisió, i la revisió s'activa o es desactiva per seu
 - **🗑️ Temps màxim de conservació**: `Eines` permet esborrar de l'historial els treballs més antics que un nombre d'anys, mesos o dies, amb les seves fotos i una còpia de seguretat prèvia (només administradors)
 - **📥 Importar des d'Excel/CSV**: `Arxiu > Importar des d'Excel/CSV…` (només administradors) porta màquines, articles del magatzem, avisos recurrents, usuaris, pendents i historial de treballs antic des d'una plantilla descarregable o des del teu propi Excel (un full o tot el llibre d'una vegada), aparellant soles les columnes, amb previsualització fila a fila i còpia de seguretat prèvia. Les ubicacions (zones, prestatgeries, prestatges) i màquines superiors que no existeixin es creen soles, i els usuaris reben una contrasenya temporal que hauran de canviar en entrar
 - **🏭 Control de maquinària**: arbre de màquines i submàquines amb foto adjunta, comptador de treballs per any i mes, i vincle directe des de cada treball registrat o editat (vegeu [Maquinària](#-maquinària))
@@ -212,6 +217,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **⏰ Recordatoris diaris**: notificació automàtica a les 8:00 (hora local) si hi ha treballs pendents sense completar
 - **🧰 Material utilitzat**: afegeix al treball el material del magatzem que has fet servir, cercant-lo pel nom o el codi; es descompta sol de l'estoc en desar (vegeu [Material utilitzat en un treball](#-estoc-del-magatzem)). En completar un avís també s'hi poden apuntar recanvis, surten primer els de la màquina, i en corregir un treball de l'historial s'ajusta l'estoc
 - **🏭 Vincular màquina**: tria en un desplegable la màquina o submàquina en què s'ha fet el treball, tant en crear un registre nou com en editar-ne un de ja sincronitzat de l'historial
+- **🏢 Selector de seu**: amb diverses seus, un selector a dalt filtra el tauler, els pendents, els avisos, l'historial i les màquines, també sense connexió; el que es crea va a la seu triada. Cada tècnic només veu les seves seus
 - **🔄 Connectada en segon pla**: mentre l'app és oberta, encara que sigui en segon pla, continua sincronitzant amb el PC i mostra una notificació («Connectat al PC» / «Sense connexió amb el PC») amb un botó «Tancar». En tancar-la del tot deixa de gastar bateria
 - **📶 Primera sincronització amb progrés**: barra de progrés en baixar les dades i les fotos, amb baixada en paral·lel perquè sigui més ràpida
 - **🏷️ Escanejar la màquina**: el botó d'escanejar llegeix l'etiqueta QR d'una màquina i n'obre la fitxa, sense connexió: on és, els seus últims treballs, els seus **recanvis** amb l'estoc del magatzem, i un botó per registrar un treball ja vinculat a ella
@@ -234,6 +240,7 @@ treballs.
 - **🔄 Actualització automàtica**: la pantalla es refresca sola en detectar canvis, tant si el canvi es va fer al mateix mòbil com al PC
 - **🔌 Mode fora de línia**: sense connexió amb el PC l'aplicació no es queda esperant: consulta les dades desades i permet registrar altes, edicions, entrades i sortides al moment, que s'envien soles al PC tan bon punt torna a ser accessible
 - **🔔 Recordatori diari de comprovació d'estoc**: notificació automàtica a les 8:00 (hora local) que convida a revisar la quantitat real de 5 materials del magatzem, triats a l'atzar i diferents cada dia; en prémer-la s'obre una pantalla per corregir la quantitat de cadascun sense haver-los de cercar. Si no hi ha cap material donat d'alta, no es mostra cap notificació. Si es tanca a mitges o es descarta l'avís, el botó 📋 «Revisió del magatzem» de la barra superior la torna a obrir en qualsevol moment del dia, amb els mateixos articles i el que ja s'ha revisat (un globus indica quants en falten)
+- **🏬 Diversos magatzems**: un selector a dalt, amb els magatzems agrupats per seu, tria en quin magatzem es treballa (només els de les seus de l'usuari). La revisió segueix el cicle d'aquest magatzem (diari, setmanal o mensual) i el seu nombre d'articles, i no es demana si la seva seu la té desactivada
 - **🔄 Connectada en segon pla**: com MantPro, continua sincronitzant en segon pla, amb la seva notificació; la icona d'usuari es posa **verda** si hi ha connexió amb el PC i **vermella** si no
 - **🔩 S'utilitza a**: cada article mostra a quines màquines s'utilitza com a recanvi i quants en porta cadascuna, també sense connexió
 - **🔍 Avís de repetits**: en crear o editar un article avisa si ja n'hi ha un altre amb el mateix codi o un nom molt semblant, comparant amb els articles desats al mòbil (funciona sense connexió)
@@ -491,6 +498,8 @@ treure el rol o desactivar l'últim que queda.
 - **Restablir la contrasenya**: útil quan algú l'oblida. En canviar-la es
   tanquen automàticament totes les sessions obertes d'aquesta persona al mòbil.
 - **Canviar la pròpia contrasenya**: `Eines` > `🔑 Canviar la meva contrasenya`.
+- **Seus**: amb diverses seus, el botó **🏢 Seus** marca les que veu cada persona
+  (vegeu [Seus i magatzems](#-seus-i-magatzems)).
 
 ### Sessions de dispositius
 
@@ -548,6 +557,8 @@ Excel o CSV.
 ### Historial de revisions del magatzem
 
 Cada dia MantPro Stock proposa revisar 5 articles del magatzem a l'atzar. L'aplicació anota **qui ho ha fet, quan i si ha revisat els 5**, amb la quantitat comptada davant la que deia el sistema (també si es fa sense connexió: s'envia en tornar a connectar el mòbil). Els administradors ho veuen a `Eines` > `📦 Historial de revisions del magatzem`: ✅ completa, ⚠️ incompleta o ❌ sense revisar, amb filtres per usuari, període i estat, i exportació a Excel o CSV. Si en algun dels últims 7 dies laborables no es va fer cap revisió, MantPro avisa els administradors en obrir (i ho marca en vermell a l'historial), i l'historial indica **quins mòbils han fet revisions** i quan va ser l'última de cadascun.
+
+Amb diversos magatzems, cada revisió queda desada amb el seu magatzem, i la finestra té selectors de seu i de magatzem i mostra el magatzem i la seu de cada article revisat. Cada magatzem es revisa segons el seu propi cicle (diari, setmanal o mensual) i amb el seu nombre d'articles, que es trien a la seva fitxa, i l'avís del que falta es calcula magatzem per magatzem. La casella «Revisió del magatzem activa en aquesta seu» l'activa o la desactiva per a tots els magatzems d'una seu.
 
 ### Sessió al mòbil
 
@@ -693,6 +704,54 @@ ubicació, per poder recórrer el magatzem amb ella a la mà; el PDF i l'Excel
 inclouen a més la data, el nombre de materials i quants n'hi ha per sota del
 mínim (en vermell). La mateixa taula d'estoc també es mostra ordenada per
 ubicació per defecte (Prestatgeria 1, 2… 10).
+
+---
+
+## 🏢 Seus i magatzems
+
+> Per a qui manté diverses plantes pròpies o treballa per a empreses client. Amb una
+> sola seu no canvia res: el selector no apareix.
+
+### Seus
+
+- **Alta**: `Eines` > `🏢 Seus…` (administradors): nom, tipus (pròpia o client), NIF,
+  adreça, contacte, telèfon, correu i notes. La primera seu es crea sola amb el nom de
+  l'empresa i se li assignen totes les dades que ja hi havia.
+- **Selector**: amb més d'una seu activa, la barra superior mostra «Seu: X / Totes».
+  Filtra totes les pestanyes, el tauler (amb els seus indicadors per seu), les
+  estadístiques, els costos i els informes; el PDF i l'Excel porten les dades de la seu.
+- **Festius per seu**: cada seu pot tenir la seva pròpia regió de festius; el
+  calendari fa servir els de la seu triada.
+- **Cada registre amb la seva seu**: treballs, pendents i avisos prenen la seu de la
+  seva màquina o la del selector, i es pot canviar en editar-los. Les zones de
+  màquines també són de cada seu.
+
+### Quines seus veu cada usuari
+
+A `Eines` > `👥 Gestió d'usuaris`, el botó **🏢 Seus** marca les seus de cada persona
+(tècnics i magatzem). Sense cap de marcada les veu totes, i un administrador les veu
+sempre totes. S'aplica al PC, a l'API i a les dues apps: el mòbil només rep les dades
+de les seves seus i no pot escriure en altres.
+
+### Magatzems
+
+- **Alta**: `Eines` > `🏬 Magatzems…` (administradors). Cada magatzem és d'una seu o
+  **comú** (es veu des de totes). El magatzem de sempre és el principal, de la seu
+  principal.
+- **Estoc per magatzem**: cada article porta el seu estoc, mínim i ubicació a cada
+  magatzem. La pestanya d'estoc té un desplegable de magatzem, i **Traspassar** mou
+  estoc d'un a un altre. Els recanvis de les màquines i dels treballs surten dels
+  magatzems de la seva seu.
+- **Adreça de lliurament**: la de la fitxa del magatzem o, si és buida, la de la seva seu.
+- **Comandes**: la comanda suggerida es calcula magatzem per magatzem i es pot filtrar
+  per magatzem. Cada comanda va al seu magatzem i porta la seva adreça de lliurament al
+  text, al correu, al WhatsApp i al PDF. Amb **Agrupar** surt una sola comanda per
+  proveïdor, amb les línies separades per magatzem i el seu lloc de lliurament.
+- **Revisió del magatzem**: a la fitxa de cada magatzem es tria el cicle (diari,
+  setmanal amb el seu dia de la setmana o mensual amb el seu dia del mes) i quants
+  articles es compten cada vegada. MantPro Stock segueix el cicle del magatzem triat,
+  també sense connexió. A l'historial de revisions, la casella «Revisió del magatzem
+  activa en aquesta seu» l'activa o la desactiva per a tots els magatzems d'una seu.
 
 ---
 
@@ -866,10 +925,9 @@ El que ve, sense dates i sense un ordre tancat:
 - **Sol·licituds de treball** des de producció o altres departaments que creen un pendent
 - **Notificacions push** de treballs urgents
 - **Diversos PC alhora**, servidor sense finestra (Raspberry Pi, NAS, Docker) i accés web
-- **Diversos centres o plantes** amb dades i indicadors per centre
 - Més idiomes (italià…) i app per a iPhone
 
-Fet fa poc: alemany a les tres aplicacions, vídeos a la col·lecció de fotos dels treballs, comanda suggerida i comandes desades, proveïdors i proveïdor habitual de cada article, cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
+Fet fa poc: diverses seus (selector, informes, festius i accés de cada tècnic a les seves seus) amb diversos magatzems, traspassos, comandes i revisions per magatzem, alemany a les tres aplicacions, vídeos a la col·lecció de fotos dels treballs, comanda suggerida i comandes desades, proveïdors i proveïdor habitual de cada article, cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

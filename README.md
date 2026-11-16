@@ -45,6 +45,7 @@
 - [Users and Access](#-users-and-access)
 - [Machinery](#-machinery)
 - [Warehouse Stock](#-warehouse-stock)
+- [Sites and Warehouses](#-sites-and-warehouses)
 - [PC-Mobile Sync](#-pc-mobile-sync)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Backups](#-backups)
@@ -176,6 +177,10 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📦 Warehouse Stock Control**: Configurable structure of shelving units, shelves and sections, material records with photo, stock in/out with history and low-stock alerts
 - **📄 Stock Export**: "📄 Export" button in the stock tab to export the whole warehouse, a zone or a single shelving unit to PDF, CSV or Excel, sorted by location; the low stock tab also has its own button to export only the materials on alert
 - **🏭 Suppliers and usual supplier**: supplier list (name, contact person, phone, email and notes) from the "🏭 Suppliers" button in the stock tab, and a "Usual supplier" field on every item. Price history per supplier for administrators ("💶 Prices by supplier…" in the item form, and supplier and price on stock entries). Target stock and order multiple per item, with the quantity that would be suggested. Suggested order (what to order now, taking into account what is already ordered and on its way) and saved orders with their date, which you can send by email, WhatsApp, phone or print; each stock entry deducts what is pending. Administrators only
+- **🏢 Multiple Sites**: your own plants or client companies you maintain, each with its tax ID, address, contact and holidays. With more than one site, a "Site" selector appears at the top and filters machines, jobs, pending tasks, reminders, dashboard, statistics, costs and reports (PDF and Excel include the site's details, ready to hand to the client). Each technician can see only their own sites (see [Sites and Warehouses](#-sites-and-warehouses))
+- **🏬 Multiple Warehouses**: the main warehouse plus as many as needed per site (a van, for example) or shared by all of them, each with its own stock, minimums, locations and delivery address, and stock transfers between warehouses
+- **🛒 Orders per Warehouse**: the suggested order is calculated warehouse by warehouse and each order carries its warehouse's delivery address; orders can also be grouped into a single order per supplier, with the lines split by warehouse
+- **📦 Warehouse Check per Warehouse**: each warehouse has its own check cycle (daily, weekly or monthly) and number of items per check, and the check can be turned on or off per site
 - **🗑️ Maximum Retention Time**: `Tools` lets you delete from the history the jobs older than a number of years, months or days, together with their photos and a backup made beforehand (administrators only)
 - **📥 Import from Excel/CSV**: `File > Import from Excel/CSV…` (administrators only) brings in machines, warehouse items, recurring reminders, users, pending jobs and old work history from a downloadable template or from your own Excel (one sheet or the whole workbook at once), with automatic column matching, a row-by-row preview and a backup made beforehand. Missing locations (zones, shelving units, shelves) and parent machines are created automatically, and users get a temporary password they must change on first login
 - **🏭 Machinery Control**: Tree of machines and sub-machines with an attached photo, job counter per year and month, and a direct link from every job logged or edited (see [Machinery](#-machinery))
@@ -209,6 +214,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **⏰ Daily Reminders**: Automatic notification at 8:00 AM (local time) if there are pending jobs not yet completed
 - **🧰 Materials Used**: Add the warehouse materials you used to the job, searching by name or code; they are deducted from stock automatically when saving (see [Materials used in a job](#-warehouse-stock)). On completing a reminder you can also note spare parts, the machine's own parts are listed first, and correcting a job in the history adjusts the stock
 - **🏭 Link Machine**: Choose from a drop-down list the machine or sub-machine the job was done on, both when creating a new record and when editing one already synced in the history
+- **🏢 Site Selector**: with several sites, a selector at the top filters the dashboard, pending tasks, reminders, history and machines, also offline; whatever is created goes to the chosen site. Each technician only sees their own sites
 - **🔄 Connected in the Background**: while the app is open, even in the background, it keeps syncing with the PC and shows a notification (“Connected to the PC” / “No connection to the PC”) with a “Close” button. Once fully closed it stops using battery
 - **📶 First Sync with Progress**: progress bar while downloading the data and photos, downloaded in parallel so it is faster
 - **🏷️ Scan the Machine**: the scan button reads a machine's QR label and opens its page, offline: where it is, its latest jobs, its **spare parts** with the warehouse stock, and a button to register a job already linked to it
@@ -230,6 +236,7 @@ from your phone without needing the jobs app.
 - **🔄 Auto-refresh**: the screen refreshes itself when it detects changes, whether they were made on the phone itself or on the PC
 - **🔌 Offline Mode**: with no connection to the PC the app does not keep waiting: it shows the saved data and lets you create, edit and register stock in/out instantly, sent to the PC automatically as soon as it is reachable again
 - **🔔 Daily Stock Check Reminder**: automatic notification at 8:00 AM (local time) inviting you to check the real quantity of 5 warehouse materials, picked at random and different each day; tapping it opens a screen to correct each quantity without searching for them by hand. If no materials have been added, no notification is shown. If the check is closed halfway or the reminder is dismissed, the 📋 «Warehouse check» button in the top bar reopens it at any time of the day, with the same items and what was already checked (a badge shows how many are left)
+- **🏬 Multiple Warehouses**: a selector at the top, with the warehouses grouped by site, chooses which warehouse you work in (only those of the user's sites). The check follows that warehouse's cycle (daily, weekly or monthly) and number of items, and is not requested if its site has it turned off
 - **🔄 Connected in the Background**: like MantPro, it keeps syncing while in the background, with its notification; the user icon turns **green** when connected to the PC and **red** when not
 - **🔩 Used In**: each item shows which machines use it as a spare part and how many each one has, also offline
 - **🔍 Duplicate Warning**: when creating or editing an item it warns if there is already another one with the same code or a very similar name, comparing with the items stored on the phone (works offline)
@@ -486,6 +493,8 @@ prevents removing the role from, or deactivating, the last one left.
 - **Reset password**: useful when someone forgets it. Changing it
   automatically closes all of that person's open sessions on the phone.
 - **Change your own password**: `Tools` > `🔑 Change my password`.
+- **Sites**: with several sites, the **🏢 Sites** button marks the ones each person
+  sees (see [Sites and Warehouses](#-sites-and-warehouses)).
 
 ### Device sessions
 
@@ -541,6 +550,8 @@ action, user and period, searched by text and exported to Excel or CSV.
 ### Warehouse check history
 
 Every day MantPro Stock suggests checking 5 random warehouse items. The app records **who did it, when and whether all 5 were checked**, with the quantity counted against what the system said (also if done offline: it is sent when the phone reconnects). Administrators see it in `Tools` > `📦 Warehouse check history`: ✅ complete, ⚠️ incomplete or ❌ not checked, filterable by user, period and status, exportable to Excel or CSV. If any working day in the last 7 went by with no check at all, MantPro warns administrators when it opens (and shows it in red in the history), and the history lists **which phones have done checks** and when each one last did.
+
+With several warehouses, each check is saved with its warehouse, and the window has site and warehouse selectors and shows the warehouse and site of each checked item. Each warehouse is checked on its own cycle (daily, weekly or monthly) and with its own number of items, chosen in its record, and the warning about what is missing is calculated warehouse by warehouse. The "Warehouse check active at this site" box turns it on or off for all the warehouses of a site.
 
 ### Session on the phone
 
@@ -684,6 +695,53 @@ location, so you can walk through the warehouse with it in hand; the PDF and
 Excel files also include the date, the number of materials and how many are
 below minimum (in red). The stock table itself is also sorted by location by
 default (Shelving unit 1, 2… 10).
+
+---
+
+## 🏢 Sites and Warehouses
+
+> For those who maintain several plants of their own or work for client companies.
+> With a single site nothing changes: the selector does not appear.
+
+### Sites
+
+- **Adding one**: `Tools` > `🏢 Sites…` (administrators): name, type (own or client),
+  tax ID, address, contact, phone, email and notes. The first site is created
+  automatically with the company name, and all existing data is assigned to it.
+- **Selector**: with more than one active site, the top bar shows "Site: X / All". It
+  filters every tab, the dashboard (with its per-site indicators), statistics, costs
+  and reports; PDF and Excel include the site's details.
+- **Holidays per site**: each site can have its own holiday region; the calendar uses
+  the chosen site's holidays.
+- **Each record with its site**: jobs, pending tasks and reminders take the site of
+  their machine or the one in the selector, and it can be changed when editing them.
+  Machine zones also belong to a site.
+
+### Which sites each user sees
+
+In `Tools` > `👥 User management`, the **🏢 Sites** button marks each person's sites
+(technicians and warehouse staff). With none marked they see all of them, and an
+administrator always sees all of them. It applies on the PC, in the API and in both
+apps: the phone only receives the data of its sites and cannot write to others.
+
+### Warehouses
+
+- **Adding one**: `Tools` > `🏬 Warehouses…` (administrators). Each warehouse belongs
+  to a site or is **shared** (visible from all of them). The usual warehouse is the
+  main one, of the main site.
+- **Stock per warehouse**: each item has its own stock, minimum and location in each
+  warehouse. The stock tab has a warehouse drop-down, and **Transfer** moves stock from
+  one to another. Spare parts for machines and jobs come from the warehouses of their site.
+- **Delivery address**: the one in the warehouse's record or, if empty, its site's.
+- **Orders**: the suggested order is calculated warehouse by warehouse and can be
+  filtered by warehouse. Each order goes to its warehouse and carries its delivery
+  address in the text, email, WhatsApp and PDF. With **Group**, a single order per
+  supplier is made, with the lines split by warehouse and their delivery place.
+- **Warehouse check**: in each warehouse's record you choose the cycle (daily, weekly
+  on a weekday or monthly on a day of the month) and how many items are counted each
+  time. MantPro Stock follows the chosen warehouse's cycle, also offline. In the check
+  history, the "Warehouse check active at this site" box turns it on or off for all the
+  warehouses of a site.
 
 ---
 
@@ -855,10 +913,9 @@ What's coming, without dates and in no fixed order:
 - **Work requests** from production or other departments that create a pending job
 - **Push notifications** of urgent jobs
 - **Several PCs at once**, a headless server (Raspberry Pi, NAS, Docker) and web access
-- **Several sites or plants** with separate data and KPIs per site
 - More languages (Italian…) and an iPhone app
 
-Recently done: German in the three applications, videos in the jobs' photo collection, suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
+Recently done: multiple sites (selector, reports, holidays and each technician's access to their sites) with multiple warehouses, transfers, orders and checks per warehouse, German in the three applications, videos in the jobs' photo collection, suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

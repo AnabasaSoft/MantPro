@@ -45,6 +45,7 @@
 - [Utilisateurs et accès](#-utilisateurs-et-accès)
 - [Machines](#-machines)
 - [Stock du magasin](#-stock-du-magasin)
+- [Sites et entrepôts](#-sites-et-entrepôts)
 - [Synchronisation PC-mobile](#-synchronisation-pc-mobile)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Sauvegardes](#-sauvegardes)
@@ -179,6 +180,10 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **📦 Gestion du stock du magasin** : structure configurable de rayonnages, tablettes et sections, fiche article avec photo, entrées/sorties avec historique et alertes de stock sous le minimum
 - **📄 Exporter le stock** : bouton « 📄 Exporter » dans l'onglet stock pour générer tout le magasin, une zone ou un rayonnage en PDF, CSV ou Excel, trié par emplacement ; l'onglet du stock sous le minimum a aussi son bouton pour n'exporter que les articles en alerte
 - **🏭 Fournisseurs et fournisseur habituel** : liste des fournisseurs (nom, personne de contact, téléphone, e-mail et notes) depuis le bouton « 🏭 Fournisseurs » de l'onglet stock, et champ « Fournisseur habituel » sur chaque article. Historique des prix par fournisseur pour les administrateurs (« 💶 Prix par fournisseur… » dans la fiche, et fournisseur et prix lors des entrées de stock). Stock cible et multiple de commande par article, avec la quantité qui serait suggérée. Commande suggérée (quoi commander maintenant, en déduisant ce qui est déjà commandé et en attente de livraison) et commandes enregistrées avec leur date, envoyées par e-mail, WhatsApp, téléphone ou imprimées ; chaque entrée de stock déduit ce qui est en attente. Administrateurs uniquement
+- **🏢 Plusieurs sites** : vos propres usines ou les entreprises clientes que vous entretenez, chacune avec son numéro fiscal, son adresse, son contact et ses jours fériés. Avec plus d'un site, le sélecteur « Site » apparaît en haut et filtre machines, interventions, tâches en attente, rappels, tableau de bord, statistiques, coûts et rapports (le PDF et l'Excel portent les données du site, à remettre au client). Chaque technicien peut ne voir que ses sites (voir [Sites et entrepôts](#-sites-et-entrepôts))
+- **🏬 Plusieurs entrepôts** : l'entrepôt principal et autant que nécessaire par site (une camionnette, par exemple) ou communs à tous, chacun avec son stock, ses minimums, ses emplacements et son adresse de livraison, et des transferts de stock entre entrepôts
+- **🛒 Commandes par entrepôt** : la commande suggérée est calculée entrepôt par entrepôt et chaque commande porte l'adresse de livraison de son entrepôt ; on peut aussi les regrouper en une seule commande par fournisseur, avec les lignes séparées par entrepôt
+- **📦 Contrôle du stock par entrepôt** : chaque entrepôt a son cycle de contrôle (quotidien, hebdomadaire ou mensuel) et son nombre d'articles par contrôle, et le contrôle s'active ou se désactive par site
 - **🗑️ Durée maximale de conservation** : `Outils` permet de supprimer de l'historique les interventions plus anciennes qu'un nombre d'années, de mois ou de jours, avec leurs photos et une sauvegarde préalable (administrateurs uniquement)
 - **📥 Importer depuis Excel/CSV** : `Fichier > Importer depuis Excel/CSV…` (administrateurs uniquement) importe machines, articles du magasin, rappels récurrents, utilisateurs, travaux en attente et historique des travaux depuis un modèle téléchargeable ou depuis votre propre Excel (une feuille ou le classeur entier en une fois), en associant les colonnes automatiquement, avec un aperçu ligne par ligne et une sauvegarde préalable. Les emplacements (zones, rayonnages, tablettes) et machines parentes inexistants sont créés automatiquement, et les utilisateurs reçoivent un mot de passe temporaire à changer à la première connexion
 - **🏭 Suivi des machines** : arborescence de machines et sous-machines avec photo jointe, compteur d'interventions par année et par mois et association directe depuis chaque intervention enregistrée ou modifiée (voir [Machines](#-machines))
@@ -212,6 +217,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **⏰ Rappels quotidiens** : notification automatique à 8 h 00 (heure locale) s'il reste des interventions en attente non terminées
 - **🧰 Articles utilisés** : ajoutez à l'intervention les articles du magasin que vous avez utilisés, en les recherchant par nom ou code ; ils sont déduits du stock automatiquement à l'enregistrement (voir [Articles utilisés dans une intervention](#-stock-du-magasin)). À la clôture d'un rappel, on peut aussi noter des pièces ; celles de la machine apparaissent en premier, et corriger une intervention de l'historique ajuste le stock
 - **🏭 Associer une machine** : choisissez dans une liste la machine ou sous-machine sur laquelle l'intervention a été faite, aussi bien en créant un enregistrement qu'en modifiant un enregistrement déjà synchronisé de l'historique
+- **🏢 Sélecteur de site** : avec plusieurs sites, un sélecteur en haut filtre le tableau de bord, les tâches en attente, les rappels, l'historique et les machines, même hors ligne ; ce qui est créé va au site choisi. Chaque technicien ne voit que ses sites
 - **🔄 Connectée en arrière-plan** : tant que l'application est ouverte, même en arrière-plan, elle continue de se synchroniser avec le PC et affiche une notification (« Connecté au PC » / « Pas de connexion avec le PC ») avec un bouton « Fermer ». Une fois complètement fermée, elle ne consomme plus de batterie
 - **📶 Première synchronisation avec progression** : barre de progression pendant le téléchargement des données et des photos, téléchargées en parallèle pour aller plus vite
 - **🏷️ Scanner la machine** : le bouton de scan lit l'étiquette QR d'une machine et ouvre sa fiche, sans connexion : son emplacement, ses dernières interventions, ses **pièces de rechange** avec le stock du magasin, et un bouton pour enregistrer une intervention déjà liée à elle
@@ -234,6 +240,7 @@ l'application des interventions.
 - **🔄 Actualisation automatique** : l'écran se met à jour tout seul lorsqu'il détecte des modifications, faites sur le mobile comme sur le PC
 - **🔌 Mode hors ligne** : sans connexion au PC, l'application n'attend pas : elle consulte les données enregistrées et permet d'enregistrer immédiatement créations, modifications, entrées et sorties, qui sont envoyées toutes seules au PC dès qu'il est de nouveau joignable
 - **🔔 Rappel quotidien de contrôle du stock** : notification automatique à 8 h 00 (heure locale) invitant à vérifier la quantité réelle de 5 articles du magasin, choisis au hasard et différents chaque jour ; en la touchant, un écran s'ouvre pour corriger la quantité de chacun sans avoir à les chercher. S'il n'y a aucun article enregistré, aucune notification n'est affichée. Si la vérification est fermée en cours de route ou si le rappel est ignoré, le bouton 📋 « Vérification du magasin » de la barre supérieure la rouvre à tout moment de la journée, avec les mêmes articles et ce qui a déjà été vérifié (une pastille indique combien il en reste)
+- **🏬 Plusieurs entrepôts** : un sélecteur en haut, avec les entrepôts regroupés par site, choisit l'entrepôt où l'on travaille (seulement ceux des sites de l'utilisateur). Le contrôle suit le cycle de cet entrepôt (quotidien, hebdomadaire ou mensuel) et son nombre d'articles, et il n'est pas demandé si son site l'a désactivé
 - **🔄 Connectée en arrière-plan** : comme MantPro, elle continue de se synchroniser en arrière-plan, avec sa notification ; l'icône utilisateur devient **verte** s'il y a une connexion avec le PC et **rouge** sinon
 - **🔩 Utilisé dans** : chaque article indique dans quelles machines il sert de pièce de rechange et combien chacune en porte, même sans connexion
 - **🔍 Alerte de doublons** : lors de la création ou de la modification d'un article, avertit s'il en existe déjà un autre avec le même code ou un nom très similaire, en comparant avec les articles enregistrés sur le mobile (fonctionne sans connexion)
@@ -495,6 +502,8 @@ empêche de retirer le rôle ou de désactiver le dernier qui reste.
   changeant, toutes les sessions mobiles ouvertes de cette personne sont
   fermées automatiquement.
 - **Changer son propre mot de passe** : `Outils` > `🔑 Changer mon mot de passe`.
+- **Sites** : avec plusieurs sites, le bouton **🏢 Sites** coche ceux que voit chaque
+  personne (voir [Sites et entrepôts](#-sites-et-entrepôts)).
 
 ### Sessions des appareils
 
@@ -555,6 +564,8 @@ exporter vers Excel ou CSV.
 ### Historique des vérifications du magasin
 
 Chaque jour, MantPro Stock propose de vérifier 5 articles du magasin au hasard. L'application enregistre **qui l'a fait, quand et s'il a vérifié les 5**, avec la quantité comptée par rapport à celle indiquée par le système (aussi hors connexion : envoyé à la reconnexion du mobile). Les administrateurs le voient dans `Outils` > `📦 Historique des vérifications du magasin` : ✅ complète, ⚠️ incomplète ou ❌ non vérifiée, avec filtres par utilisateur, période et état, et export vers Excel ou CSV. Si, parmi les 7 derniers jours ouvrés, un jour est passé sans aucune vérification, MantPro prévient les administrateurs à l'ouverture (et l'affiche en rouge dans l'historique), et l'historique indique **quels téléphones ont fait des vérifications** et la date de la dernière de chacun.
+
+Avec plusieurs entrepôts, chaque contrôle est enregistré avec son entrepôt, et la fenêtre a des sélecteurs de site et d'entrepôt et affiche l'entrepôt et le site de chaque article contrôlé. Chaque entrepôt est contrôlé selon son propre cycle (quotidien, hebdomadaire ou mensuel) et avec son nombre d'articles, choisis dans sa fiche, et l'alerte de ce qui manque est calculée entrepôt par entrepôt. La case « Contrôle de l'entrepôt actif sur ce site » l'active ou le désactive pour tous les entrepôts d'un site.
 
 ### Session sur le mobile
 
@@ -712,6 +723,59 @@ triée par emplacement, pour parcourir le magasin avec elle en main ; le PDF et
 l'Excel indiquent aussi la date, le nombre d'articles et combien sont sous le
 minimum (en rouge). Le tableau de stock lui-même s'affiche aussi trié par
 emplacement par défaut (Rayonnage 1, 2… 10).
+
+---
+
+## 🏢 Sites et entrepôts
+
+> Pour ceux qui entretiennent plusieurs usines à eux ou travaillent pour des
+> entreprises clientes. Avec un seul site, rien ne change : le sélecteur n'apparaît pas.
+
+### Sites
+
+- **Création** : `Outils` > `🏢 Sites…` (administrateurs) : nom, type (propre ou
+  client), numéro fiscal, adresse, contact, téléphone, e-mail et notes. Le premier
+  site est créé automatiquement avec le nom de l'entreprise, et toutes les données
+  existantes lui sont attribuées.
+- **Sélecteur** : avec plus d'un site actif, la barre du haut affiche « Site : X /
+  Tous ». Il filtre tous les onglets, le tableau de bord (avec ses indicateurs par
+  site), les statistiques, les coûts et les rapports ; le PDF et l'Excel portent les
+  données du site.
+- **Jours fériés par site** : chaque site peut avoir sa propre région de jours fériés ;
+  le calendrier utilise ceux du site choisi.
+- **Chaque enregistrement avec son site** : interventions, tâches en attente et rappels
+  prennent le site de leur machine ou celui du sélecteur, et on peut le changer en les
+  modifiant. Les zones de machines appartiennent aussi à un site.
+
+### Quels sites voit chaque utilisateur
+
+Dans `Outils` > `👥 Gestion des utilisateurs`, le bouton **🏢 Sites** coche les sites de
+chaque personne (techniciens et magasiniers). Sans aucun coché, elle les voit tous, et
+un administrateur les voit toujours tous. Cela s'applique sur le PC, dans l'API et dans
+les deux applications : le mobile ne reçoit que les données de ses sites et ne peut pas
+écrire dans les autres.
+
+### Entrepôts
+
+- **Création** : `Outils` > `🏬 Entrepôts…` (administrateurs). Chaque entrepôt
+  appartient à un site ou est **commun** (visible depuis tous). L'entrepôt habituel est
+  le principal, celui du site principal.
+- **Stock par entrepôt** : chaque article a son stock, son minimum et son emplacement
+  dans chaque entrepôt. L'onglet du stock a une liste d'entrepôts, et **Transférer**
+  déplace du stock de l'un à l'autre. Les pièces de rechange des machines et des
+  interventions sortent des entrepôts de leur site.
+- **Adresse de livraison** : celle de la fiche de l'entrepôt ou, si elle est vide,
+  celle de son site.
+- **Commandes** : la commande suggérée est calculée entrepôt par entrepôt et peut être
+  filtrée par entrepôt. Chaque commande va à son entrepôt et porte son adresse de
+  livraison dans le texte, l'e-mail, le WhatsApp et le PDF. Avec **Regrouper**, on
+  obtient une seule commande par fournisseur, avec les lignes séparées par entrepôt et
+  leur lieu de livraison.
+- **Contrôle du stock** : dans la fiche de chaque entrepôt, on choisit le cycle
+  (quotidien, hebdomadaire un jour de la semaine ou mensuel un jour du mois) et le
+  nombre d'articles comptés à chaque fois. MantPro Stock suit le cycle de l'entrepôt
+  choisi, même hors ligne. Dans l'historique des contrôles, la case « Contrôle de
+  l'entrepôt actif sur ce site » l'active ou le désactive pour tous les entrepôts d'un site.
 
 ---
 
@@ -892,10 +956,9 @@ Ce qui arrive, sans dates et sans ordre figé :
 - **Demandes d'intervention** depuis la production ou d'autres services, qui créent une intervention en attente
 - **Notifications push** des interventions urgentes
 - **Plusieurs PC à la fois**, serveur sans fenêtre (Raspberry Pi, NAS, Docker) et accès web
-- **Plusieurs sites ou usines** avec données et indicateurs par site
 - Plus de langues (italien…) et application iPhone
 
-Fait récemment : allemand dans les trois applications, vidéos dans la collection de photos des interventions, commande suggérée et commandes enregistrées, fournisseurs et fournisseur habituel de chaque article, coût de maintenance dans le tableau de bord, préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
+Fait récemment : plusieurs sites (sélecteur, rapports, jours fériés et accès de chaque technicien à ses sites) avec plusieurs entrepôts, transferts, commandes et contrôles par entrepôt, allemand dans les trois applications, vidéos dans la collection de photos des interventions, commande suggérée et commandes enregistrées, fournisseurs et fournisseur habituel de chaque article, coût de maintenance dans le tableau de bord, préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

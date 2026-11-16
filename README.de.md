@@ -45,6 +45,7 @@
 - [Benutzer und Zugang](#-benutzer-und-zugang)
 - [Maschinen](#-maschinen)
 - [Lagerbestand](#-lagerbestand)
+- [Standorte und Lager](#-standorte-und-lager)
 - [Synchronisierung PC–Handy](#-synchronisierung-pchandy)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Sicherungen](#-sicherungen)
@@ -179,6 +180,10 @@ Hinweise auf stabile Versionen. Die Änderungen jeder Version stehen in
 - **📦 Lagerbestandsverwaltung**: Konfigurierbare Struktur aus Regalen, Fachböden und Fächern, Materialsteckbrief mit Foto, Zu- und Abgänge mit Verlauf und Warnungen bei Bestand unter Minimum
 - **📄 Bestand exportieren**: Schaltfläche „📄 Exportieren“ im Reiter Lagerbestand, um das ganze Lager, eine Zone oder ein Regal als PDF, CSV oder Excel auszugeben, nach Lagerort sortiert; der Reiter Bestand unter Minimum hat ebenfalls eine Schaltfläche, um nur das Material mit Warnung zu exportieren
 - **🏭 Lieferanten und Stammlieferant**: Lieferantenliste (Name, Ansprechpartner, Telefon, E-Mail und Notizen) über die Schaltfläche „🏭 Lieferanten“ im Reiter Lagerbestand und das Feld „Stammlieferant“ bei jedem Artikel. Preisverlauf pro Lieferant für Administratoren („💶 Preise pro Lieferant…“ im Steckbrief sowie Lieferant und Preis bei den Zugängen). Zielbestand und Bestellvielfaches pro Artikel, mit der vorgeschlagenen Bestellmenge. Bestellvorschlag (was jetzt zu bestellen ist, abzüglich bereits bestellter und noch ausstehender Mengen) und gespeicherte Bestellungen mit Datum, die per E-Mail, WhatsApp, Telefon oder ausgedruckt versendet werden; jeder Zugang verrechnet das Ausstehende. Nur Administratoren
+- **🏢 Mehrere Standorte**: eigene Werke oder Kundenunternehmen, die Sie warten, jeweils mit Steuernummer, Adresse, Ansprechpartner und Feiertagen. Bei mehr als einem Standort erscheint oben die Auswahl „Standort“, die Maschinen, Arbeiten, offene Aufgaben, Erinnerungen, Dashboard, Statistiken, Kosten und Berichte filtert (PDF und Excel enthalten die Daten des Standorts, zur Übergabe an den Kunden). Jeder Techniker kann auf seine eigenen Standorte beschränkt werden (siehe [Standorte und Lager](#-standorte-und-lager))
+- **🏬 Mehrere Lager**: das Hauptlager und beliebig viele weitere pro Standort (zum Beispiel ein Lieferwagen) oder für alle gemeinsam, jedes mit eigenem Bestand, Mindestmengen, Lagerplätzen und Lieferadresse, sowie Umbuchungen zwischen Lagern
+- **🛒 Bestellungen pro Lager**: der Bestellvorschlag wird Lager für Lager berechnet, und jede Bestellung trägt die Lieferadresse ihres Lagers; sie lassen sich auch zu einer einzigen Bestellung pro Lieferant zusammenfassen, mit den Positionen nach Lager getrennt
+- **📦 Lagerprüfung pro Lager**: jedes Lager hat seinen eigenen Prüfzyklus (täglich, wöchentlich oder monatlich) und seine Anzahl Artikel pro Prüfung, und die Prüfung wird pro Standort ein- oder ausgeschaltet
 - **🗑️ Maximale Aufbewahrungsdauer**: Unter `Werkzeuge` lassen sich Arbeiten, die älter als eine bestimmte Zahl von Jahren, Monaten oder Tagen sind, mit ihren Fotos und einer vorherigen Sicherung aus dem Verlauf löschen (nur Administratoren)
 - **📥 Aus Excel/CSV importieren**: `Datei > Aus Excel/CSV importieren…` (nur Administratoren) übernimmt Maschinen, Lagerartikel, wiederkehrende Erinnerungen, Benutzer, offene Arbeiten und alte Arbeitsverläufe aus einer herunterladbaren Vorlage oder aus Ihrer eigenen Excel-Datei (ein Blatt oder die ganze Arbeitsmappe auf einmal), ordnet die Spalten selbst zu, mit Vorschau Zeile für Zeile und vorheriger Sicherung. Nicht vorhandene Lagerorte (Zonen, Regale, Fachböden) und übergeordnete Maschinen werden automatisch angelegt, und die Benutzer erhalten ein vorläufiges Passwort, das sie bei der Anmeldung ändern müssen
 - **🏭 Maschinenverwaltung**: Baum aus Maschinen und Untermaschinen mit Foto, Zähler der Arbeiten pro Jahr und Monat und direkter Verknüpfung aus jeder erfassten oder bearbeiteten Arbeit (siehe [Maschinen](#-maschinen))
@@ -212,6 +217,7 @@ Hinweise auf stabile Versionen. Die Änderungen jeder Version stehen in
 - **⏰ Tägliche Erinnerungen**: Automatische Benachrichtigung um 8:00 Uhr (Ortszeit), wenn offene Arbeiten nicht erledigt sind
 - **🧰 Verbrauchtes Material**: Fügen Sie der Arbeit das verwendete Lagermaterial hinzu, gesucht nach Name oder Code; es wird beim Speichern automatisch vom Bestand abgebucht (siehe [Bei einer Arbeit verbrauchtes Material](#-lagerbestand)). Beim Erledigen einer Erinnerung lassen sich ebenfalls Ersatzteile eintragen, die der Maschine stehen oben, und beim Korrigieren einer Arbeit im Verlauf passt sich der Bestand an
 - **🏭 Maschine verknüpfen**: Wählen Sie in einer Auswahlliste die Maschine oder Untermaschine, an der gearbeitet wurde, sowohl beim Anlegen eines neuen Eintrags als auch beim Bearbeiten eines bereits synchronisierten aus dem Verlauf
+- **🏢 Standortauswahl**: bei mehreren Standorten filtert eine Auswahl oben Dashboard, offene Aufgaben, Erinnerungen, Verlauf und Maschinen, auch offline; Neues wird dem gewählten Standort zugeordnet. Jeder Techniker sieht nur seine Standorte
 - **🔄 Im Hintergrund verbunden**: Solange die App geöffnet ist, auch im Hintergrund, synchronisiert sie weiter mit dem PC und zeigt eine Benachrichtigung („Mit dem PC verbunden“ / „Keine Verbindung zum PC“) mit einer Schaltfläche „Schließen“. Ganz geschlossen verbraucht sie keinen Akku mehr
 - **📶 Erste Synchronisierung mit Fortschritt**: Fortschrittsbalken beim Herunterladen der Daten und Fotos, mit parallelem Download für mehr Tempo
 - **🏷️ Maschine scannen**: Die Scan-Schaltfläche liest das QR-Etikett einer Maschine und öffnet ihren Steckbrief, ohne Verbindung: wo sie steht, ihre letzten Arbeiten, ihre **Ersatzteile** mit dem Lagerbestand und eine Schaltfläche, um eine bereits mit ihr verknüpfte Arbeit zu erfassen
@@ -233,6 +239,7 @@ des Lagerbestands auf dem Handy, ohne die App für Arbeiten zu brauchen.
 - **🔄 Automatische Aktualisierung**: Der Bildschirm aktualisiert sich selbst, wenn Änderungen erkannt werden, egal ob sie auf dem Handy oder auf dem PC vorgenommen wurden
 - **🔌 Offline-Modus**: Ohne Verbindung zum PC wartet die App nicht: Sie zeigt die gespeicherten Daten und lässt Neuanlagen, Änderungen, Zu- und Abgänge sofort erfassen, die automatisch an den PC gesendet werden, sobald er wieder erreichbar ist
 - **🔔 Tägliche Erinnerung zur Bestandsprüfung**: automatische Benachrichtigung um 8:00 Uhr (Ortszeit), die einlädt, die tatsächliche Menge von 5 Lagermaterialien zu prüfen, zufällig ausgewählt und jeden Tag andere; ein Tippen öffnet einen Bildschirm, um die Menge jedes einzelnen zu korrigieren, ohne sie suchen zu müssen. Ist kein Material angelegt, erscheint keine Benachrichtigung. Wird sie halb fertig geschlossen oder der Hinweis verworfen, öffnet die Schaltfläche 📋 „Lagerprüfung“ in der oberen Leiste sie jederzeit am selben Tag erneut, mit denselben Artikeln und dem bereits Geprüften (ein Zähler zeigt, wie viele noch fehlen)
+- **🏬 Mehrere Lager**: eine Auswahl oben, mit den Lagern nach Standort gruppiert, legt fest, in welchem Lager gearbeitet wird (nur die der Standorte des Benutzers). Die Prüfung folgt dem Zyklus dieses Lagers (täglich, wöchentlich oder monatlich) und seiner Artikelanzahl und wird nicht angefordert, wenn sein Standort sie ausgeschaltet hat
 - **🔄 Im Hintergrund verbunden**: wie MantPro synchronisiert sie im Hintergrund weiter, mit ihrer Benachrichtigung; das Benutzersymbol wird **grün**, wenn eine Verbindung zum PC besteht, und **rot**, wenn nicht
 - **🔩 Verwendet in**: Jeder Artikel zeigt, in welchen Maschinen er als Ersatzteil verwendet wird und wie viele jede hat, auch ohne Verbindung
 - **🔍 Hinweis auf Doppelte**: Beim Anlegen oder Bearbeiten eines Artikels weist sie darauf hin, wenn es bereits einen mit demselben Code oder einem sehr ähnlichen Namen gibt, im Vergleich mit den auf dem Handy gespeicherten Artikeln (funktioniert ohne Verbindung)
@@ -489,6 +496,8 @@ dem letzten die Rolle zu entziehen oder ihn zu deaktivieren.
 - **Passwort zurücksetzen**: nützlich, wenn jemand es vergessen hat. Bei der Änderung
   werden alle offenen Sitzungen dieser Person auf dem Handy automatisch geschlossen.
 - **Eigenes Passwort ändern**: `Werkzeuge` > `🔑 Mein Passwort ändern`.
+- **Standorte**: bei mehreren Standorten markiert die Schaltfläche **🏢 Standorte**,
+  welche jede Person sieht (siehe [Standorte und Lager](#-standorte-und-lager)).
 
 ### Gerätesitzungen
 
@@ -546,6 +555,8 @@ durchsuchbar nach Text und exportierbar als Excel oder CSV.
 ### Verlauf der Lagerprüfungen
 
 Jeden Tag schlägt MantPro Stock vor, 5 zufällige Lagerartikel zu prüfen. Die Anwendung hält fest, **wer es getan hat, wann und ob alle 5 geprüft wurden**, mit der gezählten Menge im Vergleich zur Menge im System (auch ohne Verbindung: Es wird gesendet, sobald sich das Handy wieder verbindet). Administratoren sehen es unter `Werkzeuge` > `📦 Verlauf der Lagerprüfungen`: ✅ vollständig, ⚠️ unvollständig oder ❌ nicht geprüft, mit Filtern nach Benutzer, Zeitraum und Status sowie Export als Excel oder CSV. Gab es an den letzten 7 Arbeitstagen einen Tag ohne Prüfung, weist MantPro die Administratoren beim Öffnen darauf hin (und markiert ihn im Verlauf rot), und der Verlauf zeigt, **welche Handys Prüfungen durchgeführt haben** und wann die letzte jedes Handys war.
+
+Bei mehreren Lagern wird jede Prüfung mit ihrem Lager gespeichert, und das Fenster hat eine Standort- und eine Lagerauswahl und zeigt Lager und Standort jedes geprüften Artikels. Jedes Lager wird nach seinem eigenen Zyklus (täglich, wöchentlich oder monatlich) und mit seiner Artikelanzahl geprüft, die in seinem Datenblatt gewählt werden, und der Hinweis auf Fehlendes wird Lager für Lager berechnet. Das Kästchen „Lagerprüfung an diesem Standort aktiv“ schaltet die Prüfung für alle Lager eines Standorts ein oder aus.
 
 ### Sitzung auf dem Handy
 
@@ -693,6 +704,56 @@ Lagerort sortiert, damit Sie damit in der Hand durch das Lager gehen können; PD
 Excel enthalten zusätzlich das Datum, die Anzahl der Materialien und wie viele unter
 dem Minimum liegen (rot). Die Bestandstabelle selbst ist ebenfalls standardmäßig nach
 Lagerort sortiert (Regal 1, 2… 10).
+
+---
+
+## 🏢 Standorte und Lager
+
+> Für alle, die mehrere eigene Werke warten oder für Kundenunternehmen arbeiten. Mit
+> nur einem Standort ändert sich nichts: Die Auswahl erscheint nicht.
+
+### Standorte
+
+- **Anlegen**: `Werkzeuge` > `🏢 Standorte…` (Administratoren): Name, Art (eigen oder
+  Kunde), Steuernummer, Adresse, Ansprechpartner, Telefon, E-Mail und Notizen. Der
+  erste Standort wird automatisch mit dem Firmennamen angelegt, und alle vorhandenen
+  Daten werden ihm zugeordnet.
+- **Auswahl**: bei mehr als einem aktiven Standort zeigt die obere Leiste „Standort: X
+  / Alle“. Sie filtert alle Reiter, das Dashboard (mit seinen Kennzahlen pro Standort),
+  die Statistiken, die Kosten und die Berichte; PDF und Excel enthalten die Daten des
+  Standorts.
+- **Feiertage pro Standort**: jeder Standort kann eine eigene Feiertagsregion haben;
+  der Kalender verwendet die des gewählten Standorts.
+- **Jeder Datensatz mit seinem Standort**: Arbeiten, offene Aufgaben und Erinnerungen
+  übernehmen den Standort ihrer Maschine oder den der Auswahl, und er lässt sich beim
+  Bearbeiten ändern. Auch die Maschinenbereiche gehören zu einem Standort.
+
+### Welche Standorte jeder Benutzer sieht
+
+In `Werkzeuge` > `👥 Benutzerverwaltung` markiert die Schaltfläche **🏢 Standorte** die
+Standorte jeder Person (Techniker und Lagerpersonal). Ist keiner markiert, sieht sie
+alle, und ein Administrator sieht immer alle. Das gilt am PC, in der API und in beiden
+Apps: Das Handy erhält nur die Daten seiner Standorte und kann in anderen nichts ändern.
+
+### Lager
+
+- **Anlegen**: `Werkzeuge` > `🏬 Lager…` (Administratoren). Jedes Lager gehört zu einem
+  Standort oder ist **gemeinsam** (von allen aus sichtbar). Das bisherige Lager ist das
+  Hauptlager des Hauptstandorts.
+- **Bestand pro Lager**: jeder Artikel hat in jedem Lager seinen eigenen Bestand,
+  Mindestbestand und Lagerplatz. Der Reiter Lagerbestand hat eine Lagerauswahl, und
+  **Umbuchen** verschiebt Bestand von einem Lager ins andere. Ersatzteile für Maschinen
+  und Arbeiten kommen aus den Lagern ihres Standorts.
+- **Lieferadresse**: die aus dem Datenblatt des Lagers oder, wenn leer, die seines Standorts.
+- **Bestellungen**: der Bestellvorschlag wird Lager für Lager berechnet und lässt sich
+  nach Lager filtern. Jede Bestellung geht an ihr Lager und trägt dessen Lieferadresse
+  im Text, in der E-Mail, in WhatsApp und im PDF. Mit **Zusammenfassen** entsteht eine
+  einzige Bestellung pro Lieferant, mit den Positionen nach Lager und Lieferort getrennt.
+- **Lagerprüfung**: im Datenblatt jedes Lagers wählt man den Zyklus (täglich,
+  wöchentlich an einem Wochentag oder monatlich an einem Tag des Monats) und wie viele
+  Artikel jedes Mal gezählt werden. MantPro Stock folgt dem Zyklus des gewählten Lagers,
+  auch offline. Im Verlauf der Lagerprüfungen schaltet das Kästchen „Lagerprüfung an
+  diesem Standort aktiv“ die Prüfung für alle Lager eines Standorts ein oder aus.
 
 ---
 
@@ -866,10 +927,9 @@ Was kommt, ohne Termine und ohne feste Reihenfolge:
 - **Arbeitsanfragen** aus der Produktion oder anderen Abteilungen, die eine offene Arbeit anlegen
 - **Push-Benachrichtigungen** für dringende Arbeiten
 - **Mehrere PCs gleichzeitig**, Server ohne Fenster (Raspberry Pi, NAS, Docker) und Webzugang
-- **Mehrere Standorte oder Werke** mit Daten und Kennzahlen pro Standort
 - Weitere Sprachen (Italienisch…) und App für das iPhone
 
-Gerade fertig: Deutsch in den drei Anwendungen, Videos in der Fotosammlung der Arbeiten, Bestellvorschlag und gespeicherte Bestellungen, Lieferanten und Stammlieferant jedes Artikels, Wartungskosten im Dashboard, zählerbasierte Wartungen (Betriebsstunden, Zyklen, km), Arbeitszeit und Arbeitskosten bei jeder Arbeit, verbrauchte Ersatzteile bei jeder Arbeit mit ihren Kosten pro Maschine, Checklisten bei Wartungen und Arbeiten, verschlüsselte Synchronisierung, Datenbanken und Sicherungen sowie ein umfassenderes Änderungsprotokoll.
+Gerade fertig: mehrere Standorte (Auswahl, Berichte, Feiertage und Zugriff jedes Technikers auf seine Standorte) mit mehreren Lagern, Umbuchungen, Bestellungen und Prüfungen pro Lager, Deutsch in den drei Anwendungen, Videos in der Fotosammlung der Arbeiten, Bestellvorschlag und gespeicherte Bestellungen, Lieferanten und Stammlieferant jedes Artikels, Wartungskosten im Dashboard, zählerbasierte Wartungen (Betriebsstunden, Zyklen, km), Arbeitszeit und Arbeitskosten bei jeder Arbeit, verbrauchte Ersatzteile bei jeder Arbeit mit ihren Kosten pro Maschine, Checklisten bei Wartungen und Arbeiten, verschlüsselte Synchronisierung, Datenbanken und Sicherungen sowie ein umfassenderes Änderungsprotokoll.
 
 Die Änderungen jeder Version stehen in [CHANGELOG.md](CHANGELOG.md). Fehlt Ihnen
 etwas? Öffnen Sie ein [*Issue*](https://github.com/AnabasaSoft/MantPro/issues).

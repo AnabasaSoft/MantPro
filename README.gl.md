@@ -45,6 +45,7 @@
 - [Usuarios e acceso](#-usuarios-e-acceso)
 - [Maquinaria](#-maquinaria)
 - [Stock do almacén](#-stock-do-almacén)
+- [Sedes e almacéns](#-sedes-e-almacéns)
 - [Sincronización PC-móbil](#-sincronización-pc-móbil)
 - [MantPro Cloud](#-mantpro-cloud)
 - [Copias de seguranza](#-copias-de-seguranza)
@@ -178,6 +179,10 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📦 Control do stock do almacén**: estrutura de andeis, baldas e seccións configurable, ficha de materiais con foto, entradas/saídas con historial e alertas de stock por baixo do mínimo
 - **📄 Exportar o stock**: botón "📄 Exportar" na lapela de stock para sacar o almacén enteiro, unha zona ou un andel a PDF, CSV ou Excel, ordenado por localización; a lapela de stock por baixo do mínimo tamén ten o seu botón para exportar só os materiais en alerta
 - **🏭 Provedores e provedor habitual**: lista de provedores (nome, persoa de contacto, teléfono, correo e notas) dende o botón «🏭 Provedores» da lapela de stock, e campo «Provedor habitual» en cada artigo. Historial de prezos por provedor para administradores («💶 Prezos por provedor…» na ficha, e provedor e prezo nas entradas de stock). Stock obxectivo e múltiplo de pedido por artigo, coa cantidade que se suxeriría pedir. Pedido suxerido (que pedir agora, descontando o xa pedido e pendente de chegar) e pedidos gardados coa súa data, que se envían por correo, WhatsApp, teléfono ou impresos; cada entrada de stock desconta o pendente. Só administradores
+- **🏢 Varias sedes**: plantas propias ou empresas cliente que mantés, cada unha co seu NIF, enderezo, contacto e festivos. Con máis dunha sede aparece arriba o selector «Sede», que filtra máquinas, traballos, pendentes, avisos, panel, estatísticas, custos e informes (o PDF e o Excel levan os datos da sede, para entregalos ao cliente). Cada técnico pode ver só as súas sedes (ver [Sedes e almacéns](#-sedes-e-almacéns))
+- **🏬 Varios almacéns**: o almacén principal e os que fagan falta por sede (por exemplo, unha furgoneta) ou comúns a todas, cada un co seu stock, mínimos, localizacións e enderezo de entrega, e traspasos de stock entre almacéns
+- **🛒 Pedidos por almacén**: o pedido suxerido calcúlase almacén por almacén e cada pedido leva o enderezo de entrega do seu almacén; tamén se poden agrupar nun só pedido por provedor, coas liñas separadas por almacén
+- **📦 Revisión do almacén por almacén**: cada almacén ten o seu ciclo de revisión (diario, semanal ou mensual) e o seu número de artigos por revisión, e a revisión actívase ou desactívase por sede
 - **🗑️ Tempo máximo de gardado**: `Ferramentas` permite borrar do historial os traballos máis antigos que un número de anos, meses ou días, coas súas fotos e unha copia de seguranza previa (só administradores)
 - **📥 Importar dende Excel/CSV**: `Ficheiro > Importar dende Excel/CSV…` (só administradores) trae máquinas, artigos do almacén, avisos recorrentes, usuarios, pendentes e historial de traballos antigo dende un modelo descargable ou dende o teu propio Excel (unha folla ou todo o libro dunha vez), emparellando soas as columnas, con vista previa fila a fila e copia de seguranza previa. As localizacións (zonas, andeis, baldas) e máquinas superiores que non existan créanse soas, e os usuarios reciben un contrasinal temporal que terán que cambiar ao entrar
 - **🏭 Control de maquinaria**: árbore de máquinas e submáquinas con foto achegada, contador de traballos por ano e mes, e vínculo directo dende cada traballo rexistrado ou editado (ver [Maquinaria](#-maquinaria))
@@ -211,6 +216,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **⏰ Lembretes diarios**: notificación automática ás 8:00 (hora local) se hai traballos pendentes sen completar
 - **🧰 Material usado**: engade ao traballo o material do almacén que empregaches, buscándoo polo nome ou o código; descóntase só do stock ao gardar (ver [Material usado nun traballo](#-stock-do-almacén)). Ao completar un aviso tamén se poden apuntar recambios, saen primeiro os da máquina, e ao corrixir un traballo do historial axústase o stock
 - **🏭 Vincular máquina**: escolle nun despregable a máquina ou submáquina na que se fixo o traballo, tanto ao crear un rexistro novo como ao editar un xa sincronizado do historial
+- **🏢 Selector de sede**: con varias sedes, un selector arriba filtra o panel, os pendentes, os avisos, o historial e as máquinas, tamén sen conexión; o que se crea vai á sede escollida. Cada técnico só ve as súas sedes
 - **🔄 Conectada en segundo plano**: mentres a app está aberta, aínda que sexa en segundo plano, segue sincronizando co PC e mostra unha notificación («Conectado ao PC» / «Sen conexión co PC») cun botón «Pechar». Ao pechala de todo deixa de gastar batería
 - **📶 Primeira sincronización con progreso**: barra de progreso ao descargar os datos e as fotos, con descarga en paralelo para que sexa máis rápida
 - **🏷️ Escanear a máquina**: o botón de escanear le a etiqueta QR dunha máquina e abre a súa ficha, sen conexión: onde está, os seus últimos traballos, os seus **recambios** co stock do almacén, e un botón para rexistrar un traballo xa vinculado a ela
@@ -232,6 +238,7 @@ o stock do almacén dende o móbil sen necesidade da aplicación de traballos.
 - **🔄 Actualización automática**: a pantalla refréscase soa ao detectar cambios, tanto se o cambio se fixo no propio móbil como no PC
 - **🔌 Modo sen conexión**: sen conexión co PC a aplicación non queda esperando: consulta os datos gardados e deixa rexistrar altas, edicións, entradas e saídas ao momento, que se envían soas ao PC en canto volve estar accesible
 - **🔔 Lembrete diario de comprobación de stock**: notificación automática ás 8:00 (hora local) que convida a revisar a cantidade real de 5 materiais do almacén, escollidos ao chou e distintos cada día; ao premela ábrese unha pantalla para corrixir a cantidade de cada un sen ter que buscalos. Se non hai ningún material dado de alta, non se amosa ningunha notificación. Se se pecha a medias ou se descarta o aviso, o botón 📋 «Revisión do almacén» da barra superior volve abrila en calquera momento do día, cos mesmos artigos e o xa revisado (un globo indica cantos faltan)
+- **🏬 Varios almacéns**: un selector arriba, cos almacéns agrupados por sede, escolle en que almacén se traballa (só os das sedes do usuario). A revisión segue o ciclo dese almacén (diario, semanal ou mensual) e o seu número de artigos, e non se pide se a súa sede a ten desactivada
 - **🔄 Conectada en segundo plano**: coma MantPro, segue sincronizando en segundo plano, coa súa notificación; a icona de usuario ponse **verde** se hai conexión co PC e **vermella** se non
 - **🔩 Úsase en**: cada artigo mostra en que máquinas se usa como recambio e cantos leva cada unha, tamén sen conexión
 - **🔍 Aviso de repetidos**: ao crear ou editar un artigo avisa se xa hai outro co mesmo código ou un nome moi parecido, comparando cos artigos gardados no móbil (funciona sen conexión)
@@ -489,6 +496,8 @@ quitarlle o rol ou desactivar o último que queda.
 - **Restablecer o contrasinal**: útil cando alguén o esquece. Ao cambialo
   péchanse automaticamente todas as sesións abertas desa persoa no móbil.
 - **Cambiar o propio contrasinal**: `Ferramentas` > `🔑 Cambiar o meu contrasinal`.
+- **Sedes**: con varias sedes, o botón **🏢 Sedes** marca as que ve cada persoa
+  (ver [Sedes e almacéns](#-sedes-e-almacéns)).
 
 ### Sesións de dispositivos
 
@@ -546,6 +555,8 @@ buscar por texto e exportar a Excel ou CSV.
 ### Historial de revisións do almacén
 
 Cada día MantPro Stock propón revisar 5 artigos do almacén ao chou. A aplicación anota **quen o fixo, cando e se revisou os 5**, coa cantidade contada fronte á que dicía o sistema (tamén se se fai sen conexión: envíase ao reconectar o móbil). Os administradores velo en `Ferramentas` > `📦 Historial de revisións do almacén`: ✅ completa, ⚠️ incompleta ou ❌ sen revisar, con filtros por usuario, período e estado, e exportación a Excel ou CSV. Se nalgún dos últimos 7 días laborables non se fixo ningunha revisión, MantPro avisa aos administradores ao abrir (e márcao en vermello no historial), e o historial indica **que móbiles fixeron revisións** e cando foi a última de cada un.
+
+Con varios almacéns, cada revisión queda gardada co seu almacén, e a xanela ten selectores de sede e de almacén e mostra o almacén e a sede de cada artigo revisado. Cada almacén revísase segundo o seu propio ciclo (diario, semanal ou mensual) e co seu número de artigos, que se escollen na súa ficha, e o aviso do que falta calcúlase almacén por almacén. A caixa «Revisión do almacén activa nesta sede» actívaa ou desactívaa para todos os almacéns dunha sede.
 
 ### Sesión no móbil
 
@@ -688,6 +699,54 @@ para poder percorrer o almacén con ela na man; o PDF e o Excel inclúen ademais
 a data, o número de materiais e cantos están por baixo do mínimo (en
 vermello). A propia táboa de stock tamén se amosa ordenada por localización
 por defecto (Andel 1, 2… 10).
+
+---
+
+## 🏢 Sedes e almacéns
+
+> Para quen mantén varias plantas propias ou traballa para empresas cliente. Cunha
+> soa sede non cambia nada: o selector non aparece.
+
+### Sedes
+
+- **Alta**: `Ferramentas` > `🏢 Sedes…` (administradores): nome, tipo (propia ou
+  cliente), NIF, enderezo, contacto, teléfono, correo e notas. A primeira sede créase
+  soa co nome da empresa e asígnanselle todos os datos que xa había.
+- **Selector**: con máis dunha sede activa, a barra superior mostra «Sede: X /
+  Todas». Filtra todas as pestanas, o panel (cos seus indicadores por sede), as
+  estatísticas, os custos e os informes; o PDF e o Excel levan os datos da sede.
+- **Festivos por sede**: cada sede pode ter a súa propia rexión de festivos; o
+  calendario usa os da sede escollida.
+- **Cada rexistro coa súa sede**: traballos, pendentes e avisos toman a sede da súa
+  máquina ou a do selector, e pódese cambiar ao editalos. As zonas de máquinas tamén
+  son de cada sede.
+
+### Que sedes ve cada usuario
+
+En `Ferramentas` > `👥 Xestión de usuarios`, o botón **🏢 Sedes** marca as sedes de
+cada persoa (técnicos e almacén). Sen ningunha marcada veas todas, e un administrador
+veas sempre todas. Aplícase no PC, na API e nas dúas apps: o móbil só recibe os datos
+das súas sedes e non pode escribir noutras.
+
+### Almacéns
+
+- **Alta**: `Ferramentas` > `🏬 Almacéns…` (administradores). Cada almacén é dunha
+  sede ou **común** (vese dende todas). O almacén de sempre é o principal, da sede
+  principal.
+- **Stock por almacén**: cada artigo leva o seu stock, mínimo e localización en cada
+  almacén. A pestana de stock ten un despregable de almacén, e **Traspasar** move
+  stock dun a outro. As pezas de reposición das máquinas e dos traballos saen dos
+  almacéns da súa sede.
+- **Enderezo de entrega**: o da ficha do almacén ou, se está baleiro, o da súa sede.
+- **Pedidos**: o pedido suxerido calcúlase almacén por almacén e pódese filtrar por
+  almacén. Cada pedido vai ao seu almacén e leva o seu enderezo de entrega no texto, no
+  correo, no WhatsApp e no PDF. Con **Agrupar** sae un só pedido por provedor, coas
+  liñas separadas por almacén e o seu lugar de entrega.
+- **Revisión do almacén**: na ficha de cada almacén escóllese o ciclo (diario, semanal
+  co seu día da semana ou mensual co seu día do mes) e cantos artigos se contan cada
+  vez. MantPro Stock segue o ciclo do almacén escollido, tamén sen conexión. No
+  historial de revisións, a caixa «Revisión do almacén activa nesta sede» actívaa ou
+  desactívaa para todos os almacéns dunha sede.
 
 ---
 
@@ -860,10 +919,9 @@ O que vén, sen datas e sen unha orde pechada:
 - **Solicitudes de traballo** desde produción ou outros departamentos que crean un pendente
 - **Notificacións push** de traballos urxentes
 - **Varios PC á vez**, servidor sen xanela (Raspberry Pi, NAS, Docker) e acceso web
-- **Varios centros ou plantas** con datos e indicadores por centro
 - Máis idiomas (italiano…) e app para iPhone
 
-Feito hai pouco: alemán nas tres aplicacións, vídeos na colección de fotos dos traballos, pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: varias sedes (selector, informes, festivos e acceso de cada técnico ás súas sedes) con varios almacéns, traspasos, pedidos e revisións por almacén, alemán nas tres aplicacións, vídeos na colección de fotos dos traballos, pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
