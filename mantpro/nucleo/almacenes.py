@@ -48,9 +48,11 @@ PREFIJO_TRASPASO_A = "Traspaso a: "
 PREFIJO_TRASPASO_DESDE = "Traspaso desde: "
 
 
-def _t(clave):
+def _t(clave, defecto=None):
+    """Texto traducido; si el idioma aún no lo tiene (devuelve la clave), [defecto]."""
     from .. import idiomas
-    return idiomas.t(clave)
+    texto = idiomas.t(clave)
+    return defecto if (defecto and texto == clave) else texto
 
 
 def _conn():
@@ -77,9 +79,12 @@ def inicializar(con):
             con.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} INTEGER")
     con.execute("CREATE INDEX IF NOT EXISTS idx_materiales_almacen ON materiales(almacen_id)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_materiales_articulo ON materiales(articulo_id)")
+    nombre_principal = _t("almacen_principal_nombre", "Almacén principal")
     if not con.execute("SELECT 1 FROM almacenes WHERE principal = 1").fetchone():
         con.execute("INSERT INTO almacenes (nombre, principal, uuid) VALUES (?, 1, ?)",
-                    (_t("almacen_principal_nombre"), UUID_PRINCIPAL))
+                    (nombre_principal, UUID_PRINCIPAL))
+    # Arreglo: se llegó a crear con la clave de traducción como nombre
+    con.execute("UPDATE almacenes SET nombre = ? WHERE nombre = 'almacen_principal_nombre'", (nombre_principal,))
 
 
 # ---------------------------------------------------------------- consultas

@@ -66,9 +66,11 @@ def _conn():
     return con
 
 
-def _t(clave):
+def _t(clave, defecto=None):
+    """Texto traducido; si el idioma aún no lo tiene (devuelve la clave), [defecto]."""
     from .. import idiomas
-    return idiomas.t(clave)
+    texto = idiomas.t(clave)
+    return defecto if (defecto and texto == clave) else texto
 
 
 def inicializar():
@@ -139,7 +141,9 @@ def inicializar():
     """)
     if not con.execute("SELECT 1 FROM sedes WHERE principal = 1").fetchone():
         con.execute("INSERT INTO sedes (nombre, tipo, principal, uuid) VALUES (?, ?, 1, ?)",
-                    (_t("sede_principal_nombre"), TIPO_PROPIA, UUID_PRINCIPAL))
+                    (_t("sede_principal_nombre", "Sede principal"), TIPO_PROPIA, UUID_PRINCIPAL))
+    con.execute("UPDATE sedes SET nombre = ? WHERE nombre = 'sede_principal_nombre'",
+                (_t("sede_principal_nombre", "Sede principal"),))
     con.commit()
     con.close()
 

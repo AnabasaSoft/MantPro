@@ -1693,6 +1693,7 @@ class _TabDashboardState extends State<TabDashboard> {
     super.initState();
     _inicializarDatos();
     datosSincronizadosNotifier.addListener(_alSincronizar);
+    sedeElegidaNotifier.addListener(_alSincronizar);   // al cambiar de sede, las cifras de esa sede
     conexionNotifier.addListener(_alCambiarConexion);
     RutasServidor.enNube.addListener(_alCambiarConexion);
   }
@@ -1709,6 +1710,7 @@ class _TabDashboardState extends State<TabDashboard> {
   @override
   void dispose() {
     datosSincronizadosNotifier.removeListener(_alSincronizar);
+    sedeElegidaNotifier.removeListener(_alSincronizar);
     conexionNotifier.removeListener(_alCambiarConexion);
     RutasServidor.enNube.removeListener(_alCambiarConexion);
     super.dispose();
@@ -1729,7 +1731,13 @@ class _TabDashboardState extends State<TabDashboard> {
   // (trabajos del PC en caché + colas de sincronización pendientes + historial local + avisos en caché).
   Future<Map<String, dynamic>> _calcularStatsOffline() async {
     final prefs = await SharedPreferences.getInstance();
-    int listLen(String? raw) { if (raw == null) return 0; try { return (json.decode(raw) as List).length; } catch (_) { return 0; } }
+    // Solo lo de la sede elegida (cada elemento guarda su sede en «sede_id» o «sedeId»)
+    int listLen(String? raw) {
+      if (raw == null) return 0;
+      try {
+        return (json.decode(raw) as List).where((e) => e is! Map || enSedeElegida(e['sede_id'] ?? e['sedeId'])).length;
+      } catch (_) { return 0; }
+    }
 
     // Pendientes = trabajos del PC en caché + nuevos creados offline - completados/borrados offline (aún sin subir)
     int nPendientes = listLen(prefs.getString('trabajos_pc'))
@@ -1745,6 +1753,7 @@ class _TabDashboardState extends State<TabDashboard> {
       final h = prefs.getString('historial_cache');
       if (h != null) {
         for (var item in (json.decode(h) as List)) {
+          if (item is Map && !enSedeElegida(item['sedeId'] ?? item['sede_id'])) continue;
           // En los registros de historial la fecha viaja en 'titulo' (ver Registro.toJson), no en 'fecha'.
           final fecha = (item['titulo'] ?? item['fecha'] ?? '').toString();
           if (fecha.startsWith(mesActual)) nMes++;
@@ -1769,7 +1778,7 @@ class _TabDashboardState extends State<TabDashboard> {
     if (!mounted) return;
     setState(() { _cargando = true; _conexionActiva = false; });
     try {
-      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard${sedeElegidaNotifier.value == null ? '' : '?sede=${sedeElegidaNotifier.value}'}")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         setState(() { _stats = json.decode(res.body); _conexionActiva = true; });
         final prefs = await SharedPreferences.getInstance();
@@ -1791,7 +1800,7 @@ class _TabDashboardState extends State<TabDashboard> {
     final ruta = (await SharedPreferences.getInstance()).getString(RutasServidor.claveActiva);
     if (ruta != null && mounted) setState(() => _urlPC = ruta);
     try {
-      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard")).timeout(const Duration(seconds: 3));
+      final res = await httpGetAuth(Uri.parse("$esquemaPC://$_urlPC/api/dashboard${sedeElegidaNotifier.value == null ? '' : '?sede=${sedeElegidaNotifier.value}'}")).timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         setState(() { _stats = json.decode(res.body); _conexionActiva = true; _cargando = false; });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_conexion_recuperada")), duration: const Duration(seconds: 2)));
