@@ -87,6 +87,15 @@ def inicializar():
         CREATE INDEX IF NOT EXISTS idx_pedidos_lineas_pedido ON pedidos_lineas(pedido_id);
         CREATE INDEX IF NOT EXISTS idx_pedidos_lineas_material ON pedidos_lineas(material_id);
     """)
+    # Almacén de entrega del pedido (NULL: el principal). Un pedido agrupado lleva
+    # líneas de varios almacenes: agrupado = 1 y cada línea va al de su artículo.
+    columnas = almacen._columnas(con, "pedidos")
+    if "almacen_id" not in columnas:
+        con.execute("ALTER TABLE pedidos ADD COLUMN almacen_id INTEGER")
+    if "agrupado" not in columnas:
+        con.execute("ALTER TABLE pedidos ADD COLUMN agrupado INTEGER NOT NULL DEFAULT 0")
+    if "almacen_id" not in almacen._columnas(con, "pedidos_lineas"):
+        con.execute("ALTER TABLE pedidos_lineas ADD COLUMN almacen_id INTEGER")
     con.commit()
     con.close()
 
@@ -145,20 +154,22 @@ def _ultimo_precio_y_referencia(material, proveedor_id):
     return precio, referencia
 
 
-def lineas_sugeridas():
-    """Qué pedir ahora. Devuelve (lineas, sin_calculo):
+def lineas_sugeridas(almacen_ids=None):
+    """Qué pedir ahora, almacén por almacén (cada artículo de cada almacén con su
+    stock y su mínimo). [almacen_ids]: un id, una lista o None (todos). Devuelve (lineas, sin_calculo):
 
     - lineas: una por artículo por debajo de su mínimo al que haga falta pedir,
       con material_id, codigo, nombre, unidad, stock, minimo, objetivo, pendiente
       (lo ya pedido), cantidad, proveedor_id (el habitual, o None), precio
-      (estimado) y referencia (del proveedor).
+      (estimado), referencia (del proveedor) y almacen_id (el efectivo).
     - sin_calculo: cuántos artículos por debajo del mínimo no se pueden calcular
       (sin stock mínimo ni objetivo).
     """
     factor = pedidos.factor_objetivo()
     pendiente = pendiente_de_llegar()
     lineas, sin_calculo = [], 0
-    for m in almacen.materiales_bajo_minimo():
+    from . import almacenes
+    for m in almacen.materiales_bajo_minimo(almacen_ids=almacen_ids):
         if pedidos.objetivo_efectivo(m) is None:
             sin_calculo += 1
             continue
@@ -173,18 +184,22 @@ def lineas_sugeridas():
         lineas.append({"material_id": m["id"], "codigo": m.get("codigo") or "", "nombre": m["nombre"],
                        "unidad": m.get("unidad") or "", "stock": m["stock_actual"], "minimo": m["stock_minimo"],
                        "objetivo": pedidos.objetivo_efectivo(m), "pendiente": pend, "cantidad": cantidad,
-                       "proveedor_id": prov, "precio": precio, "referencia": referencia})
+                       "proveedor_id": prov, "precio": precio, "referencia": referencia,
+                       "almacen_id": almacenes.efectivo(m.get("almacen_id"))})
     return lineas, sin_calculo
 
 
 # ------------------------------------------------------------ pedidos guardados
 
-def crear_pedidos(lineas, usuario_nombre="", fecha=None, nota=""):
-    """Guarda un pedido por proveedor con las [lineas] ({material_id, cantidad,
+def crear_pedidos(lineas, usuario_nombre="", fecha=None, nota="", agrupar=False):
+    """Guarda un pedido por proveedor y almacén (el del artículo de cada línea) o,
+    con [agrupar], uno por proveedor con las líneas de todos sus almacenes (cada
+    una se entrega en el suyo). Las [lineas] son ({material_id, cantidad,
     proveedor_id, y opcionalmente precio y referencia}). Devuelve (ids, errores):
     la lista de ids de los pedidos creados y, por cada línea que no se ha podido
     guardar, un código («sin_proveedor», «proveedor_no_existe»,
     «material_no_existe», «cantidad_no_valida»). Si una línea falla, el resto se guarda."""
+    from . import almacenes
     fecha = fecha if _fecha_valida(fecha) else _hoy()
     grupos, errores = {}, []
     for l in lineas:
@@ -205,25 +220,31 @@ def crear_pedidos(lineas, usuario_nombre="", fecha=None, nota=""):
             precio = _num(l.get("precio"))
         if (l.get("referencia") or "").strip():
             referencia = l["referencia"].strip()
-        grupos.setdefault(proveedor["id"], (proveedor, []))[1].append(
-            (material, cantidad, precio, referencia))
+        alm = almacenes.guardable(almacenes.efectivo(material.get("almacen_id")))
+        clave = proveedor["id"] if agrupar else (proveedor["id"], alm)
+        grupos.setdefault(clave, (proveedor, []))[1].append((material, cantidad, precio, referencia, alm))
     ids = []
     for proveedor, items in grupos.values():
+        destinos = {i[4] for i in items}
+        alm_pedido = next(iter(destinos)) if len(destinos) == 1 else None
         con = almacen._conn()
         pedido_id = con.execute(
-            "INSERT INTO pedidos (proveedor_id, proveedor_nombre, fecha, usuario_nombre, nota) VALUES (?,?,?,?,?)",
-            (proveedor["id"], proveedor["nombre"], fecha, (usuario_nombre or "")[:200], (nota or "")[:2000])).lastrowid
-        for material, cantidad, precio, referencia in items:
-            con.execute("""INSERT INTO pedidos_lineas (pedido_id, material_id, codigo, nombre, unidad, cantidad, precio, referencia)
-                           VALUES (?,?,?,?,?,?,?,?)""",
+            """INSERT INTO pedidos (proveedor_id, proveedor_nombre, fecha, usuario_nombre, nota, almacen_id, agrupado)
+               VALUES (?,?,?,?,?,?,?)""",
+            (proveedor["id"], proveedor["nombre"], fecha, (usuario_nombre or "")[:200], (nota or "")[:2000],
+             alm_pedido, 1 if len(destinos) > 1 else 0)).lastrowid
+        for material, cantidad, precio, referencia, _alm in items:
+            con.execute("""INSERT INTO pedidos_lineas (pedido_id, material_id, codigo, nombre, unidad, cantidad, precio,
+                                                        referencia, almacen_id)
+                           VALUES (?,?,?,?,?,?,?,?,?)""",
                         (pedido_id, material["id"], material.get("codigo") or "", material["nombre"],
-                         material.get("unidad") or "", cantidad, precio, referencia))
+                         material.get("unidad") or "", cantidad, precio, referencia, _alm))
         con.commit()
         con.close()
         ids.append(pedido_id)
         _usuarios.auditar("almacen", "crear", f"Pedido {pedido_id} a {proveedor['nombre']}",
                           detalle="\n".join(f"{c:g} {m.get('unidad') or ''} {m['nombre']}".replace("  ", " ")
-                                            for m, c, _p, _r in items))
+                                            for m, c, _p, _r, _a in items))
     return ids, errores
 
 
@@ -240,8 +261,18 @@ def _lineas(con, pedido_id):
 
 
 def _resumen(con, p):
+    from . import almacenes
     d = dict(p)
     d["lineas"] = _lineas(con, d["id"])
+    nombres = almacenes.nombres()
+    for l in d["lineas"]:
+        # Las líneas antiguas no tienen almacén: el del pedido
+        l["almacen_id"] = almacenes.efectivo(l.get("almacen_id") if l.get("almacen_id") is not None
+                                             else d.get("almacen_id"))
+        l["almacen_nombre"] = nombres.get(l["almacen_id"], "")
+    d["almacen_ids"] = sorted({l["almacen_id"] for l in d["lineas"] if l["almacen_id"] is not None}) or \
+        [almacenes.efectivo(d.get("almacen_id"))]
+    d["almacen_nombre"] = ", ".join(nombres.get(a, "") for a in d["almacen_ids"])
     total, sin_precio = 0.0, False
     for l in d["lineas"]:
         if l["precio"] is None:
@@ -262,9 +293,10 @@ def obtener_pedido(pedido_id):
     return resultado
 
 
-def listar_pedidos(solo_abiertos=False):
+def listar_pedidos(solo_abiertos=False, almacen_ids=None):
     """Pedidos del más reciente al más antiguo (con sus líneas). [solo_abiertos]:
-    solo los que aún no han llegado enteros ni están cancelados."""
+    solo los que aún no han llegado enteros ni están cancelados. [almacen_ids]: solo
+    los que entregan algo en esos almacenes (un id, una lista o None = todos)."""
     con = almacen._conn()
     sql = "SELECT * FROM pedidos"
     parametros = ()
@@ -274,6 +306,9 @@ def listar_pedidos(solo_abiertos=False):
     filas = con.execute(sql + " ORDER BY fecha DESC, id DESC", parametros).fetchall()
     lista = [_resumen(con, f) for f in filas]
     con.close()
+    if almacen_ids is not None:
+        ids = {almacen_ids} if isinstance(almacen_ids, int) else set(almacen_ids)
+        lista = [p for p in lista if ids & set(p["almacen_ids"])]
     return lista
 
 
@@ -401,16 +436,48 @@ def asunto_pedido(pedido):
     return _t("cmp_asunto", n=pedido["id"], fecha=idiomas.formato_fecha_localizada(pedido["fecha"]))
 
 
+def lugar_entrega(entrega):
+    """Texto de un lugar de entrega: «Almacén (Sede) — dirección, contacto, teléfono»."""
+    nombre = entrega["almacen"] + (f" ({entrega['sede']})" if entrega["sede"] and entrega["sede"] != entrega["almacen"] else "")
+    resto = ", ".join(x for x in (entrega["direccion"], entrega["contacto"], entrega["telefono"]) if x)
+    return f"{nombre} — {resto}" if resto else nombre
+
+
+def entregas(pedido):
+    """Las líneas del pedido por lugar de entrega: lista de (entrega, lineas), con
+    entrega como la da almacenes.entrega(). Vacía si no hace falta decir dónde
+    (un solo almacén y sin dirección de entrega)."""
+    from . import almacenes
+    grupos = {}
+    for l in pedido["lineas"]:
+        grupos.setdefault(l["almacen_id"], []).append(l)
+    lista = [(almacenes.entrega(a), ls) for a, ls in grupos.items()]
+    if len(lista) == 1 and not lista[0][0]["direccion"] and not almacenes.hay_varios():
+        return []
+    return lista
+
+
 def texto_pedido(pedido, firma=""):
     """Texto del pedido listo para pegar en un correo o mensaje, en el idioma activo.
-    Sin precios: es lo que ve el proveedor."""
-    lineas = []
-    for l in pedido["lineas"]:
+    Sin precios: es lo que ve el proveedor. Con varios almacenes, las líneas van
+    agrupadas por lugar de entrega."""
+    def linea_texto(l):
         resto = f"{_cantidad_texto(l['cantidad'])} {l['unidad']}".strip()
         linea = f"• {resto} — {l['nombre']}"
         if l["referencia"]:
             linea += f" ({_t('cmp_txt_ref', ref=l['referencia'])})"
-        lineas.append(linea)
+        return linea
+
+    lugares = entregas(pedido)
+    if len(lugares) > 1:
+        lineas = []
+        for entrega, ls in lugares:
+            lineas += [_t("cmp_txt_entrega", lugar=lugar_entrega(entrega)), *[linea_texto(l) for l in ls], ""]
+        lineas = lineas[:-1]
+    else:
+        lineas = [linea_texto(l) for l in pedido["lineas"]]
+        if lugares:
+            lineas += ["", _t("cmp_txt_entrega", lugar=lugar_entrega(lugares[0][0]))]
     cuerpo = [_t("cmp_txt_saludo"), "", _t("cmp_txt_intro"), "", *lineas, "", _t("cmp_txt_cierre")]
     if firma:
         cuerpo.append(firma)
@@ -469,19 +536,32 @@ def generar_pdf(pedido_id, ruta, firma=""):
              f"<b>{escape(_t('cmp_pdf_fecha'))}:</b> {escape(idiomas.formato_fecha_localizada(pedido['fecha']))}"]
     if prov and prov.get("contacto"):
         datos.append(f"<b>{escape(_t('prov_lbl_contacto'))}:</b> {escape(prov['contacto'])}")
+    lugares = entregas(pedido)
+    if len(lugares) == 1:
+        datos.append(f"<b>{escape(_t('cmp_pdf_entrega'))}:</b> {escape(lugar_entrega(lugares[0][0]))}")
     for d in datos:
         historia.append(Paragraph(d, normal))
-    historia.append(Spacer(1, 0.5 * cm))
-    filas = [[Paragraph(f"<b>{escape(_t('cmp_hdr_ref'))}</b>", celda), Paragraph(f"<b>{escape(_t('cmp_hdr_articulo'))}</b>", celda),
-              Paragraph(f"<b>{escape(_t('prov_hdr_cantidad'))}</b>", celda)]]
-    for l in pedido["lineas"]:
-        filas.append([Paragraph(escape(l["referencia"] or l["codigo"]), celda), Paragraph(escape(l["nombre"]), celda),
-                      Paragraph(escape(f"{_cantidad_texto(l['cantidad'])} {l['unidad']}".strip()), celda)])
-    tabla = Table(filas, colWidths=[3.5 * cm, 10 * cm, 3.5 * cm], repeatRows=1)
-    tabla.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8e8e8")),
-                               ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#999999")),
-                               ("VALIGN", (0, 0), (-1, -1), "TOP")]))
-    historia.append(tabla)
+
+    def tabla_de(lineas):
+        filas = [[Paragraph(f"<b>{escape(_t('cmp_hdr_ref'))}</b>", celda), Paragraph(f"<b>{escape(_t('cmp_hdr_articulo'))}</b>", celda),
+                  Paragraph(f"<b>{escape(_t('prov_hdr_cantidad'))}</b>", celda)]]
+        for l in lineas:
+            filas.append([Paragraph(escape(l["referencia"] or l["codigo"]), celda), Paragraph(escape(l["nombre"]), celda),
+                          Paragraph(escape(f"{_cantidad_texto(l['cantidad'])} {l['unidad']}".strip()), celda)])
+        tabla = Table(filas, colWidths=[3.5 * cm, 10 * cm, 3.5 * cm], repeatRows=1)
+        tabla.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8e8e8")),
+                                   ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#999999")),
+                                   ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        return tabla
+
+    if len(lugares) > 1:
+        # Pedido agrupado: una tabla por lugar de entrega
+        for entrega, ls in lugares:
+            historia += [Spacer(1, 0.5 * cm),
+                         Paragraph(f"<b>{escape(_t('cmp_pdf_entrega'))}:</b> {escape(lugar_entrega(entrega))}", normal),
+                         Spacer(1, 0.15 * cm), tabla_de(ls)]
+    else:
+        historia += [Spacer(1, 0.5 * cm), tabla_de(pedido["lineas"])]
     if pedido["nota"]:
         historia += [Spacer(1, 0.4 * cm), Paragraph(escape(pedido["nota"]), normal)]
     historia += [Spacer(1, 0.8 * cm), Paragraph(escape(_t("cmp_txt_cierre")), normal)]

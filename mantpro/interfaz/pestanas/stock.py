@@ -715,12 +715,15 @@ class PestanaStock:
         if not usuarios.es_admin(): return
         from ..dialogos.compras import DialogoPedidos, DialogoPedidoSugerido
         seleccionar = None
+        # Solo los almacenes de la sede elegida; sale marcado el que se está viendo
+        visibles = almacenes.listar(self.sede_filtro())
+        actual = self.combo_almacen_stock.currentData() if hasattr(self, "combo_almacen_stock") else None
         if sugerido:
-            dlg = DialogoPedidoSugerido(self)
+            dlg = DialogoPedidoSugerido(self, visibles, actual)
             if not dlg.exec() or not dlg.pedidos_creados:
                 return
             seleccionar = dlg.pedidos_creados[0]
-        DialogoPedidos(self, seleccionar).exec()
+        DialogoPedidos(self, seleccionar, visibles, actual).exec()
         self.refresh_stock_alertas()
 
     def stock_gestionar_proveedores(self):

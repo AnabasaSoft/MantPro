@@ -74,6 +74,9 @@ def inicializar(con):
             uuid      TEXT
         )
     """)
+    # Dirección de entrega propia (vacía: la de su sede)
+    if "direccion" not in almacen._columnas(con, "almacenes"):
+        con.execute("ALTER TABLE almacenes ADD COLUMN direccion TEXT")
     for tabla, columna in (("materiales", "almacen_id"), ("zonas", "almacen_id"), ("materiales", "articulo_id")):
         if columna not in almacen._columnas(con, tabla):
             con.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} INTEGER")
@@ -173,13 +176,31 @@ def en_uso(almacen_id):
     return {"materiales": n_mat, "zonas": n_zon}
 
 
+def entrega(almacen_id):
+    """Dónde se entrega lo pedido para un almacén (None = el principal): dict con
+    `almacen` (nombre), `sede` (nombre), `direccion`, `contacto` y `telefono`. La
+    dirección es la propia del almacén o, si está vacía, la de su sede (la principal
+    para el almacén principal y los comunes)."""
+    from . import sedes
+    a = obtener(efectivo(almacen_id)) or {}
+    sede = {}
+    try:
+        sede = sedes.obtener(sedes.efectiva(a.get("sede_id"))) or {}
+    except Exception:          # sin base de datos de sedes (pruebas aisladas)
+        sede = {}
+    return {"almacen": a.get("nombre") or "", "sede": sede.get("nombre") or "",
+            "direccion": (a.get("direccion") or "").strip() or (sede.get("direccion") or "").strip(),
+            "contacto": (sede.get("contacto") or "").strip(), "telefono": (sede.get("telefono") or "").strip()}
+
+
 # ---------------------------------------------------------------- altas y cambios
 
 def _datos(d):
     from . import sedes
     sede = d.get("sede_id")
     return {"nombre": str(d.get("nombre") or "").strip(), "comun": 1 if d.get("comun") else 0,
-            "sede_id": None if d.get("comun") else sedes.guardable(sede), "notas": str(d.get("notas") or "").strip()}
+            "sede_id": None if d.get("comun") else sedes.guardable(sede), "notas": str(d.get("notas") or "").strip(),
+            "direccion": str(d.get("direccion") or "").strip()}
 
 
 def _repetido(con, nombre, excluir_id=None):
@@ -196,8 +217,8 @@ def crear(datos):
     if _repetido(con, d["nombre"]):
         con.close()
         return None, "nombre_repetido"
-    nuevo = con.execute("INSERT INTO almacenes (nombre, sede_id, comun, notas) VALUES (?, ?, ?, ?)",
-                        (d["nombre"], d["sede_id"], d["comun"], d["notas"])).lastrowid
+    nuevo = con.execute("INSERT INTO almacenes (nombre, sede_id, comun, notas, direccion) VALUES (?, ?, ?, ?, ?)",
+                        (d["nombre"], d["sede_id"], d["comun"], d["notas"], d["direccion"])).lastrowid
     con.commit()
     con.close()
     _usuarios.auditar("almacen", "crear", _t("almacen_auditoria").format(nombre=d["nombre"]))
@@ -218,8 +239,8 @@ def actualizar(almacen_id, datos):
     if _repetido(con, d["nombre"], almacen_id):
         con.close()
         return "nombre_repetido"
-    con.execute("UPDATE almacenes SET nombre = ?, sede_id = ?, comun = ?, notas = ? WHERE id = ?",
-                (d["nombre"], d["sede_id"], d["comun"], d["notas"], almacen_id))
+    con.execute("UPDATE almacenes SET nombre = ?, sede_id = ?, comun = ?, notas = ?, direccion = ? WHERE id = ?",
+                (d["nombre"], d["sede_id"], d["comun"], d["notas"], d["direccion"], almacen_id))
     con.commit()
     con.close()
     _usuarios.auditar("almacen", "editar", _t("almacen_auditoria").format(nombre=d["nombre"]))

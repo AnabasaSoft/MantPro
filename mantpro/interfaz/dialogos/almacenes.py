@@ -72,6 +72,10 @@ class DialogoEditarAlmacen(QDialog):
         self.chk_comun.toggled.connect(lambda c: self.combo_sede.setEnabled(not c))
         self.combo_sede.setEnabled(not self.chk_comun.isChecked())
         f.addRow("", self.chk_comun)
+        self.campo_direccion = QLineEdit(alm.get("direccion") or "")
+        self.campo_direccion.setPlaceholderText(tt("alm_ph_direccion", "Vacía: la dirección de su sede"))
+        self.campo_direccion.setToolTip(tt("alm_tt_direccion", "Dirección de entrega que sale en los pedidos a proveedores de este almacén."))
+        f.addRow(tt("alm_lbl_direccion", "Dirección de entrega"), self.campo_direccion)
         if alm.get("principal"):   # el principal es siempre de la sede principal
             self.combo_sede.setEnabled(False); self.chk_comun.setEnabled(False)
         l.addLayout(f)
@@ -94,7 +98,8 @@ class DialogoEditarAlmacen(QDialog):
 
     def get_data(self):
         return {"nombre": self.campo_nombre.text().strip(), "sede_id": self.combo_sede.currentData(),
-                "comun": self.chk_comun.isChecked(), "notas": self.campo_notas.toPlainText().strip()}
+                "comun": self.chk_comun.isChecked(), "notas": self.campo_notas.toPlainText().strip(),
+                "direccion": self.campo_direccion.text().strip()}
 
 
 class DialogoAlmacenes(QDialog):

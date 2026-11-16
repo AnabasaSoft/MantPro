@@ -34,7 +34,7 @@ from PyQt6.QtGui import QColor, QDesktopServices
 from ... import idiomas
 from ...idiomas import t, formato_fecha_localizada
 from ..comun import tt
-from ...nucleo import almacen, compras, consumos, proveedores, usuarios
+from ...nucleo import almacen, almacenes, compras, consumos, proveedores, usuarios
 from ...nucleo.rutas import DATA_DIR
 
 
@@ -71,23 +71,46 @@ class _TablaSugerido(QTableWidget):
 class DialogoPedidoSugerido(QDialog):
     """Qué pedir ahora: una fila por artículo por debajo del mínimo, con la cantidad
     calculada (objetivo − stock − lo ya pedido), el proveedor y el importe estimado.
-    Todo es editable; «Crear pedidos» guarda un pedido por proveedor."""
-    def __init__(self, parent=None):
+    Todo es editable; «Crear pedidos» guarda un pedido por proveedor y almacén (o,
+    con «Agrupar», uno por proveedor con las líneas de cada almacén).
+
+    [almacenes_visibles]: los almacenes que se pueden elegir (dicts de
+    nucleo/almacenes; None = todos). [almacen_inicial]: el que sale elegido (None = todos)."""
+    def __init__(self, parent=None, almacenes_visibles=None, almacen_inicial=None):
         super().__init__(parent)
         self.setWindowTitle(tt("cmp_title_sugerido", "Pedido sugerido"))
-        self.resize(980, 540)
+        self.resize(1080, 560)
         self.pedidos_creados = []
         self.moneda = consumos.moneda()
         self._proveedores = proveedores.listar_proveedores()
-        self._lineas, sin_calculo = compras.lineas_sugeridas()
+        self._almacenes = almacenes_visibles if almacenes_visibles is not None else almacenes.listar()
+        self._varios = len(self._almacenes) > 1
+        self._nombres_almacen = almacenes.nombres()
+        self._lineas = []
         l = QVBoxLayout()
         info = QLabel(tt("cmp_sug_info", "Artículos por debajo del mínimo. La cantidad sale del stock objetivo, lo que hay y lo que ya está pedido y pendiente de llegar."))
         info.setWordWrap(True)
         l.addWidget(info)
-        if sin_calculo:
-            aviso = QLabel(tt("cmp_sug_sin_calculo", "{n} artículos por debajo del mínimo no se pueden calcular: no tienen stock mínimo ni objetivo.").format(n=sin_calculo))
-            aviso.setWordWrap(True); aviso.setStyleSheet("color:#d98a00;")
-            l.addWidget(aviso)
+        # Almacén: el pedido sugerido se calcula almacén por almacén
+        fila_alm = QHBoxLayout()
+        fila_alm.addWidget(QLabel(tt("lbl_almacen", "Almacén") + ":"))
+        self.combo_almacen = QComboBox()
+        if self._varios:
+            self.combo_almacen.addItem(tt("cmp_sug_todos_almacenes", "Todos los almacenes"), None)
+        for a in self._almacenes:
+            self.combo_almacen.addItem(("🌐 " if a["comun"] else "") + a["nombre"], a["id"])
+        if almacen_inicial is not None and self.combo_almacen.findData(almacen_inicial) >= 0:
+            self.combo_almacen.setCurrentIndex(self.combo_almacen.findData(almacen_inicial))
+        self.combo_almacen.currentIndexChanged.connect(lambda _i: self._recargar())
+        fila_alm.addWidget(self.combo_almacen)
+        fila_alm.addStretch()
+        l.addLayout(fila_alm)
+        for w in (fila_alm.itemAt(i).widget() for i in range(fila_alm.count())):
+            if w is not None:
+                w.setVisible(self._varios)
+        self.lbl_sin_calculo = QLabel()
+        self.lbl_sin_calculo.setWordWrap(True); self.lbl_sin_calculo.setStyleSheet("color:#d98a00;")
+        l.addWidget(self.lbl_sin_calculo)
         self._aplicando = False   # evita rebotes al marcar varias casillas a la vez
         barra_marcas = QHBoxLayout()
         for clave, texto, accion in (("cmp_btn_marcar_sel", "☑️ Marcar selección", lambda: self._marcar_seleccion(True)),
@@ -99,11 +122,12 @@ class DialogoPedidoSugerido(QDialog):
             barra_marcas.addWidget(b)
         barra_marcas.addStretch()
         l.addLayout(barra_marcas)
-        self.tabla = _TablaSugerido(0, 9)
+        self.tabla = _TablaSugerido(0, 10)
         self.tabla.setHorizontalHeaderLabels([
             tt("cmp_sug_hdr_pedir", "PEDIR"), tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_stock", "STOCK"),
             tt("cmp_sug_hdr_pendiente", "YA PEDIDO"), tt("prov_hdr_cantidad", "CANTIDAD"), tt("prov_lbl_proveedor", "Proveedor").upper(),
-            tt("cmp_sug_hdr_precio", "PRECIO EST."), tt("lbl_importe", "Importe").upper()])
+            tt("cmp_sug_hdr_precio", "PRECIO EST."), tt("lbl_importe", "Importe").upper(), tt("lbl_almacen", "Almacén").upper()])
+        self.tabla.setColumnHidden(9, not self._varios)
         cab = self.tabla.horizontalHeader()
         cab.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         cab.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
@@ -120,6 +144,10 @@ class DialogoPedidoSugerido(QDialog):
         l.addWidget(self.lbl_vacio)
         self.lbl_total = QLabel(); self.lbl_total.setAlignment(Qt.AlignmentFlag.AlignRight)
         l.addWidget(self.lbl_total)
+        self.chk_agrupar = QCheckBox(tt("cmp_sug_agrupar", "Agrupar los almacenes en un solo pedido por proveedor"))
+        self.chk_agrupar.setToolTip(tt("cmp_sug_agrupar_tt", "Un pedido por proveedor con las líneas separadas por almacén; cada una se entrega en la dirección de su almacén. Sin marcar, un pedido por proveedor y almacén."))
+        self.chk_agrupar.setVisible(self._varios)
+        l.addWidget(self.chk_agrupar)
         self.botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.boton_crear = self.botones.button(QDialogButtonBox.StandardButton.Ok)
         self.boton_crear.setText(tt("cmp_btn_crear", "Crear pedidos"))
@@ -127,6 +155,16 @@ class DialogoPedidoSugerido(QDialog):
         self.botones.accepted.connect(self.crear); self.botones.rejected.connect(self.reject)
         l.addWidget(self.botones)
         self.setLayout(l)
+        self._recargar()
+
+    def _recargar(self):
+        """Calcula las líneas del almacén elegido (o de todos los visibles)."""
+        elegido = self.combo_almacen.currentData()
+        ids = [elegido] if elegido is not None else [a["id"] for a in self._almacenes]
+        self._lineas, sin_calculo = compras.lineas_sugeridas(almacen_ids=ids)
+        self.lbl_sin_calculo.setText(tt("cmp_sug_sin_calculo", "{n} artículos por debajo del mínimo no se pueden calcular: no tienen stock mínimo ni objetivo.").format(n=sin_calculo))
+        self.lbl_sin_calculo.setVisible(bool(sin_calculo))
+        self.chk_agrupar.setEnabled(len({ln["almacen_id"] for ln in self._lineas}) > 1)
         self._pintar()
 
     def _pintar(self):
@@ -157,6 +195,7 @@ class DialogoPedidoSugerido(QDialog):
             self.tabla.setCellWidget(fila, 6, combo)
             self.tabla.setItem(fila, 7, QTableWidgetItem(""))
             self.tabla.setItem(fila, 8, QTableWidgetItem(""))
+            self.tabla.setItem(fila, 9, QTableWidgetItem(self._nombres_almacen.get(ln["almacen_id"], "")))
         self.tabla.setVisible(bool(self._lineas))
         self.lbl_vacio.setVisible(not self._lineas)
         self.boton_crear.setEnabled(bool(self._lineas))
@@ -259,7 +298,9 @@ class DialogoPedidoSugerido(QDialog):
         if any(e["proveedor_id"] is None for e in elegidas):
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("cmp_msg_sin_proveedor", "Hay artículos marcados sin proveedor: elige uno para cada uno o desmárcalos."))
             return
-        ids, errores = compras.crear_pedidos(elegidas, usuarios.nombre_actual())
+        ids, errores = compras.crear_pedidos(elegidas, usuarios.nombre_actual(),
+                                             agrupar=not self.chk_agrupar.isHidden() and self.chk_agrupar.isEnabled()
+                                             and self.chk_agrupar.isChecked())
         self.pedidos_creados = ids
         if errores and not ids:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("cmp_msg_no_creado", "No se ha podido crear el pedido."))
@@ -298,9 +339,13 @@ class DialogoTelefonoPedido(QDialog):
 
 class DialogoPedidos(QDialog):
     """Pedidos guardados: pendientes de llegar o todos, con sus líneas y las acciones
-    de enviar, marcar como recibido, cancelar y borrar."""
-    def __init__(self, parent=None, seleccionar_id=None):
+    de enviar, marcar como recibido, cancelar y borrar. [almacenes_visibles]: solo los
+    pedidos que entregan en esos almacenes (dicts de nucleo/almacenes; None = todos)."""
+    def __init__(self, parent=None, seleccionar_id=None, almacenes_visibles=None, almacen_inicial=None):
         super().__init__(parent)
+        self._almacenes = almacenes_visibles
+        self._almacen_inicial = almacen_inicial
+        self._varios = almacenes.hay_varios()
         self.setWindowTitle(tt("cmp_title_pedidos", "Pedidos de material"))
         self.resize(900, 600)
         self.moneda = consumos.moneda()
@@ -320,10 +365,12 @@ class DialogoPedidos(QDialog):
         h.addWidget(b_sugerido)
         l.addLayout(h)
 
-        self.tabla = QTableWidget(0, 7)
+        self.tabla = QTableWidget(0, 8)
         self.tabla.setHorizontalHeaderLabels([
             tt("cmp_hdr_n", "N.º"), tt("prov_hdr_fecha", "FECHA"), tt("prov_hdr_nombre", "PROVEEDOR"), tt("cmp_hdr_lineas", "LÍNEAS"),
-            tt("cmp_hdr_estado", "ESTADO"), tt("cmp_hdr_enviado", "ENVIADO"), tt("cmp_hdr_importe", "IMPORTE EST.")])
+            tt("cmp_hdr_estado", "ESTADO"), tt("cmp_hdr_enviado", "ENVIADO"), tt("cmp_hdr_importe", "IMPORTE EST."),
+            tt("lbl_almacen", "Almacén").upper()])
+        self.tabla.setColumnHidden(7, not self._varios)
         self.tabla.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -336,10 +383,11 @@ class DialogoPedidos(QDialog):
         l.addWidget(self.lbl_vacio)
 
         l.addWidget(QLabel("<b>" + tt("cmp_lbl_lineas", "Líneas del pedido") + "</b>"))
-        self.tabla_lineas = QTableWidget(0, 5)
+        self.tabla_lineas = QTableWidget(0, 6)
         self.tabla_lineas.setHorizontalHeaderLabels([tt("hdr_codigo", "CÓDIGO"), tt("cmp_hdr_articulo", "ARTÍCULO"),
                                                      tt("prov_hdr_cantidad", "CANTIDAD"), tt("cmp_hdr_recibido", "RECIBIDO"),
-                                                     tt("cmp_hdr_ref", "REF.")])
+                                                     tt("cmp_hdr_ref", "REF."), tt("lbl_almacen", "Almacén").upper()])
+        self.tabla_lineas.setColumnHidden(5, not self._varios)
         self.tabla_lineas.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_lineas.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla_lineas.setAlternatingRowColors(True)
@@ -364,7 +412,8 @@ class DialogoPedidos(QDialog):
     # ------------------------------------------------------------------ tabla
     def refrescar(self, seleccionar_id=None):
         previo = seleccionar_id if seleccionar_id is not None else self._pedido_id()
-        self._pedidos = compras.listar_pedidos(solo_abiertos=bool(self.combo_filtro.currentData()))
+        ids = [a["id"] for a in self._almacenes] if self._almacenes is not None else None
+        self._pedidos = compras.listar_pedidos(solo_abiertos=bool(self.combo_filtro.currentData()), almacen_ids=ids)
         estados, canales = nombres_estado(), nombres_canal()
         self.tabla.blockSignals(True)
         self.tabla.setRowCount(len(self._pedidos))
@@ -375,7 +424,8 @@ class DialogoPedidos(QDialog):
                 enviado = tt("cmp_sin_enviar", "Sin enviar")
             importe = consumos.formato_importe(p["importe_estimado"], self.moneda) + (" *" if p["sin_precio"] else "")
             for col, valor in enumerate((str(p["id"]), formato_fecha_localizada(p["fecha"]), p["proveedor_nombre"], str(len(p["lineas"])),
-                                         estados.get(p["estado"], p["estado"]), enviado, importe)):
+                                         estados.get(p["estado"], p["estado"]), enviado, importe,
+                                         p["almacen_nombre"])):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, p["id"])
@@ -412,7 +462,8 @@ class DialogoPedidos(QDialog):
         self.tabla_lineas.setRowCount(len(lineas))
         for fila, ln in enumerate(lineas):
             unidad = f" {ln['unidad']}" if ln["unidad"] else ""
-            for col, valor in enumerate((ln["codigo"], ln["nombre"], f"{ln['cantidad']:g}{unidad}", f"{ln['recibido']:g}{unidad}", ln["referencia"])):
+            for col, valor in enumerate((ln["codigo"], ln["nombre"], f"{ln['cantidad']:g}{unidad}", f"{ln['recibido']:g}{unidad}",
+                                         ln["referencia"], ln["almacen_nombre"])):
                 item = QTableWidgetItem(valor)
                 if col == 3 and ln["recibido"] >= ln["cantidad"] - 1e-9:
                     item.setForeground(QColor("#2e8b57"))
@@ -420,7 +471,7 @@ class DialogoPedidos(QDialog):
 
     # ---------------------------------------------------------------- acciones
     def pedido_sugerido(self):
-        dlg = DialogoPedidoSugerido(self)
+        dlg = DialogoPedidoSugerido(self, self._almacenes, self._almacen_inicial)
         if dlg.exec() and dlg.pedidos_creados:
             self.combo_filtro.setCurrentIndex(0)
             self.refrescar(dlg.pedidos_creados[0])
