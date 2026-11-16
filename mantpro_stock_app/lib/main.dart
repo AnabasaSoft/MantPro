@@ -783,18 +783,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           t("tab_bajo_minimo"),
         ];
         return Scaffold(
+          // Título solo en su línea y debajo los iconos, más la barra fina de sincronización
           appBar: AppBar(
             title: Text(titulos[_indiceActual]),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(3),
-              child: ValueListenableBuilder<bool>(
-                valueListenable: _sincronizando,
-                builder: (_, activo, __) => activo
-                    ? const LinearProgressIndicator(minHeight: 3)
-                    : const SizedBox(height: 3),
-              ),
-            ),
-            actions: [
+              preferredSize: const Size.fromHeight(51),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                SizedBox(height: 48, child: Align(alignment: Alignment.centerRight, child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
             // Al cambiar de almacén: se enseña al momento lo guardado de ese almacén y se baja lo último
             BotonAlmacen(alCambiar: () { datosSincronizadosNotifier.value++; _sincronizarPeriodico(); }),
             _botonRevision(),
@@ -831,7 +828,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
-          ]),
+                  ]),
+                ))),
+                ValueListenableBuilder<bool>(
+                  valueListenable: _sincronizando,
+                  builder: (_, activo, __) => activo
+                      ? const LinearProgressIndicator(minHeight: 3)
+                      : const SizedBox(height: 3),
+                ),
+              ]),
+            ),
+          ),
           body: IndexedStack(index: _indiceActual, children: _pantallas),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _indiceActual,

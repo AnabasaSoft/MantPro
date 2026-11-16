@@ -1591,7 +1591,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           canPop: _indiceActual == 0,
           onPopInvoked: (didPop) { if (!didPop) _irAPestana(0); },
           child: Scaffold(
-            appBar: AppBar(title: Text(titulo), actions: [
+            // Título solo en su línea y los iconos en una fila debajo (no caben al lado en el móvil)
+            appBar: AppBar(title: Text(titulo), bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: Align(alignment: Alignment.centerRight, child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
               const BotonSede(),   // solo con más de una sede
               IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: tt('tooltip_escanear_maquina', 'Escanear el QR de una máquina'), onPressed: _escanearMaquina),
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
@@ -1625,7 +1630,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   ),
                 ],
               ),
-            ]),
+            ]))))),
             body: Column(children: [
               // Progreso de la sincronización con el PC (al abrir la app y al
               // recuperar la conexión): qué se está haciendo y cuánto queda.
