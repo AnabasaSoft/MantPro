@@ -183,24 +183,30 @@ class DialogoRevisionesAlmacen(QDialog):
 
         # --- revisiones y detalle de la seleccionada
         split = QSplitter(Qt.Orientation.Vertical)
-        self.tabla = QTableWidget(0, 7)
+        self.tabla = QTableWidget(0, 8)
         self.tabla.setHorizontalHeaderLabels([tt("lbl_fecha", "Fecha"), tt("aud_usuario", "Usuario"),
                                               tt("rev_col_movil", "Móvil"), tt("rev_col_revisados", "Revisados"),
                                               tt("rev_col_diferencias", "Con diferencias"),
-                                              tt("rev_col_actividad", "Última actividad"), tt("lbl_almacen", "Almacén")])
+                                              tt("rev_col_actividad", "Última actividad"), tt("lbl_almacen", "Almacén"),
+                                              tt("alm_lbl_sede", "Sede")])
         self._preparar_tabla(self.tabla, estirar=2)
+        self._hay_sedes = hay_sedes
         self.tabla.setColumnHidden(6, not self._hay_almacenes)
+        self.tabla.setColumnHidden(7, not hay_sedes)
         self.tabla.currentCellChanged.connect(lambda *_: self._mostrar_detalle())
         split.addWidget(self.tabla)
 
         abajo = QWidget(); la = QVBoxLayout(abajo); la.setContentsMargins(0, 0, 0, 0)
         self.lbl_detalle = QLabel(); self.lbl_detalle.setWordWrap(True)
         la.addWidget(self.lbl_detalle)
-        self.tabla_lineas = QTableWidget(0, 6)
+        self.tabla_lineas = QTableWidget(0, 8)
         self.tabla_lineas.setHorizontalHeaderLabels([tt("rev_col_articulo", "Artículo"), tt("lbl_ubicacion", "Ubicación"),
                                                      tt("rev_col_sistema", "En el sistema"), tt("rev_col_contado", "Contado"),
-                                                     tt("rev_col_diferencia", "Diferencia"), tt("rev_col_estado", "Estado")])
+                                                     tt("rev_col_diferencia", "Diferencia"), tt("rev_col_estado", "Estado"),
+                                                     tt("lbl_almacen", "Almacén"), tt("alm_lbl_sede", "Sede")])
         self._preparar_tabla(self.tabla_lineas, estirar=0)
+        self.tabla_lineas.setColumnHidden(6, not self._hay_almacenes)
+        self.tabla_lineas.setColumnHidden(7, not hay_sedes)
         la.addWidget(self.tabla_lineas)
         split.addWidget(abajo)
         split.setSizes([360, 260])
@@ -269,6 +275,28 @@ class DialogoRevisionesAlmacen(QDialog):
         sedes.fijar_revision(self.combo_sede.currentData(), activa)
         self.recargar()
 
+    def _almacen(self, almacen_id):
+        """Datos del almacén (con caché: se piden muchas veces al pintar)."""
+        from ...nucleo import almacenes
+        if not hasattr(self, "_cache_almacenes"):
+            self._cache_almacenes = {a["id"]: a for a in almacenes.listar(incluir_inactivos=True)}
+        return self._cache_almacenes.get(almacen_id)
+
+    def _nombre_almacen(self, almacen_id):
+        a = self._almacen(almacen_id)
+        return a["nombre"] if a else "—"
+
+    def _sede_de_almacen(self, almacen_id):
+        """Sede del almacén («Común (todas las sedes)» si es común)."""
+        from ...nucleo import sedes
+        from .almacenes import _nombre_sede
+        a = self._almacen(almacen_id)
+        if not a:
+            return "—"
+        if not hasattr(self, "_nombres_sedes"):
+            self._nombres_sedes = sedes.nombres()
+        return _nombre_sede(a, self._nombres_sedes) or "—"
+
     def _almacen_ids(self):
         from ...nucleo import almacenes
         elegido = self.combo_almacen.currentData()
@@ -299,7 +327,8 @@ class DialogoRevisionesAlmacen(QDialog):
             cuentas[r["estado"]] += 1
             celdas = [formato_fecha_localizada(r["fecha"]), r["usuario_nombre"] or "—", r["dispositivo"] or "—",
                       f"{r['revisados']}/{r['total']}  {estados[r['estado']]}",
-                      str(r["ajustados"]) if r["revisados"] else "—", _actividad(r["actualizada"]), r["almacen_nombre"]]
+                      str(r["ajustados"]) if r["revisados"] else "—", _actividad(r["actualizada"]), r["almacen_nombre"],
+                      self._sede_de_almacen(r["almacen_id"])]
             for col, texto in enumerate(celdas):
                 item = QTableWidgetItem(texto)
                 if col == 3:
@@ -332,7 +361,8 @@ class DialogoRevisionesAlmacen(QDialog):
                 if ln["revisado"] else tt("rev_linea_pendiente", "❌ Sin revisar")
             celdas = [articulo, ln["ubicacion"] or "—", _numero(ln["cantidad_sistema"]) + unidad,
                       (_numero(ln["cantidad_contada"]) + unidad) if ln["revisado"] else "—",
-                      _diferencia(ln["diferencia"]), estado]
+                      _diferencia(ln["diferencia"]), estado, self._nombre_almacen(ln["almacen_id"]),
+                      self._sede_de_almacen(ln["almacen_id"])]
             for col, texto in enumerate(celdas):
                 item = QTableWidgetItem(texto)
                 if col == 4 and ln["diferencia"]:
@@ -346,7 +376,8 @@ class DialogoRevisionesAlmacen(QDialog):
         return [tt("lbl_fecha", "Fecha"), tt("aud_usuario", "Usuario"), tt("rev_col_movil", "Móvil"),
                 tt("rev_col_estado", "Estado"), tt("rev_col_revisados", "Revisados"), tt("rev_col_articulo", "Artículo"),
                 tt("lbl_ubicacion", "Ubicación"), tt("rev_col_sistema", "En el sistema"), tt("rev_col_contado", "Contado"),
-                tt("rev_col_diferencia", "Diferencia"), tt("rev_linea_estado", "Revisado"), tt("lbl_almacen", "Almacén")]
+                tt("rev_col_diferencia", "Diferencia"), tt("rev_linea_estado", "Revisado"), tt("lbl_almacen", "Almacén"),
+                tt("alm_lbl_sede", "Sede")]
 
     def _filas_export(self):
         """Una fila por artículo propuesto."""
@@ -360,7 +391,7 @@ class DialogoRevisionesAlmacen(QDialog):
                        ln["cantidad_sistema"] if ln["cantidad_sistema"] is not None else "",
                        ln["cantidad_contada"] if ln["revisado"] and ln["cantidad_contada"] is not None else "",
                        ln["diferencia"] if ln["diferencia"] is not None else "", si if ln["revisado"] else no,
-                       r["almacen_nombre"]]
+                       self._nombre_almacen(ln["almacen_id"]), self._sede_de_almacen(ln["almacen_id"])]
 
     def _exportar(self):
         cab = self._cabecera_export()

@@ -227,13 +227,22 @@ def listar_revisiones(dias=None, usuario_id=None, estado=None, limite=500, despl
 
 def lineas_de_revision(revision_id):
     """Líneas de una revisión, con la `diferencia` (contada − sistema) cuando
-    se revisó."""
+    se revisó y el `almacen_id` (efectivo) del artículo: el de su ficha o, si ya
+    no existe, el de la revisión."""
+    from . import almacenes
     con = almacen._conn()
-    filas = con.execute("SELECT * FROM revisiones_stock_lineas WHERE revision_id=? ORDER BY id", (revision_id,)).fetchall()
+    filas = con.execute("""SELECT l.*, m.almacen_id AS almacen_articulo, (m.id IS NOT NULL) AS existe,
+                                  r.almacen_id AS almacen_revision
+                           FROM revisiones_stock_lineas l
+                           JOIN revisiones_stock r ON r.id = l.revision_id
+                           LEFT JOIN materiales m ON m.id = l.material_id
+                           WHERE l.revision_id=? ORDER BY l.id""", (revision_id,)).fetchall()
     con.close()
     lineas = []
     for f in filas:
         d = dict(f)
+        d["almacen_id"] = almacenes.efectivo(d.pop("almacen_articulo") if d.pop("existe") else d["almacen_revision"])
+        d.pop("almacen_revision", None)
         if d["revisado"] and d["cantidad_sistema"] is not None and d["cantidad_contada"] is not None:
             d["diferencia"] = d["cantidad_contada"] - d["cantidad_sistema"]
         else:
