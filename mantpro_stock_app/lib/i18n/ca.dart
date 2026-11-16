@@ -54,6 +54,10 @@ const Map<String, String> traduccionesCa = {
     "tab_almacen": "Magatzem",
 
     "lbl_almacen": "Magatzem",
+
+    "sin_almacen": "sense magatzem",
+
+    "alm_comunes": "Comuns",
     "tab_buscar": "Cercar",
     "tab_bajo_minimo": "Per sota del mínim",
 

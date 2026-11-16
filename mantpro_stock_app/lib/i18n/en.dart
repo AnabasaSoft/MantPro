@@ -52,6 +52,10 @@ const Map<String, String> traduccionesEn = {
     "tab_almacen": "Warehouse",
 
     "lbl_almacen": "Warehouse",
+
+    "sin_almacen": "no warehouse",
+
+    "alm_comunes": "Shared",
     "tab_buscar": "Search",
     "tab_bajo_minimo": "Low stock",
 

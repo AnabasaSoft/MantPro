@@ -104,7 +104,36 @@ Map<String, String> paramsAlmacen() {
   return id == null ? {} : {'almacen': '$id'};
 }
 
-/// Botón de la barra superior para elegir almacén. Solo con más de uno.
+/// Sedes que ve el técnico (de /api/sedes), para agrupar los almacenes en el menú.
+class SedesStock {
+  static const _clave = 'stock_sedes';
+  static List<Map<String, dynamic>> lista = [];
+
+  static Future<void> cargar() async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      lista = List<Map<String, dynamic>>.from(
+          (json.decode(prefs.getString(_clave) ?? '[]') as List).map((e) => Map<String, dynamic>.from(e)));
+    } catch (_) {
+      lista = [];
+    }
+    almacenesListaNotifier.value++;
+  }
+
+  static Future<void> guardarRespuesta(String cuerpo) async {
+    try {
+      final datos = json.decode(cuerpo);
+      if (datos is! Map || datos['status'] != 'ok') return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_clave, json.encode(datos['sedes'] ?? []));
+      await cargar();
+    } catch (_) {}
+  }
+}
+
+/// Botón de la barra superior (edificio) para elegir almacén, agrupados por sede.
+/// Aparece con más de un almacén o más de una sede; una sede sin almacén sale
+/// como «sin almacén» (no se puede elegir).
 class BotonAlmacen extends StatelessWidget {
   final VoidCallback alCambiar;
   const BotonAlmacen({super.key, required this.alCambiar});
@@ -115,15 +144,39 @@ class BotonAlmacen extends StatelessWidget {
       listenable: Listenable.merge([almacenElegidoNotifier, almacenesListaNotifier]),
       builder: (context, _) {
         final elegido = almacenElegidoNotifier.value;
-        if (AlmacenesCache.lista.length < 2) return const SizedBox.shrink();
+        final almacenes = AlmacenesCache.lista;
+        final sedes = SedesStock.lista;
+        if (almacenes.length < 2 && sedes.length < 2) return const SizedBox.shrink();
+        final entradas = <PopupMenuEntry<int>>[];
+        PopupMenuItem<int> item(Map a) => CheckedPopupMenuItem<int>(
+            value: a['id'] as int, checked: elegido == a['id'], child: Text('${a['nombre']}'));
+        PopupMenuItem<int> cabecera(String texto) => PopupMenuItem<int>(
+            enabled: false, height: 32,
+            child: Text(texto, style: const TextStyle(fontWeight: FontWeight.bold)));
+        if (sedes.isEmpty) {
+          entradas.addAll(almacenes.map(item));
+        } else {
+          for (final s in sedes) {
+            entradas.add(cabecera('🏢 ${s['nombre']}'));
+            final suyos = almacenes.where((a) => a['comun'] != true && a['sede_id'] == s['id']).toList();
+            if (suyos.isEmpty) {
+              entradas.add(PopupMenuItem<int>(enabled: false, height: 32,
+                  child: Text('   ${t('sin_almacen')}', style: const TextStyle(fontStyle: FontStyle.italic))));
+            } else {
+              entradas.addAll(suyos.map(item));
+            }
+          }
+          final comunes = almacenes.where((a) => a['comun'] == true).toList();
+          if (comunes.isNotEmpty) {
+            entradas.add(cabecera('🌐 ${t('alm_comunes')}'));
+            entradas.addAll(comunes.map(item));
+          }
+        }
         return PopupMenuButton<int>(
-          icon: const Icon(Icons.warehouse),
+          icon: const Icon(Icons.apartment),
           tooltip: '${t('lbl_almacen')}: ${AlmacenesCache.nombre(elegido)}',
           onSelected: (v) async { await AlmacenesCache.elegir(v); alCambiar(); },
-          itemBuilder: (_) => AlmacenesCache.lista.map((a) => CheckedPopupMenuItem<int>(
-              value: a['id'] as int, checked: elegido == a['id'],
-              child: Text(a['comun'] == true || (a['sede'] ?? '').toString().isEmpty
-                  ? '${a['nombre']}' : '${a['nombre']} · ${a['sede']}'))).toList(),
+          itemBuilder: (_) => entradas,
         );
       },
     );

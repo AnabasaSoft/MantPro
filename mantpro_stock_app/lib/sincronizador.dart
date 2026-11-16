@@ -336,6 +336,11 @@ class StockSincronizador {
       if (res.statusCode == 200) await AlmacenesCache.guardarRespuesta(res.body);
     } catch (_) {}
     try {
+      // Sedes que ve, para agrupar los almacenes en el menú del edificio
+      final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/sedes')).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) await SedesStock.guardarRespuesta(res.body);
+    } catch (_) {}
+    try {
       final res = await httpGetAuth(Uri.parse('$esquemaPC://$ip/api/stock/estructura').replace(queryParameters: paramsAlmacen()))
           .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) await prefs.setString(kStockCacheEstructura, res.body);

@@ -246,7 +246,8 @@ void main() async {
   if (ipGuardada != null && ipGuardada.isNotEmpty) await migrarAHttps(ipGuardada);
   // Rutas del PC y de la nube: se recuerda la activa y se vuelve a decidir sin esperar (la app es offline).
   await RutasServidor.cargar();
-  await AlmacenesCache.cargar();   // almacenes que ve y el elegido (sin conexión)
+  await AlmacenesCache.cargar();
+  await SedesStock.cargar();   // almacenes que ve y el elegido (sin conexión)
   unawaited(RutasServidor.resolver(forzar: true));
 
   tz.initializeTimeZones();

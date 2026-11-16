@@ -54,6 +54,10 @@ const Map<String, String> traduccionesGl = {
     "tab_almacen": "Almacén",
 
     "lbl_almacen": "Almacén",
+
+    "sin_almacen": "sen almacén",
+
+    "alm_comunes": "Comúns",
     "tab_buscar": "Buscar",
     "tab_bajo_minimo": "Por baixo do mínimo",
 

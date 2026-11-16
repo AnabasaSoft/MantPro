@@ -49,6 +49,8 @@ const Map<String, String> traduccionesDe = {
   "msg_cerrar_sesion": "Möchten Sie sich wirklich abmelden?",
   "tab_almacen": "Lager",
   "lbl_almacen": "Lager",
+  "sin_almacen": "kein Lager",
+  "alm_comunes": "Gemeinsam",
   "tab_buscar": "Suchen",
   "tab_bajo_minimo": "Unter Minimum",
   "ph_buscar_material": "Nach Name, Code, Beschreibung suchen...",

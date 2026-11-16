@@ -49,6 +49,8 @@ const Map<String, String> traduccionesPt = {
   "msg_cerrar_sesion": "Tem certeza de que deseja encerrar a sessão?",
   "tab_almacen": "Almoxarifado",
   "lbl_almacen": "Armazém",
+  "sin_almacen": "sem armazém",
+  "alm_comunes": "Comuns",
   "tab_buscar": "Buscar",
   "tab_bajo_minimo": "Abaixo do mínimo",
   "ph_buscar_material": "Buscar por nome, código, descrição...",

@@ -52,6 +52,10 @@ const Map<String, String> traduccionesEu = {
     "tab_almacen": "Biltegia",
 
     "lbl_almacen": "Biltegia",
+
+    "sin_almacen": "biltegirik gabe",
+
+    "alm_comunes": "Komunak",
     "tab_buscar": "Bilatu",
     "tab_bajo_minimo": "Gutxienekotik behera",
 
