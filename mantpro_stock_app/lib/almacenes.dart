@@ -182,3 +182,70 @@ class BotonAlmacen extends StatelessWidget {
     );
   }
 }
+
+/// Ciclo de la revisión del almacén (lo manda el PC con la lista de almacenes,
+/// así que funciona sin conexión con lo último que se sincronizó).
+/// - diario: cada día laborable.
+/// - semanal: [dia] de la semana (0 = lunes … 6 = domingo).
+/// - mensual: [dia] del mes (en meses más cortos, el último).
+class RevisionAlmacen {
+  final bool activa;
+  final String ciclo;
+  final int dia;
+  final int articulos;
+  /// Última revisión del almacén con algo revisado (AAAA-MM-DD) que conocía el PC.
+  final String ultima;
+
+  const RevisionAlmacen({this.activa = true, this.ciclo = 'diario', this.dia = 0, this.articulos = 5, this.ultima = ''});
+
+  /// La del almacén elegido. Con un PC antiguo (sin datos de revisión): diaria de 5 artículos.
+  static RevisionAlmacen delElegido() => deAlmacen(almacenElegidoNotifier.value);
+
+  static RevisionAlmacen deAlmacen(int? id) {
+    final a = AlmacenesCache.lista.where((x) => x['id'] == id);
+    final r = a.isEmpty ? null : a.first['revision'];
+    if (r is! Map) return const RevisionAlmacen();
+    final ciclo = (r['ciclo'] == 'semanal' || r['ciclo'] == 'mensual') ? r['ciclo'] as String : 'diario';
+    return RevisionAlmacen(
+      activa: r['activa'] != false,
+      ciclo: ciclo,
+      dia: (r['dia'] as num?)?.toInt() ?? 0,
+      articulos: ((r['articulos'] as num?)?.toInt() ?? 5).clamp(1, 50),
+      ultima: '${r['ultima'] ?? ''}',
+    );
+  }
+
+  static DateTime _soloDia(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  static DateTime _diaDelMes(int anio, int mes, int dia) {
+    final ultimo = DateTime(anio, mes + 1, 0).day;   // día 0 del mes siguiente = último de este
+    return DateTime(anio, mes, dia < ultimo ? dia : ultimo);
+  }
+
+  /// Primer día del periodo que contiene [fecha].
+  DateTime inicioPeriodo(DateTime fecha) {
+    final d = _soloDia(fecha);
+    if (ciclo == 'semanal') {
+      return d.subtract(Duration(days: ((d.weekday - 1) - dia) % 7));
+    }
+    if (ciclo == 'mensual') {
+      final este = _diaDelMes(d.year, d.month, dia);
+      return este.isAfter(d) ? _diaDelMes(d.year, d.month - 1, dia) : este;
+    }
+    return d;
+  }
+
+  /// Primer día del periodo siguiente al que contiene [fecha].
+  DateTime siguientePeriodo(DateTime fecha) {
+    final inicio = inicioPeriodo(fecha);
+    if (ciclo == 'semanal') return inicio.add(const Duration(days: 7));
+    if (ciclo == 'mensual') return _diaDelMes(inicio.year, inicio.month + 1, dia);
+    return inicio.add(const Duration(days: 1));
+  }
+
+  static String texto(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// 'AAAA-MM-DD' del inicio del periodo actual.
+  String periodoActual() => texto(inicioPeriodo(DateTime.now()));
+}

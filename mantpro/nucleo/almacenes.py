@@ -42,6 +42,12 @@ from . import almacen
 from . import usuarios as _usuarios
 
 UUID_PRINCIPAL = "almacen-principal"
+
+# Ciclos de la revisión del almacén
+CICLO_DIARIO, CICLO_SEMANAL, CICLO_MENSUAL = "diario", "semanal", "mensual"
+CICLOS = (CICLO_DIARIO, CICLO_SEMANAL, CICLO_MENSUAL)
+ARTICULOS_POR_DEFECTO = 5
+ARTICULOS_MAXIMO = 50          # el mismo tope que admite una revisión
 # Motivos canónicos (en español; se traducen al mostrarlos, también en MantPro Stock:
 # mantpro_stock_app/lib/modelos.dart)
 PREFIJO_TRASPASO_A = "Traspaso a: "
@@ -77,6 +83,12 @@ def inicializar(con):
     # Dirección de entrega propia (vacía: la de su sede)
     if "direccion" not in almacen._columnas(con, "almacenes"):
         con.execute("ALTER TABLE almacenes ADD COLUMN direccion TEXT")
+    # Revisión del almacén: ciclo (diario / semanal / mensual), día del ciclo y artículos por revisión
+    for columna, tipo in (("revision_ciclo", "TEXT NOT NULL DEFAULT 'diario'"),
+                          ("revision_dia", "INTEGER NOT NULL DEFAULT 0"),
+                          ("revision_articulos", f"INTEGER NOT NULL DEFAULT {ARTICULOS_POR_DEFECTO}")):
+        if columna not in almacen._columnas(con, "almacenes"):
+            con.execute(f"ALTER TABLE almacenes ADD COLUMN {columna} {tipo}")
     for tabla, columna in (("materiales", "almacen_id"), ("zonas", "almacen_id"), ("materiales", "articulo_id")):
         if columna not in almacen._columnas(con, tabla):
             con.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} INTEGER")
@@ -195,12 +207,36 @@ def entrega(almacen_id):
 
 # ---------------------------------------------------------------- altas y cambios
 
+def revision(a):
+    """Ciclo de revisión de un almacén (dict): (ciclo, dia, articulos) ya validados.
+    - diario: cada día laborable (dia no se usa).
+    - semanal: [dia] de la semana, 0 = lunes … 6 = domingo.
+    - mensual: [dia] del mes, 1 … 31 (en meses más cortos, el último)."""
+    ciclo = a.get("revision_ciclo") if a.get("revision_ciclo") in CICLOS else CICLO_DIARIO
+    try:
+        dia = int(a.get("revision_dia") or 0)
+    except (TypeError, ValueError):
+        dia = 0
+    if ciclo == CICLO_SEMANAL:
+        dia = min(max(dia, 0), 6)
+    elif ciclo == CICLO_MENSUAL:
+        dia = min(max(dia, 1), 31)
+    else:
+        dia = 0
+    try:
+        articulos = int(a.get("revision_articulos") or ARTICULOS_POR_DEFECTO)
+    except (TypeError, ValueError):
+        articulos = ARTICULOS_POR_DEFECTO
+    return ciclo, dia, min(max(articulos, 1), ARTICULOS_MAXIMO)
+
+
 def _datos(d):
     from . import sedes
     sede = d.get("sede_id")
     return {"nombre": str(d.get("nombre") or "").strip(), "comun": 1 if d.get("comun") else 0,
             "sede_id": None if d.get("comun") else sedes.guardable(sede), "notas": str(d.get("notas") or "").strip(),
-            "direccion": str(d.get("direccion") or "").strip()}
+            "direccion": str(d.get("direccion") or "").strip(),
+            **dict(zip(("revision_ciclo", "revision_dia", "revision_articulos"), revision(d)))}
 
 
 def _repetido(con, nombre, excluir_id=None):
@@ -217,8 +253,10 @@ def crear(datos):
     if _repetido(con, d["nombre"]):
         con.close()
         return None, "nombre_repetido"
-    nuevo = con.execute("INSERT INTO almacenes (nombre, sede_id, comun, notas, direccion) VALUES (?, ?, ?, ?, ?)",
-                        (d["nombre"], d["sede_id"], d["comun"], d["notas"], d["direccion"])).lastrowid
+    nuevo = con.execute("""INSERT INTO almacenes (nombre, sede_id, comun, notas, direccion, revision_ciclo, revision_dia,
+                                                 revision_articulos) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (d["nombre"], d["sede_id"], d["comun"], d["notas"], d["direccion"], d["revision_ciclo"],
+                         d["revision_dia"], d["revision_articulos"])).lastrowid
     con.commit()
     con.close()
     _usuarios.auditar("almacen", "crear", _t("almacen_auditoria").format(nombre=d["nombre"]))
@@ -226,11 +264,12 @@ def crear(datos):
 
 
 def actualizar(almacen_id, datos):
-    """Devuelve None o el código de error. El principal no puede ser común ni de otra sede."""
-    d = _datos(datos)
+    """Devuelve None o el código de error. El principal no puede ser común ni de otra sede.
+    Lo que no venga en [datos] (dirección, ciclo de revisión) se queda como estaba."""
     a = obtener(almacen_id)
     if not a:
         return None
+    d = _datos({**{k: a.get(k) for k in ("direccion", "revision_ciclo", "revision_dia", "revision_articulos")}, **datos})
     if not d["nombre"]:
         return "sin_nombre"
     if a["principal"]:
@@ -239,8 +278,10 @@ def actualizar(almacen_id, datos):
     if _repetido(con, d["nombre"], almacen_id):
         con.close()
         return "nombre_repetido"
-    con.execute("UPDATE almacenes SET nombre = ?, sede_id = ?, comun = ?, notas = ?, direccion = ? WHERE id = ?",
-                (d["nombre"], d["sede_id"], d["comun"], d["notas"], d["direccion"], almacen_id))
+    con.execute("""UPDATE almacenes SET nombre = ?, sede_id = ?, comun = ?, notas = ?, direccion = ?, revision_ciclo = ?,
+                   revision_dia = ?, revision_articulos = ? WHERE id = ?""",
+                (d["nombre"], d["sede_id"], d["comun"], d["notas"], d["direccion"], d["revision_ciclo"],
+                 d["revision_dia"], d["revision_articulos"], almacen_id))
     con.commit()
     con.close()
     _usuarios.auditar("almacen", "editar", _t("almacen_auditoria").format(nombre=d["nombre"]))

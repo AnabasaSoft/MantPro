@@ -101,27 +101,41 @@ Future<void> evaluarNotificacionStock() async {
     } catch (_) {}
   }
 
-  if (hayMateriales) {
+  // Ciclo del almacén elegido (diario, semanal o mensual); sin revisión activa
+  // en su sede, no hay recordatorio.
+  final config = RevisionAlmacen.delElegido();
+  if (hayMateriales && config.activa) {
     final androidDetails = AndroidNotificationDetails(
       'canal_stock', tt('canal_notif_stock', 'Comprobación de stock'),
-      channelDescription: tt('canal_notif_stock_desc', 'Recordatorio diario a las 8:00 AM'),
+      channelDescription: tt('canal_notif_stock_desc_ciclo', 'Recordatorio de la revisión del almacén a las 8:00'),
       importance: Importance.max, priority: Priority.high, icon: '@mipmap/ic_launcher');
     final platformDetails = NotificationDetails(android: androidDetails);
 
+    // A las 8:00 del primer día del periodo: hoy (si aún no son las 8) o el
+    // próximo. Diario y semanal se repiten solos; el mensual se vuelve a
+    // programar cada vez que se evalúa (al abrir la app y al sincronizar),
+    // porque los meses cortos cambian el día.
     tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime fechaProgramada = tz.TZDateTime(tz.local, now.year, now.month, now.day, 8);
+    DateTime dia = config.inicioPeriodo(now);
+    tz.TZDateTime fechaProgramada = tz.TZDateTime(tz.local, dia.year, dia.month, dia.day, 8);
     if (fechaProgramada.isBefore(now)) {
-      fechaProgramada = fechaProgramada.add(const Duration(days: 1));
+      dia = config.siguientePeriodo(now);
+      fechaProgramada = tz.TZDateTime(tz.local, dia.year, dia.month, dia.day, 8);
     }
 
     await pluginNotificaciones.zonedSchedule(
       id: 1,
       title: tt('notif_stock_titulo', '📦 Comprobación de stock'),
-      body: tt('notif_stock_cuerpo', 'Revisa el stock de 5 materiales del almacén.'),
+      body: tt('notif_stock_cuerpo_n', 'Revisa el stock de {n} materiales del almacén.')
+          .replaceAll('{n}', '${config.articulos}'),
       scheduledDate: fechaProgramada,
       notificationDetails: platformDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
+      matchDateTimeComponents: config.ciclo == 'semanal'
+          ? DateTimeComponents.dayOfWeekAndTime
+          : config.ciclo == 'mensual'
+              ? null
+              : DateTimeComponents.time,
       payload: _payloadComprobarStock,
     );
   } else {
@@ -602,6 +616,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // local de materiales, que puede llevar tiempo guardada).
     evaluarNotificacionStock();
     datosSincronizadosNotifier.addListener(_alSincronizarDatos);
+    almacenElegidoNotifier.addListener(_alSincronizarDatos);   // otro almacén, otro ciclo
     _sincronizarAlArrancar();
     WidgetsBinding.instance.addObserver(this);
     _iniciarTemporizadores(enPantalla: true);
@@ -660,6 +675,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     datosSincronizadosNotifier.removeListener(_alSincronizarDatos);
+    almacenElegidoNotifier.removeListener(_alSincronizarDatos);
     _pararTemporizadores();
     _sincronizando.dispose();
     // Al cerrar sesión desaparece esta pantalla: sin sesión no hay nada que
@@ -749,7 +765,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return ValueListenableBuilder<int>(
       valueListenable: datosSincronizadosNotifier,
       builder: (_, __, ___) => FutureBuilder<Map<String, dynamic>?>(
-        future: StockApi.revisionDeHoy(),
+        future: StockApi.revisionActual(),
         builder: (_, snap) {
           final lineas = (snap.data?['lineas'] as List?) ?? const [];
           final faltan = lineas.where((l) => l['revisado'] != true).length;

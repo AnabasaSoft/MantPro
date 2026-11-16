@@ -99,6 +99,9 @@ def inicializar():
     for col in ("pais_iso", "region_iso", "parent_iso"):
         if col not in cols_sedes:
             con.execute(f"ALTER TABLE sedes ADD COLUMN {col} TEXT")
+    # Revisión del almacén en los almacenes de la sede (1 = activa)
+    if "revision_almacen" not in cols_sedes:
+        con.execute("ALTER TABLE sedes ADD COLUMN revision_almacen INTEGER NOT NULL DEFAULT 1")
     for tabla in TABLAS_CON_SEDE:
         cols = {f[1] for f in con.execute(f"PRAGMA table_info({tabla})")}
         if "sede_id" not in cols:
@@ -483,6 +486,25 @@ def fijar_festivos(sede_id, pais_iso=None, region_iso=None, parent_iso=None):
     con.close()
     _usuarios.auditar("configuracion", "editar", _t("sede_auditoria").format(nombre=s["nombre"]),
                       detalle=_t("sede_aud_festivos").format(region=" / ".join(v for v in valores if v) or "—"))
+
+
+def revision_activa(sede_id):
+    """Si los almacenes de la sede (None = la principal) se tienen que revisar."""
+    s = obtener(efectiva(sede_id))
+    return True if not s else bool(s.get("revision_almacen", 1))
+
+
+def fijar_revision(sede_id, activa):
+    """Activa o desactiva la revisión del almacén en los almacenes de la sede."""
+    s = obtener(efectiva(sede_id))
+    if not s:
+        return
+    con = _conn()
+    con.execute("UPDATE sedes SET revision_almacen = ? WHERE id = ?", (1 if activa else 0, s["id"]))
+    con.commit()
+    con.close()
+    _usuarios.auditar("configuracion", "activar" if activa else "desactivar", _t("sede_auditoria").format(nombre=s["nombre"]),
+                      detalle=_t("sede_aud_revision_si" if activa else "sede_aud_revision_no"))
 
 
 def poner_sede(tabla, registro_id, sede_id):

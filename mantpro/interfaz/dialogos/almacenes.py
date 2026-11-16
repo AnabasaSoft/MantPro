@@ -23,7 +23,7 @@ traspaso de stock entre almacenes. La lógica está en nucleo/almacenes.py."""
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget,
                              QTableWidgetItem, QHeaderView, QAbstractItemView, QDialogButtonBox, QMessageBox,
-                             QTextEdit, QComboBox, QFormLayout, QCheckBox, QDoubleSpinBox)
+                             QTextEdit, QComboBox, QFormLayout, QCheckBox, QDoubleSpinBox, QSpinBox)
 from PyQt6.QtCore import Qt
 
 from ...idiomas import t
@@ -51,6 +51,22 @@ def _nombre_sede(a, nombres_sedes):
     return nombres_sedes.get(sedes.efectiva(a["sede_id"]), "")
 
 
+def nombres_dias_semana():
+    """Lunes … domingo en el idioma activo (0 = lunes)."""
+    por_defecto = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+    return [tt(f"dia_semana_{i}", por_defecto[i]) for i in range(7)]
+
+
+def texto_ciclo(a):
+    """Ciclo de revisión de un almacén en palabras: «Diaria», «Semanal (lunes)», «Mensual (día 15)»."""
+    ciclo, dia, _n = almacenes.revision(a)
+    if ciclo == almacenes.CICLO_SEMANAL:
+        return tt("alm_ciclo_semanal_dia", "Semanal ({dia})").format(dia=nombres_dias_semana()[dia].lower())
+    if ciclo == almacenes.CICLO_MENSUAL:
+        return tt("alm_ciclo_mensual_dia", "Mensual (día {dia})").format(dia=dia)
+    return tt("alm_ciclo_diario", "Diaria")
+
+
 class DialogoEditarAlmacen(QDialog):
     """Alta o edición de un almacén."""
     def __init__(self, parent=None, alm=None):
@@ -76,6 +92,34 @@ class DialogoEditarAlmacen(QDialog):
         self.campo_direccion.setPlaceholderText(tt("alm_ph_direccion", "Vacía: la dirección de su sede"))
         self.campo_direccion.setToolTip(tt("alm_tt_direccion", "Dirección de entrega que sale en los pedidos a proveedores de este almacén."))
         f.addRow(tt("alm_lbl_direccion", "Dirección de entrega"), self.campo_direccion)
+        # Revisión del almacén (MantPro Stock): cada cuánto y cuántos artículos
+        ciclo, dia, articulos = almacenes.revision(alm)
+        self.combo_ciclo = QComboBox()
+        for valor, clave, texto in ((almacenes.CICLO_DIARIO, "alm_ciclo_diario", "Diaria"),
+                                    (almacenes.CICLO_SEMANAL, "alm_ciclo_semanal", "Semanal"),
+                                    (almacenes.CICLO_MENSUAL, "alm_ciclo_mensual", "Mensual")):
+            self.combo_ciclo.addItem(tt(clave, texto), valor)
+        self.combo_ciclo.setCurrentIndex(max(0, self.combo_ciclo.findData(ciclo)))
+        self.combo_dia_semana = QComboBox()
+        for i, nombre in enumerate(nombres_dias_semana()):
+            self.combo_dia_semana.addItem(nombre, i)
+        self.spin_dia_mes = QSpinBox(); self.spin_dia_mes.setRange(1, 31)
+        self.spin_dia_mes.setToolTip(tt("alm_tt_dia_mes", "En los meses más cortos, el último día del mes."))
+        if ciclo == almacenes.CICLO_SEMANAL:
+            self.combo_dia_semana.setCurrentIndex(dia)
+        elif ciclo == almacenes.CICLO_MENSUAL:
+            self.spin_dia_mes.setValue(dia)
+        fila_ciclo = QHBoxLayout()
+        for w in (self.combo_ciclo, self.combo_dia_semana, self.spin_dia_mes):
+            fila_ciclo.addWidget(w)
+        fila_ciclo.addStretch()
+        self.combo_ciclo.currentIndexChanged.connect(lambda _i: self._mostrar_dia())
+        f.addRow(tt("alm_lbl_revision", "Revisión del almacén"), fila_ciclo)
+        self.spin_articulos = QSpinBox(); self.spin_articulos.setRange(1, almacenes.ARTICULOS_MAXIMO)
+        self.spin_articulos.setValue(articulos)
+        self.spin_articulos.setToolTip(tt("alm_tt_articulos", "Cuántos artículos al azar se cuentan en cada revisión desde MantPro Stock."))
+        f.addRow(tt("alm_lbl_articulos", "Artículos por revisión"), self.spin_articulos)
+        self._mostrar_dia()
         if alm.get("principal"):   # el principal es siempre de la sede principal
             self.combo_sede.setEnabled(False); self.chk_comun.setEnabled(False)
         l.addLayout(f)
@@ -90,6 +134,11 @@ class DialogoEditarAlmacen(QDialog):
         l.addWidget(b)
         self.setLayout(l)
 
+    def _mostrar_dia(self):
+        ciclo = self.combo_ciclo.currentData()
+        self.combo_dia_semana.setVisible(ciclo == almacenes.CICLO_SEMANAL)
+        self.spin_dia_mes.setVisible(ciclo == almacenes.CICLO_MENSUAL)
+
     def _validar(self):
         if not self.campo_nombre.text().strip():
             QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error("sin_nombre"))
@@ -99,7 +148,10 @@ class DialogoEditarAlmacen(QDialog):
     def get_data(self):
         return {"nombre": self.campo_nombre.text().strip(), "sede_id": self.combo_sede.currentData(),
                 "comun": self.chk_comun.isChecked(), "notas": self.campo_notas.toPlainText().strip(),
-                "direccion": self.campo_direccion.text().strip()}
+                "direccion": self.campo_direccion.text().strip(), "revision_ciclo": self.combo_ciclo.currentData(),
+                "revision_dia": (self.combo_dia_semana.currentData() if self.combo_ciclo.currentData() == almacenes.CICLO_SEMANAL
+                                 else self.spin_dia_mes.value()),
+                "revision_articulos": self.spin_articulos.value()}
 
 
 class DialogoAlmacenes(QDialog):
@@ -115,9 +167,9 @@ class DialogoAlmacenes(QDialog):
                                        "almacén; para moverlo de uno a otro, usa «Traspasar» en la pestaña de stock."))
         ayuda.setWordWrap(True)
         l.addWidget(ayuda)
-        self.tabla = QTableWidget(0, 3)
+        self.tabla = QTableWidget(0, 4)
         self.tabla.setHorizontalHeaderLabels([tt("alm_hdr_nombre", "ALMACÉN"), tt("alm_hdr_sede", "SEDE"),
-                                              tt("alm_hdr_estado", "ESTADO")])
+                                              tt("alm_hdr_estado", "ESTADO"), tt("alm_hdr_revision", "REVISIÓN")])
         cab = self.tabla.horizontalHeader()
         cab.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         cab.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -149,7 +201,10 @@ class DialogoAlmacenes(QDialog):
         for fila, a in enumerate(lista):
             estado = tt("sede_activa", "Activa") if a["activo"] else tt("sede_inactiva", "Desactivada")
             nombre = a["nombre"] + ("  ⭐" if a["principal"] else "")
-            for col, valor in enumerate((nombre, _nombre_sede(a, nombres_sedes), estado)):
+            revision = texto_ciclo(a)
+            if not sedes.revision_activa(a["sede_id"]):
+                revision = tt("alm_revision_desactivada", "Desactivada en la sede")
+            for col, valor in enumerate((nombre, _nombre_sede(a, nombres_sedes), estado, revision)):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, a["id"])

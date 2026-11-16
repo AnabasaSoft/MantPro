@@ -970,16 +970,22 @@ class StockApi {
     return sincronizado;
   }
 
-  /// Revisión de hoy de esta persona, si ya se había empezado (null si no).
-  static Future<Map<String, dynamic>?> revisionDeHoy() async {
+  /// Clave local de la revisión en curso de un almacén (una por almacén).
+  static String _claveRevision(int? almacenId) => almacenId == null ? kStockRevisionHoy : '${kStockRevisionHoy}_alm$almacenId';
+
+  /// Revisión de esta persona en el periodo actual del almacén elegido (hoy, esta
+  /// semana o este mes, según su ciclo), si ya se había empezado (null si no).
+  static Future<Map<String, dynamic>?> revisionActual() async {
     final prefs = await SharedPreferences.getInstance();
-    final texto = prefs.getString(kStockRevisionHoy);
+    final almacenId = almacenElegidoNotifier.value;
+    final texto = prefs.getString(_claveRevision(almacenId)) ??
+        (almacenId == null ? null : prefs.getString(kStockRevisionHoy));   // guardada antes de haber varios
     if (texto == null) return null;
     try {
       final r = Map<String, dynamic>.from(json.decode(texto) as Map);
-      final ahora = DateTime.now();
-      final hoy = '${ahora.year.toString().padLeft(4, '0')}-${ahora.month.toString().padLeft(2, '0')}-${ahora.day.toString().padLeft(2, '0')}';
-      if (r['fecha'] != hoy || r['usuario'] != (AuthService.login ?? '')) return null;
+      final periodo = r['periodo'] ?? r['fecha'];   // las antiguas solo tenían la fecha (eran diarias)
+      if (periodo != RevisionAlmacen.delElegido().periodoActual() || r['usuario'] != (AuthService.login ?? '')) return null;
+      if (r['almacen_id'] != null && r['almacen_id'] != almacenId) return null;
       return r;
     } catch (_) {
       return null;
@@ -999,7 +1005,7 @@ class StockApi {
         '${ahora.year}-${dos(ahora.month)}-${dos(ahora.day)} ${dos(ahora.hour)}:${dos(ahora.minute)}:${dos(ahora.second)}';
     revision['usuario'] = AuthService.login ?? '';
     revision['dispositivo'] = await _nombreDispositivo();
-    await prefs.setString(kStockRevisionHoy, json.encode(revision));
+    await prefs.setString(_claveRevision(revision['almacen_id'] as int?), json.encode(revision));
     final cola = leerColaMapas(prefs, kStockColaRevisiones);
     cola.removeWhere((e) => e['uid'] == revision['uid']);
     cola.add(Map<String, dynamic>.from(revision));

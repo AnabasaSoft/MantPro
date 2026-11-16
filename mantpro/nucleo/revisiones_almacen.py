@@ -73,6 +73,9 @@ def inicializar():
         );
         CREATE INDEX IF NOT EXISTS idx_revisiones_lineas_rev ON revisiones_stock_lineas(revision_id);
     """)
+    # Almacén revisado (NULL: el principal, también las revisiones de antes de haber varios)
+    if "almacen_id" not in almacen._columnas(con, "revisiones_stock"):
+        con.execute("ALTER TABLE revisiones_stock ADD COLUMN almacen_id INTEGER")
     con.commit()
     con.close()
 
@@ -112,8 +115,11 @@ def guardar_revision(datos, usuario_id, usuario_nombre):
     llegar una versión más antigua que la guardada, o (False, motivo) si los
     datos no valen. El usuario es siempre el de la sesión, no el que diga el
     móvil: así nadie puede firmar una revisión como otro."""
+    from . import almacenes
     uid = _texto(datos.get("uid"), 80)
     fecha = _texto(datos.get("fecha"), 10)
+    almacen_id = datos.get("almacen_id")
+    almacen_id = almacenes.guardable(int(almacen_id)) if isinstance(almacen_id, (int, float)) and almacen_id > 0 else None
     lineas = datos.get("lineas")
     if not uid:
         return False, "falta_uid"
@@ -133,15 +139,16 @@ def guardar_revision(datos, usuario_id, usuario_nombre):
             if actualizada < existente["actualizada"]:
                 return True, existente["id"]   # llegó una versión vieja: ya hay una más nueva
             revision_id = existente["id"]
-            con.execute("UPDATE revisiones_stock SET actualizada=?, dispositivo=? WHERE id=?",
-                        (actualizada, _texto(datos.get("dispositivo"), 120), revision_id))
+            con.execute("UPDATE revisiones_stock SET actualizada=?, dispositivo=?, almacen_id=? WHERE id=?",
+                        (actualizada, _texto(datos.get("dispositivo"), 120), almacen_id, revision_id))
             con.execute("DELETE FROM revisiones_stock_lineas WHERE revision_id=?", (revision_id,))
         else:
             revision_id = con.execute("""
-                INSERT INTO revisiones_stock (uid, fecha, usuario_id, usuario_nombre, dispositivo, creada, actualizada)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                INSERT INTO revisiones_stock (uid, fecha, usuario_id, usuario_nombre, dispositivo, creada, actualizada,
+                                              almacen_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (uid, fecha, usuario_id, _texto(usuario_nombre, 120), _texto(datos.get("dispositivo"), 120),
-                 ahora, actualizada)).lastrowid
+                 ahora, actualizada, almacen_id)).lastrowid
         for linea in lineas:
             if not isinstance(linea, dict):
                 continue
@@ -170,14 +177,19 @@ def estado_de(total, revisados):
     return ESTADO_PARCIAL if revisados else ESTADO_SIN_EMPEZAR
 
 
-def listar_revisiones(dias=None, usuario_id=None, estado=None, limite=500, desplazamiento=0):
+def listar_revisiones(dias=None, usuario_id=None, estado=None, limite=500, desplazamiento=0, almacen_ids=None):
     """Revisiones, de la más reciente a la más antigua, cada una con `total`
     (artículos propuestos), `revisados`, `ajustados` (con diferencia entre lo
     contado y lo que decía el sistema) y `estado`.
 
     [dias]: solo las de los últimos N días. [usuario_id]: solo de esa persona.
-    [estado]: "completa", "parcial", "sin_empezar" o una lista de ellos."""
+    [estado]: "completa", "parcial", "sin_empezar" o una lista de ellos.
+    [almacen_ids]: solo de esos almacenes (un id, una lista o None = todos). Cada
+    revisión lleva `almacen_id` (el efectivo) y `almacen_nombre`."""
+    from . import almacenes
     condiciones, parametros = [], []
+    if almacen_ids is not None:
+        condiciones.append(almacenes.condicion(almacen_ids, "r.almacen_id"))
     if dias:
         condiciones.append("r.fecha >= ?")
         parametros.append((datetime.now() - timedelta(days=int(dias))).strftime("%Y-%m-%d"))
@@ -201,8 +213,11 @@ def listar_revisiones(dias=None, usuario_id=None, estado=None, limite=500, despl
     con.close()
     resultado = []
     permitidos = {estado} if isinstance(estado, str) else set(estado or [])
+    nombres = almacenes.nombres()
     for f in filas:
         d = dict(f)
+        d["almacen_id"] = almacenes.efectivo(d.get("almacen_id"))
+        d["almacen_nombre"] = nombres.get(d["almacen_id"], "")
         d["estado"] = estado_de(d["total"], d["revisados"])
         if permitidos and d["estado"] not in permitidos:
             continue
@@ -239,26 +254,19 @@ def usuarios_con_revisiones():
 
 # ------------------------------------------------- días sin revisión y móviles
 
-def dias_sin_revision(dias=7, hoy=None, festivos=()):
+def dias_sin_revision(dias=7, hoy=None, festivos=(), almacen_ids=None):
     """Días laborables de los últimos [dias] días en los que nadie revisó ni
     un solo artículo, de más antiguo a más reciente ('AAAA-MM-DD').
 
     No cuenta el día de hoy (aún no ha acabado), ni sábados, domingos y los
     [festivos] que se pasen (conjunto de 'AAAA-MM-DD'). Tampoco cuenta nada
     anterior a la primera revisión guardada: quien aún no usa la comprobación
-    diaria no recibe avisos, y quien la empieza no arrastra días de antes."""
+    diaria no recibe avisos, y quien la empieza no arrastra días de antes.
+    [almacen_ids]: solo las revisiones de esos almacenes (None = todas)."""
     hoy = hoy or datetime.now().date()
-    con = almacen._conn()
-    primera = con.execute("SELECT MIN(fecha) FROM revisiones_stock").fetchone()[0]
+    primera, con_revision = _fechas_revisadas(almacen_ids, (hoy - timedelta(days=int(dias))).strftime("%Y-%m-%d"))
     if not primera:
-        con.close()
         return []
-    con_revision = {f[0] for f in con.execute("""
-        SELECT DISTINCT r.fecha FROM revisiones_stock r
-        JOIN revisiones_stock_lineas l ON l.revision_id = r.id
-        WHERE l.revisado = 1 AND r.fecha >= ?""",
-        ((hoy - timedelta(days=int(dias))).strftime("%Y-%m-%d"),))}
-    con.close()
     festivos = set(festivos or ())
     faltan = []
     for atras in range(int(dias), 0, -1):
@@ -269,6 +277,134 @@ def dias_sin_revision(dias=7, hoy=None, festivos=()):
         if texto not in con_revision:
             faltan.append(texto)
     return faltan
+
+
+def _fechas_revisadas(almacen_ids, desde):
+    """(primera fecha con revisión, {fechas desde [desde] con algún artículo revisado})
+    de los almacenes [almacen_ids] (None = todos)."""
+    from . import almacenes
+    donde = almacenes.condicion(almacen_ids, "r.almacen_id")
+    con = almacen._conn()
+    primera = con.execute(f"SELECT MIN(r.fecha) FROM revisiones_stock r WHERE {donde}").fetchone()[0]
+    fechas = {f[0] for f in con.execute(f"""
+        SELECT DISTINCT r.fecha FROM revisiones_stock r
+        JOIN revisiones_stock_lineas l ON l.revision_id = r.id
+        WHERE l.revisado = 1 AND r.fecha >= ? AND {donde}""", (desde,))} if primera else set()
+    con.close()
+    return primera, fechas
+
+
+def ultima_revision(almacen_id):
+    """Fecha ('AAAA-MM-DD') de la última revisión del almacén con algún artículo
+    revisado, o '' si no hay ninguna."""
+    from . import almacenes
+    con = almacen._conn()
+    fila = con.execute(f"""SELECT MAX(r.fecha) FROM revisiones_stock r
+                           JOIN revisiones_stock_lineas l ON l.revision_id = r.id
+                           WHERE l.revisado = 1 AND {almacenes.condicion([almacen_id], "r.almacen_id")}""").fetchone()
+    con.close()
+    return fila[0] or ""
+
+
+# ------------------------------------------------------ ciclo de cada almacén
+
+PERIODOS_AVISO = {"diario": 7, "semanal": 4, "mensual": 3}   # cuántos periodos atrás se miran
+
+
+def periodo(ciclo, dia, fecha):
+    """(inicio, fin) del periodo de revisión que contiene [fecha] (objetos date).
+    Diario: el propio día. Semanal: del [dia] de la semana (0 = lunes) a la víspera
+    del siguiente. Mensual: del [dia] del mes (el último si el mes es más corto) a la
+    víspera del siguiente."""
+    import calendar
+    if ciclo == "semanal":
+        inicio = fecha - timedelta(days=(fecha.weekday() - dia) % 7)
+        return inicio, inicio + timedelta(days=6)
+
+    if ciclo == "mensual":
+        def dia_en(anio, mes):
+            return fecha.replace(year=anio, month=mes, day=min(dia, calendar.monthrange(anio, mes)[1]))
+
+        def mes_mas(anio, mes, n):
+            total = anio * 12 + (mes - 1) + n
+            return total // 12, total % 12 + 1
+
+        inicio = dia_en(fecha.year, fecha.month)
+        if inicio > fecha:
+            inicio = dia_en(*mes_mas(fecha.year, fecha.month, -1))
+        siguiente = dia_en(*mes_mas(inicio.year, inicio.month, 1))
+        return inicio, siguiente - timedelta(days=1)
+    return fecha, fecha
+
+
+def _laborable(dia, festivos):
+    return dia.weekday() < 5 and dia.strftime("%Y-%m-%d") not in festivos
+
+
+def periodos_sin_revision(almacen, hoy=None, festivos=()):
+    """Periodos ya acabados del ciclo del [almacen] (dict de nucleo/almacenes) en los
+    que nadie revisó ni un artículo: lista de (inicio, fin) 'AAAA-MM-DD', del más
+    antiguo al más reciente. Diario: los días laborables de la última semana (sin hoy).
+    Semanal y mensual: las últimas 4 semanas / 3 meses (un periodo sin ningún día
+    laborable no cuenta). Nada anterior a la primera revisión del almacén."""
+    from . import almacenes
+    hoy = hoy or datetime.now().date()
+    festivos = set(festivos or ())
+    ciclo, dia, _n = almacenes.revision(almacen)
+    if ciclo == almacenes.CICLO_DIARIO:
+        return [(d, d) for d in dias_sin_revision(PERIODOS_AVISO["diario"], hoy, festivos, [almacen["id"]])]
+    periodos = []
+    inicio, _fin = periodo(ciclo, dia, hoy)
+    for _ in range(PERIODOS_AVISO[ciclo]):
+        inicio, fin = periodo(ciclo, dia, inicio - timedelta(days=1))
+        periodos.append((inicio, fin))
+    periodos.reverse()
+    primera, revisadas = _fechas_revisadas([almacen["id"]], periodos[0][0].strftime("%Y-%m-%d"))
+    if not primera:
+        return []
+    faltan = []
+    for inicio, fin in periodos:
+        a, b = inicio.strftime("%Y-%m-%d"), fin.strftime("%Y-%m-%d")
+        if b < primera or any(a <= f <= b for f in revisadas):
+            continue
+        if not any(_laborable(inicio + timedelta(days=i), festivos) for i in range((fin - inicio).days + 1)):
+            continue
+        faltan.append((a, b))
+    return faltan
+
+
+def toca_revisar(almacen, hoy=None, festivos=()):
+    """Si el [almacen] tiene pendiente la revisión del periodo actual: en el diario, hoy
+    si es laborable; en el semanal y mensual, si en el periodo en curso no se ha
+    revisado nada todavía."""
+    from . import almacenes
+    hoy = hoy or datetime.now().date()
+    ciclo, dia, _n = almacenes.revision(almacen)
+    if ciclo == almacenes.CICLO_DIARIO and not _laborable(hoy, set(festivos or ())):
+        return False
+    inicio, _fin = periodo(ciclo, dia, hoy)
+    _primera, revisadas = _fechas_revisadas([almacen["id"]], inicio.strftime("%Y-%m-%d"))
+    return not any(f <= hoy.strftime("%Y-%m-%d") for f in revisadas)
+
+
+def almacenes_a_revisar(sede=None):
+    """Almacenes activos que se ven desde [sede] (None = todos) y cuya sede tiene la
+    revisión activada (los comunes, si la tiene la sede principal)."""
+    from . import almacenes, sedes
+    return [a for a in almacenes.listar(sede) if sedes.revision_activa(a["sede_id"])]
+
+
+def avisos(sede=None, hoy=None, festivos_de=None):
+    """Almacenes con periodos sin revisar: [{almacen, faltan}] (ver periodos_sin_revision).
+    [festivos_de]: función sede_id -> conjunto de festivos 'AAAA-MM-DD' (o None)."""
+    from . import sedes
+    resultado = []
+    for a in almacenes_a_revisar(sede):
+        festivos = festivos_de(sedes.efectiva(a["sede_id"])) if festivos_de else ()
+        faltan = periodos_sin_revision(a, hoy, festivos)
+        if faltan:
+            resultado.append({"almacen": a, "faltan": faltan})
+    return resultado
 
 
 def moviles_que_revisan(dias=30, hoy=None):

@@ -20,6 +20,7 @@
 
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../almacenes.dart';
 import '../api.dart';
 import '../i18n/strings.dart';
 import '../modelos.dart';
@@ -43,6 +44,7 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
   final Map<int, TextEditingController> _controladores = {};
   final Set<int> _guardando = {};
   final Set<int> _confirmados = {};
+  RevisionAlmacen _config = const RevisionAlmacen();
   // Revisión de hoy (quién, qué artículos y cuáles lleva revisados): se guarda
   // en el móvil y se envía al PC cada vez que avanza.
   Map<String, dynamic> _revision = {};
@@ -88,8 +90,14 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
   Future<void> _cargar() async {
     setState(() { _cargando = true; _error = null; });
     try {
+      _config = RevisionAlmacen.delElegido();
+      if (!_config.activa) {
+        // La sede de este almacén tiene la revisión desactivada en el PC
+        if (mounted) setState(() => _cargando = false);
+        return;
+      }
       final materiales = await StockApi.obtenerMateriales();
-      final previa = await StockApi.revisionDeHoy();
+      final previa = await StockApi.revisionActual();
       if (previa != null) {
         // Ya se había empezado hoy: se sigue con los mismos artículos y lo
         // ya revisado (los que se hayan borrado desde entonces se quitan).
@@ -103,17 +111,21 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
         }
       }
       if (previa == null || (_revision['lineas'] as List).isEmpty) {
-        // Semilla basada en el día de hoy: la selección es al azar, pero se
-        // mantiene igual si se entra varias veces el mismo día y cambia sola
-        // al día siguiente, sin tener que guardar nada en el servidor.
-        final hoy = DateTime.now();
-        final semilla = hoy.year * 10000 + hoy.month * 100 + hoy.day;
+        // Semilla basada en el periodo (hoy, esta semana o este mes) y el
+        // almacén: la selección es al azar, pero se mantiene igual si se entra
+        // varias veces en el mismo periodo y cambia sola en el siguiente, sin
+        // tener que guardar nada en el servidor.
+        final inicio = _config.inicioPeriodo(DateTime.now());
+        final almacenId = almacenElegidoNotifier.value;
+        final semilla = inicio.year * 10000 + inicio.month * 100 + inicio.day + (almacenId ?? 0) * 100000000;
         final lista = List<Articulo>.from(materiales)..shuffle(Random(semilla));
-        _seleccionados = lista.take(5).toList();
+        _seleccionados = lista.take(_config.articulos).toList();
         _confirmados.clear();
         _revision = {
           'uid': '${_fechaDeHoy()}-${DateTime.now().microsecondsSinceEpoch}',
           'fecha': _fechaDeHoy(),
+          'periodo': RevisionAlmacen.texto(inicio),
+          if (almacenId != null) 'almacen_id': almacenId,
           'lineas': [for (final a in _seleccionados) _lineaNueva(a)],
         };
         // Queda constancia de que se ha abierto la revisión aunque luego no
@@ -190,6 +202,13 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error!))
+              : !_config.activa
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(tt('msg_revision_desactivada', 'La revisión del almacén está desactivada en esta sede.'),
+                            textAlign: TextAlign.center),
+                      ))
               : _seleccionados.isEmpty
                   ? Center(child: Text(tt('msg_sin_materiales', 'No hay materiales en el almacén.')))
                   : ListView(

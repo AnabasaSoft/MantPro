@@ -56,7 +56,22 @@ class AccionesUsuarios:
         if not usuarios.es_admin():
             return
         from ..dialogos.revisiones_almacen import DialogoRevisionesAlmacen
-        DialogoRevisionesAlmacen(self, self._festivos_iso()).exec()
+        elegida = self.sede_filtro() if hasattr(self, "sede_filtro") else None
+        DialogoRevisionesAlmacen(self, self._festivos_iso(), festivos_de=self._festivos_iso_de_sede,
+                                 sede=elegida if isinstance(elegida, int) else None).exec()
+
+    def _festivos_iso_de_sede(self, sede_id):
+        """Festivos ya descargados de una sede (los suyos si tiene región propia)."""
+        from ...nucleo import sedes
+        gestor = getattr(self, "gestor_festivos", None)
+        if gestor is None:
+            return set()
+        anterior = gestor.sede
+        try:
+            gestor.sede = sedes.obtener(sede_id)
+            return self._festivos_iso()
+        finally:
+            gestor.sede = anterior
 
     def _festivos_iso(self):
         """Festivos del año ya descargados ('AAAA-MM-DD'), sin ir a internet:

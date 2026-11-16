@@ -1531,9 +1531,17 @@ class ServidorSincronizacion(QThread):
             """Almacenes activos (para elegir en MantPro Stock), con el nombre de su sede."""
             from ..nucleo import sedes
             nombres_sedes = sedes.nombres()
+
+            def revision(a):
+                # Lo que necesita el móvil para saber, sin conexión, si le toca revisar
+                ciclo, dia, articulos = almacenes.revision(a)
+                return {"activa": sedes.revision_activa(a["sede_id"]), "ciclo": ciclo, "dia": dia,
+                        "articulos": articulos, "ultima": revisiones_almacen.ultima_revision(a["id"])}
+
             lista = [{"id": a["id"], "nombre": a["nombre"], "comun": bool(a["comun"]), "principal": bool(a["principal"]),
                       "sede_id": sedes.efectiva(a["sede_id"]),
-                      "sede": "" if a["comun"] else nombres_sedes.get(sedes.efectiva(a["sede_id"]), "")}
+                      "sede": "" if a["comun"] else nombres_sedes.get(sedes.efectiva(a["sede_id"]), ""),
+                      "revision": revision(a)}
                      for a in almacenes.listar(sedes.permitidas(g.usuario_mantpro))]
             return jsonify({"status": "ok", "almacenes": lista, "principal": almacenes.principal_id()})
 
@@ -1759,6 +1767,21 @@ class ServidorSincronizacion(QThread):
                 if not isinstance(datos, dict):
                     return jsonify({"status": "error", "message": "Datos no válidos."}), 400
                 datos.setdefault("dispositivo", (usuario.get("dispositivo") or "") if isinstance(usuario, dict) else "")
+                # Solo de un almacén (y con artículos) de las sedes de quien la manda.
+                # Sin almacén (apps antiguas): el principal.
+                try:
+                    alm = int(datos.get("almacen_id")) if datos.get("almacen_id") not in (None, "") else None
+                except (TypeError, ValueError):
+                    alm = None
+                datos["almacen_id"] = alm
+                permitidos = _almacenes_permitidos()
+                if almacenes.efectivo(alm) not in permitidos:
+                    return _sede_no_permitida()
+                for linea in datos.get("lineas") or []:
+                    mid = linea.get("material_id") if isinstance(linea, dict) else None
+                    m = almacen.obtener_material(mid) if isinstance(mid, int) and mid > 0 else None
+                    if m is not None and almacenes.efectivo(m.get("almacen_id")) not in permitidos:
+                        return _sede_no_permitida()
                 ok, resultado = revisiones_almacen.guardar_revision(datos, usuario['id'], usuario['nombre'])
                 if not ok:
                     estado = 403 if resultado == "revision_de_otro_usuario" else 400
