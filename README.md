@@ -857,6 +857,7 @@ MantPro is and will remain **free and open source**: everything in this README w
 - **Photos and videos in the cloud**, shared between PCs and phones.
 - **Automatic off-site backups**, on top of the ones your PC makes.
 - **30-day free trial.**
+- **Licence and storage at a glance**: in `Tools` > `☁️ MantPro Cloud…` you see the storage used by your plan and have buttons to pay for the licence and buy more storage; MantPro warns administrators if the licence expires or storage runs low.
 
 Your data is still yours: if you stop paying, the PC keeps working with everything it has locally; it just stops syncing.
 

@@ -23,7 +23,7 @@
 import socket
 
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
-                             QFormLayout, QDialog, QMessageBox)
+                             QFormLayout, QDialog, QMessageBox, QProgressBar)
 from PyQt6.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 
@@ -102,6 +102,57 @@ class _Hilo(QThread):
         self.terminado.emit(resultado, error)
 
 
+def texto_espacio(esp):
+    """«12,3 GB de 150 GB (8 %)» (o en MB si es poco)."""
+    def tam(mb):
+        if mb < 1024:
+            return f"{mb:.0f} MB"
+        gb = mb / 1024
+        return (f"{gb:.1f}" if gb < 100 else f"{gb:.0f}").replace(".", "," if get_idioma() in ("es", "eu", "ca", "gl", "pt", "fr", "de") else ".") + " GB"
+    return tt("nube_espacio_uso", "{usado} de {maximo} ({pct} %)").format(
+        usado=tam(esp["uso_mb"]), maximo=tam(esp["maximo_mb"]), pct=round(esp["fraccion"] * 100))
+
+
+def texto_aviso(codigo):
+    """Texto de cada aviso de nube.avisos()."""
+    return {
+        "licencia_gracia": tt("nube_aviso_licencia_gracia",
+            "La licencia de MantPro Cloud ha caducado. Págala antes de que termine el margen de gracia para no perder la sincronización."),
+        "licencia_vencida": tt("nube_aviso_licencia_vencida",
+            "La licencia de MantPro Cloud ha caducado y este PC ya no sincroniza con la nube. Págala para volver a sincronizar."),
+        "licencia_suspendida": tt("nube_aviso_licencia_suspendida",
+            "La cuenta de MantPro Cloud está suspendida. Vuelve a contratarla desde «Mi cuenta» para recuperar la sincronización."),
+        "espacio_poco": tt("nube_aviso_espacio_poco",
+            "Queda poco espacio en MantPro Cloud. Compra más espacio para que no se llene."),
+        "espacio_lleno": tt("nube_aviso_espacio_lleno",
+            "El espacio de MantPro Cloud está lleno: no se pueden subir más datos ni fotos. Compra más espacio para seguir sincronizando."),
+    }.get(codigo, codigo)
+
+
+def abrir_cuenta(seccion=""):
+    """Abre «Mi cuenta» de la web en el navegador (con [seccion] = "espacio", en la compra de espacio)."""
+    QDesktopServices.openUrl(QUrl(nube.url_cuenta(get_idioma(), seccion)))
+
+
+def mostrar_avisos_cuenta(parent, codigos):
+    """Aviso emergente con lo que hay que hacer en la cuenta de la nube: un botón para
+    pagar la licencia o comprar espacio (abre «Mi cuenta») y otro para dejarlo para luego."""
+    if not codigos:
+        return
+    pagar = any(c.startswith("licencia_") for c in codigos)
+    caja = QMessageBox(parent)
+    caja.setIcon(QMessageBox.Icon.Warning)
+    caja.setWindowTitle(tt("title_nube", "MantPro Cloud"))
+    caja.setText("\n\n".join(texto_aviso(c) for c in codigos))
+    boton = caja.addButton(("💳 " + tt("btn_nube_pagar", "Pagar la licencia")) if pagar
+                           else ("➕ " + tt("btn_nube_espacio", "Comprar más espacio")), QMessageBox.ButtonRole.AcceptRole)
+    caja.addButton(tt("btn_nube_luego", "Más tarde"), QMessageBox.ButtonRole.RejectRole)
+    caja.setDefaultButton(boton)
+    caja.exec()
+    if caja.clickedButton() is boton:
+        abrir_cuenta("" if pagar else "espacio")
+
+
 class DialogoNube(QDialog):
     """Sin sesión: formulario de acceso. Con sesión: cuenta, empresa y licencia."""
 
@@ -172,6 +223,29 @@ class DialogoNube(QDialog):
                 self.aviso.setText(tt("lbl_nube_sesion_perdida",
                     "La sesión de este PC se ha perdido (por ejemplo, al mover o renombrar la carpeta de MantPro). "
                     "Inicia sesión otra vez: tus datos no se han tocado."))
+
+    def _botones_cuenta(self, l, efectivo, esp):
+        """Avisos de espacio y botones a «Mi cuenta» de la web: pagar la licencia (si ha
+        caducado o está suspendida) y comprar más espacio (resaltado si queda poco)."""
+        if esp and esp["estado"] != "ok":
+            aviso = self._etiqueta(texto_aviso("espacio_" + esp["estado"]))
+            aviso.setStyleSheet("color: #b26a00;")
+            l.addWidget(aviso)
+        fila = QHBoxLayout()
+        if efectivo in ("gracia", "vencida", "suspendida"):
+            self.boton_pagar = QPushButton("💳 " + tt("btn_nube_pagar", "Pagar la licencia"))
+            self.boton_pagar.setAutoDefault(False)
+            self.boton_pagar.setStyleSheet("font-weight: bold;")
+            self.boton_pagar.clicked.connect(lambda: abrir_cuenta())
+            fila.addWidget(self.boton_pagar)
+        self.boton_espacio = QPushButton("➕ " + tt("btn_nube_espacio", "Comprar más espacio"))
+        self.boton_espacio.setAutoDefault(False)
+        if esp and esp["estado"] != "ok":
+            self.boton_espacio.setStyleSheet("font-weight: bold;")
+        self.boton_espacio.clicked.connect(lambda: abrir_cuenta("espacio"))
+        fila.addWidget(self.boton_espacio)
+        fila.addStretch()
+        l.addLayout(fila)
 
     def _boton_web(self):
         """Botón que abre la web de MantPro Cloud en el navegador (contratar, renovar, información)."""
@@ -257,6 +331,16 @@ class DialogoNube(QDialog):
             if dias is not None and dias >= 0:
                 texto += " (" + tt("nube_dias_restantes", "{n} días restantes").format(n=dias) + ")"
             form.addRow(tt("nube_valida_hasta", "Válida hasta") + ":", self._etiqueta(texto))
+        esp = nube.espacio(datos)
+        if esp:
+            barra = QProgressBar()
+            barra.setRange(0, 100)
+            barra.setValue(min(100, round(esp["fraccion"] * 100)))
+            barra.setFormat(texto_espacio(esp))
+            if esp["estado"] != "ok":
+                barra.setStyleSheet("QProgressBar::chunk { background-color: %s; }"
+                                    % ("#c0392b" if esp["estado"] == "lleno" else "#d98a00"))
+            form.addRow(tt("nube_espacio", "Espacio") + ":", barra)
         comprobada = (datos.get("comprobada") or "")[:10]
         if comprobada:
             form.addRow(tt("nube_comprobada", "Última comprobación") + ":",
@@ -276,6 +360,7 @@ class DialogoNube(QDialog):
             aviso_lic = self._etiqueta(mensaje)
             aviso_lic.setStyleSheet("color: #b26a00;")
             l.addWidget(aviso_lic)
+        self._botones_cuenta(l, efectivo, esp)
 
         self._construir_sincronizacion(l)
 

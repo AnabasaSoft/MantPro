@@ -871,6 +871,7 @@ O **MantPro Cloud** é um serviço **opcional e pago** para quem precisa de mais
 - **Fotos e vídeos na nuvem**, compartilhados entre PCs e celulares.
 - **Cópias de segurança automáticas fora da planta**, além das que o seu PC já faz.
 - **Teste grátis de 30 dias.**
+- **Licença e espaço à vista**: em `Ferramentas` > `☁️ MantPro Cloud…` você vê o espaço usado pelo seu plano e tem botões para pagar a licença e comprar mais espaço; o MantPro avisa os administradores se a licença expirar ou se restar pouco espaço.
 
 Seus dados continuam sendo seus: se você deixar de pagar, o PC continua funcionando com tudo o que tem localmente; apenas deixa de sincronizar.
 

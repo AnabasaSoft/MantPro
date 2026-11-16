@@ -883,6 +883,7 @@ MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azal
 - **Argazkiak eta bideoak hodeian**, PCen eta mugikorren artean partekatuta.
 - **Babeskopia automatikoak plantatik kanpo**, zure PCak egiten dituenez gain.
 - **30 eguneko doako proba.**
+- **Lizentzia eta lekua begi-bistan**: `Tresnak` > `☁️ MantPro Cloud…` atalean zure planak erabilitako lekua ikusten duzu, eta lizentzia ordaintzeko eta leku gehiago erosteko botoiak dituzu; MantPro-k administratzaileei abisatzen die lizentzia iraungitzen bada edo leku gutxi geratzen bada.
 
 Zure datuak zureak dira: ordaintzeari uzten badiozu, PCak lokalean duen guztiarekin funtzionatzen jarraitzen du; sinkronizatzeari uzten dio, besterik ez.
 

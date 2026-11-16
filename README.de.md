@@ -872,6 +872,7 @@ MantPro ist und bleibt **kostenlos und Open Source**: Alles, was in diesem READM
 - **Fotos und Videos in der Cloud**, gemeinsam für PCs und Handys.
 - **Automatische Sicherungen außerhalb des Betriebs**, zusätzlich zu denen Ihres PCs.
 - **30 Tage kostenlos testen.**
+- **Lizenz und Speicherplatz im Blick**: unter `Werkzeuge` > `☁️ MantPro Cloud…` sehen Sie den belegten Speicherplatz Ihres Tarifs und haben Schaltflächen, um die Lizenz zu bezahlen und mehr Speicherplatz zu kaufen; MantPro warnt die Administratoren, wenn die Lizenz abläuft oder der Speicherplatz knapp wird.
 
 Ihre Daten bleiben Ihre Daten: Wenn Sie nicht mehr zahlen, arbeitet der PC mit allem weiter, was er lokal hat; er synchronisiert nur nicht mehr.
 

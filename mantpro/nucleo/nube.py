@@ -57,6 +57,14 @@ def url_registro(idioma):
     """Página de alta de MantPro Cloud en la web, en el idioma dado (castellano si la web no lo tiene)."""
     idioma = idioma if idioma in IDIOMAS_WEB else "es"
     return "https://mantpro-cloud.com/" + ("" if idioma == "es" else idioma + "/") + "registro/"
+
+
+def url_cuenta(idioma, seccion=""):
+    """«Mi cuenta» de la web (pagar o recontratar, portal de Stripe, comprar espacio).
+    [seccion]: "espacio" para ir directamente a comprar más espacio."""
+    idioma = idioma if idioma in IDIOMAS_WEB else "es"
+    url = "https://mantpro-cloud.com/" + ("" if idioma == "es" else idioma + "/") + "cuenta/"
+    return url + ("#" + seccion if seccion else "")
 TIMEOUT = 10                       # segundos por petición
 SERVICIO_LLAVERO = "MantPro Cloud"
 GRACIA_POR_DEFECTO = 7             # si el servidor no dice otra cosa
@@ -268,6 +276,10 @@ def comprobar_licencia(carpeta=None, ahora=None):
         if isinstance(res.get(clave), dict):
             actual[clave] = res[clave]
     actual["comprobada"] = _ahora_iso(ahora)
+    # Espacio usado (GET /cuenta): si falla (servidor antiguo, sin conexión) se queda el último conocido
+    cuenta, error_cuenta = _peticion("GET", "/cuenta", token_=tk)
+    if not error_cuenta and isinstance(cuenta.get("uso_mb"), (int, float)):
+        actual["espacio"] = {"uso_mb": float(cuenta["uso_mb"]), "comprobado": actual["comprobada"]}
     _guardar_sesion(actual, carpeta)
     return actual, None
 
@@ -314,6 +326,39 @@ def estado_efectivo(licencia, hoy=None):
     gracia = licencia.get("gracia_dias")
     gracia = gracia if isinstance(gracia, int) and gracia >= 0 else GRACIA_POR_DEFECTO
     return "gracia" if hoy <= limite + timedelta(days=gracia) else "vencida"
+
+
+UMBRAL_POCO_ESPACIO = 0.9   # a partir del 90 % usado se avisa de que queda poco
+
+
+def espacio(datos):
+    """Espacio de la nube según la última comprobación: {uso_mb, maximo_mb, fraccion,
+    estado: "ok" | "poco" | "lleno"}, o None si no se sabe (sin sesión o servidor antiguo)."""
+    if not isinstance(datos, dict):
+        return None
+    uso = (datos.get("espacio") or {}).get("uso_mb")
+    maximo = ((datos.get("licencia") or {}).get("limites") or {}).get("almacenamiento_mb")
+    if not isinstance(uso, (int, float)) or not isinstance(maximo, (int, float)) or maximo <= 0:
+        return None
+    fraccion = uso / maximo
+    estado = "lleno" if fraccion >= 1 else "poco" if fraccion >= UMBRAL_POCO_ESPACIO else "ok"
+    return {"uso_mb": float(uso), "maximo_mb": float(maximo), "fraccion": fraccion, "estado": estado}
+
+
+def avisos(datos, hoy=None):
+    """Qué hay que avisar al administrador de la cuenta en la nube (lista de códigos):
+    "licencia_gracia", "licencia_vencida", "licencia_suspendida" (hay que pagar) y
+    "espacio_poco", "espacio_lleno" (hay que comprar espacio). Vacía si todo va bien."""
+    if not isinstance(datos, dict):
+        return []
+    lista = []
+    estado = estado_efectivo(datos.get("licencia"), hoy)
+    if estado in ("gracia", "vencida", "suspendida"):
+        lista.append("licencia_" + estado)
+    esp = espacio(datos)
+    if esp and esp["estado"] != "ok":
+        lista.append("espacio_" + esp["estado"])
+    return lista
 
 
 def dias_restantes(licencia, hoy=None):

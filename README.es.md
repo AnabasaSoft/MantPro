@@ -870,6 +870,7 @@ MantPro es y seguirá siendo **gratuito y de código abierto**: todo lo que se e
 - **Fotos y vídeos en la nube**, compartidos entre PCs y móviles.
 - **Copias de seguridad automáticas fuera de la planta**, además de las que hace tu PC.
 - **Prueba gratuita de 30 días.**
+- **Licencia y espacio a la vista**: en `Herramientas` > `☁️ MantPro Cloud…` ves el espacio usado de tu plan y tienes botones para pagar la licencia y comprar más espacio; MantPro avisa a los administradores si la licencia caduca o si queda poco espacio.
 
 Tus datos siguen siendo tuyos: si dejas de pagar, el PC sigue funcionando con todo lo que tiene en local; solo deja de sincronizar.
 
