@@ -36,6 +36,10 @@ import 'i18n/strings.dart';
 /// Sede elegida (null = todas mis sedes). Las pestañas lo escuchan para refiltrar.
 final ValueNotifier<int?> sedeElegidaNotifier = ValueNotifier(null);
 
+/// Cambia cada vez que se carga la lista de sedes (el botón se repinta aunque
+/// la sede elegida siga siendo la misma, p. ej. «todas»).
+final ValueNotifier<int> sedesListaNotifier = ValueNotifier(0);
+
 class SedesCache {
   static const _clave = 'sedes_cache';
   static const _claveElegida = 'sede_elegida';
@@ -54,6 +58,7 @@ class SedesCache {
     }
     final elegida = prefs.getInt(_claveElegida);
     sedeElegidaNotifier.value = (elegida != null && lista.any((s) => s['id'] == elegida)) ? elegida : null;
+    sedesListaNotifier.value++;
   }
 
   /// Guarda la respuesta de /api/sedes. Si la sede elegida ya no es del
@@ -98,9 +103,10 @@ class BotonSede extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<int?>(
-      valueListenable: sedeElegidaNotifier,
-      builder: (context, elegida, _) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([sedeElegidaNotifier, sedesListaNotifier]),
+      builder: (context, _) {
+        final elegida = sedeElegidaNotifier.value;
         if (SedesCache.lista.length < 2) return const SizedBox.shrink();
         return PopupMenuButton<int>(
           icon: Icon(Icons.apartment, color: elegida == null ? null : Colors.orangeAccent),

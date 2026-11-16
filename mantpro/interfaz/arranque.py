@@ -184,6 +184,8 @@ def main():
     # YA NO forzamos "xcb", dejamos que Wayland gestione la ventana nativamente
 
     app = QApplication(sys.argv)
+    from .widgets import columnas
+    columnas.instalar(app)   # columnas de todas las tablas ajustables arrastrando
 
     # --- 1. CONFIGURACIÓN DE IDENTIDAD ---
     app.setDesktopFileName("MantPro")

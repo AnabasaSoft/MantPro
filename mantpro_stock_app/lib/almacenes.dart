@@ -37,6 +37,9 @@ import 'i18n/strings.dart';
 /// Almacén elegido (null = el principal / el de siempre). Las pantallas lo escuchan.
 final ValueNotifier<int?> almacenElegidoNotifier = ValueNotifier(null);
 
+/// Cambia cada vez que se carga la lista de almacenes (repinta el botón).
+final ValueNotifier<int> almacenesListaNotifier = ValueNotifier(0);
+
 class AlmacenesCache {
   static const _clave = 'stock_almacenes';
   static const _claveElegido = 'stock_almacen_elegido';
@@ -59,6 +62,7 @@ class AlmacenesCache {
       // Sin elegir: el primero que ve (el principal si es suyo); null si no hay lista (PC antiguo)
       almacenElegidoNotifier.value = lista.isEmpty ? null : lista.first['id'] as int;
     }
+    almacenesListaNotifier.value++;
   }
 
   /// Guarda la respuesta de /api/stock/almacenes. true si el almacén elegido ha cambiado.
@@ -107,9 +111,10 @@ class BotonAlmacen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<int?>(
-      valueListenable: almacenElegidoNotifier,
-      builder: (context, elegido, _) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([almacenElegidoNotifier, almacenesListaNotifier]),
+      builder: (context, _) {
+        final elegido = almacenElegidoNotifier.value;
         if (AlmacenesCache.lista.length < 2) return const SizedBox.shrink();
         return PopupMenuButton<int>(
           icon: const Icon(Icons.warehouse),

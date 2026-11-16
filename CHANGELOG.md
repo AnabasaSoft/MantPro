@@ -13,6 +13,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **📱 Sedes y almacenes en las apps**: MantPro tiene un selector de sede arriba (solo con más de una), que filtra pendientes, avisos, historial y máquinas sin conexión; lo que se crea va a la sede elegida. MantPro Stock tiene un selector de almacén (solo con más de uno) y guarda cada almacén por separado, así que se puede cambiar sin conexión.
 
 ### Mejoras
+- **↔️ Columnas ajustables en todas las tablas**: el ancho de cualquier columna se puede cambiar arrastrando su borde (antes muchas tablas no lo dejaban, como la de gestión de usuarios). Al principio se ven igual que antes; la columna que arrastras se queda con tu ancho.
 - **🔕 Sin aviso al abrir por las revisiones del almacén**: MantPro ya no avisa al arrancar de los días sin revisar el almacén. Sigue viéndose en *Herramientas → Historial de revisiones del almacén*.
 - **🖥️ La ventana cabe en pantallas más pequeñas**: las pestañas ocupan menos y caben todas a 1280 píxeles de ancho (antes las últimas quedaban tras unas flechas), el selector de sede está a la derecha de la barra de menús y los botones de la pestaña de stock van en dos filas (antes la ventana no podía estrecharse por debajo de unos 1600 píxeles).
 
