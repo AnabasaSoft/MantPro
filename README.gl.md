@@ -28,6 +28,10 @@
   <img src="https://img.shields.io/badge/Autoaloxado-de%20balde%20para%20sempre-orange.svg" alt="Autoaloxado: de balde para sempre">
 </p>
 
+<p align="center">
+  <strong>Web: <a href="https://mantpro-cloud.com/gl/">mantpro-cloud.com</a></strong> · <a href="https://github.com/AnabasaSoft/MantPro/releases/latest">Descargar</a> · <a href="https://mantpro-cloud.com/gl/#cloud">MantPro Cloud (opcional)</a>
+</p>
+
 ---
 
 ## 📋 Índice

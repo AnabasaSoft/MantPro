@@ -28,6 +28,10 @@
   <img src="https://img.shields.io/badge/Norberak%20ostatatua-betiko%20doan-orange.svg" alt="Norberak ostatatua: betiko doan">
 </p>
 
+<p align="center">
+  <strong>Webgunea: <a href="https://mantpro-cloud.com/eu/">mantpro-cloud.com</a></strong> · <a href="https://github.com/AnabasaSoft/MantPro/releases/latest">Deskargatu</a> · <a href="https://mantpro-cloud.com/eu/#cloud">MantPro Cloud (aukerakoa)</a>
+</p>
+
 ---
 
 ## 📋 Aurkibidea

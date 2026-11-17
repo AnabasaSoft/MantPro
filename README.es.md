@@ -28,6 +28,10 @@
   <img src="https://img.shields.io/badge/Autoalojado-gratis%20para%20siempre-orange.svg" alt="Autoalojado: gratis para siempre">
 </p>
 
+<p align="center">
+  <strong>Web: <a href="https://mantpro-cloud.com/">mantpro-cloud.com</a></strong> · <a href="https://github.com/AnabasaSoft/MantPro/releases/latest">Descargar</a> · <a href="https://mantpro-cloud.com/#cloud">MantPro Cloud (opcional)</a>
+</p>
+
 ---
 
 ## 📋 Índice

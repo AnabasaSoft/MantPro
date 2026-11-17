@@ -28,6 +28,10 @@
   <img src="https://img.shields.io/badge/Autoallotjat-gratu%C3%AFt%20per%20sempre-orange.svg" alt="Autoallotjat: gratuït per sempre">
 </p>
 
+<p align="center">
+  <strong>Web: <a href="https://mantpro-cloud.com/ca/">mantpro-cloud.com</a></strong> · <a href="https://github.com/AnabasaSoft/MantPro/releases/latest">Descarregar</a> · <a href="https://mantpro-cloud.com/ca/#cloud">MantPro Cloud (opcional)</a>
+</p>
+
 ---
 
 ## 📋 Índex

@@ -28,6 +28,10 @@
   <img src="https://img.shields.io/badge/Selbst%20gehostet-f%C3%BCr%20immer%20kostenlos-orange.svg" alt="Selbst gehostet: für immer kostenlos">
 </p>
 
+<p align="center">
+  <strong>Website: <a href="https://mantpro-cloud.com/de/">mantpro-cloud.com</a></strong> · <a href="https://github.com/AnabasaSoft/MantPro/releases/latest">Herunterladen</a> · <a href="https://mantpro-cloud.com/de/#cloud">MantPro Cloud (optional)</a>
+</p>
+
 ---
 
 ## 📋 Inhalt

@@ -28,6 +28,10 @@
   <img src="https://img.shields.io/badge/Auto--hospedado-gr%C3%A1tis%20para%20sempre-orange.svg" alt="Auto-hospedado: grátis para sempre">
 </p>
 
+<p align="center">
+  <strong>Site: <a href="https://mantpro-cloud.com/pt/">mantpro-cloud.com</a></strong> · <a href="https://github.com/AnabasaSoft/MantPro/releases/latest">Baixar</a> · <a href="https://mantpro-cloud.com/pt/#cloud">MantPro Cloud (opcional)</a>
+</p>
+
 ---
 
 ## 📋 Índice
