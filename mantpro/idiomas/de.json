@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "FEIERTAGE",
   "sede_btn_festivos": "📅 Feiertage…",
   "sede_festivos_generales": "Allgemeine",
-  "sede_festivos_pregunta": "Soll „{nombre}“ eigene Feiertage haben? Wenn nicht, gelten die allgemeinen des Unternehmens."
+  "sede_festivos_pregunta": "Soll „{nombre}“ eigene Feiertage haben? Wenn nicht, gelten die allgemeinen des Unternehmens.",
+  "prov_lbl_plazo": "Übliche Lieferzeit (Tage)",
+  "prov_sin_plazo": "Keine Frist",
+  "prov_tip_plazo": "Ist eine gesendete Bestellung nach so vielen Tagen nicht vollständig eingetroffen, meldet MantPro sie als verspätet.",
+  "cmp_hdr_precio_est": "GESCH. PREIS",
+  "cmp_hdr_precio_real": "TATS. PREIS",
+  "cmp_retraso_un_dia": "1 Tag Verspätung",
+  "cmp_retraso_dias": "{n} Tage Verspätung",
+  "cmp_lbl_importe_real": "Zum tatsächlichen Preis erhalten: {real}",
+  "cmp_lbl_diferencia": "Abweichung von der Schätzung: {dif}",
+  "cmp_aviso_sin_enviar": "{n} nicht gesendet",
+  "cmp_aviso_retrasados": "{n} verspätet",
+  "cmp_aviso_tooltip": "Bestellungen, die Aufmerksamkeit brauchen",
+  "cmp_title_precio_distinto": "Preis weicht von der Bestellung ab",
+  "cmp_msg_precio_distinto": "Dieser Wareneingang hat einen anderen Preis als in der Bestellung:",
+  "cmp_msg_precio_linea": "Bestellung Nr. {n} vom {fecha} an {proveedor}: {pedido} → jetzt {real}{pct}"
 }

@@ -31,8 +31,12 @@ interfaz del PC lo comprueba; aquí no hay nada expuesto por la API todavía).
   fecha. Mientras no llegue entero, lo que falta cuenta como «pendiente de llegar»
   y no se vuelve a sugerir.
 - **Recepción**: cada **entrada de stock** del artículo va descontando lo pendiente
-  de los pedidos abiertos (`aplicar_entrada`), el más antiguo primero. Un pedido
-  pasa a «parcial» y, cuando llega todo, a «recibido».
+  de los pedidos abiertos (`recibir` / `aplicar_entrada`), el más antiguo primero. Un
+  pedido pasa a «parcial» y, cuando llega todo, a «recibido». Si la entrada lleva
+  precio, queda como **precio real** en la línea (media ponderada por cantidad) y se
+  devuelve la diferencia con el precio del pedido, para avisar.
+- **Avisos** (`avisos_pedidos`): pedidos sin enviar y pedidos **con retraso** (enviados
+  hace más días que el plazo de entrega habitual del proveedor sin haber llegado enteros).
 - **Envío**: `texto_pedido()`, `url_correo()`, `url_whatsapp()` y `generar_pdf()`
   preparan el pedido para mandarlo por correo, WhatsApp, impreso o teléfono. El
   texto y el PDF salen en el idioma activo y sin precios (es lo que ve el proveedor).
@@ -96,6 +100,13 @@ def inicializar():
         con.execute("ALTER TABLE pedidos ADD COLUMN agrupado INTEGER NOT NULL DEFAULT 0")
     if "almacen_id" not in almacen._columnas(con, "pedidos_lineas"):
         con.execute("ALTER TABLE pedidos_lineas ADD COLUMN almacen_id INTEGER")
+    # Precio real por unidad: media de las entradas con precio que se descontaron de la línea,
+    # ponderada por cantidad; recibido_precio es cuánto de lo recibido llegó con precio.
+    columnas = almacen._columnas(con, "pedidos_lineas")
+    if "precio_real" not in columnas:
+        con.execute("ALTER TABLE pedidos_lineas ADD COLUMN precio_real REAL")
+    if "recibido_precio" not in columnas:
+        con.execute("ALTER TABLE pedidos_lineas ADD COLUMN recibido_precio REAL NOT NULL DEFAULT 0")
     con.commit()
     con.close()
 
@@ -274,14 +285,42 @@ def _resumen(con, p):
         [almacenes.efectivo(d.get("almacen_id"))]
     d["almacen_nombre"] = ", ".join(nombres.get(a, "") for a in d["almacen_ids"])
     total, sin_precio = 0.0, False
+    real, diferencia = 0.0, 0.0
     for l in d["lineas"]:
         if l["precio"] is None:
             sin_precio = True
         else:
             total += l["cantidad"] * l["precio"]
+        if l.get("precio_real") is not None:
+            con_precio = l.get("recibido_precio") or 0
+            real += con_precio * l["precio_real"]
+            if l["precio"] is not None:
+                diferencia += con_precio * (l["precio_real"] - l["precio"])
     d["importe_estimado"], d["sin_precio"] = total, sin_precio
+    # Lo recibido con precio real y cuánto se desvía de lo estimado (la diferencia, solo en líneas con los dos)
+    d["importe_real"] = round(real, 6)
+    d["diferencia_precio"] = round(diferencia, 6)
+    d["con_precio_real"] = any(l.get("precio_real") is not None for l in d["lineas"])
     d["pendiente"] = sum(max(l["cantidad"] - l["recibido"], 0) for l in d["lineas"]) if d["estado"] in ESTADOS_ABIERTOS else 0.0
+    fila = con.execute("SELECT plazo_entrega FROM proveedores WHERE id = ?", (d["proveedor_id"],)).fetchone() \
+        if d.get("proveedor_id") is not None else None
+    d["plazo_entrega"] = fila["plazo_entrega"] if fila else None
+    d["dias_retraso"] = dias_retraso(d)
     return d
+
+
+def dias_retraso(pedido, hoy=None):
+    """Días que lleva de retraso un pedido abierto y enviado: los que han pasado desde
+    que se envió más allá del plazo de entrega de su proveedor. 0 si va en plazo, no se
+    ha enviado, ya llegó o el proveedor no tiene plazo."""
+    if pedido.get("estado") not in ESTADOS_ABIERTOS or not pedido.get("canal") or not pedido.get("plazo_entrega"):
+        return 0
+    try:
+        enviado = datetime.strptime((pedido.get("enviado") or "")[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return 0
+    hoy = hoy or date.today()
+    return max((hoy - enviado).days - int(pedido["plazo_entrega"]), 0)
 
 
 def obtener_pedido(pedido_id):
@@ -326,18 +365,31 @@ def _recalcular_estado(con, pedido_id):
     con.execute("UPDATE pedidos SET estado = ? WHERE id = ?", (estado, pedido_id))
 
 
-def aplicar_entrada(material_id, cantidad, proveedor_id=None):
+TOLERANCIA_PRECIO = 0.005      # diferencias de precio por debajo de medio céntimo no se avisan
+
+
+def recibir(material_id, cantidad, proveedor_id=None, precio=None):
     """Una entrada de stock de [cantidad] del artículo llega y se descuenta de lo
     pendiente de los pedidos abiertos: primero los del [proveedor_id] (si se
     indica) y, dentro de cada grupo, el pedido más antiguo. Lo que sobre se
-    ignora. Devuelve la cantidad que se ha dado por recibida."""
+    ignora. Con [precio] (por unidad), entra en el precio real de las líneas que
+    reciben algo (media ponderada por cantidad), y las que se pidieron a otro
+    precio se devuelven para avisar.
+    Devuelve {"aplicado": cantidad dada por recibida, "diferencias": [{pedido_id,
+    fecha, proveedor_nombre, precio_pedido, precio_real, porcentaje}]}."""
     restante = _num(cantidad) or 0.0
+    precio = _num(precio)
+    if precio is not None and precio < 0:
+        precio = None
+    resultado = {"aplicado": 0.0, "diferencias": []}
     if restante <= 0:
-        return 0.0
+        return resultado
     con = almacen._conn()
     marcas = ",".join("?" * len(ESTADOS_ABIERTOS))
     filas = con.execute(f"""
-        SELECT l.id, l.cantidad, l.recibido, l.pedido_id FROM pedidos_lineas l JOIN pedidos p ON p.id = l.pedido_id
+        SELECT l.id, l.cantidad, l.recibido, l.pedido_id, l.precio, l.precio_real, l.recibido_precio,
+               p.fecha, p.proveedor_nombre
+        FROM pedidos_lineas l JOIN pedidos p ON p.id = l.pedido_id
         WHERE l.material_id = ? AND p.estado IN ({marcas}) AND l.recibido < l.cantidad - 1e-9
         ORDER BY (CASE WHEN p.proveedor_id = ? THEN 0 ELSE 1 END), p.fecha, p.id""",
         (material_id, *ESTADOS_ABIERTOS, proveedor_id)).fetchall()
@@ -346,7 +398,19 @@ def aplicar_entrada(material_id, cantidad, proveedor_id=None):
         if restante <= 1e-9:
             break
         toma = min(restante, f["cantidad"] - f["recibido"])
-        con.execute("UPDATE pedidos_lineas SET recibido = ? WHERE id = ?", (round(f["recibido"] + toma, 6), f["id"]))
+        if precio is None:
+            con.execute("UPDATE pedidos_lineas SET recibido = ? WHERE id = ?", (round(f["recibido"] + toma, 6), f["id"]))
+        else:
+            previo = f["recibido_precio"] or 0
+            media = precio if f["precio_real"] is None or previo <= 0 else \
+                (f["precio_real"] * previo + precio * toma) / (previo + toma)
+            con.execute("UPDATE pedidos_lineas SET recibido = ?, precio_real = ?, recibido_precio = ? WHERE id = ?",
+                        (round(f["recibido"] + toma, 6), round(media, 6), round(previo + toma, 6), f["id"]))
+            if f["precio"] is not None and abs(precio - f["precio"]) >= TOLERANCIA_PRECIO:
+                resultado["diferencias"].append({
+                    "pedido_id": f["pedido_id"], "fecha": f["fecha"], "proveedor_nombre": f["proveedor_nombre"],
+                    "precio_pedido": f["precio"], "precio_real": precio,
+                    "porcentaje": round((precio - f["precio"]) / f["precio"] * 100, 1) if f["precio"] else None})
         restante -= toma
         aplicado += toma
         tocados.add(f["pedido_id"])
@@ -354,7 +418,13 @@ def aplicar_entrada(material_id, cantidad, proveedor_id=None):
         _recalcular_estado(con, pedido_id)
     con.commit()
     con.close()
-    return round(aplicado, 6)
+    resultado["aplicado"] = round(aplicado, 6)
+    return resultado
+
+
+def aplicar_entrada(material_id, cantidad, proveedor_id=None, precio=None):
+    """Como recibir(), pero devuelve solo la cantidad dada por recibida."""
+    return recibir(material_id, cantidad, proveedor_id, precio)["aplicado"]
 
 
 def _cambiar(pedido_id, detalle, sql, parametros=()):
@@ -414,9 +484,24 @@ def borrar_pedido(pedido_id):
     return True, None
 
 
-def pedidos_sin_enviar():
+def pedidos_sin_enviar(almacen_ids=None):
     """Pedidos abiertos que nadie ha mandado todavía (para avisar)."""
-    return [p for p in listar_pedidos(solo_abiertos=True) if not p["canal"]]
+    return [p for p in listar_pedidos(solo_abiertos=True, almacen_ids=almacen_ids) if not p["canal"]]
+
+
+def pedidos_retrasados(almacen_ids=None, hoy=None):
+    """Pedidos enviados que llevan más días que el plazo de entrega de su proveedor sin llegar enteros."""
+    lista = []
+    for p in listar_pedidos(solo_abiertos=True, almacen_ids=almacen_ids):
+        p["dias_retraso"] = dias_retraso(p, hoy)
+        if p["dias_retraso"] > 0:
+            lista.append(p)
+    return lista
+
+
+def avisos_pedidos(almacen_ids=None, hoy=None):
+    """Lo que hay que mirar de los pedidos: {"sin_enviar": [...], "retrasados": [...]}."""
+    return {"sin_enviar": pedidos_sin_enviar(almacen_ids), "retrasados": pedidos_retrasados(almacen_ids, hoy)}
 
 
 # --------------------------------------------------------------- envío del pedido

@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "JOURS FÉRIÉS",
   "sede_btn_festivos": "📅 Jours fériés…",
   "sede_festivos_generales": "Ceux de l'entreprise",
-  "sede_festivos_pregunta": "Voulez-vous que « {nombre} » ait ses propres jours fériés ? Sinon, il utilisera ceux de l'entreprise."
+  "sede_festivos_pregunta": "Voulez-vous que « {nombre} » ait ses propres jours fériés ? Sinon, il utilisera ceux de l'entreprise.",
+  "prov_lbl_plazo": "Délai de livraison habituel (jours)",
+  "prov_sin_plazo": "Sans délai",
+  "prov_tip_plazo": "Si une commande envoyée n'est pas arrivée en totalité après ce nombre de jours, MantPro signale qu'elle est en retard.",
+  "cmp_hdr_precio_est": "PRIX EST.",
+  "cmp_hdr_precio_real": "PRIX RÉEL",
+  "cmp_retraso_un_dia": "1 jour de retard",
+  "cmp_retraso_dias": "{n} jours de retard",
+  "cmp_lbl_importe_real": "Reçu au prix réel : {real}",
+  "cmp_lbl_diferencia": "écart par rapport à l'estimation : {dif}",
+  "cmp_aviso_sin_enviar": "{n} non envoyée(s)",
+  "cmp_aviso_retrasados": "{n} en retard",
+  "cmp_aviso_tooltip": "Commandes à surveiller",
+  "cmp_title_precio_distinto": "Prix différent de celui de la commande",
+  "cmp_msg_precio_distinto": "Cette entrée arrive à un prix différent de celui indiqué dans la commande :",
+  "cmp_msg_precio_linea": "Commande n° {n} du {fecha} à {proveedor} : {pedido} → maintenant {real}{pct}"
 }

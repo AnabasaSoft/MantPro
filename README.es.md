@@ -187,6 +187,7 @@ versiones estables. Los cambios de cada versión están en
 - **🏢 Varias Sedes**: plantas propias o empresas cliente a las que mantienes, cada una con su CIF, dirección, contacto y festivos. Con más de una sede aparece arriba el selector «Sede», que filtra máquinas, trabajos, pendientes, avisos, panel, estadísticas, costes e informes (el PDF y el Excel llevan los datos de la sede, para entregarlos al cliente). Cada técnico puede ver solo sus sedes (ver [Sedes y Almacenes](#-sedes-y-almacenes))
 - **🏬 Varios Almacenes**: el almacén principal y los que hagan falta por sede (por ejemplo, una furgoneta) o comunes a todas, cada uno con su stock, mínimos, ubicaciones y dirección de entrega, y traspasos de stock entre almacenes
 - **🛒 Pedidos por Almacén**: el pedido sugerido se calcula almacén por almacén y cada pedido lleva la dirección de entrega de su almacén; también se pueden agrupar en un solo pedido por proveedor, con las líneas separadas por almacén
+- **📥 Recepción de Pedidos**: al dar entrada con proveedor y precio, el precio real queda en el pedido y MantPro avisa si el proveedor ha cobrado distinto de lo pedido; la ventana de pedidos enseña el precio estimado y el real de cada línea y la diferencia. Cada proveedor puede tener su plazo de entrega habitual, y el botón «🛒 Pedidos» avisa de los pedidos sin enviar y de los que van con retraso. Solo administradores
 - **📦 Revisión del Almacén por Almacén**: cada almacén tiene su ciclo de revisión (diario, semanal o mensual) y su número de artículos por revisión, y la revisión se activa o desactiva por sede
 - **🗑️ Tiempo Máximo de Guardado**: `Herramientas` permite borrar del historial los trabajos más antiguos que un número de años, meses o días, con sus fotos y una copia de seguridad previa (solo administradores)
 - **📥 Importar desde Excel/CSV**: `Archivo > Importar desde Excel/CSV…` (solo administradores) trae máquinas, artículos del almacén, avisos recurrentes, usuarios, pendientes e historial de trabajos antiguos desde una plantilla descargable o desde tu propio Excel (una hoja o el libro entero de una vez), emparejando solas las columnas, con vista previa fila a fila y copia de seguridad previa. Las ubicaciones (zonas, estanterías, baldas) y máquinas superiores que no existan se crean solas, y los usuarios reciben una contraseña temporal que tendrán que cambiar al entrar
@@ -923,7 +924,6 @@ La estructura del código y de la base de datos está en
 
 Lo que viene, sin fechas y sin un orden cerrado:
 
-- **Compras**: recibir los pedidos con entrada automática en stock y precio real, y avisar de los pedidos sin enviar
 - **Firma** al cerrar un trabajo (también en el móvil)
 - **Documentación técnica por máquina** (manuales, planos y esquemas en PDF)
 - **Criticidad de las máquinas (ABC)**, para decidir dónde invertir en mantenimiento
@@ -932,7 +932,7 @@ Lo que viene, sin fechas y sin un orden cerrado:
 - **Varios PC a la vez**, servidor sin ventana (Raspberry Pi, NAS, Docker) y acceso web
 - Más idiomas (italiano…) y app para iPhone
 
-Recién hecho: varias sedes (selector, informes, festivos y acceso de cada técnico a sus sedes) con varios almacenes, traspasos, pedidos y revisiones por almacén, alemán en las tres aplicaciones, vídeos en la colección de fotos de los trabajos, pedido sugerido y pedidos guardados, proveedores y proveedor habitual de cada artículo, coste de mantenimiento en el Dashboard, preventivos por contador (horas de uso, ciclos, km), tiempo trabajado y coste de mano de obra en cada trabajo, repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
+Recién hecho: recepción de pedidos con precio real y avisos de pedidos sin enviar o con retraso, varias sedes (selector, informes, festivos y acceso de cada técnico a sus sedes) con varios almacenes, traspasos, pedidos y revisiones por almacén, alemán en las tres aplicaciones, vídeos en la colección de fotos de los trabajos, pedido sugerido y pedidos guardados, proveedores y proveedor habitual de cada artículo, coste de mantenimiento en el Dashboard, preventivos por contador (horas de uso, ciclos, km), tiempo trabajado y coste de mano de obra en cada trabajo, repuestos usados en cada trabajo con su coste por máquina, listas de comprobación en preventivos y trabajos, sincronización, bases de datos y copias cifradas, y un registro de cambios más completo.
 
 Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
 en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

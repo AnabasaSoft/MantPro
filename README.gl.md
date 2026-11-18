@@ -186,6 +186,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **🏢 Varias sedes**: plantas propias ou empresas cliente que mantés, cada unha co seu NIF, enderezo, contacto e festivos. Con máis dunha sede aparece arriba o selector «Sede», que filtra máquinas, traballos, pendentes, avisos, panel, estatísticas, custos e informes (o PDF e o Excel levan os datos da sede, para entregalos ao cliente). Cada técnico pode ver só as súas sedes (ver [Sedes e almacéns](#-sedes-e-almacéns))
 - **🏬 Varios almacéns**: o almacén principal e os que fagan falta por sede (por exemplo, unha furgoneta) ou comúns a todas, cada un co seu stock, mínimos, localizacións e enderezo de entrega, e traspasos de stock entre almacéns
 - **🛒 Pedidos por almacén**: o pedido suxerido calcúlase almacén por almacén e cada pedido leva o enderezo de entrega do seu almacén; tamén se poden agrupar nun só pedido por provedor, coas liñas separadas por almacén
+- **📥 Recepción de pedidos**: ao dar entrada con provedor e prezo, o prezo real queda no pedido e MantPro avisa se o provedor cobrou distinto do pedido; a xanela de pedidos amosa o prezo estimado e o real de cada liña e a diferenza. Cada provedor pode ter o seu prazo de entrega habitual, e o botón «🛒 Pedidos» avisa dos pedidos sen enviar e dos que van con atraso. Só administradores
 - **📦 Revisión do almacén por almacén**: cada almacén ten o seu ciclo de revisión (diario, semanal ou mensual) e o seu número de artigos por revisión, e a revisión actívase ou desactívase por sede
 - **🗑️ Tempo máximo de gardado**: `Ferramentas` permite borrar do historial os traballos máis antigos que un número de anos, meses ou días, coas súas fotos e unha copia de seguranza previa (só administradores)
 - **📥 Importar dende Excel/CSV**: `Ficheiro > Importar dende Excel/CSV…` (só administradores) trae máquinas, artigos do almacén, avisos recorrentes, usuarios, pendentes e historial de traballos antigo dende un modelo descargable ou dende o teu propio Excel (unha folla ou todo o libro dunha vez), emparellando soas as columnas, con vista previa fila a fila e copia de seguranza previa. As localizacións (zonas, andeis, baldas) e máquinas superiores que non existan créanse soas, e os usuarios reciben un contrasinal temporal que terán que cambiar ao entrar
@@ -917,7 +918,6 @@ seguranza, mira [SECURITY.md](SECURITY.md).
 
 O que vén, sen datas e sen unha orde pechada:
 
-- **Compras**: recibir os pedidos con entrada automática no stock e prezo real, e avisar dos pedidos sen enviar
 - **Sinatura** ao pechar un traballo (tamén no móbil)
 - **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir en mantemento
@@ -926,7 +926,7 @@ O que vén, sen datas e sen unha orde pechada:
 - **Varios PC á vez**, servidor sen xanela (Raspberry Pi, NAS, Docker) e acceso web
 - Máis idiomas (italiano…) e app para iPhone
 
-Feito hai pouco: varias sedes (selector, informes, festivos e acceso de cada técnico ás súas sedes) con varios almacéns, traspasos, pedidos e revisións por almacén, alemán nas tres aplicacións, vídeos na colección de fotos dos traballos, pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
+Feito hai pouco: recepción de pedidos con prezo real e avisos de pedidos sen enviar ou con atraso, varias sedes (selector, informes, festivos e acceso de cada técnico ás súas sedes) con varios almacéns, traspasos, pedidos e revisións por almacén, alemán nas tres aplicacións, vídeos na colección de fotos dos traballos, pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

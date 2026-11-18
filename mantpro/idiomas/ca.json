@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "FESTIUS",
   "sede_btn_festivos": "📅 Festius…",
   "sede_festivos_generales": "Els generals",
-  "sede_festivos_pregunta": "Vols que «{nombre}» tingui els seus propis festius? Si dius que no, farà servir els generals de l'empresa."
+  "sede_festivos_pregunta": "Vols que «{nombre}» tingui els seus propis festius? Si dius que no, farà servir els generals de l'empresa.",
+  "prov_lbl_plazo": "Termini d'entrega habitual (dies)",
+  "prov_sin_plazo": "Sense termini",
+  "prov_tip_plazo": "Si una comanda enviada no ha arribat sencera passats aquests dies, MantPro avisa que va amb retard.",
+  "cmp_hdr_precio_est": "PREU EST.",
+  "cmp_hdr_precio_real": "PREU REAL",
+  "cmp_retraso_un_dia": "1 dia de retard",
+  "cmp_retraso_dias": "{n} dies de retard",
+  "cmp_lbl_importe_real": "Rebut a preu real: {real}",
+  "cmp_lbl_diferencia": "diferència amb l'estimat: {dif}",
+  "cmp_aviso_sin_enviar": "{n} sense enviar",
+  "cmp_aviso_retrasados": "{n} amb retard",
+  "cmp_aviso_tooltip": "Comandes que necessiten atenció",
+  "cmp_title_precio_distinto": "Preu diferent del de la comanda",
+  "cmp_msg_precio_distinto": "Aquesta entrada arriba a un preu diferent del que es va posar a la comanda:",
+  "cmp_msg_precio_linea": "Comanda núm. {n} del {fecha} a {proveedor}: {pedido} → ara {real}{pct}"
 }

@@ -38,7 +38,7 @@ from PyQt6.QtCore import QDate, Qt, QItemSelection, QItemSelectionModel
 from PyQt6.QtGui import QColor, QBrush
 
 from ... import idiomas
-from ...idiomas import t
+from ...idiomas import t, formato_fecha_localizada
 from ..comun import traducir_motivo_movimiento, tt
 from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmacen, DialogoEditarMaterial,
                                 DialogoExportarStock, DialogoMovimientoStock,
@@ -317,7 +317,12 @@ class PestanaStock:
         if not ok or tipo != "entrada":
             return ok, error
         proveedor_id, precio = dlg.get_compra()
-        compras.aplicar_entrada(material_id, cantidad, proveedor_id)   # lo que llega descuenta lo pendiente de los pedidos
+        # Lo que llega descuenta lo pendiente de los pedidos; con precio, queda como precio real
+        # de esas líneas y se avisa si el proveedor ha cobrado distinto de lo pedido
+        recepcion = compras.recibir(material_id, cantidad, proveedor_id,
+                                    precio if proveedor_id is not None and usuarios.es_admin() else None)
+        if recepcion["diferencias"]:
+            self._avisar_precio_distinto(recepcion["diferencias"])
         if proveedor_id is None:
             return ok, error
         proveedores.registrar_precio(material_id, proveedor_id, precio, cantidad,
@@ -332,6 +337,44 @@ class PestanaStock:
             if QMessageBox.question(self, tt("prov_title_actualizar_precio", "Actualizar precio"), texto) == QMessageBox.StandardButton.Yes:
                 proveedores.fijar_precio_articulo(material_id, precio, usuarios.id_actual(), usuarios.nombre_actual())
         return ok, error
+
+    def _pintar_avisos_pedidos(self):
+        """El botón «Pedidos» cuenta los pedidos que piden atención (sin enviar o con
+        retraso) de los almacenes de la sede elegida. Solo administradores."""
+        texto = tt("cmp_btn_pedidos", "🛒 Pedidos")
+        if not usuarios.es_admin():
+            self.btn_pedidos.setText(texto); self.btn_pedidos.setToolTip(""); self.btn_pedidos.setStyleSheet("")
+            return
+        try:
+            avisos = compras.avisos_pedidos(almacenes.ids_de_sede(self.sede_filtro()))
+        except Exception:                      # un fallo al leer los pedidos no puede tumbar la pestaña
+            avisos = {"sin_enviar": [], "retrasados": []}
+        n_sin, n_tarde = len(avisos["sin_enviar"]), len(avisos["retrasados"])
+        partes = []
+        if n_sin:
+            partes.append(tt("cmp_aviso_sin_enviar", "{n} sin enviar").format(n=n_sin))
+        if n_tarde:
+            partes.append(tt("cmp_aviso_retrasados", "{n} con retraso").format(n=n_tarde))
+        if partes:
+            self.btn_pedidos.setText(f"{texto} (⚠️ {n_sin + n_tarde})")
+            self.btn_pedidos.setToolTip(tt("cmp_aviso_tooltip", "Pedidos que necesitan atención") + ": " + " · ".join(partes))
+            self.btn_pedidos.setStyleSheet("color: #d35400; font-weight: bold;")
+        else:
+            self.btn_pedidos.setText(texto); self.btn_pedidos.setToolTip(""); self.btn_pedidos.setStyleSheet("")
+
+    def _avisar_precio_distinto(self, diferencias):
+        """Avisa de que una entrada llega a un precio distinto del que se puso en su pedido."""
+        moneda = consumos.moneda()
+        lineas = []
+        for d in diferencias:
+            pct = f" ({d['porcentaje']:+.1f} %)" if d["porcentaje"] is not None else ""
+            lineas.append("• " + tt("cmp_msg_precio_linea", "Pedido n.º {n} del {fecha} a {proveedor}: {pedido} → ahora {real}{pct}").format(
+                n=d["pedido_id"], fecha=formato_fecha_localizada(d["fecha"]), proveedor=d["proveedor_nombre"],
+                pedido=consumos.formato_importe(d["precio_pedido"], moneda),
+                real=consumos.formato_importe(d["precio_real"], moneda), pct=pct))
+        QMessageBox.information(self, tt("cmp_title_precio_distinto", "Precio distinto al del pedido"),
+                                tt("cmp_msg_precio_distinto", "Esta entrada llega a un precio distinto del que se puso en el pedido:")
+                                + "\n\n" + "\n".join(lineas))
 
     def _material_seleccionado(self):
         fila = self.tabla_stock.currentRow()
@@ -399,6 +442,7 @@ class PestanaStock:
             self.btn_proveedores.setVisible(usuarios.es_admin())
         if hasattr(self, "btn_pedidos"):
             self.btn_pedidos.setVisible(usuarios.es_admin())
+            self._pintar_avisos_pedidos()
         self.refresh_historial_stock()
         self.refresh_stock_alertas()
 
@@ -725,6 +769,7 @@ class PestanaStock:
             seleccionar = dlg.pedidos_creados[0]
         DialogoPedidos(self, seleccionar, visibles, actual).exec()
         self.refresh_stock_alertas()
+        self._pintar_avisos_pedidos()
 
     def stock_gestionar_proveedores(self):
         if not usuarios.es_admin(): return

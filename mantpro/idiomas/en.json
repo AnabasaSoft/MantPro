@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "HOLIDAYS",
   "sede_btn_festivos": "📅 Holidays…",
   "sede_festivos_generales": "Company default",
-  "sede_festivos_pregunta": "Should “{nombre}” have its own holidays? If you say no, it will use the company's general ones."
+  "sede_festivos_pregunta": "Should “{nombre}” have its own holidays? If you say no, it will use the company's general ones.",
+  "prov_lbl_plazo": "Usual delivery time (days)",
+  "prov_sin_plazo": "No set time",
+  "prov_tip_plazo": "If a sent order has not fully arrived after this many days, MantPro warns that it is late.",
+  "cmp_hdr_precio_est": "EST. PRICE",
+  "cmp_hdr_precio_real": "ACTUAL PRICE",
+  "cmp_retraso_un_dia": "1 day late",
+  "cmp_retraso_dias": "{n} days late",
+  "cmp_lbl_importe_real": "Received at actual price: {real}",
+  "cmp_lbl_diferencia": "difference from estimate: {dif}",
+  "cmp_aviso_sin_enviar": "{n} not sent",
+  "cmp_aviso_retrasados": "{n} late",
+  "cmp_aviso_tooltip": "Orders that need attention",
+  "cmp_title_precio_distinto": "Price differs from the order",
+  "cmp_msg_precio_distinto": "This receipt comes at a different price from the one on the order:",
+  "cmp_msg_precio_linea": "Order no. {n} of {fecha} to {proveedor}: {pedido} → now {real}{pct}"
 }

@@ -186,6 +186,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🏢 Várias sedes**: plantas próprias ou empresas clientes que você mantém, cada uma com seu CNPJ/NIF, endereço, contato e feriados. Com mais de uma sede, aparece no topo o seletor «Sede», que filtra máquinas, serviços, pendências, avisos, painel, estatísticas, custos e relatórios (o PDF e o Excel trazem os dados da sede, para entregar ao cliente). Cada técnico pode ver só as suas sedes (veja [Sedes e almoxarifados](#-sedes-e-almoxarifados))
 - **🏬 Vários almoxarifados**: o almoxarifado principal e quantos forem necessários por sede (por exemplo, uma van) ou comuns a todas, cada um com seu estoque, mínimos, localizações e endereço de entrega, e transferências de estoque entre almoxarifados
 - **🛒 Pedidos por almoxarifado**: o pedido sugerido é calculado almoxarifado por almoxarifado e cada pedido leva o endereço de entrega do seu almoxarifado; também é possível agrupá-los num só pedido por fornecedor, com as linhas separadas por almoxarifado
+- **📥 Recebimento de pedidos**: ao dar entrada com fornecedor e preço, o preço real fica no pedido e o MantPro avisa se o fornecedor cobrou diferente do pedido; a janela de pedidos mostra o preço estimado e o real de cada linha e a diferença. Cada fornecedor pode ter seu prazo de entrega habitual, e o botão «🛒 Pedidos» avisa dos pedidos por enviar e dos atrasados. Somente administradores
 - **📦 Revisão do almoxarifado por almoxarifado**: cada almoxarifado tem seu ciclo de revisão (diário, semanal ou mensal) e seu número de artigos por revisão, e a revisão é ativada ou desativada por sede
 - **🗑️ Tempo máximo de armazenamento**: `Ferramentas` permite excluir do histórico os serviços mais antigos que um número de anos, meses ou dias, com suas fotos e uma cópia de segurança prévia (somente administradores)
 - **📥 Importar do Excel/CSV**: `Arquivo > Importar do Excel/CSV…` (somente administradores) traz máquinas, itens do almoxarifado, avisos recorrentes, usuários, pendentes e histórico de trabalhos antigo de um modelo para baixar ou do seu próprio Excel (uma planilha ou a pasta de trabalho inteira de uma vez), associando as colunas automaticamente, com pré-visualização linha a linha e cópia de segurança prévia. Localizações (zonas, estantes, prateleiras) e máquinas superiores que não existirem são criadas automaticamente, e os usuários recebem uma senha temporária que terão de alterar no primeiro acesso
@@ -926,7 +927,6 @@ segurança, veja o [SECURITY.md](SECURITY.md).
 
 O que vem por aí, sem datas e sem uma ordem fechada:
 
-- **Compras**: receber as encomendas com entrada automática no estoque e preço real, e avisar das encomendas por enviar
 - **Assinatura** ao fechar um serviço (também no celular)
 - **Documentação técnica por máquina** (manuais, desenhos e esquemas em PDF)
 - **Criticidade das máquinas (ABC)**, para decidir onde investir em manutenção
@@ -935,7 +935,7 @@ O que vem por aí, sem datas e sem uma ordem fechada:
 - **Vários PCs ao mesmo tempo**, servidor sem janela (Raspberry Pi, NAS, Docker) e acesso web
 - Mais idiomas (italiano…) e aplicativo para iPhone
 
-Feito recentemente: várias sedes (seletor, relatórios, feriados e acesso de cada técnico às suas sedes) com vários almoxarifados, transferências, pedidos e revisões por almoxarifado, alemão nos três aplicativos, vídeos na coleção de fotos dos serviços, encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
+Feito recentemente: recebimento de pedidos com preço real e avisos de pedidos por enviar ou atrasados, várias sedes (seletor, relatórios, feriados e acesso de cada técnico às suas sedes) com vários almoxarifados, transferências, pedidos e revisões por almoxarifado, alemão nos três aplicativos, vídeos na coleção de fotos dos serviços, encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

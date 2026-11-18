@@ -24,7 +24,7 @@ artículo se elige en la ficha del artículo."""
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget,
                              QTableWidgetItem, QHeaderView, QAbstractItemView, QDialogButtonBox, QMessageBox,
-                             QTextEdit)
+                             QTextEdit, QSpinBox)
 from PyQt6.QtCore import Qt
 
 from ...idiomas import t
@@ -61,6 +61,14 @@ class DialogoEditarProveedor(QDialog):
         self.campo_contacto = campo("prov_lbl_contacto", "Persona de contacto", proveedor.get("contacto"))
         self.campo_telefono = campo("prov_lbl_telefono", "Teléfono", proveedor.get("telefono"))
         self.campo_correo = campo("prov_lbl_correo", "Correo electrónico", proveedor.get("correo"))
+        # Plazo de entrega habitual: pasado ese plazo desde que se envía, un pedido sin llegar sale «con retraso»
+        l.addWidget(QLabel(tt("prov_lbl_plazo", "Plazo de entrega habitual (días)")))
+        self.campo_plazo = QSpinBox()
+        self.campo_plazo.setRange(0, proveedores.PLAZO_MAX)
+        self.campo_plazo.setSpecialValueText(tt("prov_sin_plazo", "Sin plazo"))
+        self.campo_plazo.setValue(proveedor.get("plazo_entrega") or 0)
+        self.campo_plazo.setToolTip(tt("prov_tip_plazo", "Si un pedido enviado no ha llegado entero pasados estos días, MantPro avisa de que va con retraso."))
+        l.addWidget(self.campo_plazo)
         l.addWidget(QLabel(tt("prov_lbl_nota", "Notas")))
         self.campo_nota = QTextEdit(proveedor.get("nota") or "")
         self.campo_nota.setAcceptRichText(False)
@@ -82,7 +90,7 @@ class DialogoEditarProveedor(QDialog):
     def get_data(self):
         return {"nombre": self.campo_nombre.text().strip(), "contacto": self.campo_contacto.text().strip(),
                 "telefono": self.campo_telefono.text().strip(), "correo": self.campo_correo.text().strip(),
-                "nota": self.campo_nota.toPlainText().strip()}
+                "nota": self.campo_nota.toPlainText().strip(), "plazo_entrega": self.campo_plazo.value() or None}
 
 
 class DialogoProveedores(QDialog):

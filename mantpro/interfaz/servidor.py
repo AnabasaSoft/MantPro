@@ -1730,6 +1730,7 @@ class ServidorSincronizacion(QThread):
                 # ya está hecho, así que un proveedor que ya no existe no lo deshace: solo
                 # se avisa en la respuesta.
                 compra = None
+                diferencias = []
                 if tipo == 'entrada':
                     # Lo que llega descuenta lo pendiente de los pedidos (venga de quien venga la
                     # entrada); el proveedor, para dar preferencia a sus pedidos, solo se tiene
@@ -1740,7 +1741,9 @@ class ServidorSincronizacion(QThread):
                             prov_entrada = int(datos.get('proveedor_id')) if datos.get('proveedor_id') else None
                         except ValueError:
                             prov_entrada = None
-                    compras.aplicar_entrada(material_id, cantidad, prov_entrada)
+                    # El precio real de la entrada (y su diferencia con el del pedido): igual, solo de un administrador
+                    precio_real = consumos.numero(datos.get('precio')) if prov_entrada is not None else None
+                    diferencias = compras.recibir(material_id, cantidad, prov_entrada, precio_real)["diferencias"]
                 if tipo == 'entrada' and datos.get('proveedor_id') and usuarios.es_admin(usuario):
                     precio = consumos.numero(datos.get('precio'))
                     compra, error_compra = proveedores.registrar_precio(
@@ -1749,7 +1752,7 @@ class ServidorSincronizacion(QThread):
                     if compra and precio is not None and datos.get('actualizar_precio') == '1':
                         proveedores.fijar_precio_articulo(material_id, precio, usuario['id'], usuario['nombre'])
                 self.stock_actualizado.emit()
-                return jsonify({"status": "ok", "compra_registrada": bool(compra)})
+                return jsonify({"status": "ok", "compra_registrada": bool(compra), "diferencias_precio": diferencias})
             except Exception as e:
                 return jsonify({"status": "error", "message": str(e)}), 500
 

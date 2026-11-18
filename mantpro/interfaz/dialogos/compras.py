@@ -383,15 +383,19 @@ class DialogoPedidos(QDialog):
         l.addWidget(self.lbl_vacio)
 
         l.addWidget(QLabel("<b>" + tt("cmp_lbl_lineas", "Líneas del pedido") + "</b>"))
-        self.tabla_lineas = QTableWidget(0, 6)
+        self.tabla_lineas = QTableWidget(0, 8)
         self.tabla_lineas.setHorizontalHeaderLabels([tt("hdr_codigo", "CÓDIGO"), tt("cmp_hdr_articulo", "ARTÍCULO"),
                                                      tt("prov_hdr_cantidad", "CANTIDAD"), tt("cmp_hdr_recibido", "RECIBIDO"),
-                                                     tt("cmp_hdr_ref", "REF."), tt("lbl_almacen", "Almacén").upper()])
-        self.tabla_lineas.setColumnHidden(5, not self._varios)
+                                                     tt("cmp_hdr_ref", "REF."), tt("cmp_hdr_precio_est", "PRECIO EST."),
+                                                     tt("cmp_hdr_precio_real", "PRECIO REAL"), tt("lbl_almacen", "Almacén").upper()])
+        self.tabla_lineas.setColumnHidden(7, not self._varios)
         self.tabla_lineas.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.tabla_lineas.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tabla_lineas.setAlternatingRowColors(True)
         l.addWidget(self.tabla_lineas, 2)
+        self.lbl_precio_real = QLabel()
+        self.lbl_precio_real.setWordWrap(True)
+        l.addWidget(self.lbl_precio_real)
 
         h2 = QHBoxLayout()
         for texto, clave, accion in (("✉️ Correo", "cmp_btn_correo", self.enviar_correo), ("💬 WhatsApp", "cmp_btn_whatsapp", self.enviar_whatsapp),
@@ -422,6 +426,9 @@ class DialogoPedidos(QDialog):
                 enviado = canales.get(p["canal"], p["canal"]) + " · " + formato_fecha_localizada(p["enviado"][:10])
             else:
                 enviado = tt("cmp_sin_enviar", "Sin enviar")
+            if p.get("dias_retraso"):
+                enviado += " · " + (tt("cmp_retraso_un_dia", "1 día de retraso") if p["dias_retraso"] == 1 else
+                                    tt("cmp_retraso_dias", "{n} días de retraso").format(n=p["dias_retraso"]))
             importe = consumos.formato_importe(p["importe_estimado"], self.moneda) + (" *" if p["sin_precio"] else "")
             for col, valor in enumerate((str(p["id"]), formato_fecha_localizada(p["fecha"]), p["proveedor_nombre"], str(len(p["lineas"])),
                                          estados.get(p["estado"], p["estado"]), enviado, importe,
@@ -431,6 +438,8 @@ class DialogoPedidos(QDialog):
                     item.setData(Qt.ItemDataRole.UserRole, p["id"])
                 if col == 5 and not p["canal"] and p["estado"] in compras.ESTADOS_ABIERTOS:
                     item.setForeground(QColor("#d98a00"))
+                if col == 5 and p.get("dias_retraso"):
+                    item.setForeground(QColor("#c0392b"))
                 if col == 4 and p["estado"] == compras.ESTADO_RECIBIDO:
                     item.setForeground(QColor("#2e8b57"))
                 if col == 4 and p["estado"] == compras.ESTADO_CANCELADO:
@@ -460,14 +469,28 @@ class DialogoPedidos(QDialog):
         p = compras.obtener_pedido(pid) if pid is not None else None
         lineas = p["lineas"] if p else []
         self.tabla_lineas.setRowCount(len(lineas))
+        importe = lambda v: consumos.formato_importe(v, self.moneda) if v is not None else ""
         for fila, ln in enumerate(lineas):
             unidad = f" {ln['unidad']}" if ln["unidad"] else ""
+            real = ln.get("precio_real")
             for col, valor in enumerate((ln["codigo"], ln["nombre"], f"{ln['cantidad']:g}{unidad}", f"{ln['recibido']:g}{unidad}",
-                                         ln["referencia"], ln["almacen_nombre"])):
+                                         ln["referencia"], importe(ln["precio"]), importe(real), ln["almacen_nombre"])):
                 item = QTableWidgetItem(valor)
                 if col == 3 and ln["recibido"] >= ln["cantidad"] - 1e-9:
                     item.setForeground(QColor("#2e8b57"))
+                if col == 6 and real is not None and ln["precio"] is not None \
+                        and abs(real - ln["precio"]) >= compras.TOLERANCIA_PRECIO:
+                    item.setForeground(QColor("#c0392b" if real > ln["precio"] else "#2e8b57"))
                 self.tabla_lineas.setItem(fila, col, item)
+        texto = ""
+        if p and p.get("con_precio_real"):
+            texto = tt("cmp_lbl_importe_real", "Recibido a precio real: {real}").format(real=importe(p["importe_real"]))
+            if abs(p["diferencia_precio"]) >= compras.TOLERANCIA_PRECIO:
+                signo = "+" if p["diferencia_precio"] > 0 else "−"
+                texto += " · " + tt("cmp_lbl_diferencia", "diferencia con lo estimado: {dif}").format(
+                    dif=signo + importe(abs(p["diferencia_precio"])))
+        self.lbl_precio_real.setText(texto)
+        self.lbl_precio_real.setVisible(bool(texto))
 
     # ---------------------------------------------------------------- acciones
     def pedido_sugerido(self):

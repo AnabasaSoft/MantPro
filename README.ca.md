@@ -187,6 +187,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🏢 Diverses seus**: plantes pròpies o empreses client que mantens, cadascuna amb el seu NIF, adreça, contacte i festius. Amb més d'una seu apareix a dalt el selector «Seu», que filtra màquines, treballs, pendents, avisos, tauler, estadístiques, costos i informes (el PDF i l'Excel porten les dades de la seu, per lliurar-los al client). Cada tècnic pot veure només les seves seus (vegeu [Seus i magatzems](#-seus-i-magatzems))
 - **🏬 Diversos magatzems**: el magatzem principal i els que calguin per seu (per exemple, una furgoneta) o comuns a totes, cadascun amb el seu estoc, mínims, ubicacions i adreça de lliurament, i traspassos d'estoc entre magatzems
 - **🛒 Comandes per magatzem**: la comanda suggerida es calcula magatzem per magatzem i cada comanda porta l'adreça de lliurament del seu magatzem; també es poden agrupar en una sola comanda per proveïdor, amb les línies separades per magatzem
+- **📥 Recepció de comandes**: en donar entrada amb proveïdor i preu, el preu real queda a la comanda i MantPro avisa si el proveïdor ha cobrat diferent del que es va demanar; la finestra de comandes mostra el preu estimat i el real de cada línia i la diferència. Cada proveïdor pot tenir el seu termini d'entrega habitual, i el botó «🛒 Comandes» avisa de les comandes sense enviar i de les que van amb retard. Només administradors
 - **📦 Revisió del magatzem per magatzem**: cada magatzem té el seu cicle de revisió (diari, setmanal o mensual) i el seu nombre d'articles per revisió, i la revisió s'activa o es desactiva per seu
 - **🗑️ Temps màxim de conservació**: `Eines` permet esborrar de l'historial els treballs més antics que un nombre d'anys, mesos o dies, amb les seves fotos i una còpia de seguretat prèvia (només administradors)
 - **📥 Importar des d'Excel/CSV**: `Arxiu > Importar des d'Excel/CSV…` (només administradors) porta màquines, articles del magatzem, avisos recurrents, usuaris, pendents i historial de treballs antic des d'una plantilla descarregable o des del teu propi Excel (un full o tot el llibre d'una vegada), aparellant soles les columnes, amb previsualització fila a fila i còpia de seguretat prèvia. Les ubicacions (zones, prestatgeries, prestatges) i màquines superiors que no existeixin es creen soles, i els usuaris reben una contrasenya temporal que hauran de canviar en entrar
@@ -923,7 +924,6 @@ seguretat, mira [SECURITY.md](SECURITY.md).
 
 El que ve, sense dates i sense un ordre tancat:
 
-- **Compres**: rebre les comandes amb entrada automàtica a l'estoc i preu real, i avisar de les comandes sense enviar
 - **Signatura** en tancar un treball (també al mòbil)
 - **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
 - **Criticitat de les màquines (ABC)**, per decidir on invertir en manteniment
@@ -932,7 +932,7 @@ El que ve, sense dates i sense un ordre tancat:
 - **Diversos PC alhora**, servidor sense finestra (Raspberry Pi, NAS, Docker) i accés web
 - Més idiomes (italià…) i app per a iPhone
 
-Fet fa poc: diverses seus (selector, informes, festius i accés de cada tècnic a les seves seus) amb diversos magatzems, traspassos, comandes i revisions per magatzem, alemany a les tres aplicacions, vídeos a la col·lecció de fotos dels treballs, comanda suggerida i comandes desades, proveïdors i proveïdor habitual de cada article, cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
+Fet fa poc: recepció de comandes amb preu real i avisos de comandes sense enviar o amb retard, diverses seus (selector, informes, festius i accés de cada tècnic a les seves seus) amb diversos magatzems, traspassos, comandes i revisions per magatzem, alemany a les tres aplicacions, vídeos a la col·lecció de fotos dels treballs, comanda suggerida i comandes desades, proveïdors i proveïdor habitual de cada article, cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

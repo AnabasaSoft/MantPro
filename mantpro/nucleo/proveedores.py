@@ -38,7 +38,8 @@ _MAX_TEXTO = 200
 _MAX_NOTA = 2000
 
 _ETIQUETAS = {"nombre": "Nombre", "contacto": "Contacto", "telefono": "Teléfono",
-              "correo": "Correo", "nota": "Notas"}
+              "correo": "Correo", "nota": "Notas", "plazo_entrega": "Plazo de entrega (días)"}
+PLAZO_MAX = 365      # días de plazo de entrega como mucho
 
 
 def inicializar():
@@ -59,6 +60,10 @@ def inicializar():
     # columna se puede añadir con ALTER TABLE sin rehacer la tabla.
     if "proveedor_id" not in almacen._columnas(con, "materiales"):
         con.execute("ALTER TABLE materiales ADD COLUMN proveedor_id INTEGER")
+    # Plazo de entrega habitual en días (NULL: sin plazo). Un pedido enviado que no ha
+    # llegado entero pasado ese plazo sale como «con retraso» (compras.dias_retraso).
+    if "plazo_entrega" not in almacen._columnas(con, "proveedores"):
+        con.execute("ALTER TABLE proveedores ADD COLUMN plazo_entrega INTEGER")
     con.execute("CREATE INDEX IF NOT EXISTS idx_materiales_proveedor ON materiales(proveedor_id)")
     _inicializar_precios(con)
     con.commit()
@@ -69,9 +74,18 @@ def _texto(valor, maximo=_MAX_TEXTO):
     return str(valor if valor is not None else "").strip()[:maximo]
 
 
-def _limpiar(nombre, contacto, telefono, correo, nota):
+def _plazo(valor):
+    """Días de plazo de entrega: entero entre 1 y PLAZO_MAX; vacío, 0 o no válido -> None (sin plazo)."""
+    try:
+        dias = int(str(valor).strip())
+    except (TypeError, ValueError):
+        return None
+    return min(dias, PLAZO_MAX) if dias > 0 else None
+
+
+def _limpiar(nombre, contacto, telefono, correo, nota, plazo_entrega=None):
     return {"nombre": _texto(nombre), "contacto": _texto(contacto), "telefono": _texto(telefono),
-            "correo": _texto(correo), "nota": _texto(nota, _MAX_NOTA)}
+            "correo": _texto(correo), "nota": _texto(nota, _MAX_NOTA), "plazo_entrega": _plazo(plazo_entrega)}
 
 
 def _existe_nombre(con, nombre, excluir_id=None):
@@ -108,9 +122,10 @@ def obtener_proveedor(proveedor_id):
     return dict(fila) if fila else None
 
 
-def crear_proveedor(nombre, contacto="", telefono="", correo="", nota=""):
-    """Da de alta un proveedor. Devuelve (id, None) o (None, código_de_error)."""
-    datos = _limpiar(nombre, contacto, telefono, correo, nota)
+def crear_proveedor(nombre, contacto="", telefono="", correo="", nota="", plazo_entrega=None):
+    """Da de alta un proveedor. [plazo_entrega]: días que suele tardar (None: sin plazo).
+    Devuelve (id, None) o (None, código_de_error)."""
+    datos = _limpiar(nombre, contacto, telefono, correo, nota, plazo_entrega)
     if not datos["nombre"]:
         return None, "nombre_obligatorio"
     con = almacen._conn()
@@ -118,8 +133,9 @@ def crear_proveedor(nombre, contacto="", telefono="", correo="", nota=""):
         con.close()
         return None, "repetido"
     proveedor_id = con.execute(
-        "INSERT INTO proveedores (nombre, contacto, telefono, correo, nota) VALUES (?,?,?,?,?)",
-        (datos["nombre"], datos["contacto"], datos["telefono"], datos["correo"], datos["nota"])).lastrowid
+        "INSERT INTO proveedores (nombre, contacto, telefono, correo, nota, plazo_entrega) VALUES (?,?,?,?,?,?)",
+        (datos["nombre"], datos["contacto"], datos["telefono"], datos["correo"], datos["nota"],
+         datos["plazo_entrega"])).lastrowid
     con.commit()
     con.close()
     _usuarios.auditar("almacen", "crear", f"Proveedor «{datos['nombre']}»",
@@ -127,21 +143,21 @@ def crear_proveedor(nombre, contacto="", telefono="", correo="", nota=""):
     return proveedor_id, None
 
 
-def editar_proveedor(proveedor_id, nombre, contacto="", telefono="", correo="", nota=""):
+def editar_proveedor(proveedor_id, nombre, contacto="", telefono="", correo="", nota="", plazo_entrega=None):
     """Cambia los datos de un proveedor. Devuelve (True, None) o (False, código)."""
     antes = _foto(proveedor_id)
     if obtener_proveedor(proveedor_id) is None:
         return False, "no_existe"
-    datos = _limpiar(nombre, contacto, telefono, correo, nota)
+    datos = _limpiar(nombre, contacto, telefono, correo, nota, plazo_entrega)
     if not datos["nombre"]:
         return False, "nombre_obligatorio"
     con = almacen._conn()
     if _existe_nombre(con, datos["nombre"], excluir_id=proveedor_id):
         con.close()
         return False, "repetido"
-    con.execute("UPDATE proveedores SET nombre=?, contacto=?, telefono=?, correo=?, nota=? WHERE id=?",
+    con.execute("UPDATE proveedores SET nombre=?, contacto=?, telefono=?, correo=?, nota=?, plazo_entrega=? WHERE id=?",
                 (datos["nombre"], datos["contacto"], datos["telefono"], datos["correo"], datos["nota"],
-                 proveedor_id))
+                 datos["plazo_entrega"], proveedor_id))
     con.commit()
     con.close()
     _usuarios.auditar("almacen", "editar", f"Proveedor «{datos['nombre']}»",

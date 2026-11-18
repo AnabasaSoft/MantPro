@@ -184,6 +184,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🏢 Multiple Sites**: your own plants or client companies you maintain, each with its tax ID, address, contact and holidays. With more than one site, a "Site" selector appears at the top and filters machines, jobs, pending tasks, reminders, dashboard, statistics, costs and reports (PDF and Excel include the site's details, ready to hand to the client). Each technician can see only their own sites (see [Sites and Warehouses](#-sites-and-warehouses))
 - **🏬 Multiple Warehouses**: the main warehouse plus as many as needed per site (a van, for example) or shared by all of them, each with its own stock, minimums, locations and delivery address, and stock transfers between warehouses
 - **🛒 Orders per Warehouse**: the suggested order is calculated warehouse by warehouse and each order carries its warehouse's delivery address; orders can also be grouped into a single order per supplier, with the lines split by warehouse
+- **📥 Order Receipt**: when you receive stock with a supplier and price, the actual price is stored in the order and MantPro warns you if the supplier charged differently from what was ordered; the orders window shows the estimated and actual price of each line and the difference. Each supplier can have its usual delivery time, and the "🛒 Orders" button warns about orders not yet sent and late orders. Administrators only
 - **📦 Warehouse Check per Warehouse**: each warehouse has its own check cycle (daily, weekly or monthly) and number of items per check, and the check can be turned on or off per site
 - **🗑️ Maximum Retention Time**: `Tools` lets you delete from the history the jobs older than a number of years, months or days, together with their photos and a backup made beforehand (administrators only)
 - **📥 Import from Excel/CSV**: `File > Import from Excel/CSV…` (administrators only) brings in machines, warehouse items, recurring reminders, users, pending jobs and old work history from a downloadable template or from your own Excel (one sheet or the whole workbook at once), with automatic column matching, a row-by-row preview and a backup made beforehand. Missing locations (zones, shelving units, shelves) and parent machines are created automatically, and users get a temporary password they must change on first login
@@ -911,7 +912,6 @@ The code and database structure is described in
 
 What's coming, without dates and in no fixed order:
 
-- **Purchasing**: receive orders with an automatic stock entry and the real price, and warn about orders not yet sent
 - **Sign-off** when closing a job (also on the phone)
 - **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
 - **Machine criticality (ABC)**, to decide where to invest maintenance
@@ -920,7 +920,7 @@ What's coming, without dates and in no fixed order:
 - **Several PCs at once**, a headless server (Raspberry Pi, NAS, Docker) and web access
 - More languages (Italian…) and an iPhone app
 
-Recently done: multiple sites (selector, reports, holidays and each technician's access to their sites) with multiple warehouses, transfers, orders and checks per warehouse, German in the three applications, videos in the jobs' photo collection, suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
+Recently done: order receipt with actual prices and warnings about unsent or late orders, multiple sites (selector, reports, holidays and each technician's access to their sites) with multiple warehouses, transfers, orders and checks per warehouse, German in the three applications, videos in the jobs' photo collection, suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

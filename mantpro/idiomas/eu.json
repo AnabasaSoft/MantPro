@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "JAIEGUNAK",
   "sede_btn_festivos": "📅 Jaiegunak…",
   "sede_festivos_generales": "Orokorrak",
-  "sede_festivos_pregunta": "«{nombre}» egoitzak bere jaiegunak izatea nahi duzu? Ezetz esaten baduzu, enpresaren jaiegun orokorrak erabiliko ditu."
+  "sede_festivos_pregunta": "«{nombre}» egoitzak bere jaiegunak izatea nahi duzu? Ezetz esaten baduzu, enpresaren jaiegun orokorrak erabiliko ditu.",
+  "prov_lbl_plazo": "Ohiko entrega-epea (egunak)",
+  "prov_sin_plazo": "Eperik gabe",
+  "prov_tip_plazo": "Bidalitako eskaera bat egun hauek igaro ondoren osorik iritsi ez bada, MantProk atzeratuta doala ohartaraziko du.",
+  "cmp_hdr_precio_est": "ZENBATETSITAKO PREZIOA",
+  "cmp_hdr_precio_real": "BENETAKO PREZIOA",
+  "cmp_retraso_un_dia": "Egun 1eko atzerapena",
+  "cmp_retraso_dias": "{n} eguneko atzerapena",
+  "cmp_lbl_importe_real": "Benetako prezioan jasoa: {real}",
+  "cmp_lbl_diferencia": "zenbatetsitakoarekiko aldea: {dif}",
+  "cmp_aviso_sin_enviar": "{n} bidali gabe",
+  "cmp_aviso_retrasados": "{n} atzeratuta",
+  "cmp_aviso_tooltip": "Arreta behar duten eskaerak",
+  "cmp_title_precio_distinto": "Eskaerakoaz bestelako prezioa",
+  "cmp_msg_precio_distinto": "Sarrera hau eskaeran jarritakoaz bestelako prezioan iristen da:",
+  "cmp_msg_precio_linea": "{fecha}(e)ko {n}. eskaera, {proveedor}(r)i: {pedido} → orain {real}{pct}"
 }

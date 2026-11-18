@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "FESTIVOS",
   "sede_btn_festivos": "📅 Festivos…",
   "sede_festivos_generales": "Os xerais",
-  "sede_festivos_pregunta": "Queres que «{nombre}» teña os seus propios festivos? Se dis que non, usará os xerais da empresa."
+  "sede_festivos_pregunta": "Queres que «{nombre}» teña os seus propios festivos? Se dis que non, usará os xerais da empresa.",
+  "prov_lbl_plazo": "Prazo de entrega habitual (días)",
+  "prov_sin_plazo": "Sen prazo",
+  "prov_tip_plazo": "Se un pedido enviado non chegou enteiro pasados estes días, MantPro avisa de que vai con atraso.",
+  "cmp_hdr_precio_est": "PREZO EST.",
+  "cmp_hdr_precio_real": "PREZO REAL",
+  "cmp_retraso_un_dia": "1 día de atraso",
+  "cmp_retraso_dias": "{n} días de atraso",
+  "cmp_lbl_importe_real": "Recibido a prezo real: {real}",
+  "cmp_lbl_diferencia": "diferenza co estimado: {dif}",
+  "cmp_aviso_sin_enviar": "{n} sen enviar",
+  "cmp_aviso_retrasados": "{n} con atraso",
+  "cmp_aviso_tooltip": "Pedidos que precisan atención",
+  "cmp_title_precio_distinto": "Prezo distinto ao do pedido",
+  "cmp_msg_precio_distinto": "Esta entrada chega a un prezo distinto do que se puxo no pedido:",
+  "cmp_msg_precio_linea": "Pedido n.º {n} do {fecha} a {proveedor}: {pedido} → agora {real}{pct}"
 }

@@ -1574,5 +1574,20 @@
   "sede_hdr_festivos": "FERIADOS",
   "sede_btn_festivos": "📅 Feriados…",
   "sede_festivos_generales": "Os gerais",
-  "sede_festivos_pregunta": "Quer que «{nombre}» tenha os seus próprios feriados? Se disser que não, usará os gerais da empresa."
+  "sede_festivos_pregunta": "Quer que «{nombre}» tenha os seus próprios feriados? Se disser que não, usará os gerais da empresa.",
+  "prov_lbl_plazo": "Prazo de entrega habitual (dias)",
+  "prov_sin_plazo": "Sem prazo",
+  "prov_tip_plazo": "Se um pedido enviado não tiver chegado completo depois destes dias, o MantPro avisa que está atrasado.",
+  "cmp_hdr_precio_est": "PREÇO EST.",
+  "cmp_hdr_precio_real": "PREÇO REAL",
+  "cmp_retraso_un_dia": "1 dia de atraso",
+  "cmp_retraso_dias": "{n} dias de atraso",
+  "cmp_lbl_importe_real": "Recebido a preço real: {real}",
+  "cmp_lbl_diferencia": "diferença em relação ao estimado: {dif}",
+  "cmp_aviso_sin_enviar": "{n} por enviar",
+  "cmp_aviso_retrasados": "{n} atrasado(s)",
+  "cmp_aviso_tooltip": "Pedidos que precisam de atenção",
+  "cmp_title_precio_distinto": "Preço diferente do pedido",
+  "cmp_msg_precio_distinto": "Esta entrada chega a um preço diferente do que foi colocado no pedido:",
+  "cmp_msg_precio_linea": "Pedido n.º {n} de {fecha} a {proveedor}: {pedido} → agora {real}{pct}"
 }
