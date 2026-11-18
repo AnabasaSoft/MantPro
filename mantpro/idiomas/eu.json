@@ -1439,7 +1439,7 @@
   "nube_nunca": "Oraindik ez",
   "nube_sin_subir": "Igo gabe",
   "nube_al_dia": "Dena egunean",
-  "lbl_nube_fotos_aparte": "MantProk aldatzen duzuna ia berehala igotzen du, eta minuturo begiratzen du ea berririk dagoen irekita dagoen bitartean. Argazkiak bereizita sinkronizatzen dira, atzeko planoan.",
+  "lbl_nube_fotos_aparte": "MantProk aldatzen duzuna ia berehala igotzen du. Irekitzean bertan begiratzen du ea berririk dagoen, eta gero 30 segundoro, irekita dagoen bitartean. Argazkiak bereizita sinkronizatzen dira, atzeko planoan.",
   "nube_fotos_sin_subir": "Igo gabeko argazkiak",
   "nube_fotos_subiendo": "Igotzen… {hecho} / {total}",
   "nube_fotos_bajando": "Deskargatzen… {hecho} / {total}",

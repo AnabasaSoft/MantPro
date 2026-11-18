@@ -1439,7 +1439,7 @@
   "nube_nunca": "Noch nicht",
   "nube_sin_subir": "Nicht hochgeladen",
   "nube_al_dia": "Alles aktuell",
-  "lbl_nube_fotos_aparte": "MantPro lädt Ihre Änderungen fast sofort hoch und prüft, solange es geöffnet ist, jede Minute, ob es Neues gibt. Fotos werden separat im Hintergrund synchronisiert.",
+  "lbl_nube_fotos_aparte": "MantPro lädt Ihre Änderungen fast sofort hoch. Es prüft gleich beim Öffnen, ob es Neues gibt, und danach alle 30 Sekunden, solange es geöffnet ist. Fotos werden separat im Hintergrund synchronisiert.",
   "nube_fotos_sin_subir": "Nicht hochgeladene Fotos",
   "nube_fotos_subiendo": "Wird hochgeladen… {hecho} von {total}",
   "nube_fotos_bajando": "Wird heruntergeladen… {hecho} von {total}",

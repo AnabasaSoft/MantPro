@@ -30,11 +30,11 @@ from PyQt6.QtWidgets import QMessageBox
 from ..comun import tt
 from ...nucleo import nube, sincro_nube
 
-SEGUNDOS_SINCRONIZACION_NUBE = 60     # cada cuánto sube y BAJA lo nuevo mientras MantPro está abierto (lo que hagan los móviles en la nube)
+SEGUNDOS_SINCRONIZACION_NUBE = 30     # cada cuánto sube y BAJA lo nuevo mientras MantPro está abierto (lo que hagan los móviles en la nube)
 SEGUNDOS_VIGILAR_CAMBIOS = 5          # cada cuánto mira si hay cambios sin subir (y los sube al momento)
 SEGUNDOS_ESPERA_TRAS_ERROR = 60       # si la última subida falló (sin internet, licencia...), no insiste antes de esto
 SEGUNDOS_ESPERA_AL_CERRAR = 8         # lo que espera al cerrar MantPro para dejar subido lo último
-SEGUNDOS_PRIMERA_SINCRONIZACION = 15  # tras abrir MantPro (da tiempo a que cargue todo; poco, para que lo hecho por los móviles en la nube llegue pronto)
+SEGUNDOS_PRIMERA_SINCRONIZACION = 1   # tras abrir MantPro: casi al momento (va en un hilo, no frena la ventana), para que lo hecho por los móviles llegue ya
 SEGUNDOS_REVISAR_RESULTADO = 3        # cada cuánto mira la ventana si ha terminado la sincronización de fondo
 SEGUNDOS_COMPROBAR_CUENTA = 6 * 3600  # cada cuánto pregunta la licencia y el espacio (y tras abrir, con la primera sincronización)
 ERRORES_DE_CUENTA = {"licencia_caducada": None, "licencia_suspendida": "licencia_suspendida",

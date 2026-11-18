@@ -1439,7 +1439,7 @@
   "nube_nunca": "Pas encore",
   "nube_sin_subir": "Non envoyés",
   "nube_al_dia": "Tout est à jour",
-  "lbl_nube_fotos_aparte": "MantPro envoie ce que vous modifiez presque immédiatement et vérifie chaque minute s'il y a du nouveau tant qu'il est ouvert. Les photos sont synchronisées séparément, en arrière-plan.",
+  "lbl_nube_fotos_aparte": "MantPro envoie ce que vous modifiez presque immédiatement. Il vérifie s'il y a du nouveau dès son ouverture, puis toutes les 30 secondes tant qu'il est ouvert. Les photos sont synchronisées séparément, en arrière-plan.",
   "nube_fotos_sin_subir": "Photos non envoyées",
   "nube_fotos_subiendo": "Envoi… {hecho} sur {total}",
   "nube_fotos_bajando": "Téléchargement… {hecho} sur {total}",

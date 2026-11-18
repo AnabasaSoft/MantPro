@@ -1439,7 +1439,7 @@
   "nube_nunca": "Todavía no",
   "nube_sin_subir": "Sin subir",
   "nube_al_dia": "Todo al día",
-  "lbl_nube_fotos_aparte": "MantPro sube lo que cambies casi al momento y mira cada minuto si hay algo nuevo mientras está abierto. Las fotos se sincronizan aparte, en segundo plano.",
+  "lbl_nube_fotos_aparte": "MantPro sube lo que cambies casi al momento. Nada más abrirse mira si hay algo nuevo, y después cada 30 segundos mientras está abierto. Las fotos se sincronizan aparte, en segundo plano.",
   "nube_fotos_sin_subir": "Fotos sin subir",
   "nube_fotos_subiendo": "Subiendo… {hecho} de {total}",
   "nube_fotos_bajando": "Descargando… {hecho} de {total}",

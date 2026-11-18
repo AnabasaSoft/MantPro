@@ -4,6 +4,10 @@ Registro de los cambios de cada versión. Lo nuevo se va apuntando en **Sin publ
 
 Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pre-release* y no tienen sección propia: lo que llevan está en **Sin publicar** hasta que sale la versión final.
 
+## Sin publicar
+
+- **☁️ El PC baja antes lo nuevo de la nube.** Con MantPro Cloud, el PC sincroniza nada más abrirse (antes esperaba 15 segundos) y después mira si hay algo nuevo **cada 30 segundos** (antes, cada minuto): lo que hacen los móviles y los demás PCs llega antes. Lo que cambias en el PC se sigue subiendo casi al momento. Traducido en los 8 idiomas.
+
 ## 3.10.8 — 2026-11-16
 
 ### Novedades
