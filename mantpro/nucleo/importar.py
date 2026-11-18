@@ -113,8 +113,7 @@ _SINONIMOS = {
                                        "time spent", "worked minutes", "minutuak", "minuts", "minutos de trabajo"],
 }
 
-_CLAVES_FRECUENCIA = ("freq_diario", "freq_semanal", "freq_mensual", "freq_trimestral",
-                      "freq_semestral", "freq_anual")
+from .frecuencias import CLAVES as _CLAVES_FRECUENCIA      # noqa: E402  (las mismas que en todo el programa)
 _SINONIMOS_FRECUENCIA = {
     "freq_diario": ["diaria", "daily", "day", "egunero", "diari", "quotidien"],
     "freq_semanal": ["weekly", "week", "astero", "setmanal", "hebdomadaire"],
@@ -123,6 +122,18 @@ _SINONIMOS_FRECUENCIA = {
     "freq_semestral": ["half yearly", "semiannual", "semi annual", "seihileko"],
     "freq_anual": ["annual", "yearly", "year", "annually", "urtero", "urtekoa", "annuel"],
 }
+# Varios años: «cada 5 años», «5 años», «every 5 years», «5 urtean behin»… en los 8 idiomas, y los nombres
+# de siempre (bienal, quinquenal…). Ya normalizado: minúsculas, sin tildes ni signos.
+_NOMBRES_ANIOS = {2: ["bienal", "bianual", "biennial", "biennal", "bisannuel", "zweijahrlich"],
+                  3: ["trienal", "triennial", "triennal", "dreijahrlich"],
+                  4: ["cuatrienal", "quadrennial", "quadriennal", "vierjahrlich"],
+                  5: ["quinquenal", "quinquennial", "quinquennal", "funfjahrlich"],
+                  10: ["decenal", "decennial", "decennal", "zehnjahrlich"]}
+for _n, _nombres in _NOMBRES_ANIOS.items():
+    _SINONIMOS_FRECUENCIA[f"freq_cada_{_n}_anios"] = _nombres + [p.format(n=_n) for p in (
+        "cada {n} anos", "{n} anos", "every {n} years", "{n} years", "{n} urtean behin", "{n} urtero",
+        "{n} urte", "cada {n} anys", "{n} anys", "a cada {n} anos", "tous les {n} ans", "{n} ans",
+        "alle {n} jahre", "{n} jahre")]
 
 _SINONIMOS_ROLES = {
     "admin": ["admin", "administrador", "administrator", "administratzailea", "administrateur"],

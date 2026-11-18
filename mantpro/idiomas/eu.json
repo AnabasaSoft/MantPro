@@ -1592,5 +1592,10 @@
   "cmp_msg_precio_linea": "{fecha}(e)ko {n}. eskaera, {proveedor}(r)i: {pedido} → orain {real}{pct}",
   "about_proyecto": "Proiektua",
   "about_dudas": "Zalantzak eta ideiak",
-  "about_errores": "Akatsak"
+  "about_errores": "Akatsak",
+  "freq_cada_2_anios": "2 urtean behin",
+  "freq_cada_3_anios": "3 urtean behin",
+  "freq_cada_4_anios": "4 urtean behin",
+  "freq_cada_5_anios": "5 urtean behin",
+  "freq_cada_10_anios": "10 urtean behin"
 }

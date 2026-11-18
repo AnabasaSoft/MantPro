@@ -130,12 +130,16 @@ def t(clave):
 # Esta función traduce CUALQUIER valor guardado, en CUALQUIER idioma
 # conocido, de vuelta a su forma canónica en español, para que las
 # comparaciones `freq == "Anual"` etc. sigan funcionando pase lo que pase.
-_CLAVES_FRECUENCIA = ["freq_diario", "freq_semanal", "freq_mensual", "freq_trimestral", "freq_semestral", "freq_anual"]
+# Las mismas que nucleo/frecuencias.py (allí está la lista con lo que avanza cada una)
+_CLAVES_FRECUENCIA = ["freq_diario", "freq_semanal", "freq_mensual", "freq_trimestral", "freq_semestral", "freq_anual",
+                      "freq_cada_2_anios", "freq_cada_3_anios", "freq_cada_4_anios", "freq_cada_5_anios",
+                      "freq_cada_10_anios"]
 
 def normalizar_frecuencia(valor):
     """Dado un valor de frecuencia guardado (en cualquier idioma soportado),
     devuelve su forma canónica en español ('Diario', 'Semanal', 'Mensual',
-    'Trimestral', 'Semestral' o 'Anual'). Si no se reconoce, se devuelve tal cual."""
+    'Trimestral', 'Semestral', 'Anual', 'Cada 2 años'… 'Cada 10 años'). Si no se
+    reconoce, se devuelve tal cual."""
     if not valor:
         return valor
     for clave in _CLAVES_FRECUENCIA:

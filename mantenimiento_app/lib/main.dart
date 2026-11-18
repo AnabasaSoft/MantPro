@@ -1291,15 +1291,16 @@ DateTime _parseFechaYMD(String s) {
 String _fmtFechaYMD(DateTime d) =>
     "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
 
-/// Suma meses a una fecha igual que lo hace el PC: si el día no existe en el
-/// mes de destino (p.ej. 31 de un mes que solo tiene 30), lo recorta al 28
-/// para que el cálculo dé siempre el mismo resultado en el móvil y en el PC.
+/// Suma meses a una fecha igual que lo hace el PC (nucleo/frecuencias.py): si el
+/// día no existe en el mes de destino (p.ej. 31 de un mes que solo tiene 30, o
+/// 29 de febrero), cae en el último día de ese mes, para que el cálculo dé
+/// siempre el mismo resultado en el móvil y en el PC.
 DateTime _sumarMeses(DateTime d, int meses) {
   final totalMes = d.month - 1 + meses;
   final anio = d.year + totalMes ~/ 12;
   final mes = totalMes % 12 + 1;
   final ultimoDiaMes = DateTime(anio, mes + 1, 0).day;
-  final dia = d.day <= ultimoDiaMes ? d.day : 28;
+  final dia = d.day <= ultimoDiaMes ? d.day : ultimoDiaMes;
   return DateTime(anio, mes, dia);
 }
 
@@ -1330,7 +1331,15 @@ void recalcularAviso(AvisoPC a, DateTime hoy, [Map<int, Map<String, dynamic>> lo
       case "Mensual": return _sumarMeses(d, 1);
       case "Trimestral": return _sumarMeses(d, 3);
       case "Semestral": return _sumarMeses(d, 6);
-      case "Anual": return DateTime(d.year + 1, d.month, d.day);
+      case "Anual": return _sumarMeses(d, 12);
+      // Varios años (inspecciones reglamentarias). El servidor ya manda la próxima
+      // fecha calculada para que las versiones antiguas de la app, que no las
+      // conocen, también acierten.
+      case "Cada 2 años": return _sumarMeses(d, 24);
+      case "Cada 3 años": return _sumarMeses(d, 36);
+      case "Cada 4 años": return _sumarMeses(d, 48);
+      case "Cada 5 años": return _sumarMeses(d, 60);
+      case "Cada 10 años": return _sumarMeses(d, 120);
       default: return d;
     }
   }

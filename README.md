@@ -163,6 +163,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **📊 Dashboard with KPIs and Charts**: cards for pending alerts, to-do tasks, records this month and plant-wide average MTBF/MTTR, plus charts of the machines with the most breakdowns and breakdowns per month, drawn without relying on external libraries, plus the maintenance cost of the month and the year, the machines with the highest cost and the cost per month
 - **🎨 Visual Themes**: choose between dark mode (default), light mode or a retro style inspired by Windows 98, from the "Appearance" menu. The icons in the file and folder pickers are drawn to match each theme, so they look right even if the system icon theme is dark or there is none (Windows)
 - **📅 Interactive Calendar**: View and manage maintenance tasks with colour codes (public holidays, vacations, days with tasks)
+- **🔁 Recurring Reminders from Daily to Every 10 Years**: daily, weekly, monthly, quarterly, half-yearly, yearly and every 2, 3, 4, 5 or 10 years, for statutory inspections (low-voltage every 5 or 10 years, high-voltage every 3 in Spain); the next date counts from the day it was actually done
 - **📝 Full History**: record of every job carried out, with before/after photos and an extra **photo collection** per job; several records can be deleted at once
 - **📄 PDF Reports**: Automatic generation of professional reports with a customisable logo
 - **📸 Image Management**: Storage and display of job photos

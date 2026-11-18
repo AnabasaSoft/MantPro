@@ -166,6 +166,7 @@ versiones estables. Los cambios de cada versión están en
 - **📊 Dashboard con KPIs y Gráficos**: tarjetas de avisos pendientes, tareas por hacer, registros del mes y MTBF/MTTR medios de toda la planta, más gráficos de máquinas con más averías y de averías por mes, dibujados sin depender de librerías externas, más el coste de mantenimiento del mes y del año, las máquinas con más coste y el coste por mes
 - **🎨 Temas Visuales**: elige entre modo oscuro (por defecto), claro o un estilo retro inspirado en Windows 98, desde el menú "Apariencia". Los iconos de los selectores de ficheros y carpetas se dibujan a juego con cada tema, así que se ven bien aunque el tema de iconos del sistema sea oscuro o no haya ninguno (Windows)
 - **📅 Calendario Interactivo**: Visualiza y gestiona tareas de mantenimiento con códigos de color (festivos, vacaciones, días con tareas)
+- **🔁 Avisos Recurrentes de Diario a Cada 10 Años**: diario, semanal, mensual, trimestral, semestral, anual y cada 2, 3, 4, 5 o 10 años, para las inspecciones reglamentarias (OCA de baja tensión cada 5 o 10 años, alta tensión cada 3); la próxima fecha se cuenta desde el día en que de verdad se hizo
 - **📝 Historial Completo**: Registro histórico de todas las intervenciones realizadas, con fotos antes/después y una **colección de fotos** adicional por trabajo; se pueden borrar varios registros a la vez
 - **📄 Reportes PDF**: Generación automática de informes profesionales con logo personalizable
 - **📸 Gestión de Imágenes**: Almacenamiento y visualización de fotos de intervenciones

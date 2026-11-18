@@ -24,11 +24,11 @@ pequeños ayudantes de widgets."""
 import sys
 import os
 from PyQt6.QtWidgets import QCheckBox
-from PyQt6.QtCore import QSettings, QTranslator, QLibraryInfo
+from PyQt6.QtCore import QSettings, QTranslator, QLibraryInfo, QDate
 from .qt_traducciones_extra import COMPLEMENTOS, TRADUCCIONES, TraductorQtExtra
 
 from ..idiomas import t
-from ..nucleo import almacen, maquinas
+from ..nucleo import almacen, maquinas, frecuencias
 
 def tt(clave, defecto):
     """t() con texto por defecto: si la clave aún no está en idiomas.py,
@@ -248,3 +248,21 @@ def traducir_tags_bd(tags_bd):
 def traducir_prioridad(codigo):
     claves = {"Baja": "prioridad_baja", "Media": "prioridad_media", "Alta": "prioridad_alta", "Crítica": "prioridad_critica"}
     return tt(claves.get(codigo, "prioridad_media"), codigo or "Media")
+
+
+def avanzar_qdate(fecha, frecuencia):
+    """frecuencias.avanzar para un QDate (lo que usan las pestañas)."""
+    if not fecha.isValid():
+        return fecha
+    d = frecuencias.avanzar(fecha.toPyDate(), frecuencia)
+    return QDate(d.year, d.month, d.day)
+
+
+def combo_frecuencias(combo, actual=None):
+    """Rellena un QComboBox con las frecuencias (texto en el idioma activo, dato la forma
+    canónica) y elige [actual], guardada en cualquier idioma (vacía: la de por defecto)."""
+    combo.clear()
+    for canonica, texto in frecuencias.opciones():
+        combo.addItem(texto, canonica)
+    i = combo.findData(frecuencias.canonica(actual))
+    combo.setCurrentIndex(i if i >= 0 else combo.findData(frecuencias.POR_DEFECTO))

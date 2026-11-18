@@ -29,9 +29,9 @@ from PyQt6.QtGui import QColor
 
 from ... import idiomas
 from ...idiomas import t
-from ..comun import tt
+from ..comun import tt, avanzar_qdate, combo_frecuencias
 from ..dialogos.trabajos import AvisoEditDialog
-from ...nucleo import usuarios, checklists, consumos, contadores, sedes
+from ...nucleo import usuarios, checklists, consumos, contadores, sedes, frecuencias
 from ..dialogos.contadores import CamposContadorAviso, pedir_lectura
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.basedatos import get_db_connection
@@ -69,7 +69,7 @@ class PestanaAvisos:
         f.addWidget(QLabel(t("lbl_titulo")), 0, 0); f.addWidget(self.in_av_t, 0, 1)
         self.in_av_i = QDateEdit(); self.in_av_i.setCalendarPopup(True); self.in_av_i.setDate(QDate.currentDate()); self.in_av_i.setDisplayFormat("yyyy-MM-dd")
         f.addWidget(QLabel(t("lbl_inicio")), 0, 2); f.addWidget(self.in_av_i, 0, 3)
-        self.in_av_freq = QComboBox(); self.in_av_freq.addItems([t("freq_anual"), t("freq_semestral"), t("freq_trimestral"), t("freq_mensual"), t("freq_semanal"), t("freq_diario")])
+        self.in_av_freq = QComboBox(); combo_frecuencias(self.in_av_freq)   # se guarda la forma canónica (en español)
         f.addWidget(QLabel(t("lbl_repetir")), 1, 0); f.addWidget(self.in_av_freq, 1, 1)
         self.in_av_dur = QSpinBox(); self.in_av_dur.setRange(1, 60); self.in_av_dur.setValue(5); self.in_av_dur.setSuffix(" " + t("lbl_dias_abrev"))
         f.addWidget(QLabel(t("lbl_duracion")), 1, 2); f.addWidget(self.in_av_dur, 1, 3)
@@ -90,7 +90,7 @@ class PestanaAvisos:
 
     def add_aviso(self):
         if not usuarios.es_admin(): return
-        tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentText(); dur = self.in_av_dur.value()
+        tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentData(); dur = self.in_av_dur.value()
         uid = self.in_av_asignar.currentData(); nombre = self.in_av_asignar.currentText() if uid is not None else None
         especialidad_id = self.in_av_especialidad.currentData()
         error = self.in_av_contador.validar(self)
@@ -168,14 +168,8 @@ class PestanaAvisos:
             # los días.
             dur_ventana = 0 if freq == "Diario" else dur
 
-            def _avanzar(fecha):
-                if freq == "Diario": return fecha.addDays(1)
-                elif freq == "Semanal": return fecha.addDays(7)
-                elif freq == "Mensual": return fecha.addMonths(1)
-                elif freq == "Trimestral": return fecha.addMonths(3)
-                elif freq == "Semestral": return fecha.addMonths(6)
-                elif freq == "Anual": return fecha.addYears(1)
-                else: return fecha
+            def _avanzar(fecha, freq=freq):
+                return avanzar_qdate(fecha, freq)
 
             # La fecha en que toca la próxima vez se cuenta desde la ÚLTIMA VEZ
             # QUE SE HIZO DE VERDAD (ult), no desde el calendario fijo original.
@@ -221,7 +215,7 @@ class PestanaAvisos:
             # Preventivo por contador: toca lo que antes llegue (fecha o
             # contador), o solo el contador si no tiene límite por fecha
             info = por_contador.get(aid)
-            texto_freq, texto_rango, consejo = freq, None, ""
+            texto_freq, texto_rango, consejo = frecuencias.texto(freq), None, ""
             if info:
                 estado_c = info["estado"]
                 if info["solo_contador"]:
@@ -237,7 +231,7 @@ class PestanaAvisos:
                         "PENDIENTE": (QColor("#e67e22"), t("estado_pendiente"), 1),
                     }.get(estado, (QColor("#2e86c1"), t("estado_futuro"), 2))
                 texto_cada = contadores.texto_cada(info, tt("lbl_cada_corto", "Cada"))
-                texto_freq = texto_cada if info["solo_contador"] else f"{texto_cada} · {freq}"
+                texto_freq = texto_cada if info["solo_contador"] else f"{texto_cada} · {frecuencias.texto(freq)}"
                 texto_c = contadores.texto_proximo(info, tt("lbl_ahora", "ahora"), tt("lbl_sin_lecturas", "sin lecturas"))
                 texto_rango = texto_c if info["solo_contador"] else texto_c + " · {rango}"
                 consejo = f"📟 {info['contador']} — {info['maquina']}"

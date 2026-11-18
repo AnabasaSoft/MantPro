@@ -25,7 +25,7 @@ from PyQt6.QtCore import QDate, Qt
 
 from ... import idiomas
 from ...idiomas import t
-from ..comun import tt
+from ..comun import tt, avanzar_qdate
 from ..dialogos.estadisticas import DialogoEstadisticasTecnicos
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking
 from ...nucleo import maquinas, consumos, costes, usuarios
@@ -150,13 +150,9 @@ class PestanaDashboard:
             dur_ventana = 0 if freq == "Diario" else dur
             ocurrencia = fi
             while ocurrencia.addDays(dur_ventana) < hoy:
-                if freq == "Diario": ocurrencia = ocurrencia.addDays(1)
-                elif freq == "Semanal": ocurrencia = ocurrencia.addDays(7)
-                elif freq == "Mensual": ocurrencia = ocurrencia.addMonths(1)
-                elif freq == "Trimestral": ocurrencia = ocurrencia.addMonths(3)
-                elif freq == "Semestral": ocurrencia = ocurrencia.addMonths(6)
-                elif freq == "Anual": ocurrencia = ocurrencia.addYears(1)
-                else: break
+                siguiente = avanzar_qdate(ocurrencia, freq)
+                if siguiente <= ocurrencia: break      # frecuencia desconocida: no avanza
+                ocurrencia = siguiente
             fin_ocurrencia = ocurrencia.addDays(dur_ventana)
             if ocurrencia <= hoy <= fin_ocurrencia and ult != ocurrencia.toString("yyyy-MM-dd"): pendientes_reales += 1
         self.lbl_count_avisos.setText(str(pendientes_reales))

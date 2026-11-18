@@ -34,7 +34,7 @@ except ImportError:      # servidor de MantPro Cloud: sin escritorio ni Qt, solo
     from ..nucleo.sin_qt import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import operaciones_movil
+from ..nucleo import operaciones_movil, frecuencias
 from ..nucleo import certificado, usuarios, almacen, almacenes, sedes, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
@@ -998,28 +998,8 @@ class ServidorSincronizacion(QThread):
                     # daría un "rango" confuso para un recordatorio de todos los días.
                     dur_ventana = 0 if freq == "Diario" else dur
 
-                    def _avanzar(fecha):
-                        if freq == "Diario": return fecha + timedelta(days=1)
-                        elif freq == "Semanal": return fecha + timedelta(days=7)
-                        elif freq == "Mensual":
-                            ny = fecha.year + (fecha.month // 12)
-                            nm = (fecha.month % 12) + 1
-                            try: return fecha.replace(year=ny, month=nm)
-                            except: return fecha.replace(year=ny, month=nm, day=28)
-                        elif freq == "Trimestral":
-                             m_add = fecha.month + 3
-                             ny = fecha.year + (m_add - 1) // 12
-                             nm = (m_add - 1) % 12 + 1
-                             try: return fecha.replace(year=ny, month=nm)
-                             except: return fecha.replace(year=ny, month=nm, day=28)
-                        elif freq == "Semestral":
-                             m_add = fecha.month + 6
-                             ny = fecha.year + (m_add - 1) // 12
-                             nm = (m_add - 1) % 12 + 1
-                             try: return fecha.replace(year=ny, month=nm)
-                             except: return fecha.replace(year=ny, month=nm, day=28)
-                        elif freq == "Anual": return fecha.replace(year=fecha.year + 1)
-                        else: return fecha
+                    def _avanzar(fecha, freq=freq):
+                        return frecuencias.avanzar(fecha, freq)
 
                     # La fecha en que toca la próxima vez se cuenta desde la ÚLTIMA
                     # VEZ QUE SE HIZO DE VERDAD (ult), no desde el calendario fijo
@@ -1071,6 +1051,16 @@ class ServidorSincronizacion(QThread):
                         texto_c = contadores.texto_proximo(info_contador, idiomas.t("lbl_ahora"), idiomas.t("lbl_sin_lecturas"))
                         rango = texto_c if info_contador["solo_contador"] else f"{texto_c} · {rango}"
 
+                    # Las frecuencias de varios años no las conocen las apps antiguas (avanzar
+                    # les devuelve la misma fecha y el aviso saldría atrasado al día siguiente
+                    # de hacerlo). Se les manda ya calculada: como inicio, la próxima vez que
+                    # toca y, sin última completada (salvo si fue hoy, para verlo en verde).
+                    # Cualquier versión de la app calcula así la misma fecha.
+                    inicio_movil, ult_movil = finicio, ult or ""
+                    if freq in frecuencias.NUEVAS:
+                        inicio_movil = ocurrencia.strftime("%Y-%m-%d")
+                        ult_movil = ult if ult == hoy.strftime("%Y-%m-%d") else ""
+
                     lista_procesada.append({
                         "id": aid,
                         "titulo": tit,
@@ -1083,10 +1073,10 @@ class ServidorSincronizacion(QThread):
                         # Datos "crudos" del aviso (fecha de inicio original, duración y última
                         # completada) para que el móvil pueda recalcular el ciclo por su cuenta
                         # con la fecha del propio teléfono, aunque lleve meses sin sincronizar.
-                        "fecha_inicio_raw": finicio,
+                        "fecha_inicio_raw": inicio_movil,
                         "sede_id": sedes.efectiva(sede_de_aviso.get(aid)),
                         "duracion_dias": dur,
-                        "ultima_completada": ult or "",
+                        "ultima_completada": ult_movil,
                         "asignado_a": asignado_a,
                         "asignado": asignado_nombre or "",
                         "checklist_id": con_lista.get(aid),

@@ -1592,5 +1592,10 @@
   "cmp_msg_precio_linea": "Pedido n.º {n} do {fecha} a {proveedor}: {pedido} → agora {real}{pct}",
   "about_proyecto": "Proxecto",
   "about_dudas": "Dúbidas e ideas",
-  "about_errores": "Erros"
+  "about_errores": "Erros",
+  "freq_cada_2_anios": "Cada 2 anos",
+  "freq_cada_3_anios": "Cada 3 anos",
+  "freq_cada_4_anios": "Cada 4 anos",
+  "freq_cada_5_anios": "Cada 5 anos",
+  "freq_cada_10_anios": "Cada 10 anos"
 }

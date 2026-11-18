@@ -28,7 +28,7 @@ from PyQt6.QtGui import QIcon, QColor, QBrush, QTextCharFormat, QPixmap
 
 from ... import idiomas
 from ...idiomas import t
-from ..comun import traducir_tags_bd
+from ..comun import traducir_tags_bd, avanzar_qdate
 from ..dialogos.sistema import DialogoDiasEspeciales
 from ...nucleo.fotos import _RE_GALERIA
 
@@ -66,14 +66,8 @@ class PestanaCalendario:
             # daría un "rango" confuso para un recordatorio de todos los días.
             dur_ventana = 0 if freq == "Diario" else dur
 
-            def _avanzar_cal(fecha):
-                if freq == "Diario": return fecha.addDays(1)
-                elif freq == "Semanal": return fecha.addDays(7)
-                elif freq == "Mensual": return fecha.addMonths(1)
-                elif freq == "Trimestral": return fecha.addMonths(3)
-                elif freq == "Semestral": return fecha.addMonths(6)
-                elif freq == "Anual": return fecha.addYears(1)
-                else: return fecha
+            def _avanzar_cal(fecha, freq=freq):
+                return avanzar_qdate(fecha, freq)
 
             # Misma lógica que en refresh_avisos: la próxima fecha se cuenta
             # desde la última vez que se completó de verdad, no desde el

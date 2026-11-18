@@ -33,7 +33,7 @@ from PyQt6.QtGui import QPixmap
 from ... import idiomas
 from ...idiomas import t
 from ..comun import (_crear_checks_etiquetas, _estilo_label_dialogo, _estilo_zona_arrastre,
-                     _poblar_combo_maquinas, _tags_desde_checks, tt)
+                     _poblar_combo_maquinas, _tags_desde_checks, tt, combo_frecuencias)
 from ..widgets.fotos import DialogoSelectorFoto, GaleriaFotosWidget, LabelArrastrable, VisorFoto
 from ...nucleo import sedes, usuarios
 
@@ -426,8 +426,9 @@ class AvisoEditDialog(QDialog):
         if inicio: self.inicio.setDate(QDate.fromString(inicio, "yyyy-MM-dd"))
         else: self.inicio.setDate(QDate.currentDate())
         l.addWidget(self.inicio)
-        l.addWidget(QLabel(t("lbl_frecuencia_repeticion"), styleSheet=lbl_style)); self.freq = QComboBox(); self.freq.addItems([t("freq_anual"), t("freq_semestral"), t("freq_trimestral"), t("freq_mensual"), t("freq_semanal"), t("freq_diario")])
-        self.freq.setCurrentText(freq if freq else "Anual"); self.freq.setMinimumHeight(35); l.addWidget(self.freq)
+        l.addWidget(QLabel(t("lbl_frecuencia_repeticion"), styleSheet=lbl_style)); self.freq = QComboBox()
+        # Por su forma canónica: un aviso guardado en otro idioma («Monthly») se reconoce y no se cambia al editarlo
+        combo_frecuencias(self.freq, freq); self.freq.setMinimumHeight(35); l.addWidget(self.freq)
         l.addWidget(QLabel(t("lbl_dias_margen"), styleSheet=lbl_style)); self.dur = QSpinBox(); self.dur.setRange(1, 365); self.dur.setValue(int(duracion)); self.dur.setMinimumHeight(35); l.addWidget(self.dur)
         l.addWidget(QLabel(tt("lbl_asignar_a", "Asignar a") + ":", styleSheet=lbl_style)); self.combo_asignar = QComboBox(); self.combo_asignar.setMinimumHeight(35)
         if parent is not None and hasattr(parent, "_llenar_combo_usuarios"):
@@ -464,7 +465,7 @@ class AvisoEditDialog(QDialog):
         uid = self.combo_asignar.currentData()
         nombre = self.combo_asignar.currentText() if uid is not None else None
         especialidad_id = self.combo_especialidad.currentData()
-        return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentText(), self.dur.value(), uid, nombre, especialidad_id)
+        return (self.titulo.text(), self.inicio.date().toString("yyyy-MM-dd"), self.freq.currentData(), self.dur.value(), uid, nombre, especialidad_id)
 
     def sede_elegida(self):
         """Sede elegida en el desplegable (None si no se muestra: no cambia)."""

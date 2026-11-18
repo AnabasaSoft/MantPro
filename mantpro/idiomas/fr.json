@@ -1592,5 +1592,10 @@
   "cmp_msg_precio_linea": "Commande n° {n} du {fecha} à {proveedor} : {pedido} → maintenant {real}{pct}",
   "about_proyecto": "Projet",
   "about_dudas": "Questions et idées",
-  "about_errores": "Bugs"
+  "about_errores": "Bugs",
+  "freq_cada_2_anios": "Tous les 2 ans",
+  "freq_cada_3_anios": "Tous les 3 ans",
+  "freq_cada_4_anios": "Tous les 4 ans",
+  "freq_cada_5_anios": "Tous les 5 ans",
+  "freq_cada_10_anios": "Tous les 10 ans"
 }

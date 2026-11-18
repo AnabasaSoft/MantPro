@@ -165,6 +165,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 - **📊 Panel con KPI e gráficos**: tarxetas de avisos pendentes, tarefas por facer, rexistros do mes e MTBF/MTTR medios de toda a planta, ademais de gráficos das máquinas con máis avarías e de avarías por mes, debuxados sen depender de bibliotecas externas, ademais do custo de mantemento do mes e do ano, das máquinas con máis custo e do custo por mes
 - **🎨 Temas visuais**: escolle entre modo escuro (por defecto), claro ou un estilo retro inspirado en Windows 98, dende o menú "Aparencia". As iconas dos selectores de ficheiros e cartafoles debúxanse a xogo con cada tema, así que se ven ben aínda que o tema de iconas do sistema sexa escuro ou non haxa ningún (Windows)
 - **📅 Calendario interactivo**: visualiza e xestiona as tarefas de mantemento con códigos de cor (festivos, vacacións, días con tarefas)
+- **🔁 Avisos recorrentes de diario a cada 10 anos**: diario, semanal, mensual, trimestral, semestral, anual e cada 2, 3, 4, 5 ou 10 anos, para as inspeccións regulamentarias (OCA de baixa tensión cada 5 ou 10 anos, alta tensión cada 3); a próxima data cóntase desde o día en que de verdade se fixo
 - **📝 Historial completo**: rexistro histórico de todas as intervencións feitas, con fotos de antes/despois e unha **colección de fotos** adicional por traballo; pódense borrar varios rexistros á vez
 - **📄 Informes PDF**: xeración automática de informes profesionais con logotipo personalizable
 - **📸 Xestión de imaxes**: almacenamento e visualización das fotos das intervencións

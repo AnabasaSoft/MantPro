@@ -1592,5 +1592,10 @@
   "cmp_msg_precio_linea": "Order no. {n} of {fecha} to {proveedor}: {pedido} → now {real}{pct}",
   "about_proyecto": "Project",
   "about_dudas": "Questions and ideas",
-  "about_errores": "Bugs"
+  "about_errores": "Bugs",
+  "freq_cada_2_anios": "Every 2 years",
+  "freq_cada_3_anios": "Every 3 years",
+  "freq_cada_4_anios": "Every 4 years",
+  "freq_cada_5_anios": "Every 5 years",
+  "freq_cada_10_anios": "Every 10 years"
 }

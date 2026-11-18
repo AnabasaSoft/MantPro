@@ -166,6 +166,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **📊 Tauler amb KPI i gràfics**: targetes d'avisos pendents, tasques per fer, registres del mes i MTBF/MTTR mitjans de tota la planta, a més de gràfics de les màquines amb més avaries i d'avaries per mes, dibuixats sense dependre de biblioteques externes, a més del cost de manteniment del mes i de l'any, de les màquines amb més cost i del cost per mes
 - **🎨 Temes visuals**: tria entre mode fosc (per defecte), clar o un estil retro inspirat en Windows 98, des del menú "Aparença". Les icones dels selectors de fitxers i carpetes es dibuixen a joc amb cada tema, de manera que es veuen bé encara que el tema d'icones del sistema sigui fosc o no n'hi hagi cap (Windows)
 - **📅 Calendari interactiu**: visualitza i gestiona les tasques de manteniment amb codis de color (festius, vacances, dies amb tasques)
+- **🔁 Avisos recurrents de diari a cada 10 anys**: diari, setmanal, mensual, trimestral, semestral, anual i cada 2, 3, 4, 5 o 10 anys, per a les inspeccions reglamentàries (OCA de baixa tensió cada 5 o 10 anys, alta tensió cada 3); la propera data es compta des del dia en què de debò es va fer
 - **📝 Historial complet**: registre històric de totes les intervencions fetes, amb fotos d'abans/després i una **col·lecció de fotos** addicional per treball; es poden esborrar diversos registres alhora
 - **📄 Informes PDF**: generació automàtica d'informes professionals amb logotip personalitzable
 - **📸 Gestió d'imatges**: emmagatzematge i visualització de fotos de les intervencions
