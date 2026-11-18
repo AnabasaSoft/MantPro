@@ -28,13 +28,14 @@ import logging
 import threading
 from datetime import datetime, timedelta
 from flask import Flask, Response, request, jsonify, make_response, send_from_directory, g
+from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 try:
     from PyQt6.QtCore import pyqtSignal, QThread
 except ImportError:      # servidor de MantPro Cloud: sin escritorio ni Qt, solo se usa `app`
     from ..nucleo.sin_qt import pyqtSignal, QThread
 
 from .. import idiomas
-from ..nucleo import operaciones_movil, frecuencias
+from ..nucleo import operaciones_movil, frecuencias, ids_movil
 from ..nucleo import certificado, usuarios, almacen, almacenes, sedes, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
@@ -149,6 +150,49 @@ class ServidorSincronizacion(QThread):
                 return None
             return jsonify({"status": "error", "error": "https_obligatorio",
                             "message": "El PC solo acepta conexiones cifradas: actualiza la app."}), 426
+
+        # Ids del móvil con su uuid (ver nucleo/ids_movil.py): se cambian por los de esta base
+        # ANTES de la ruta y de sus comprobaciones de permisos, que leen request.form. Así un
+        # cambio apuntado con las listas del PC y enviado a la nube (o al revés) va al registro
+        # correcto, no al que tenga aquí el mismo número.
+        @self.app.before_request
+        def _traducir_ids_movil():
+            if request.method != "POST" or not request.path.startswith("/api/"):
+                return None
+            campos = request.form.to_dict()
+            if not ids_movil.necesita(request.path, campos):
+                return None
+            con_mant, con_alma = self._conn(), almacen._conn()
+            try:
+                nuevos = ids_movil.traducir(request.path, campos, {"mant": con_mant, "alma": con_alma})
+            finally:
+                con_mant.close(); con_alma.close()
+            form = MultiDict(request.form)
+            for clave, valor in nuevos.items():
+                if campos.get(clave) != valor:
+                    form.setlist(clave, [valor])
+            request.form = ImmutableMultiDict(form)
+            return None
+
+        # Y a la vuelta: las listas que guarda el móvil llevan el uuid de cada elemento («uuid»)
+        # y de lo que referencian («maquina_id_uuid», «material_id_uuid»…), para mandarlos con
+        # sus cambios. Solo con MantPro Cloud (sin ella las tablas no tienen uuid y no se toca nada).
+        @self.app.after_request
+        def _anadir_uuids_movil(respuesta):
+            if request.method != "GET" or request.path not in ids_movil.LISTAS or respuesta.status_code != 200 \
+                    or not respuesta.is_json:
+                return respuesta
+            try:
+                datos = respuesta.get_json()
+                con_mant, con_alma = self._conn(), almacen._conn()
+                try:
+                    if ids_movil.anadir_uuids(request.path, datos, {"mant": con_mant, "alma": con_alma}):
+                        respuesta.set_data(json.dumps(datos))
+                finally:
+                    con_mant.close(); con_alma.close()
+            except Exception as e:                 # nunca romper la lista por esto
+                print(f"uuids del móvil: {e}")
+            return respuesta
         self.server_port = puerto or PUERTO_POR_DEFECTO
         self.puerto_https = self.server_port + 1
         self.huella = None   # huella del certificado, cuando HTTPS está en marcha

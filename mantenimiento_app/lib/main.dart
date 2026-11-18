@@ -983,6 +983,25 @@ class MyApp extends StatelessWidget {
 // ==========================================
 /// Caché local del listado de máquinas del PC, para poder elegir a qué
 /// máquina se vincula un trabajo aunque no haya conexión en ese momento.
+/// Los uuid guardados en un cambio de la cola («uuid» del propio registro y «<campo>_uuid» de lo que
+/// referencia) como campos para mandarlos con él. El PC o la nube cambian así cada id por el suyo
+/// (ver nucleo/ids_movil.py): sin esto, un cambio apuntado con las listas de una ruta y enviado por
+/// la otra iría al registro que allí tenga el mismo número.
+Map<String, String> camposUuid(Map d) => {
+  for (final e in d.entries)
+    if ((e.key == 'uuid' || e.key.toString().endsWith('_uuid')) && e.value != null && '${e.value}'.isNotEmpty)
+      e.key.toString(): '${e.value}'
+};
+
+/// uuid de la máquina [id] en la lista guardada en el móvil (la misma de la que se eligió).
+Future<String?> uuidDeMaquina(int? id) async {
+  if (id == null) return null;
+  for (final m in await MaquinasCache.obtener()) {
+    if (m['id'] == id) return m['uuid'] as String?;
+  }
+  return null;
+}
+
 /// Etiqueta QR de una máquina: «mantpro:maquina:<uuid>» (las de ahora: el uuid es el
 /// mismo en el PC, en MantPro Cloud y en los demás equipos) o «mantpro:maquina:<id>»
 /// (las antiguas: el id solo coincide con el móvil conectado directamente al PC).
@@ -1154,6 +1173,9 @@ class Registro {
   String? op;
   /// Sede: la elegida al crearlo (se envía si no tiene máquina) o la que trae del PC.
   int? sedeId;
+  /// uuid del trabajo y de su máquina: el id es de cada base (PC o nube) y el uuid es el mismo
+  /// en todas. Se guardan al crear el cambio y se mandan con él (ver camposUuid).
+  String? uuid, maquinaUuid;
 
   Registro({
     this.id,
@@ -1177,6 +1199,8 @@ class Registro {
     this.personas = 1,
     this.op,
     this.sedeId,
+    this.uuid,
+    this.maquinaUuid,
   }) : materiales = materiales ?? [],
        fotosExtra = fotosExtra ?? [],
        serverFotosExtra = serverFotosExtra ?? [];
@@ -1203,6 +1227,8 @@ class Registro {
     'personas': personas,
     if (op != null) 'op': op,
     'sedeId': sedeId,
+    if (uuid != null) 'uuid': uuid,
+    if (maquinaUuid != null) 'maquinaUuid': maquinaUuid,
   };
 
   factory Registro.fromJson(Map<String, dynamic> json) => Registro(
@@ -1230,6 +1256,8 @@ class Registro {
     personas: json['personas'] ?? 1,
     op: json['op'] as String?,
     sedeId: json['sedeId'],
+    uuid: json['uuid'] as String?,
+    maquinaUuid: json['maquinaUuid'] as String?,
   );
 }
 
@@ -1248,7 +1276,9 @@ class PendientePC {
   int? checklistId;
   /// Sede del trabajo (null = desconocida: se ve siempre).
   int? sedeId;
-  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad, this.checklistId, this.sedeId});
+  /// uuid del pendiente (el mismo en el PC y en la nube; null sin MantPro Cloud)
+  String? uuid;
+  PendientePC({required this.id, required this.titulo, required this.detalles, this.asignadoA, this.asignado, this.prioridad = 'Media', this.especialidadId, this.especialidad, this.checklistId, this.sedeId, this.uuid});
   factory PendientePC.fromJson(Map<String, dynamic> json) => PendientePC(
         id: json['id'],
         titulo: json['titulo'],
@@ -1260,9 +1290,10 @@ class PendientePC {
         especialidad: json['especialidad'],
         checklistId: json['checklist_id'],
         sedeId: json['sede_id'],
+        uuid: json['uuid'] as String?,
       );
   Map<String, dynamic> toJson() => {
-        'id': id, 'titulo': titulo, 'detalles': detalles,
+        'id': id, 'titulo': titulo, 'detalles': detalles, if (uuid != null) 'uuid': uuid,
         'asignado_a': asignadoA, 'asignado': asignado, 'prioridad': prioridad,
         'especialidad_id': especialidadId, 'especialidad': especialidad,
         'checklist_id': checklistId, 'sede_id': sedeId,
@@ -1288,9 +1319,11 @@ class AvisoPC {
   Map<String, dynamic>? contador;
   /// Sede del aviso (null = desconocida: se ve siempre).
   int? sedeId;
-  AvisoPC({required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId, this.contador, this.sedeId});
+  /// uuid del aviso (el mismo en el PC y en la nube; null sin MantPro Cloud)
+  String? uuid;
+  AvisoPC({this.uuid, required this.id, required this.titulo, required this.frecuencia, required this.rango, required this.estado, required this.color, this.rawInicio, this.rawFin, this.fechaInicioRaw, this.ultimaCompletada, this.duracionDias = 0, this.checklistId, this.contador, this.sedeId});
   factory AvisoPC.fromJson(Map<String, dynamic> json) => AvisoPC(id: json['id'], titulo: json['titulo'], frecuencia: json['frecuencia'], rango: json['rango'], estado: json['estado'], color: json['color'], rawInicio: json['raw_inicio'], rawFin: json['raw_fin'], fechaInicioRaw: json['fecha_inicio_raw'], ultimaCompletada: json['ultima_completada'], duracionDias: json['duracion_dias'] ?? 0, checklistId: json['checklist_id'],
-      contador: json['contador'] is Map ? Map<String, dynamic>.from(json['contador']) : null, sedeId: json['sede_id']);
+      contador: json['contador'] is Map ? Map<String, dynamic>.from(json['contador']) : null, sedeId: json['sede_id'], uuid: json['uuid'] as String?);
 }
 
 /// Prioridad para ordenar avisos con los más urgentes primero:
@@ -1957,8 +1990,8 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('registros_pendientes', json.encode(_pendientes.map((r) => r.toJson()).toList()));
   }
-  void _addRegistro(Registro r) { r.op ??= nuevaOperacion(); r.sedeId ??= sedeElegidaNotifier.value; setState(() => _pendientes.add(r)); _guardarDatos(); }
-  void _editarRegistro(int index, Registro r) { setState(() => _pendientes[index] = r); _guardarDatos(); }
+  Future<void> _addRegistro(Registro r) async { r.op ??= nuevaOperacion(); r.sedeId ??= sedeElegidaNotifier.value; r.maquinaUuid = await uuidDeMaquina(r.maquinaId); if (!mounted) return; setState(() => _pendientes.add(r)); _guardarDatos(); }
+  Future<void> _editarRegistro(int index, Registro r) async { r.maquinaUuid = await uuidDeMaquina(r.maquinaId); if (!mounted) return; setState(() => _pendientes[index] = r); _guardarDatos(); }
   Future<void> _sincronizar([String? nuevaUrl]) async {
     final prefs = await SharedPreferences.getInstance();
     String? urlUsar = nuevaUrl ?? prefs.getString('pc_ip_url');
@@ -1981,6 +2014,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
 
         if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
         if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
+        if (item.maquinaId != null && item.maquinaUuid != null) req.fields['maquina_id_uuid'] = item.maquinaUuid!;
         if (item.maquinaId == null && item.sedeId != null) req.fields['sede_id'] = item.sedeId.toString();
 
         if (item.imagePath != null && File(item.imagePath!).existsSync()) {
@@ -2007,7 +2041,7 @@ class _TabMisRegistrosState extends State<TabMisRegistros> {
             final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
             List<Map<String, dynamic>> nuevosH = dH.map((i) => {
               'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
+              'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id'], 'uuid': i['uuid'], 'maquinaUuid': i['maquina_id_uuid']
             }).toList();
             await cachearFotosHistorial(urlUsar, nuevosH);
             final prefs = await SharedPreferences.getInstance();
@@ -2190,7 +2224,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     List<Map<String, dynamic>> so = []; for (var t in _colaSalida) { if (await _apiMultipart('completar_pendiente', t)) so.add(t); }
     if (so.isNotEmpty) setState(() { for (var t in so) _colaSalida.remove(t); });
 
-    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString()}, descripcion: tt('lbl_revertir_trabajo', 'Revertir trabajo'), op: t['op'])) rv.add(t); }
+    List<Map<String, dynamic>> rv = []; for (var t in _colaRevertir) { if (await _apiPost('revertir_pendiente', {'id': t['id'].toString(), ...camposUuid(t)}, descripcion: tt('lbl_revertir_trabajo', 'Revertir trabajo'), op: t['op'])) rv.add(t); }
     if (rv.isNotEmpty) setState(() { for (var t in rv) _colaRevertir.remove(t); });
 
     await _guardarCache();
@@ -2204,7 +2238,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id'], 'uuid': i['uuid'], 'maquinaUuid': i['maquina_id_uuid']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2253,6 +2287,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       r.headers.addAll(AuthService.cabeceras());
       r.headers.addAll(cabeceraOperacion(d['op']));
       if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
+      r.fields.addAll(camposUuid(d));
       r.fields['titulo'] = d['titulo'];
       r.fields['detalles'] = d['detalles'];
       if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
@@ -2412,6 +2447,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         // --- AÑADIMOS FECHA ---
         Map<String, dynamic> mapTemp = {
           'id': p.id,
+          if (p.uuid != null) 'uuid': p.uuid,
           'op': nuevaOperacion(),
           'titulo': r.titulo,
           'detalles': r.detalles,
@@ -2751,7 +2787,7 @@ class _TabAvisosState extends State<TabAvisos> {
 
     await sincronizarLecturas(_urlPC!);
     List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
-    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
+    List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], ...camposUuid(item), 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
       setState(() { for (var id in ro) _colaRestaurar.remove(id); for (var item in co) _colaCompletados.remove(item); });
@@ -2765,7 +2801,7 @@ class _TabAvisosState extends State<TabAvisos> {
           final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
           List<Map<String, dynamic>> nuevosH = dH.map((i) => {
             'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
+            'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id'], 'uuid': i['uuid'], 'maquinaUuid': i['maquina_id_uuid']
           }).toList();
           await cachearFotosHistorial(_urlPC!, nuevosH);
           List<Map<String, dynamic>> cacheH = [];
@@ -2842,7 +2878,7 @@ class _TabAvisosState extends State<TabAvisos> {
       if (elegidos == null) return;   // cancelado: el aviso sigue como estaba
       materiales = elegidos;
     }
-    setState(() => _colaCompletados.add({'id': a.id.toString(), 'op': nuevaOperacion(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
+    setState(() => _colaCompletados.add({'id': a.id.toString(), if (a.uuid != null) 'uuid': a.uuid!, 'op': nuevaOperacion(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
         if (materiales.isNotEmpty) 'materiales': json.encode(materiales),
         if (minutos != null) 'minutos_trabajo': '$minutos', if (minutos != null) 'personas': '$personas',
         if (lectura != null) ...{'lectura': '$lectura', 'lectura_uid': nuevoUidLectura(), 'lectura_contador': '${contador!['contador_id']}',
@@ -2955,6 +2991,7 @@ class _TabHistorialState extends State<TabHistorial> {
         req.headers.addAll(cabeceraOperacion(e['op']));
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
+        req.fields.addAll(camposUuid(e));
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
@@ -3010,7 +3047,7 @@ class _TabHistorialState extends State<TabHistorial> {
     final body = json.decode(res.body);
     final List<dynamic> d = body is Map ? (body['items'] ?? []) : body; // compat por si el servidor es antiguo
     _hayMas = body is Map ? (body['has_more'] ?? false) : false;
-    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], sedeId: i['sede_id'], checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null,
+    List<Registro> nuevos = d.map((i) => Registro(id: i['id'], titulo: "${i['fecha']}", detalles: i['descripcion'], tags: i['tags'], serverImageName: i['foto'], serverImageNameDespues: i['foto_d'], serverFotosExtra: listaTextos(i['fotos']), imagePath: i['raw_desc'], maquinaId: i['maquina_id'], maquinaNombre: i['maquina_nombre'], sedeId: i['sede_id'], uuid: i['uuid'] as String?, maquinaUuid: i['maquina_id_uuid'] as String?, checklist: i['checklist'] is Map ? Map<String, dynamic>.from(i['checklist']) : null,
         materiales: (i['materiales'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)).toList(),
         minutosTrabajo: i['minutos_trabajo'], personas: i['personas'] ?? 1)).toList();
     final dir = await getApplicationDocumentsDirectory();
@@ -3156,7 +3193,7 @@ class _TabHistorialState extends State<TabHistorial> {
         minutosTrabajo: ep.containsKey('minutos_trabajo') ? ep['minutos_trabajo'] : r.minutosTrabajo,
         personas: ep.containsKey('minutos_trabajo') ? (ep['personas'] ?? 1) : r.personas),
         esHistorial: true, onSave: (re) async {
-      Map<String, dynamic> ne = {'id': r.id.toString(), 'op': nuevaOperacion(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
+      Map<String, dynamic> ne = {'id': r.id.toString(), if (r.uuid != null) 'uuid': r.uuid, 'op': nuevaOperacion(), 'detalles': re.detalles, 'tags': re.tags, 'fotoPath': re.imagePath, 'fotoPathDespues': re.imagePathDespues, 'maquinaId': re.maquinaId,
           'fotosExtra': re.fotosExtra, 'fotosExtraMantener': re.serverFotosExtra,
           // Repuestos usados: el PC ajusta el stock por la diferencia
           'materiales': re.materiales,
@@ -3198,7 +3235,7 @@ class _TabHistorialState extends State<TabHistorial> {
     // Guardamos 'idTemp' (el id del comodín en Pendientes) y el registro original completo:
     // si el usuario completa este mismo trabajo desde Pendientes antes de sincronizar,
     // hace falta poder cancelar esta reversión y restaurar el historial sin duplicar nada.
-    cola.add({'id': r.id.toString(), 'op': nuevaOperacion(), 'titulo': tituloNuevo, 'detalles': detallesNuevo, 'idTemp': idTemp, 'registro': r.toJson()});
+    cola.add({'id': r.id.toString(), if (r.uuid != null) 'uuid': r.uuid, 'op': nuevaOperacion(), 'titulo': tituloNuevo, 'detalles': detallesNuevo, 'idTemp': idTemp, 'registro': r.toJson()});
     await prefs.setString('cola_revertir', json.encode(cola));
 
     List<Map<String, dynamic>> pc = [];
@@ -3988,6 +4025,7 @@ class _DialogoSeleccionarMaterialState extends State<_DialogoSeleccionarMaterial
               if (cantidad <= 0) return;
               Navigator.pop(context, {
                 'material_id': _seleccionado!['id'],
+                if (_seleccionado!['uuid'] != null) 'material_uuid': _seleccionado!['uuid'],
                 'nombre': _seleccionado!['nombre'],
                 'unidad': _seleccionado!['unidad'],
                 'cantidad': cantidad,
@@ -4091,6 +4129,7 @@ class SincronizadorGlobal {
           if (item.materiales.isNotEmpty) req.fields['materiales'] = json.encode(item.materiales);
           if (item.minutosTrabajo != null) { req.fields['minutos_trabajo'] = '${item.minutosTrabajo}'; req.fields['personas'] = '${item.personas}'; }
         if (item.maquinaId != null) req.fields['maquina_id'] = item.maquinaId.toString();
+        if (item.maquinaId != null && item.maquinaUuid != null) req.fields['maquina_id_uuid'] = item.maquinaUuid!;
         if (item.maquinaId == null && item.sedeId != null) req.fields['sede_id'] = item.sedeId.toString();
           if (item.imagePath != null && File(item.imagePath!).existsSync()) {
             req.files.add(await http.MultipartFile.fromPath('foto', item.imagePath!));
@@ -4117,7 +4156,7 @@ class SincronizadorGlobal {
     List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/eliminar_pendiente"), body: {'id': id.toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
 
-    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString()}, headers: cabeceraOperacion(t['op'])); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
+    List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString(), ...camposUuid(t)}, headers: cabeceraOperacion(t['op'])); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
     for (var t in rv) { colaRevertir.remove(t); }
 
     Future<bool> apiMultipart(String ep, Map<String, dynamic> d) async {
@@ -4126,6 +4165,7 @@ class SincronizadorGlobal {
         r.headers.addAll(AuthService.cabeceras());
         r.headers.addAll(cabeceraOperacion(d['op']));
         if (d.containsKey('id')) r.fields['id'] = d['id'].toString();
+        r.fields.addAll(camposUuid(d));
         r.fields['titulo'] = d['titulo'];
         r.fields['detalles'] = d['detalles'];
         if (d.containsKey('tags')) r.fields['tags'] = d['tags'];
@@ -4171,7 +4211,7 @@ class SincronizadorGlobal {
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
     List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
-    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
+    List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], ...camposUuid(item), 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     await quitarDeColaGuardada(prefs, 'avisos_cola_completados', co);
     await quitarDeColaGuardada(prefs, 'avisos_cola_restaurar', ro);
@@ -4186,6 +4226,7 @@ class SincronizadorGlobal {
         req.headers.addAll(cabeceraOperacion(e['op']));
         req.fields['id'] = e['id']; req.fields['detalles'] = e['detalles']; req.fields['tags'] = e['tags'];
         if (e.containsKey('maquinaId')) req.fields['maquina_id'] = (e['maquinaId'] ?? '').toString();
+        req.fields.addAll(camposUuid(e));
         if (e['fotoPath'] != null && File(e['fotoPath']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto', e['fotoPath']));
         if (e['fotoPathDespues'] != null && File(e['fotoPathDespues']).existsSync()) req.files.add(await http.MultipartFile.fromPath('foto_despues', e['fotoPathDespues']));
         if (e.containsKey('fotosExtraMantener')) req.fields['fotos_extra_mantener'] = listaTextos(e['fotosExtraMantener']).join(',');
@@ -4215,7 +4256,7 @@ class SincronizadorGlobal {
         final List<dynamic> dH = body is Map ? (body['items'] ?? []) : body;
         nuevosH = dH.map((i) => <String, dynamic>{
           'id': i['id'], 'titulo': "${i['fecha']}", 'detalles': i['descripcion'],
-          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id']
+          'tags': i['tags'], 'serverImageName': i['foto'], 'serverImageNameDespues': i['foto_d'], 'serverFotosExtra': listaTextos(i['fotos']), 'imagePath': i['raw_desc'], 'maquinaId': i['maquina_id'], 'maquinaNombre': i['maquina_nombre'], 'checklist': i['checklist'], 'materiales': i['materiales'] ?? [], 'minutosTrabajo': i['minutos_trabajo'], 'personas': i['personas'] ?? 1, 'sedeId': i['sede_id'], 'uuid': i['uuid'], 'maquinaUuid': i['maquina_id_uuid']
         }).toList();
         List<Map<String, dynamic>> cacheH = [];
         final actual = prefs.getString('historial_cache');
@@ -4460,6 +4501,7 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     final prefs = await SharedPreferences.getInstance();
     List<dynamic> lista = [];
     try { lista = json.decode(prefs.getString('registros_pendientes') ?? '[]'); } catch (_) {}
+    r.maquinaUuid = await uuidDeMaquina(r.maquinaId);
     lista.add(r.toJson());
     await prefs.setString('registros_pendientes', json.encode(lista));
     datosSincronizadosNotifier.value++;
