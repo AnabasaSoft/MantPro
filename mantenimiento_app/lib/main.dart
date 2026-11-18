@@ -4257,6 +4257,130 @@ class SincronizadorGlobal {
 /// Ficha de una máquina, abierta al escanear su etiqueta QR: nombre, dónde
 /// está, sus últimos trabajos guardados en el móvil y un botón para registrar
 /// un trabajo ya vinculado a ella. Todo con los datos del móvil (sin conexión).
+/// Un trabajo en solo lectura (se abre al pulsarlo en la lista de la máquina):
+/// fecha, etiquetas, detalles, fotos, lista de comprobación, tiempo y materiales.
+/// Funciona sin conexión con lo guardado en el móvil; las fotos que no estén en el
+/// móvil se piden al PC o a la nube si hay conexión. Para editarlo, el Historial.
+class PantallaVerTrabajo extends StatefulWidget {
+  final Registro registro;
+  const PantallaVerTrabajo({super.key, required this.registro});
+  @override
+  State<PantallaVerTrabajo> createState() => _PantallaVerTrabajoState();
+}
+
+class _PantallaVerTrabajoState extends State<PantallaVerTrabajo> {
+  String? _dirDocs, _urlPC;
+
+  @override
+  void initState() {
+    super.initState();
+    () async {
+      String? dir, url;
+      try { dir = (await getApplicationDocumentsDirectory()).path; } catch (_) {}
+      try { url = (await SharedPreferences.getInstance()).getString('pc_ip_url'); } catch (_) {}
+      if (mounted) setState(() { _dirDocs = dir; _urlPC = url; });
+    }();
+  }
+
+  static String _limpiar(String texto) =>
+      texto.replaceAll(RegExp(r"\[(FOTO|FOTO_DESPUES|FOTOS|REF):.*?\]"), '').trim();
+
+  List<FotoTrabajo> get _coleccion {
+    final r = widget.registro;
+    return [
+      for (final n in r.serverFotosExtra) FotoTrabajo(nombreServidor: n),
+      for (final ruta in r.fotosExtra) FotoTrabajo(rutaLocal: ruta),
+    ];
+  }
+
+  Widget _foto(String etiqueta, FotoTrabajo? f) {
+    final prov = f == null ? null : proveedorFotoTrabajo(f, _dirDocs, _urlPC);
+    return Expanded(child: Column(children: [
+      Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+      const SizedBox(height: 4),
+      GestureDetector(
+        onTap: f == null ? null : () => abrirVisorFotos(context, [f], 0, urlPC: _urlPC),
+        child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Container(
+          height: 140, color: Colors.grey.withValues(alpha: 0.15),
+          child: prov == null ? const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey))
+              : Image(image: prov, fit: BoxFit.cover, width: double.infinity,
+                  errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.grey))))),
+      ),
+    ]));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.registro;
+    final detalles = _limpiar(r.detalles);
+    final primera = detalles.split('\n').first;
+    FotoTrabajo? antes = r.imagePath != null ? FotoTrabajo(rutaLocal: r.imagePath)
+        : (r.serverImageName != null ? FotoTrabajo(nombreServidor: r.serverImageName) : null);
+    FotoTrabajo? despues = r.imagePathDespues != null ? FotoTrabajo(rutaLocal: r.imagePathDespues)
+        : (r.serverImageNameDespues != null ? FotoTrabajo(nombreServidor: r.serverImageNameDespues) : null);
+    final coleccion = _coleccion;
+    final gris = TextStyle(color: Colors.blueGrey.shade400);
+    return Scaffold(
+      appBar: AppBar(title: Text(primera.isEmpty ? r.titulo : primera, overflow: TextOverflow.ellipsis)),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Text(r.titulo, style: gris),
+        if (r.tags.trim().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(traducirTagsBD(r.tags), style: gris)),
+        if (r.maquinaNombre != null && r.maquinaNombre!.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(top: 4), child: Row(children: [
+            const Icon(Icons.precision_manufacturing, size: 16, color: Colors.blueGrey),
+            const SizedBox(width: 4),
+            Flexible(child: Text(r.maquinaNombre!, style: gris)),
+          ])),
+        const SizedBox(height: 16),
+        Text(t('lbl_detalles'), style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        SelectableText(detalles.isEmpty ? tt('msg_sin_detalles', 'Sin detalles') : detalles),
+        if (antes != null || despues != null) ...[
+          const SizedBox(height: 16),
+          Row(children: [_foto(t('lbl_antes'), antes), const SizedBox(width: 8), _foto(t('lbl_despues'), despues)]),
+        ],
+        if (coleccion.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text("${tt('lbl_coleccion_fotos', 'Colección de fotos')} (${coleccion.length})", style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          SizedBox(height: 96, child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: coleccion.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 6),
+            itemBuilder: (_, i) {
+              final prov = proveedorFotoTrabajo(coleccion[i], _dirDocs, _urlPC);
+              return GestureDetector(
+                onTap: () => abrirVisorFotos(context, coleccion, i, urlPC: _urlPC),
+                child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Container(
+                  width: 96, height: 96, color: coleccion[i].esVideo ? Colors.black87 : Colors.grey.withValues(alpha: 0.2),
+                  child: coleccion[i].esVideo ? const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40))
+                      : prov == null ? const Icon(Icons.cloud_download, color: Colors.grey)
+                      : Image(image: prov, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey)))));
+            })),
+        ],
+        if (r.checklist != null) ...[
+          const SizedBox(height: 12),
+          filaChecklistHistorial(context, r.checklist, primera),
+        ],
+        if ((r.minutosTrabajo ?? 0) > 0) ...[
+          const SizedBox(height: 16),
+          Text(tt('lbl_tiempo_trabajado', 'Tiempo trabajado'), style: Theme.of(context).textTheme.titleMedium),
+          Text(textoDuracion(r.minutosTrabajo) + (r.personas > 1 ? ' × ${r.personas}' : '')),
+        ],
+        if (r.materiales.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(t('lbl_materiales_usados'), style: Theme.of(context).textTheme.titleMedium),
+          for (final m in r.materiales)
+            Padding(padding: const EdgeInsets.only(top: 2), child: Text(() {
+              final c = ((m['cantidad'] ?? 0) as num).toDouble();
+              return "• ${c == c.roundToDouble() ? c.toInt() : c} ${m['unidad'] ?? ''} ${m['nombre']}".replaceAll('  ', ' ');
+            }())),
+        ],
+      ]),
+    );
+  }
+}
+
 class PantallaMaquina extends StatefulWidget {
   final int maquinaId;
   const PantallaMaquina({super.key, required this.maquinaId});
@@ -4421,6 +4545,9 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     );
   }
 
+  void _verTrabajo(Registro r) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaVerTrabajo(registro: r)));
+
   String _primeraLinea(String? texto) =>
       (texto ?? '').replaceAll(RegExp(r"\[(FOTO|FOTO_DESPUES|FOTOS|REF):.*?\]"), '').trim().split('\n').first;
 
@@ -4471,12 +4598,16 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
                   leading: const Icon(Icons.cloud_upload_outlined),
                   title: Text(r.titulo),
                   subtitle: Text(t('estado_pendiente_subir')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _verTrabajo(r),
                 ),
               for (final h in _trabajos)
                 ListTile(
                   leading: const Icon(Icons.build_circle_outlined),
                   title: Text(_primeraLinea(h['detalles']?.toString())),
                   subtitle: Text('${h['titulo'] ?? ''}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () { try { _verTrabajo(Registro.fromJson(h)); } catch (_) {} },
                 ),
               if (_locales.isEmpty && _trabajos.isEmpty)
                 Padding(padding: const EdgeInsets.symmetric(vertical: 12),
