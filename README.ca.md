@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Còpies de seguretat](#-còpies-de-seguretat)
 - [Contribuir](#-contribuir)
-- [Full de ruta](#-full-de-ruta)
 - [Llicència](#-llicència)
 - [Contacte](#-contacte)
 
@@ -276,9 +275,10 @@ treballs.
 
 S'aplica tant a `mantenimiento_app` (treballs) com a `mantpro_stock_app` (estoc):
 
-- **Flutter**: 3.0 o superior
-- **Dart SDK**: 2.17 o superior
+- **Flutter**: 3.47 o superior
+- **Dart SDK**: 3.13 o superior
 - **Android**: API Level 24+ (Android 7.0+)
+- **JDK**: 17 (només per compilar els APK)
 
 ---
 
@@ -917,22 +917,6 @@ L'estructura del codi i de la base de dades és a
 [docs/desarrollo.md](docs/desarrollo.md) (en castellà) i
 [docs/development.md](docs/development.md) (en anglès). Per a errors de
 seguretat, mira [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Full de ruta
-
-El que ve, sense dates i sense un ordre tancat:
-
-- **Signatura** en tancar un treball (també al mòbil)
-- **Documentació tècnica per màquina** (manuals, plànols i esquemes en PDF)
-- **Criticitat de les màquines (ABC)**, per decidir on invertir en manteniment
-- **Sol·licituds de treball** des de producció o altres departaments que creen un pendent
-- **Notificacions push** de treballs urgents
-- **Diversos PC alhora**, servidor sense finestra (Raspberry Pi, NAS, Docker) i accés web
-- Més idiomes (italià…) i app per a iPhone
-
-Fet fa poc: recepció de comandes amb preu real i avisos de comandes sense enviar o amb retard, diverses seus (selector, informes, festius i accés de cada tècnic a les seves seus) amb diversos magatzems, traspassos, comandes i revisions per magatzem, alemany a les tres aplicacions, vídeos a la col·lecció de fotos dels treballs, comanda suggerida i comandes desades, proveïdors i proveïdor habitual de cada article, cost de manteniment al tauler, preventius per comptador (hores d'ús, cicles, km), temps treballat i cost de mà d'obra en cada treball, recanvis utilitzats en cada treball amb el seu cost per màquina, llistes de comprovació en preventius i treballs, sincronització, bases de dades i còpies xifrades, i un registre de canvis més complet.
 
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Sicherungen](#-sicherungen)
 - [Mitwirken](#-mitwirken)
-- [Roadmap](#-roadmap)
 - [Lizenz](#-lizenz)
 - [Kontakt](#-kontakt)
 
@@ -275,9 +274,10 @@ des Lagerbestands auf dem Handy, ohne die App für Arbeiten zu brauchen.
 
 Gilt sowohl für `mantenimiento_app` (Arbeiten) als auch für `mantpro_stock_app` (Lager):
 
-- **Flutter**: 3.0 oder höher
-- **Dart SDK**: 2.17 oder höher
+- **Flutter**: 3.47 oder höher
+- **Dart SDK**: 3.13 oder höher
 - **Android**: API-Level 24+ (Android 7.0+)
+- **JDK**: 17 (nur zum Erstellen der APKs)
 
 ---
 
@@ -919,22 +919,6 @@ Die Struktur des Codes und der Datenbank steht in
 [docs/desarrollo.md](docs/desarrollo.md) (auf Englisch:
 [docs/development.md](docs/development.md)). Für Sicherheitslücken siehe
 [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Roadmap
-
-Was kommt, ohne Termine und ohne feste Reihenfolge:
-
-- **Unterschrift** beim Abschluss einer Arbeit (auch auf dem Handy)
-- **Technische Dokumentation pro Maschine** (Handbücher, Pläne und Schaltpläne als PDF)
-- **Kritikalität der Maschinen (ABC)**, um zu entscheiden, wo in die Instandhaltung investiert wird
-- **Arbeitsanfragen** aus der Produktion oder anderen Abteilungen, die eine offene Arbeit anlegen
-- **Push-Benachrichtigungen** für dringende Arbeiten
-- **Mehrere PCs gleichzeitig**, Server ohne Fenster (Raspberry Pi, NAS, Docker) und Webzugang
-- Weitere Sprachen (Italienisch…) und App für das iPhone
-
-Gerade fertig: Wareneingang mit tatsächlichem Preis und Hinweise auf nicht gesendete oder verspätete Bestellungen, mehrere Standorte (Auswahl, Berichte, Feiertage und Zugriff jedes Technikers auf seine Standorte) mit mehreren Lagern, Umbuchungen, Bestellungen und Prüfungen pro Lager, Deutsch in den drei Anwendungen, Videos in der Fotosammlung der Arbeiten, Bestellvorschlag und gespeicherte Bestellungen, Lieferanten und Stammlieferant jedes Artikels, Wartungskosten im Dashboard, zählerbasierte Wartungen (Betriebsstunden, Zyklen, km), Arbeitszeit und Arbeitskosten bei jeder Arbeit, verbrauchte Ersatzteile bei jeder Arbeit mit ihren Kosten pro Maschine, Checklisten bei Wartungen und Arbeiten, verschlüsselte Synchronisierung, Datenbanken und Sicherungen sowie ein umfassenderes Änderungsprotokoll.
 
 Die Änderungen jeder Version stehen in [CHANGELOG.md](CHANGELOG.md). Fehlt Ihnen
 etwas? Öffnen Sie ein [*Issue*](https://github.com/AnabasaSoft/MantPro/issues).

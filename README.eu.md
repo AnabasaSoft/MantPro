@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Babeskopiak](#-babeskopiak)
 - [Lagundu](#-lagundu)
-- [Bide-orria](#-bide-orria)
 - [Lizentzia](#-lizentzia)
 - [Harremana](#-harremana)
 
@@ -277,9 +276,10 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
 `mantenimiento_app` (lanak) eta `mantpro_stock_app` (stocka) aplikazioei aplikatzen zaie:
 
-- **Flutter**: 3.0 edo berriagoa
-- **Dart SDK**: 2.17 edo berriagoa
+- **Flutter**: 3.47 edo berriagoa
+- **Dart SDK**: 3.13 edo berriagoa
 - **Android**: API Level 24+ (Android 7.0+)
+- **JDK**: 17 (APKak konpilatzeko bakarrik)
 
 ---
 
@@ -932,22 +932,6 @@ Kodearen eta datu-basearen egitura
 [docs/desarrollo.md](docs/desarrollo.md) (gaztelaniaz) eta
 [docs/development.md](docs/development.md) (ingelesez) fitxategietan dago.
 Segurtasun-akatsetarako, ikus [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Bide-orria
-
-Datozenak, datarik gabe eta ordena itxirik gabe:
-
-- **Sinadura** lana ixtean (mugikorrean ere)
-- **Makina bakoitzaren dokumentazio teknikoa** (eskuliburuak, planoak eta eskemak PDFn)
-- **Makinen kritikotasuna (ABC)**, mantentzean non inbertitu erabakitzeko
-- **Lan-eskaerak** ekoizpenetik edo beste sail batzuetatik, zain dagoen lan bat sortzen dutenak
-- Lan larrien **push jakinarazpenak**
-- **Hainbat PC aldi berean**, leihorik gabeko zerbitzaria (Raspberry Pi, NAS, Docker) eta web bidezko sarbidea
-- Hizkuntza gehiago (italiera…) eta iPhonerako aplikazioa
-
-Berriki egina: eskaerak jasotzea benetako prezioarekin eta bidali gabeko edo atzeratutako eskaeren abisuak, hainbat egoitza (hautatzailea, txostenak, jaiegunak eta teknikari bakoitzaren sarbidea bere egoitzetara) hainbat biltegirekin, transferentziak, eskaerak eta berrikuspenak biltegika, alemana hiru aplikazioetan, bideoak lanen argazki-bilduman, eskaera iradokia eta gordetako eskaerak, hornitzaileak eta artikulu bakoitzaren ohiko hornitzailea, mantentze-lanen kostua aginte-panelean, kontagailu bidezko prebentiboak (erabilera-orduak, zikloak, km), lan egindako denbora eta esku-lanaren kostua lan bakoitzean, lan bakoitzean erabilitako ordezko piezak eta haien kostua makinako, egiaztapen-zerrendak prebentiboetan eta lanetan, sinkronizazio, datu-base eta babeskopia zifratuak, eta aldaketen erregistro osoagoa.
 
 Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki

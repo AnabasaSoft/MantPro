@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Backups](#-backups)
 - [Contributing](#-contributing)
-- [Roadmap](#-roadmap)
 - [License](#-license)
 - [Contact](#-contact)
 
@@ -272,9 +271,10 @@ from your phone without needing the jobs app.
 
 Applies to both `mantenimiento_app` (jobs) and `mantpro_stock_app` (stock):
 
-- **Flutter**: 3.0 or later
-- **Dart SDK**: 2.17 or later
+- **Flutter**: 3.47 or later
+- **Dart SDK**: 3.13 or later
 - **Android**: API Level 24+ (Android 7.0+)
+- **JDK**: 17 (only to build the APKs)
 
 ---
 
@@ -905,22 +905,6 @@ The code and database structure is described in
 [docs/development.md](docs/development.md) (en español:
 [docs/desarrollo.md](docs/desarrollo.md)). For security issues, see
 [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Roadmap
-
-What's coming, without dates and in no fixed order:
-
-- **Sign-off** when closing a job (also on the phone)
-- **Technical documentation per machine** (manuals, drawings and diagrams in PDF)
-- **Machine criticality (ABC)**, to decide where to invest maintenance
-- **Work requests** from production or other departments that create a pending job
-- **Push notifications** of urgent jobs
-- **Several PCs at once**, a headless server (Raspberry Pi, NAS, Docker) and web access
-- More languages (Italian…) and an iPhone app
-
-Recently done: order receipt with actual prices and warnings about unsent or late orders, multiple sites (selector, reports, holidays and each technician's access to their sites) with multiple warehouses, transfers, orders and checks per warehouse, German in the three applications, videos in the jobs' photo collection, suggested order and saved orders, suppliers and the usual supplier of each item, maintenance cost on the Dashboard, counter-based preventive maintenance (hours of use, cycles, km), time worked and labour cost per job, spare parts used in each job with their cost per machine, checklists in preventive maintenance and jobs, encrypted sync, databases and backups, and a more complete change log.
 
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).

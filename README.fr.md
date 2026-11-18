@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Sauvegardes](#-sauvegardes)
 - [Contribuer](#-contribuer)
-- [Feuille de route](#-feuille-de-route)
 - [Licence](#-licence)
 - [Contact](#-contact)
 
@@ -276,9 +275,10 @@ l'application des interventions.
 
 Valable aussi bien pour `mantenimiento_app` (interventions) que pour `mantpro_stock_app` (stock) :
 
-- **Flutter** : 3.0 ou supérieur
-- **Dart SDK** : 2.17 ou supérieur
+- **Flutter** : 3.47 ou supérieur
+- **Dart SDK** : 3.13 ou supérieur
 - **Android** : API Level 24+ (Android 7.0+)
+- **JDK** : 17 (uniquement pour compiler les APK)
 
 ---
 
@@ -948,22 +948,6 @@ La structure du code et de la base de données est décrite dans
 [docs/development.md](docs/development.md) (en anglais) et
 [docs/desarrollo.md](docs/desarrollo.md) (en espagnol). Pour les failles de
 sécurité, consultez [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Feuille de route
-
-Ce qui arrive, sans dates et sans ordre figé :
-
-- **Signature** à la clôture d'une intervention (aussi sur le mobile)
-- **Documentation technique par machine** (manuels, plans et schémas en PDF)
-- **Criticité des machines (ABC)**, pour décider où investir en maintenance
-- **Demandes d'intervention** depuis la production ou d'autres services, qui créent une intervention en attente
-- **Notifications push** des interventions urgentes
-- **Plusieurs PC à la fois**, serveur sans fenêtre (Raspberry Pi, NAS, Docker) et accès web
-- Plus de langues (italien…) et application iPhone
-
-Fait récemment : réception des commandes avec prix réel et alertes des commandes non envoyées ou en retard, plusieurs sites (sélecteur, rapports, jours fériés et accès de chaque technicien à ses sites) avec plusieurs entrepôts, transferts, commandes et contrôles par entrepôt, allemand dans les trois applications, vidéos dans la collection de photos des interventions, commande suggérée et commandes enregistrées, fournisseurs et fournisseur habituel de chaque article, coût de maintenance dans le tableau de bord, préventif par compteur (heures d'utilisation, cycles, km), temps passé et coût de main-d'œuvre par intervention, pièces utilisées dans chaque intervention avec leur coût par machine, listes de contrôle dans le préventif et les interventions, synchronisation, bases de données et sauvegardes chiffrées, et un journal des modifications plus complet.
 
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Copias de seguranza](#-copias-de-seguranza)
 - [Contribuír](#-contribuír)
-- [Folla de ruta](#-folla-de-ruta)
 - [Licenza](#-licenza)
 - [Contacto](#-contacto)
 
@@ -274,9 +273,10 @@ o stock do almacén dende o móbil sen necesidade da aplicación de traballos.
 
 Aplícase tanto a `mantenimiento_app` (traballos) como a `mantpro_stock_app` (stock):
 
-- **Flutter**: 3.0 ou superior
-- **Dart SDK**: 2.17 ou superior
+- **Flutter**: 3.47 ou superior
+- **Dart SDK**: 3.13 ou superior
 - **Android**: API Level 24+ (Android 7.0+)
+- **JDK**: 17 (só para compilar os APK)
 
 ---
 
@@ -911,22 +911,6 @@ A estrutura do código e da base de datos está en
 [docs/desarrollo.md](docs/desarrollo.md) (en castelán) e
 [docs/development.md](docs/development.md) (en inglés). Para fallos de
 seguranza, mira [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Folla de ruta
-
-O que vén, sen datas e sen unha orde pechada:
-
-- **Sinatura** ao pechar un traballo (tamén no móbil)
-- **Documentación técnica por máquina** (manuais, planos e esquemas en PDF)
-- **Criticidade das máquinas (ABC)**, para decidir onde investir en mantemento
-- **Solicitudes de traballo** desde produción ou outros departamentos que crean un pendente
-- **Notificacións push** de traballos urxentes
-- **Varios PC á vez**, servidor sen xanela (Raspberry Pi, NAS, Docker) e acceso web
-- Máis idiomas (italiano…) e app para iPhone
-
-Feito hai pouco: recepción de pedidos con prezo real e avisos de pedidos sen enviar ou con atraso, varias sedes (selector, informes, festivos e acceso de cada técnico ás súas sedes) con varios almacéns, traspasos, pedidos e revisións por almacén, alemán nas tres aplicacións, vídeos na colección de fotos dos traballos, pedido suxerido e pedidos gardados, provedores e provedor habitual de cada artigo, custo de mantemento no panel, preventivos por contador (horas de uso, ciclos, km), tempo traballado e custo de man de obra en cada traballo, recambios usados en cada traballo co seu custo por máquina, listas de comprobación en preventivos e traballos, sincronización, bases de datos e copias cifradas, e un rexistro de cambios máis completo.
 
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).

@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.0+-02569B.svg" alt="Flutter">
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
@@ -54,7 +54,6 @@
 - [MantPro Cloud](#-mantpro-cloud)
 - [Cópias de segurança](#-cópias-de-segurança)
 - [Contribuir](#-contribuir)
-- [Roteiro](#-roteiro)
 - [Licença](#-licença)
 - [Contato](#-contato)
 
@@ -275,9 +274,10 @@ serviços.
 
 Vale tanto para o `mantenimiento_app` (serviços) quanto para o `mantpro_stock_app` (estoque):
 
-- **Flutter**: 3.0 ou superior
-- **Dart SDK**: 2.17 ou superior
+- **Flutter**: 3.47 ou superior
+- **Dart SDK**: 3.13 ou superior
 - **Android**: API Level 24+ (Android 7.0+)
+- **JDK**: 17 (somente para compilar os APKs)
 
 ---
 
@@ -920,22 +920,6 @@ A estrutura do código e do banco de dados está em
 [docs/development.md](docs/development.md) (em inglês) e
 [docs/desarrollo.md](docs/desarrollo.md) (em espanhol). Para falhas de
 segurança, veja o [SECURITY.md](SECURITY.md).
-
----
-
-## 🧭 Roteiro
-
-O que vem por aí, sem datas e sem uma ordem fechada:
-
-- **Assinatura** ao fechar um serviço (também no celular)
-- **Documentação técnica por máquina** (manuais, desenhos e esquemas em PDF)
-- **Criticidade das máquinas (ABC)**, para decidir onde investir em manutenção
-- **Solicitações de serviço** da produção ou de outros departamentos que criam um serviço pendente
-- **Notificações push** de serviços urgentes
-- **Vários PCs ao mesmo tempo**, servidor sem janela (Raspberry Pi, NAS, Docker) e acesso web
-- Mais idiomas (italiano…) e aplicativo para iPhone
-
-Feito recentemente: recebimento de pedidos com preço real e avisos de pedidos por enviar ou atrasados, várias sedes (seletor, relatórios, feriados e acesso de cada técnico às suas sedes) com vários almoxarifados, transferências, pedidos e revisões por almoxarifado, alemão nos três aplicativos, vídeos na coleção de fotos dos serviços, encomenda sugerida e encomendas guardadas, fornecedores e fornecedor habitual de cada artigo, custo de manutenção no painel, preventivas por contador (horas de uso, ciclos, km), tempo trabalhado e custo de mão de obra em cada serviço, peças usadas em cada serviço com seu custo por máquina, checklists em preventivas e serviços, sincronização, bancos de dados e cópias criptografados, e um registro de alterações mais completo.
 
 As mudanças de cada versão estão no [CHANGELOG.md](CHANGELOG.md). Sente falta
 de algo? Abra uma [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
