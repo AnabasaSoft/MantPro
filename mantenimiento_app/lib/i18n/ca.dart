@@ -188,6 +188,7 @@ const Map<String, String> traduccionesCa = {
     "msg_sync_fotos": "Descarregant fotos {n}/{total}",
     "tooltip_escanear_maquina": "Escanejar el QR d'una màquina",
     "msg_qr_no_maquina": "Aquest QR no és d'una màquina de MantPro",
+    "msg_qr_maquina_antiguo": "Aquesta etiqueta és antiga i no serveix amb MantPro Cloud. Torna-la a imprimir des del PC: Màquines > Etiquetes QR.",
     "msg_maquina_no_encontrada": "No es troba aquesta màquina al mòbil. Sincronitza amb el PC i torna-ho a provar.",
     "btn_registrar_en_maquina": "Registrar treball en aquesta màquina",
     "lbl_ultimos_trabajos_maquina": "Darrers treballs",

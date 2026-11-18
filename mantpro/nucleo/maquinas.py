@@ -192,15 +192,39 @@ def nombres_parecidos(nombre, padre_id, excluir_id=None):
 
 
 def listar_maquinas():
-    """Todas las máquinas (planas, con su padre_id y su zona), ordenadas por nombre."""
+    """Todas las máquinas (planas, con su padre_id, su zona y su uuid, o None si aún
+    no tiene), ordenadas por nombre."""
     con = _conn()
+    con_uuid = "uuid" in {f[1] for f in con.execute("PRAGMA table_info(maquinas)")}
     filas = con.execute(
-        "SELECT m.id, m.nombre, m.padre_id, m.notas, m.foto, m.zona_id, z.nombre AS zona_nombre, m.sede_id "
+        "SELECT m.id, m.nombre, m.padre_id, m.notas, m.foto, m.zona_id, z.nombre AS zona_nombre, m.sede_id, "
+        + ("m.uuid " if con_uuid else "NULL AS uuid ") +
         "FROM maquinas m LEFT JOIN zonas z ON z.id = m.zona_id "
         "ORDER BY m.nombre COLLATE NOCASE"
     ).fetchall()
     con.close()
     return [dict(f) for f in filas]
+
+
+def asegurar_uuids(ids_maquinas):
+    """{id: uuid} de esas máquinas, dándoselo a las que aún no tienen. El uuid identifica
+    la máquina igual en el PC, en MantPro Cloud y en los demás equipos (el id es de cada
+    base de datos), y es lo que lleva su etiqueta QR. Mismo formato que la sincronización
+    (nucleo/sincronizacion.py), que respeta los que ya existan al activarse."""
+    ids = [int(i) for i in ids_maquinas]
+    con = _conn()
+    if "uuid" not in {f[1] for f in con.execute("PRAGMA table_info(maquinas)")}:
+        con.execute("ALTER TABLE maquinas ADD COLUMN uuid TEXT")
+        con.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_maquinas_uuid ON maquinas(uuid)")
+    resultado = {}
+    for i in ids:
+        con.execute("UPDATE maquinas SET uuid = lower(hex(randomblob(16))) WHERE id = ? AND uuid IS NULL", (i,))
+        fila = con.execute("SELECT uuid FROM maquinas WHERE id = ?", (i,)).fetchone()
+        if fila:
+            resultado[i] = fila["uuid"]
+    con.commit()
+    con.close()
+    return resultado
 
 
 def obtener_maquina(id_maquina):

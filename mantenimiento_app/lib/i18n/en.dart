@@ -186,6 +186,7 @@ const Map<String, String> traduccionesEn = {
     "msg_sync_fotos": "Downloading photos {n}/{total}",
     "tooltip_escanear_maquina": "Scan a machine's QR code",
     "msg_qr_no_maquina": "This QR code is not a MantPro machine",
+    "msg_qr_maquina_antiguo": "This label is an old one and does not work with MantPro Cloud. Print it again from the PC: Machines > QR labels.",
     "msg_maquina_no_encontrada": "That machine is not on the phone. Sync with the PC and try again.",
     "btn_registrar_en_maquina": "Log a job on this machine",
     "lbl_ultimos_trabajos_maquina": "Latest jobs",

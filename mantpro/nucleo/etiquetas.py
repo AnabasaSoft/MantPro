@@ -22,9 +22,14 @@
 
 Hoja A4 de 3 × 8 etiquetas de 70 × 37 mm (el formato de las hojas adhesivas
 más comunes: Apli 1274, Avery 3474...; también vale en folio normal y
-recortando). Cada etiqueta lleva un QR con el texto "mantpro:maquina:<id>",
+recortando). Cada etiqueta lleva un QR con el texto "mantpro:maquina:<uuid>",
 que la app MantPro reconoce al escanearlo y abre la ficha de esa máquina (sin
 necesitar conexión: la app ya tiene la lista de máquinas guardada).
+
+Lleva el uuid y no el id: el id es de cada base de datos y no coincide entre el PC
+y MantPro Cloud (ni entre varios PCs), así que con la nube la app no encontraba la
+máquina. Las etiquetas antiguas («mantpro:maquina:<id>») siguen valiendo con el
+móvil conectado directamente al PC.
 """
 
 from io import BytesIO
@@ -42,8 +47,8 @@ COLUMNAS, FILAS = 3, 8
 ANCHO, ALTO = 70 * mm, 37 * mm
 
 
-def contenido_qr(maquina_id):
-    return f"{PREFIJO_QR}{int(maquina_id)}"
+def contenido_qr(maquina_uuid):
+    return f"{PREFIJO_QR}{maquina_uuid}"
 
 
 def _imagen_qr(texto):
@@ -63,6 +68,7 @@ def generar_pdf(ruta, ids_maquinas, marco=True):
     todas = {m["id"]: m for m in maquinas.listar_maquinas()}
     rutas = maquinas.mapa_rutas_completas()
     lista = [todas[i] for i in ids_maquinas if i in todas]
+    uuids = maquinas.asegurar_uuids([m["id"] for m in lista])
     ancho_pag, alto_pag = A4
     margen_x = (ancho_pag - COLUMNAS * ANCHO) / 2
     margen_y = (alto_pag - FILAS * ALTO) / 2
@@ -79,7 +85,7 @@ def generar_pdf(ruta, ids_maquinas, marco=True):
             c.setLineWidth(0.3)
             c.rect(x, y, ANCHO, ALTO)
         lado = ALTO - 6 * mm
-        c.drawImage(_imagen_qr(contenido_qr(m["id"])), x + 3 * mm, y + 3 * mm, lado, lado)
+        c.drawImage(_imagen_qr(contenido_qr(uuids[m["id"]])), x + 3 * mm, y + 3 * mm, lado, lado)
 
         # Texto a la derecha del QR: nombre (en negrita, hasta 3 líneas),
         # la máquina superior y la zona, si las tiene.

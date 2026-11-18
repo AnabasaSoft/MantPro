@@ -983,8 +983,38 @@ class MyApp extends StatelessWidget {
 // ==========================================
 /// Caché local del listado de máquinas del PC, para poder elegir a qué
 /// máquina se vincula un trabajo aunque no haya conexión en ese momento.
+/// Etiqueta QR de una máquina: «mantpro:maquina:<uuid>» (las de ahora: el uuid es el
+/// mismo en el PC, en MantPro Cloud y en los demás equipos) o «mantpro:maquina:<id>»
+/// (las antiguas: el id solo coincide con el móvil conectado directamente al PC).
+final _reQrMaquina = RegExp(r'^mantpro:maquina:([0-9A-Za-z-]+)$');
+
+bool esQrDeMaquina(String leido) => _reQrMaquina.hasMatch(leido.trim());
+
+/// Etiqueta antigua, con el id de la máquina en vez del uuid.
+bool esQrAntiguo(String leido) {
+  final m = _reQrMaquina.firstMatch(leido.trim());
+  return m != null && int.tryParse(m.group(1)!) != null;
+}
+
+/// Id (en la lista guardada en el móvil) de la máquina de una etiqueta QR, o null si no está.
+/// [listaDeNube]: la lista se bajó de MantPro Cloud. Entonces una etiqueta antigua no vale:
+/// su id es el del PC, y en la nube puede ser el de OTRA máquina.
+int? idMaquinaDeQr(String leido, List<Map<String, dynamic>> lista, {bool listaDeNube = false}) {
+  final m = _reQrMaquina.firstMatch(leido.trim());
+  if (m == null) return null;
+  final codigo = m.group(1)!;
+  final porUuid = lista.where((x) => (x['uuid'] as String?)?.toLowerCase() == codigo.toLowerCase());
+  if (porUuid.isNotEmpty) return porUuid.first['id'] as int?;
+  final id = int.tryParse(codigo);
+  if (id != null && !listaDeNube && lista.any((x) => x['id'] == id)) return id;
+  return null;
+}
+
 class MaquinasCache {
   static const _clave = 'maquinas_cache';
+  static const _claveNube = 'maquinas_cache_nube';   // la lista se bajó de MantPro Cloud (sus ids no son los del PC)
+
+  static Future<bool> deNube() async => (await SharedPreferences.getInstance()).getBool(_claveNube) ?? false;
 
   static Future<List<Map<String, dynamic>>> obtener() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1004,6 +1034,7 @@ class MaquinasCache {
       if (res.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_clave, res.body);
+        await prefs.setBool(_claveNube, RutasServidor.enNube.value);
       }
     } catch (_) {}
   }
@@ -1418,15 +1449,20 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Future<void> _escanearMaquina() async {
     final leido = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const QRScanScreen()));
     if (leido == null || !mounted) return;
-    final m = RegExp(r'^mantpro:maquina:(\d+)$').firstMatch(leido.trim());
-    if (m == null) {
+    if (!esQrDeMaquina(leido)) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('msg_qr_no_maquina', 'Este QR no es de una máquina de MantPro'))));
       return;
     }
-    final id = int.parse(m.group(1)!);
     final lista = await MaquinasCache.obtener();
+    final deNube = await MaquinasCache.deNube();
     if (!mounted) return;
-    if (!lista.any((x) => x['id'] == id)) {
+    final id = idMaquinaDeQr(leido, lista, listaDeNube: deNube);
+    if (id == null && deNube && esQrAntiguo(leido)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('msg_qr_maquina_antiguo',
+          'Esta etiqueta es antigua y no sirve con MantPro Cloud. Vuelve a imprimirla desde el PC: Máquinas > Etiquetas QR.'))));
+      return;
+    }
+    if (id == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tt('msg_maquina_no_encontrada', 'No se encuentra esa máquina en el móvil. Sincroniza con el PC y vuelve a probar.'))));
       return;
     }
