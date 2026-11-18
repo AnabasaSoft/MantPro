@@ -931,6 +931,8 @@ Feito hai pouco: recepción de pedidos con prezo real e avisos de pedidos sen en
 Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). Botas algo
 en falta? Abre unha [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
 
+**Dúbidas e ideas:** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Erros:** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 Licenza

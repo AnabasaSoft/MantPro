@@ -953,6 +953,8 @@ Bertsio bakoitzaren aldaketak [CHANGELOG.md](CHANGELOG.md) fitxategian daude.
 Zerbait faltan botatzen duzu? Ireki
 [*issue*](https://github.com/AnabasaSoft/MantPro/issues) bat.
 
+**Zalantzak eta ideiak:** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Akatsak:** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 Lizentzia

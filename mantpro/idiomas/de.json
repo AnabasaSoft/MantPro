@@ -1589,5 +1589,8 @@
   "cmp_aviso_tooltip": "Bestellungen, die Aufmerksamkeit brauchen",
   "cmp_title_precio_distinto": "Preis weicht von der Bestellung ab",
   "cmp_msg_precio_distinto": "Dieser Wareneingang hat einen anderen Preis als in der Bestellung:",
-  "cmp_msg_precio_linea": "Bestellung Nr. {n} vom {fecha} an {proveedor}: {pedido} → jetzt {real}{pct}"
+  "cmp_msg_precio_linea": "Bestellung Nr. {n} vom {fecha} an {proveedor}: {pedido} → jetzt {real}{pct}",
+  "about_proyecto": "Projekt",
+  "about_dudas": "Fragen und Ideen",
+  "about_errores": "Fehler"
 }

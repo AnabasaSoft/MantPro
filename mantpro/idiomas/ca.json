@@ -1589,5 +1589,8 @@
   "cmp_aviso_tooltip": "Comandes que necessiten atenció",
   "cmp_title_precio_distinto": "Preu diferent del de la comanda",
   "cmp_msg_precio_distinto": "Aquesta entrada arriba a un preu diferent del que es va posar a la comanda:",
-  "cmp_msg_precio_linea": "Comanda núm. {n} del {fecha} a {proveedor}: {pedido} → ara {real}{pct}"
+  "cmp_msg_precio_linea": "Comanda núm. {n} del {fecha} a {proveedor}: {pedido} → ara {real}{pct}",
+  "about_proyecto": "Projecte",
+  "about_dudas": "Dubtes i idees",
+  "about_errores": "Errors"
 }

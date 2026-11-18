@@ -925,6 +925,8 @@ Recently done: order receipt with actual prices and warnings about unsent or lat
 The changes in each version are in [CHANGELOG.md](CHANGELOG.md). Missing
 something? Open an [issue](https://github.com/AnabasaSoft/MantPro/issues).
 
+**Questions and ideas:** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Bugs:** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 License

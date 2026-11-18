@@ -937,6 +937,8 @@ Recién hecho: recepción de pedidos con precio real y avisos de pedidos sin env
 Los cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md). ¿Echas algo
 en falta? Abre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
 
+**Dudas e ideas:** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Errores:** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 Licencia

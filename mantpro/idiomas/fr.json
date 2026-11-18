@@ -1589,5 +1589,8 @@
   "cmp_aviso_tooltip": "Commandes à surveiller",
   "cmp_title_precio_distinto": "Prix différent de celui de la commande",
   "cmp_msg_precio_distinto": "Cette entrée arrive à un prix différent de celui indiqué dans la commande :",
-  "cmp_msg_precio_linea": "Commande n° {n} du {fecha} à {proveedor} : {pedido} → maintenant {real}{pct}"
+  "cmp_msg_precio_linea": "Commande n° {n} du {fecha} à {proveedor} : {pedido} → maintenant {real}{pct}",
+  "about_proyecto": "Projet",
+  "about_dudas": "Questions et idées",
+  "about_errores": "Bugs"
 }

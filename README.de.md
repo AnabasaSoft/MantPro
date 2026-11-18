@@ -939,6 +939,8 @@ Gerade fertig: Wareneingang mit tatsächlichem Preis und Hinweise auf nicht gese
 Die Änderungen jeder Version stehen in [CHANGELOG.md](CHANGELOG.md). Fehlt Ihnen
 etwas? Öffnen Sie ein [*Issue*](https://github.com/AnabasaSoft/MantPro/issues).
 
+**Fragen und Ideen:** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Fehler:** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 Lizenz

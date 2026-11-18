@@ -1589,5 +1589,8 @@
   "cmp_aviso_tooltip": "Pedidos que necesitan atención",
   "cmp_title_precio_distinto": "Precio distinto al del pedido",
   "cmp_msg_precio_distinto": "Esta entrada llega a un precio distinto del que se puso en el pedido:",
-  "cmp_msg_precio_linea": "Pedido n.º {n} del {fecha} a {proveedor}: {pedido} → ahora {real}{pct}"
+  "cmp_msg_precio_linea": "Pedido n.º {n} del {fecha} a {proveedor}: {pedido} → ahora {real}{pct}",
+  "about_proyecto": "Proyecto",
+  "about_dudas": "Dudas e ideas",
+  "about_errores": "Errores"
 }

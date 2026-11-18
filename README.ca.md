@@ -937,6 +937,8 @@ Fet fa poc: recepció de comandes amb preu real i avisos de comandes sense envia
 Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md). Hi trobes a
 faltar alguna cosa? Obre una [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
 
+**Dubtes i idees:** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Errors:** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 Llicència

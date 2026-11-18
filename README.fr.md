@@ -968,6 +968,8 @@ Fait récemment : réception des commandes avec prix réel et alertes des comman
 Les changements de chaque version sont dans [CHANGELOG.md](CHANGELOG.md). Il
 vous manque quelque chose ? Ouvrez une [*issue*](https://github.com/AnabasaSoft/MantPro/issues).
 
+**Questions et idées :** [Discussions](https://github.com/AnabasaSoft/MantPro/discussions) · **Bugs :** [Issues](https://github.com/AnabasaSoft/MantPro/issues)
+
 ---
 
 ## 📄 Licence

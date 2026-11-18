@@ -332,7 +332,9 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         <p><b>AnabasaSoft</b></p>
         <p>📧 Email: <a href="mailto:anabasasoft@gmail.com">anabasasoft@gmail.com</a></p>
         <p>🌐 GitHub: <a href="https://github.com/AnabasaSoft">github.com/AnabasaSoft</a></p>
-        <p>💼 Proyecto: <a href="https://github.com/AnabasaSoft/MantPro">github.com/AnabasaSoft/MantPro</a></p>
+        <p>💼 {tt("about_proyecto", "Proyecto")}: <a href="https://github.com/AnabasaSoft/MantPro">github.com/AnabasaSoft/MantPro</a></p>
+        <p>💬 {tt("about_dudas", "Dudas e ideas")}: <a href="https://github.com/AnabasaSoft/MantPro/discussions">Discussions</a>
+           · 🐞 {tt("about_errores", "Errores")}: <a href="https://github.com/AnabasaSoft/MantPro/issues">Issues</a></p>
         """
         msg = QMessageBox(self)
         msg.setWindowTitle(t("title_acerca_de"))

@@ -1589,5 +1589,8 @@
   "cmp_aviso_tooltip": "Arreta behar duten eskaerak",
   "cmp_title_precio_distinto": "Eskaerakoaz bestelako prezioa",
   "cmp_msg_precio_distinto": "Sarrera hau eskaeran jarritakoaz bestelako prezioan iristen da:",
-  "cmp_msg_precio_linea": "{fecha}(e)ko {n}. eskaera, {proveedor}(r)i: {pedido} → orain {real}{pct}"
+  "cmp_msg_precio_linea": "{fecha}(e)ko {n}. eskaera, {proveedor}(r)i: {pedido} → orain {real}{pct}",
+  "about_proyecto": "Proiektua",
+  "about_dudas": "Zalantzak eta ideiak",
+  "about_errores": "Akatsak"
 }
