@@ -61,9 +61,11 @@ class PestanaMaquinas:
         b_qr.setToolTip(tt("tt_etiquetas_qr", "PDF con etiquetas QR para pegar en las máquinas: al escanearlas con MantPro se abre su ficha."))
         b_contadores = QPushButton(tt("btn_contadores", "📟 Contadores")); b_contadores.clicked.connect(self._maquina_contadores)
         b_contadores.setToolTip(tt("tt_contadores", "Horas de uso, ciclos o km de la máquina seleccionada: sus lecturas y los preventivos por contador."))
+        b_lecturas = QPushButton(tt("btn_lecturas_checklist", "📈 Lecturas")); b_lecturas.clicked.connect(self._maquina_lecturas)
+        b_lecturas.setToolTip(tt("tt_lecturas_checklist", "Cómo evolucionan las medidas de las listas de comprobación (resistencia de tierra, aislamiento…) de la máquina seleccionada y sus submáquinas."))
         b_coste = QPushButton(tt("btn_costes_maquina", "💶 Costes")); b_coste.clicked.connect(self._maquinas_coste_repuestos)
         b_coste.setToolTip(tt("tt_costes_maquina", "Coste del mantenimiento de cada máquina por año: horas trabajadas, mano de obra y repuestos."))
-        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_contadores, b_qr, b_coste]: h_tools.addWidget(b)
+        for b in [b_nueva, b_nueva_sub, b_editar, b_eliminar, b_expandir, b_contraer, b_contadores, b_lecturas, b_qr, b_coste]: h_tools.addWidget(b)
         self.btn_costes_maquina = b_coste   # solo lo ve un administrador (se actualiza al refrescar)
         h_tools.addStretch()
         l.addLayout(h_tools)
@@ -608,6 +610,15 @@ class PestanaMaquinas:
         dlg.exec()
         if dlg.cambiado:
             self.refresh_avisos(); self.refresh_dashboard()
+
+    def _maquina_lecturas(self):
+        id_maquina, nombre = self._maquina_seleccionada()
+        if id_maquina is None:
+            QMessageBox.information(self, tt("btn_lecturas_checklist", "📈 Lecturas"),
+                                    tt("msg_elige_maquina", "Selecciona primero una máquina en la lista."))
+            return
+        from ..dialogos.lecturas import DialogoLecturasChecklist
+        DialogoLecturasChecklist(self, id_maquina, nombre).exec()
 
     def _maquinas_coste_repuestos(self):
         if not usuarios.es_admin(): return

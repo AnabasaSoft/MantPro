@@ -98,6 +98,18 @@ def formato_fecha_localizada(fecha_iso):
     return fecha_obj.strftime("%d/%m/%Y")
 
 
+def formato_fecha_excel(corta=False):
+    """Formato de número de Excel para fechas, según el idioma activo (el mismo orden que
+    formato_fecha_localizada): AAAA/MM/DD en euskera, DD.MM.AAAA en alemán y DD/MM/AAAA en el resto.
+    [corta]: con el año en dos cifras (para los ejes de los gráficos)."""
+    a = "yy" if corta else "yyyy"
+    if _idioma_actual == "eu":
+        return f"{a}/mm/dd"
+    if _idioma_actual == "de":
+        return f"dd.mm.{a}"
+    return f"dd/mm/{a}"
+
+
 def formato_fecha_corta_qt():
     """Patrón día/mes (sin año) para QDate.toString(), según el idioma activo."""
     return {"eu": "MM/dd", "de": "dd.MM."}.get(_idioma_actual, "dd/MM")

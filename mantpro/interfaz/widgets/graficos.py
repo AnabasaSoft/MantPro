@@ -205,3 +205,90 @@ class GraficoBarrasMensual(_GraficoBase):
             painter.setPen(self._color_texto)
             etiqueta_mes = f"{mes[5:7]}/{mes[2:4]}"
             painter.drawText(QRectF(x, alto_util + 2, ancho_col, 18), Qt.AlignmentFlag.AlignCenter, etiqueta_mes)
+
+
+class GraficoEvolucion(_GraficoBase):
+    """Evolución de una lectura en el tiempo (p. ej. la resistencia de tierra de cada revisión):
+    una línea con un punto por lectura, la banda del rango correcto sombreada en verde y los
+    puntos fuera de rango en rojo. Las fechas van en el eje X a su distancia real."""
+
+    def __init__(self, parent=None, color="#3daee9", color_texto=None, color_fondo=None, formato_fecha=None):
+        super().__init__(parent, color_texto, color_fondo, altura_minima=200)
+        self._color = QColor(color)
+        self._minimo = self._maximo = None
+        self._unidad = ""
+        self._formato_fecha = formato_fecha or (lambda f: f)
+
+    def establecer_datos(self, datos, minimo=None, maximo=None, unidad=""):
+        """datos: lista de dicts {"fecha": 'AAAA-MM-DD', "valor": número o None, "fuera": bool}, en orden."""
+        self._minimo, self._maximo, self._unidad = minimo, maximo, unidad or ""
+        super().establecer_datos([d for d in datos if d.get("valor") is not None and d.get("fecha")])
+
+    @staticmethod
+    def _dia(fecha):
+        from datetime import date
+        try:
+            return date.fromisoformat(fecha[:10]).toordinal()
+        except ValueError:
+            return 0
+
+    @staticmethod
+    def _numero(v):
+        return f"{v:g}"
+
+    def _dibujar(self, painter):
+        valores = [d["valor"] for d in self._datos]
+        limites = [v for v in (self._minimo, self._maximo) if v is not None]
+        bajo, alto_v = min(valores + limites), max(valores + limites)
+        if alto_v == bajo:
+            bajo, alto_v = bajo - 1, alto_v + 1
+        margen_v = (alto_v - bajo) * 0.08
+        bajo, alto_v = bajo - margen_v, alto_v + margen_v
+        dias = [self._dia(d["fecha"]) for d in self._datos]
+        d0, d1 = min(dias), max(dias)
+        painter.setFont(QFont(painter.font().family(), 8))
+        metricas = painter.fontMetrics()
+        izq = max(metricas.horizontalAdvance(self._numero(v)) for v in (bajo, alto_v)) + 10
+        der, arriba, abajo = 14, 10, 22
+        ancho, alto = self.width() - izq - der, self.height() - arriba - abajo
+        if ancho <= 10 or alto <= 10:
+            return
+
+        def x_de(dia):
+            return izq + (ancho / 2 if d1 == d0 else (dia - d0) / (d1 - d0) * ancho)
+
+        def y_de(v):
+            return arriba + (alto_v - v) / (alto_v - bajo) * alto
+
+        texto = self._color_texto
+        # Banda del rango correcto (con solo mínimo o solo máximo, hasta el borde)
+        if limites:
+            y_sup = y_de(self._maximo) if self._maximo is not None else arriba
+            y_inf = y_de(self._minimo) if self._minimo is not None else arriba + alto
+            verde = QColor("#2ecc71"); verde.setAlpha(45)
+            painter.fillRect(QRectF(izq, y_sup, ancho, y_inf - y_sup), verde)
+            painter.setPen(QPen(QColor("#27ae60"), 1, Qt.PenStyle.DashLine))
+            for v in (self._minimo, self._maximo):
+                if v is not None:
+                    painter.drawLine(int(izq), int(y_de(v)), int(izq + ancho), int(y_de(v)))
+        # Ejes y etiquetas
+        painter.setPen(QPen(texto, 1))
+        painter.drawLine(int(izq), int(arriba), int(izq), int(arriba + alto))
+        painter.drawLine(int(izq), int(arriba + alto), int(izq + ancho), int(arriba + alto))
+        etiquetas = sorted({round(v, 6) for v in [bajo + margen_v, alto_v - margen_v] + limites})
+        for v in etiquetas:
+            painter.drawText(QRectF(0, y_de(v) - 8, izq - 5, 16), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, self._numero(v))
+        primera, ultima = self._datos[0]["fecha"], self._datos[-1]["fecha"]
+        painter.drawText(QRectF(izq, arriba + alto + 4, ancho, 16), Qt.AlignmentFlag.AlignLeft, self._formato_fecha(primera))
+        if ultima != primera:
+            painter.drawText(QRectF(izq, arriba + alto + 4, ancho, 16), Qt.AlignmentFlag.AlignRight, self._formato_fecha(ultima))
+        # Línea y puntos
+        puntos = [(x_de(dias[i]), y_de(d["valor"]), d.get("fuera")) for i, d in enumerate(self._datos)]
+        painter.setPen(QPen(self._color, 2))
+        for (xa, ya, _), (xb, yb, _) in zip(puntos, puntos[1:]):
+            painter.drawLine(int(xa), int(ya), int(xb), int(yb))
+        for x, y, fuera in puntos:
+            c = QColor("#e74c3c") if fuera else self._color
+            painter.setPen(QPen(c, 1))
+            painter.setBrush(QBrush(c))
+            painter.drawEllipse(QRectF(x - 4, y - 4, 8, 8))

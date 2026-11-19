@@ -403,3 +403,45 @@ def cambios_resultado(antes_items, despues_items):
         if linea(a) != linea(d):
             cambios.append({"campo": a.get("texto", ""), "antes": linea(a), "despues": linea(d)})
     return cambios
+
+
+# ---------------------------------------------------------------- evolución de las lecturas
+
+def _clave_punto(texto, unidad):
+    """El «mismo punto» en revisiones distintas: mismo texto y misma unidad (sin distinguir
+    mayúsculas ni espacios de más). Es lo que da de sí cómo se guardan las lecturas: con el
+    trabajo, copiadas de la plantilla en ese momento."""
+    return (" ".join(str(texto or "").split()).casefold(), " ".join(str(unidad or "").split()).casefold())
+
+
+def evolucion_lecturas(maquina_ids):
+    """Lecturas de las listas de comprobación de los trabajos de esas máquinas, agrupadas por
+    punto (texto + unidad) y de la más antigua a la más reciente:
+    [{"texto", "unidad", "minimo", "maximo" (los de la lectura más reciente), "lecturas": [{"fecha",
+    "valor" (número o None si no se entiende), "valor_texto", "fuera" (de su propio rango),
+    "minimo", "maximo", "tarea_id", "maquina_id", "tecnico", "nota"}]}], los puntos por su texto."""
+    ids = [int(i) for i in (maquina_ids or []) if i is not None]
+    if not ids:
+        return []
+    con = _conn()
+    filas = []
+    for trozo in range(0, len(ids), 500):
+        parte = ids[trozo:trozo + 500]
+        filas += con.execute(
+            f"""SELECT r.texto, r.unidad, r.minimo, r.maximo, r.valor, r.nota, r.tarea_id,
+                       t.fecha, t.maquina_id, COALESCE(t.usuario_nombre, '') AS tecnico
+                FROM checklist_resultados r JOIN tareas t ON t.id = r.tarea_id
+                WHERE r.tipo = 'lectura' AND COALESCE(r.valor, '') != ''
+                  AND t.maquina_id IN ({','.join('?' * len(parte))})""", parte).fetchall()
+    con.close()
+    puntos = {}
+    for f in sorted(filas, key=lambda f: (f["fecha"] or "", f["tarea_id"])):
+        clave = _clave_punto(f["texto"], f["unidad"])
+        p = puntos.setdefault(clave, {"texto": " ".join(f["texto"].split()), "unidad": f["unidad"] or "", "lecturas": []})
+        p["minimo"], p["maximo"] = f["minimo"], f["maximo"]        # los de la más reciente (van en orden)
+        rango = {"minimo": f["minimo"], "maximo": f["maximo"]}
+        p["lecturas"].append({
+            "fecha": (f["fecha"] or "")[:10], "valor": _num(f["valor"]), "valor_texto": f["valor"],
+            "fuera": fuera_de_rango(rango, f["valor"]), "minimo": f["minimo"], "maximo": f["maximo"],
+            "tarea_id": f["tarea_id"], "maquina_id": f["maquina_id"], "tecnico": f["tecnico"], "nota": f["nota"] or ""})
+    return sorted(puntos.values(), key=lambda p: (p["texto"].casefold(), p["unidad"].casefold()))
