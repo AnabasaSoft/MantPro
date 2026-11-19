@@ -292,6 +292,11 @@ Aplica tanto a `mantenimiento_app` (trabajos) como a `mantpro_stock_app` (stock)
 Descarga la versión correspondiente a tu sistema desde [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
 - **Windows**: Descarga y ejecuta el `.exe`
+
+  > **ℹ️ Aviso de Windows SmartScreen.** MantPro todavía no está firmado con un certificado de firma de código (*code signing*) reconocido por Microsoft, así que, mientras el instalador va ganando reputación en SmartScreen, Windows puede mostrar el aviso «Windows protegió su PC» la primera vez que lo ejecutes. Es lo habitual con el software nuevo que aún no tiene ese certificado y no indica ningún problema en el fichero: el código es abierto y cada versión se compila automáticamente en GitHub Actions a partir del código público. Descárgalo siempre desde GitHub Releases y, si aparece el aviso, pulsa **Más información** → **Ejecutar de todas formas**.
+  >
+  > <img src="Capturas/windows-smartscreen-es.svg" alt="Aviso de Windows SmartScreen: Más información y Ejecutar de todas formas" width="720"/>
+
 - **Linux**: 
   - Descarga el binario ejecutable y dale permisos de ejecución: `chmod +x mantpro`
   - O usa el **AppImage** (sin instalación): `chmod +x MantPro.AppImage && ./MantPro.AppImage`

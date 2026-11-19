@@ -294,6 +294,11 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 Deskargatu zure sistemari dagokion bertsioa [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases) orritik:
 
 - **Windows**: Deskargatu eta exekutatu `.exe`-a
+
+  > **ℹ️ Windows SmartScreen-en abisua.** MantPro oraindik ez dago Microsoft-ek onartutako kode-sinadurako ziurtagiri batekin (*code signing*) sinatuta; beraz, instalatzaileak SmartScreen-en ospea irabazten duen bitartean, baliteke Windows-ek «Windows-ek zure PCa babestu du» abisua erakustea lehen aldiz exekutatzean. Ziurtagiri hori oraindik ez duen software berriarekin ohikoa da, eta ez du esan nahi fitxategiak arazorik duenik: kodea irekia da, eta bertsio bakoitza GitHub Actions-en automatikoki konpilatzen da kode publikotik abiatuta. Deskargatu beti GitHub Releases-etik eta, abisua agertzen bada, sakatu **Informazio gehiago** → **Exekutatu hala ere**.
+  >
+  > <img src="Capturas/windows-smartscreen-eu.svg" alt="Windows SmartScreen-en abisua: Informazio gehiago eta Exekutatu hala ere" width="720"/>
+
 - **Linux**:
   - Deskargatu bitar exekutagarria eta eman exekuzio-baimenak: `chmod +x mantpro`
   - Edo erabili **AppImage**-a (instalatu gabe): `chmod +x MantPro.AppImage && ./MantPro.AppImage`

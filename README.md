@@ -289,6 +289,11 @@ Applies to both `mantenimiento_app` (jobs) and `mantpro_stock_app` (stock):
 Download the version for your system from [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
 - **Windows**: Download and run the `.exe`
+
+  > **ℹ️ Windows SmartScreen notice.** MantPro is not yet signed with a code signing certificate recognised by Microsoft, so while the installer builds up reputation with SmartScreen, Windows may show the “Windows protected your PC” warning the first time you run it. This is normal for new software that does not yet have such a certificate and does not mean anything is wrong with the file: the code is open source and every release is built automatically on GitHub Actions from the public code. Always download it from GitHub Releases and, if the warning appears, click **More info** → **Run anyway**.
+  >
+  > <img src="Capturas/windows-smartscreen-en.svg" alt="Windows SmartScreen notice: More info and Run anyway" width="720"/>
+
 - **Linux**:
   - Download the executable binary and make it executable: `chmod +x mantpro`
   - Or use the **AppImage** (no installation): `chmod +x MantPro.AppImage && ./MantPro.AppImage`

@@ -292,6 +292,11 @@ Vale tanto para o `mantenimiento_app` (serviços) quanto para o `mantpro_stock_a
 Baixe a versão correspondente ao seu sistema em [GitHub Releases](https://github.com/AnabasaSoft/MantPro/releases):
 
 - **Windows**: baixe e execute o `.exe`
+
+  > **ℹ️ Aviso do Windows SmartScreen.** O MantPro ainda não é assinado com um certificado de assinatura de código (*code signing*) reconhecido pela Microsoft; por isso, enquanto o instalador ganha reputação no SmartScreen, o Windows pode mostrar o aviso “O Windows protegeu o computador” na primeira vez que você o executar. Isso é normal em softwares novos que ainda não têm esse certificado e não indica nenhum problema no arquivo: o código é aberto e cada versão é compilada automaticamente no GitHub Actions a partir do código público. Baixe sempre pelo GitHub Releases e, se o aviso aparecer, clique em **Mais informações** → **Executar assim mesmo**.
+  >
+  > <img src="Capturas/windows-smartscreen-pt.svg" alt="Aviso do Windows SmartScreen: Mais informações e Executar assim mesmo" width="720"/>
+
 - **Linux**:
   - Baixe o binário executável e dê permissão de execução: `chmod +x mantpro`
   - Ou use o **AppImage** (sem instalação): `chmod +x MantPro.AppImage && ./MantPro.AppImage`

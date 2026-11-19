@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Documentación
+- **🛡️ Aviso de Windows SmartScreen.** Los README (8 idiomas) y la web explican, con una ilustración en dos pasos, que el instalador de Windows aún no está firmado con un certificado de firma de código reconocido por Microsoft y que, si Windows muestra «Windows protegió su PC», basta con pulsar **Más información** → **Ejecutar de todas formas**.
+
 ## 3.10.9 — 2026-11-19
 
 ### Novedades

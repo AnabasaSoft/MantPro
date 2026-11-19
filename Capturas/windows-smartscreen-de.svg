@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="944" height="372" viewBox="0 0 944 372" font-family="Segoe UI, 'Noto Sans', 'DejaVu Sans', Arial, sans-serif" role="img" aria-label="Der Computer wurde durch Windows geschützt: Auf „Weitere Informationen“ klicken, Auf „Trotzdem ausführen“ klicken">
+<title>Der Computer wurde durch Windows geschützt</title>
+<g transform="translate(0,46)">
+<rect width="460" height="300" fill="#0a5fb4"/>
+<text x="438" y="26" font-size="15" font-weight="400" fill="#fff" text-anchor="end">✕</text>
+<text x="26" y="50" font-size="22" font-weight="600" fill="#fff" text-anchor="start">Der Computer wurde durch Windows</text>
+<text x="26" y="78" font-size="22" font-weight="600" fill="#fff" text-anchor="start">geschützt</text>
+<text x="26" y="112" font-size="13" font-weight="400" fill="#fff" text-anchor="start">Von Microsoft Defender SmartScreen wurde der Start einer</text>
+<text x="26" y="131" font-size="13" font-weight="400" fill="#fff" text-anchor="start">unbekannten App verhindert. Die Ausführung dieser App stellt</text>
+<text x="26" y="150" font-size="13" font-weight="400" fill="#fff" text-anchor="start">ein potenzielles Risiko für den PC dar.</text>
+<text x="26" y="179" font-size="13" fill="#fff" text-decoration="underline">Weitere Informationen</text>
+<rect x="19" y="161" width="173.6" height="27" rx="6" fill="none" stroke="#ffb900" stroke-width="3.5"/>
+<rect x="304" y="248" width="130" height="32" fill="#fff" fill-opacity="0.12" stroke="#fff" stroke-width="1.5"/>
+<text x="369.0" y="269" font-size="13" font-weight="400" fill="#fff" text-anchor="middle">Nicht ausführen</text>
+</g>
+<circle cx="14" cy="22" r="14" fill="#ffb900"/>
+<text x="14" y="27" font-size="15" font-weight="700" fill="#1b1b1b" text-anchor="middle">1</text>
+<text x="36" y="27" font-size="15" font-weight="600" fill="#555" text-anchor="start">Auf „Weitere Informationen“ klicken</text>
+<g transform="translate(484,46)">
+<rect width="460" height="300" fill="#0a5fb4"/>
+<text x="438" y="26" font-size="15" font-weight="400" fill="#fff" text-anchor="end">✕</text>
+<text x="26" y="50" font-size="22" font-weight="600" fill="#fff" text-anchor="start">Der Computer wurde durch Windows</text>
+<text x="26" y="78" font-size="22" font-weight="600" fill="#fff" text-anchor="start">geschützt</text>
+<text x="26" y="112" font-size="13" font-weight="400" fill="#fff" text-anchor="start">Von Microsoft Defender SmartScreen wurde der Start einer</text>
+<text x="26" y="131" font-size="13" font-weight="400" fill="#fff" text-anchor="start">unbekannten App verhindert. Die Ausführung dieser App stellt</text>
+<text x="26" y="150" font-size="13" font-weight="400" fill="#fff" text-anchor="start">ein potenzielles Risiko für den PC dar.</text>
+<text x="26" y="179" font-size="13" font-weight="400" fill="#fff" text-anchor="start">App: MantPro_Setup.exe</text>
+<text x="26" y="199" font-size="13" font-weight="400" fill="#fff" text-anchor="start">Herausgeber: Unbekannter Herausgeber</text>
+<rect x="135" y="248" width="157" height="32" fill="#fff" fill-opacity="0.12" stroke="#fff" stroke-width="1.5"/>
+<text x="213.5" y="269" font-size="13" font-weight="400" fill="#fff" text-anchor="middle">Trotzdem ausführen</text>
+<rect x="130" y="243" width="167" height="42" rx="6" fill="none" stroke="#ffb900" stroke-width="3.5"/>
+<rect x="304" y="248" width="130" height="32" fill="#fff" fill-opacity="0.12" stroke="#fff" stroke-width="1.5"/>
+<text x="369.0" y="269" font-size="13" font-weight="400" fill="#fff" text-anchor="middle">Nicht ausführen</text>
+</g>
+<circle cx="498" cy="22" r="14" fill="#ffb900"/>
+<text x="498" y="27" font-size="15" font-weight="700" fill="#1b1b1b" text-anchor="middle">2</text>
+<text x="520" y="27" font-size="15" font-weight="600" fill="#555" text-anchor="start">Auf „Trotzdem ausführen“ klicken</text>
+<text x="944" y="366" font-size="11" font-weight="400" fill="#888" text-anchor="end">Beispielabbildung</text>
+</svg>
