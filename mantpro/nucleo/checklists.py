@@ -24,7 +24,10 @@ checklists.py — Listas de comprobación de preventivos y trabajos.
 - **Plantillas** reutilizables («Revisión mensual de compresor») con sus
   puntos. Cada punto es de tipo «estado» (se marca bien / mal / no aplica) o
   «lectura» (además se apunta un valor con su unidad; si tiene mínimo o
-  máximo y el valor se sale, el punto queda como «mal»).
+  máximo y el valor se sale, el punto queda como «mal») o «trifasica» (motor
+  trifásico: tres lecturas, una por fase L1/L2/L3, guardadas en el mismo campo
+  `valor` como «12,1;12,3;12,0»; el mínimo y el máximo valen para cada fase y
+  se calcula el desequilibrio entre fases para ver si una consume más).
 - Una plantilla se asigna a avisos recurrentes y a pendientes
   (columna checklist_id).
 - Al completar, lo rellenado se guarda **como copia** junto al trabajo del
@@ -40,7 +43,10 @@ from .conexion_bd import sqlite3, conectar
 
 RUTA_DB = None
 
-TIPOS = ("estado", "lectura")
+TIPOS = ("estado", "lectura", "trifasica")
+TIPOS_CON_VALOR = ("lectura", "trifasica")      # los que llevan unidad, mínimo, máximo y valor
+FASES = ("L1", "L2", "L3")
+SEP_FASES = ";"   # separador de las tres lecturas en `valor` (no «,», que es la coma decimal)
 ESTADOS = ("ok", "mal", "na")
 
 
@@ -159,9 +165,9 @@ def guardar_plantilla(plantilla_id, nombre, puntos):
             continue
         tipo = p.get("tipo") if p.get("tipo") in TIPOS else "estado"
         limpios.append((texto, tipo,
-                        (p.get("unidad") or "").strip() if tipo == "lectura" else None,
-                        _num(p.get("minimo")) if tipo == "lectura" else None,
-                        _num(p.get("maximo")) if tipo == "lectura" else None))
+                        (p.get("unidad") or "").strip() if tipo in TIPOS_CON_VALOR else None,
+                        _num(p.get("minimo")) if tipo in TIPOS_CON_VALOR else None,
+                        _num(p.get("maximo")) if tipo in TIPOS_CON_VALOR else None))
     con = _conn()
     try:
         if plantilla_id:
@@ -231,13 +237,60 @@ def asignar(tipo, item_id, plantilla_id):
 
 # ---------------------------------------------------------------- resultados
 
-def fuera_de_rango(punto, valor):
-    """True si una lectura se sale del mínimo o el máximo del punto."""
+def fases(valor):
+    """Las tres lecturas (textos, «» si falta alguna) de un punto trifásico: «12,1;12,3;12,0»."""
+    partes = [x.strip() for x in str(valor or "").split(SEP_FASES)][:len(FASES)]
+    return partes + [""] * (len(FASES) - len(partes))
+
+
+def unir_fases(lecturas):
+    """Al revés que fases(): «12,1;12,3;12,0», o «» si no hay ninguna."""
+    partes = [str(x or "").strip().replace(SEP_FASES, "")[:18] for x in list(lecturas)[:len(FASES)]]
+    partes += [""] * (len(FASES) - len(partes))
+    return SEP_FASES.join(partes) if any(partes) else ""
+
+
+def desequilibrio(valor):
+    """(porcentaje, índice de la fase que más se aparta) de un punto trifásico, o None si
+    faltan lecturas o la media es 0. Es el desequilibrio habitual (NEMA): la mayor
+    diferencia con la media, en % de la media."""
+    nums = [_num(x) for x in fases(valor)]
+    if any(n is None for n in nums):
+        return None
+    media = sum(nums) / len(nums)
+    if media <= 0:
+        return None
+    desvios = [abs(n - media) for n in nums]
+    mayor = max(range(len(nums)), key=lambda i: desvios[i])
+    return round(desvios[mayor] / media * 100, 1), mayor
+
+
+def _fuera_uno(punto, valor):
     n = _num(valor)
     if n is None:
         return False
     minimo, maximo = _num(punto.get("minimo")), _num(punto.get("maximo"))
     return (minimo is not None and n < minimo) or (maximo is not None and n > maximo)
+
+
+def fuera_de_rango(punto, valor):
+    """True si una lectura se sale del mínimo o el máximo del punto (en un punto
+    trifásico, si se sale cualquiera de las tres fases)."""
+    if punto.get("tipo") == "trifasica":
+        return any(_fuera_uno(punto, x) for x in fases(valor))
+    return _fuera_uno(punto, valor)
+
+
+def texto_valor(it):
+    """El valor rellenado para enseñarlo: «9,1 bar» o «L1 12,1 · L2 12,3 · L3 12,0 A»."""
+    unidad = it.get("unidad") or ""
+    if it.get("tipo") == "trifasica":
+        if not it.get("valor"):
+            return ""
+        texto = " · ".join(f"{f} {v or '-'}" for f, v in zip(FASES, fases(it["valor"])))
+    else:
+        texto = str(it.get("valor") or "")
+    return f"{texto} {unidad}".strip() if texto else ""
 
 
 def items_de_plantilla(plantilla):
@@ -259,9 +312,11 @@ def normalizar_items(items):
         tipo = it.get("tipo") if it.get("tipo") in TIPOS else "estado"
         estado = it.get("estado") if it.get("estado") in ESTADOS else None
         valor = str(it.get("valor") or "").strip() if tipo == "lectura" else ""
+        if tipo == "trifasica":
+            valor = unir_fases(fases(it.get("valor")))
         limpios.append({
             "texto": str(it["texto"]).strip()[:500], "tipo": tipo,
-            "unidad": str(it.get("unidad") or "").strip()[:30] if tipo == "lectura" else "",
+            "unidad": str(it.get("unidad") or "").strip()[:30] if tipo in TIPOS_CON_VALOR else "",
             "minimo": _num(it.get("minimo")), "maximo": _num(it.get("maximo")),
             "estado": estado, "valor": valor[:60], "nota": str(it.get("nota") or "").strip()[:1000]})
     return limpios
@@ -336,11 +391,12 @@ from . import usuarios as _usuarios
 
 def _texto_punto(p):
     texto = p["texto"]
-    if p.get("tipo") == "lectura":
+    if p.get("tipo") in TIPOS_CON_VALOR:
         rango = []
         if p.get("minimo") is not None: rango.append(f"mín. {_num(p['minimo']):g}")
         if p.get("maximo") is not None: rango.append(f"máx. {_num(p['maximo']):g}")
-        texto += f" [lectura{(' ' + p['unidad']) if p.get('unidad') else ''}{(', ' + ', '.join(rango)) if rango else ''}]"
+        nombre = "motor trifásico" if p.get("tipo") == "trifasica" else "lectura"
+        texto += f" [{nombre}{(' ' + p['unidad']) if p.get('unidad') else ''}{(', ' + ', '.join(rango)) if rango else ''}]"
     return texto
 
 
@@ -395,7 +451,7 @@ def cambios_resultado(antes_items, despues_items):
     def linea(it):
         estado = {"ok": "Bien", "mal": "Mal", "na": "No aplica"}.get(it.get("estado"), "Sin revisar")
         partes = [estado]
-        if it.get("valor"): partes.append(f"{it['valor']} {it.get('unidad') or ''}".strip())
+        if it.get("valor"): partes.append(texto_valor(it))
         if it.get("nota"): partes.append(f"«{it['nota']}»")
         return " · ".join(partes)
     cambios = []
@@ -407,19 +463,24 @@ def cambios_resultado(antes_items, despues_items):
 
 # ---------------------------------------------------------------- evolución de las lecturas
 
-def _clave_punto(texto, unidad):
-    """El «mismo punto» en revisiones distintas: mismo texto y misma unidad (sin distinguir
-    mayúsculas ni espacios de más). Es lo que da de sí cómo se guardan las lecturas: con el
-    trabajo, copiadas de la plantilla en ese momento."""
-    return (" ".join(str(texto or "").split()).casefold(), " ".join(str(unidad or "").split()).casefold())
+def _clave_punto(texto, unidad, tipo="lectura"):
+    """El «mismo punto» en revisiones distintas: mismo texto, misma unidad (sin distinguir
+    mayúsculas ni espacios de más) y mismo tipo (una lectura y un motor trifásico no se
+    mezclan). Es lo que da de sí cómo se guardan las lecturas: con el trabajo, copiadas de
+    la plantilla en ese momento."""
+    return (" ".join(str(texto or "").split()).casefold(), " ".join(str(unidad or "").split()).casefold(),
+            tipo if tipo == "trifasica" else "lectura")
 
 
 def evolucion_lecturas(maquina_ids):
     """Lecturas de las listas de comprobación de los trabajos de esas máquinas, agrupadas por
     punto (texto + unidad) y de la más antigua a la más reciente:
-    [{"texto", "unidad", "minimo", "maximo" (los de la lectura más reciente), "lecturas": [{"fecha",
+    [{"texto", "unidad", "tipo", "minimo", "maximo" (los de la lectura más reciente), "lecturas": [{"fecha",
     "valor" (número o None si no se entiende), "valor_texto", "fuera" (de su propio rango),
-    "minimo", "maximo", "tarea_id", "maquina_id", "tecnico", "nota"}]}], los puntos por su texto."""
+    "minimo", "maximo", "tarea_id", "maquina_id", "tecnico", "nota"}]}], los puntos por su texto.
+    En los motores trifásicos (tipo «trifasica») cada lectura lleva además "valores" (las tres
+    fases, número o None), "desequilibrio" (% o None) y "fase_desviada" (índice o None);
+    su "valor" es el de la fase más alta y "valor_texto", las tres («L1 12,1 · L2 …»)."""
     ids = [int(i) for i in (maquina_ids or []) if i is not None]
     if not ids:
         return []
@@ -428,20 +489,29 @@ def evolucion_lecturas(maquina_ids):
     for trozo in range(0, len(ids), 500):
         parte = ids[trozo:trozo + 500]
         filas += con.execute(
-            f"""SELECT r.texto, r.unidad, r.minimo, r.maximo, r.valor, r.nota, r.tarea_id,
+            f"""SELECT r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.valor, r.nota, r.tarea_id,
                        t.fecha, t.maquina_id, COALESCE(t.usuario_nombre, '') AS tecnico
                 FROM checklist_resultados r JOIN tareas t ON t.id = r.tarea_id
-                WHERE r.tipo = 'lectura' AND COALESCE(r.valor, '') != ''
+                WHERE r.tipo IN ('lectura', 'trifasica') AND COALESCE(r.valor, '') != ''
                   AND t.maquina_id IN ({','.join('?' * len(parte))})""", parte).fetchall()
     con.close()
     puntos = {}
     for f in sorted(filas, key=lambda f: (f["fecha"] or "", f["tarea_id"])):
-        clave = _clave_punto(f["texto"], f["unidad"])
-        p = puntos.setdefault(clave, {"texto": " ".join(f["texto"].split()), "unidad": f["unidad"] or "", "lecturas": []})
+        tipo = "trifasica" if f["tipo"] == "trifasica" else "lectura"
+        clave = _clave_punto(f["texto"], f["unidad"], tipo)
+        p = puntos.setdefault(clave, {"texto": " ".join(f["texto"].split()), "unidad": f["unidad"] or "",
+                                      "tipo": tipo, "lecturas": []})
         p["minimo"], p["maximo"] = f["minimo"], f["maximo"]        # los de la más reciente (van en orden)
-        rango = {"minimo": f["minimo"], "maximo": f["maximo"]}
-        p["lecturas"].append({
+        rango = {"minimo": f["minimo"], "maximo": f["maximo"], "tipo": tipo}
+        lectura = {
             "fecha": (f["fecha"] or "")[:10], "valor": _num(f["valor"]), "valor_texto": f["valor"],
             "fuera": fuera_de_rango(rango, f["valor"]), "minimo": f["minimo"], "maximo": f["maximo"],
-            "tarea_id": f["tarea_id"], "maquina_id": f["maquina_id"], "tecnico": f["tecnico"], "nota": f["nota"] or ""})
-    return sorted(puntos.values(), key=lambda p: (p["texto"].casefold(), p["unidad"].casefold()))
+            "tarea_id": f["tarea_id"], "maquina_id": f["maquina_id"], "tecnico": f["tecnico"], "nota": f["nota"] or ""}
+        if tipo == "trifasica":
+            valores = [_num(x) for x in fases(f["valor"])]
+            deseq = desequilibrio(f["valor"])
+            lectura.update(valores=valores, valor=max((v for v in valores if v is not None), default=None),
+                           valor_texto=" · ".join(f"{n} {v or '-'}" for n, v in zip(FASES, fases(f["valor"]))),
+                           desequilibrio=deseq[0] if deseq else None, fase_desviada=deseq[1] if deseq else None)
+        p["lecturas"].append(lectura)
+    return sorted(puntos.values(), key=lambda p: (p["texto"].casefold(), p["unidad"].casefold(), p["tipo"]))

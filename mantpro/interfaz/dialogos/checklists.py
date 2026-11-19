@@ -71,10 +71,24 @@ def linea_export(it):
     """«Presión de trabajo: Mal — 9,1 bar (Revisar presostato)»."""
     texto = f"{it['texto']}: {estado_plano(it.get('estado'))}"
     if it.get("valor"):
-        texto += f" — {it['valor']} {it.get('unidad') or ''}".rstrip()
+        texto += f" — {checklists.texto_valor(it)}"
+        deseq = texto_desequilibrio(it)
+        if deseq:
+            texto += f" ({deseq})"
     if it.get("nota"):
         texto += f" ({it['nota']})"
     return texto
+
+
+def texto_desequilibrio(it):
+    """«Desequilibrio 3,2 % · se aparta más L2» de un punto trifásico con las tres fases, o «»."""
+    if it.get("tipo") != "trifasica":
+        return ""
+    d = checklists.desequilibrio(it.get("valor"))
+    if not d:
+        return ""
+    return tt("chk_desequilibrio", "Desequilibrio {p} % · se aparta más {fase}").format(
+        p=f"{d[0]:g}", fase=checklists.FASES[d[1]])
 
 
 def texto_export(lista):
@@ -123,10 +137,11 @@ class DialogoRellenarChecklist(QDialog):
         cab.setSectionResizeMode(self.COL_NOTA, QHeaderView.ResizeMode.Stretch)
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        self._grupos, self._valores, self._notas = [], [], []
+        # _valores[fila]: QLineEdit (lectura), lista de tres QLineEdit (trifásica) o None
+        self._grupos, self._valores, self._notas, self._desequilibrios = [], [], [], {}
         for fila, it in enumerate(self._items):
             texto = it["texto"]
-            if it["tipo"] == "lectura" and texto_rango(it):
+            if it["tipo"] in checklists.TIPOS_CON_VALOR and texto_rango(it):
                 texto += f"\n({tt('chk_rango', 'correcto')}: {texto_rango(it)})"
             celda = QTableWidgetItem(texto)
             celda.setFlags(Qt.ItemFlag.ItemIsEnabled)
@@ -143,7 +158,29 @@ class DialogoRellenarChecklist(QDialog):
             self.tabla.setCellWidget(fila, self.COL_ESTADO, caja)
             self._grupos.append(grupo)
 
-            if it["tipo"] == "lectura":
+            if it["tipo"] == "trifasica":
+                campos = []
+                caja_v = QWidget(); vv = QVBoxLayout(caja_v); vv.setContentsMargins(4, 0, 4, 0); vv.setSpacing(2)
+                hv = QHBoxLayout(); hv.setSpacing(4)
+                for fase, texto_fase in zip(checklists.FASES, checklists.fases(it.get("valor"))):
+                    hv.addWidget(QLabel(fase))
+                    campo = QLineEdit(texto_fase)
+                    campo.setPlaceholderText(it.get("unidad") or tt("chk_valor", "valor"))
+                    campo.setMaximumWidth(70)
+                    campo.setReadOnly(solo_lectura)
+                    campo.textChanged.connect(lambda _txt, f=fila: self._lectura_cambiada(f))
+                    hv.addWidget(campo)
+                    campos.append(campo)
+                if it.get("unidad"):
+                    hv.addWidget(QLabel(it["unidad"]))
+                vv.addLayout(hv)
+                lbl = QLabel(); lbl.setStyleSheet("color: gray; font-size: 11px;")
+                vv.addWidget(lbl)
+                self._desequilibrios[fila] = lbl
+                self.tabla.setCellWidget(fila, self.COL_VALOR, caja_v)
+                self._valores.append(campos)
+                self._pintar_rango(fila)
+            elif it["tipo"] == "lectura":
                 valor = QLineEdit(it.get("valor") or "")
                 valor.setPlaceholderText(it.get("unidad") or tt("chk_valor", "valor"))
                 valor.setMaximumWidth(120)
@@ -196,14 +233,33 @@ class DialogoRellenarChecklist(QDialog):
             if b.property("estado") == estado:
                 b.setChecked(True)
 
+    def _valor_de(self, fila):
+        """Lo escrito en la fila: «9,1», «12,1;12,3;12,0» (trifásica) o «»."""
+        campo = self._valores[fila]
+        if campo is None:
+            return ""
+        if isinstance(campo, list):
+            return checklists.unir_fases(c.text() for c in campo)
+        return campo.text().strip()
+
     def _pintar_rango(self, fila):
         campo = self._valores[fila]
+        rojo = "color: #c0392b; font-weight: bold;"
+        if isinstance(campo, list):
+            punto = dict(self._items[fila], tipo="lectura")      # cada fase con el mismo rango
+            for c in campo:
+                c.setStyleSheet(rojo if checklists.fuera_de_rango(punto, c.text()) else "")
+            lbl = self._desequilibrios.get(fila)
+            if lbl is not None:
+                lbl.setText(texto_desequilibrio(dict(self._items[fila], valor=self._valor_de(fila))))
+                lbl.setVisible(bool(lbl.text()))
+            return
         fuera = checklists.fuera_de_rango(self._items[fila], campo.text())
-        campo.setStyleSheet("color: #c0392b; font-weight: bold;" if fuera else "")
+        campo.setStyleSheet(rojo if fuera else "")
 
     def _lectura_cambiada(self, fila):
         self._pintar_rango(fila)
-        texto = self._valores[fila].text().strip()
+        texto = self._valor_de(fila)
         if not texto:
             return
         # Fuera de rango: «mal». Dentro y sin marcar todavía: «bien».
@@ -222,7 +278,7 @@ class DialogoRellenarChecklist(QDialog):
         for fila, it in enumerate(self._items):
             nuevo = dict(it)
             nuevo["estado"] = self._estado_de(fila)
-            nuevo["valor"] = self._valores[fila].text().strip() if self._valores[fila] is not None else ""
+            nuevo["valor"] = self._valor_de(fila)
             nuevo["nota"] = self._notas[fila].text().strip()
             resultado.append(nuevo)
         return resultado
@@ -383,14 +439,15 @@ class DialogoPlantillasChecklist(QDialog):
         combo = QComboBox()
         combo.addItem(tt("chk_tipo_estado", "Bien / Mal"), "estado")
         combo.addItem(tt("chk_tipo_lectura", "Lectura"), "lectura")
-        combo.setCurrentIndex(1 if p["tipo"] == "lectura" else 0)
+        combo.addItem(tt("chk_tipo_trifasica", "Motor trifásico (L1, L2, L3)"), "trifasica")
+        combo.setCurrentIndex(max(0, combo.findData(p["tipo"])))
         combo.currentIndexChanged.connect(lambda _i, c=combo: self._tipo_cambiado(c))
         self.tabla.setCellWidget(fila, self.COL_TIPO, combo)
         fmt = lambda n: "" if n is None else f"{n:g}"
         for col, valor in ((self.COL_UNIDAD, p.get("unidad") or ""), (self.COL_MIN, fmt(p.get("minimo"))),
                            (self.COL_MAX, fmt(p.get("maximo")))):
             self.tabla.setItem(fila, col, QTableWidgetItem(valor))
-        self._activar_lectura(fila, p["tipo"] == "lectura")
+        self._activar_lectura(fila, p["tipo"] in checklists.TIPOS_CON_VALOR)
 
     def _activar_lectura(self, fila, lectura):
         for col in (self.COL_UNIDAD, self.COL_MIN, self.COL_MAX):
@@ -407,7 +464,7 @@ class DialogoPlantillasChecklist(QDialog):
         for fila in range(self.tabla.rowCount()):
             if self.tabla.cellWidget(fila, self.COL_TIPO) is combo:
                 self.tabla.blockSignals(True)
-                self._activar_lectura(fila, combo.currentData() == "lectura")
+                self._activar_lectura(fila, combo.currentData() in checklists.TIPOS_CON_VALOR)
                 self.tabla.blockSignals(False)
         self._tocada()
 

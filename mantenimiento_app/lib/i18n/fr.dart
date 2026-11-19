@@ -233,6 +233,7 @@ const Map<String, String> traduccionesFr = {
     "chk_col_lectura": "Relevé",
     "chk_col_nota": "Note",
     "chk_rango": "correct",
+    "chk_desequilibrio": "Déséquilibre {p} % · phase la plus écartée : {fase}",
     "chk_resumen_mal": "{n} pas bons",
     "chk_resumen_na": "{n} sans objet",
     "chk_resumen_ok": "{n} bons",

@@ -216,6 +216,7 @@ const Map<String, String> traduccionesEu = {
     "chk_col_lectura": "Irakurketa",
     "chk_col_nota": "Oharra",
     "chk_rango": "zuzena",
+    "chk_desequilibrio": "Desoreka % {p} · gehien aldentzen dena: {fase}",
     "chk_resumen_mal": "{n} gaizki",
     "chk_resumen_na": "{n} ez dagokio",
     "chk_resumen_ok": "{n} ondo",

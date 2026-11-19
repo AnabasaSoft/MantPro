@@ -210,19 +210,31 @@ class GraficoBarrasMensual(_GraficoBase):
 class GraficoEvolucion(_GraficoBase):
     """Evolución de una lectura en el tiempo (p. ej. la resistencia de tierra de cada revisión):
     una línea con un punto por lectura, la banda del rango correcto sombreada en verde y los
-    puntos fuera de rango en rojo. Las fechas van en el eje X a su distancia real."""
+    puntos fuera de rango en rojo. Las fechas van en el eje X a su distancia real.
+    Con [series] (p. ej. las fases L1, L2, L3 de un motor trifásico) dibuja una línea por
+    serie, cada una de su color y con leyenda, a partir de "valores" de cada dato."""
+
+    COLORES_SERIES = ("#3daee9", "#e67e22", "#8e44ad")
 
     def __init__(self, parent=None, color="#3daee9", color_texto=None, color_fondo=None, formato_fecha=None):
         super().__init__(parent, color_texto, color_fondo, altura_minima=200)
         self._color = QColor(color)
         self._minimo = self._maximo = None
         self._unidad = ""
+        self._series = None
         self._formato_fecha = formato_fecha or (lambda f: f)
 
-    def establecer_datos(self, datos, minimo=None, maximo=None, unidad=""):
-        """datos: lista de dicts {"fecha": 'AAAA-MM-DD', "valor": número o None, "fuera": bool}, en orden."""
+    def establecer_datos(self, datos, minimo=None, maximo=None, unidad="", series=None):
+        """datos: lista de dicts {"fecha": 'AAAA-MM-DD', "valor": número o None, "fuera": bool}, en orden.
+        Con [series] (nombres), cada dato trae "valores": un número o None por serie."""
         self._minimo, self._maximo, self._unidad = minimo, maximo, unidad or ""
-        super().establecer_datos([d for d in datos if d.get("valor") is not None and d.get("fecha")])
+        self._series = list(series) if series else None
+        if self._series:
+            datos = [dict(d, valores=list(d.get("valores") or [])) for d in datos
+                     if d.get("fecha") and any(v is not None for v in (d.get("valores") or []))]
+        else:
+            datos = [dict(d, valores=[d.get("valor")]) for d in datos if d.get("valor") is not None and d.get("fecha")]
+        super().establecer_datos(datos)
 
     @staticmethod
     def _dia(fecha):
@@ -237,7 +249,7 @@ class GraficoEvolucion(_GraficoBase):
         return f"{v:g}"
 
     def _dibujar(self, painter):
-        valores = [d["valor"] for d in self._datos]
+        valores = [v for d in self._datos for v in d["valores"] if v is not None]
         limites = [v for v in (self._minimo, self._maximo) if v is not None]
         bajo, alto_v = min(valores + limites), max(valores + limites)
         if alto_v == bajo:
@@ -282,13 +294,34 @@ class GraficoEvolucion(_GraficoBase):
         painter.drawText(QRectF(izq, arriba + alto + 4, ancho, 16), Qt.AlignmentFlag.AlignLeft, self._formato_fecha(primera))
         if ultima != primera:
             painter.drawText(QRectF(izq, arriba + alto + 4, ancho, 16), Qt.AlignmentFlag.AlignRight, self._formato_fecha(ultima))
-        # Línea y puntos
-        puntos = [(x_de(dias[i]), y_de(d["valor"]), d.get("fuera")) for i, d in enumerate(self._datos)]
-        painter.setPen(QPen(self._color, 2))
-        for (xa, ya, _), (xb, yb, _) in zip(puntos, puntos[1:]):
-            painter.drawLine(int(xa), int(ya), int(xb), int(yb))
-        for x, y, fuera in puntos:
-            c = QColor("#e74c3c") if fuera else self._color
-            painter.setPen(QPen(c, 1))
-            painter.setBrush(QBrush(c))
-            painter.drawEllipse(QRectF(x - 4, y - 4, 8, 8))
+        # Líneas y puntos (una por serie; en rojo los que se salen del rango)
+        def fuera(v):
+            return (self._minimo is not None and v < self._minimo) or (self._maximo is not None and v > self._maximo)
+        n_series = len(self._series) if self._series else 1
+        for k in range(n_series):
+            color = QColor(self.COLORES_SERIES[k % len(self.COLORES_SERIES)]) if self._series else self._color
+            puntos = [(x_de(dias[i]), y_de(d["valores"][k]),
+                       fuera(d["valores"][k]) if self._series else d.get("fuera"))
+                      for i, d in enumerate(self._datos) if k < len(d["valores"]) and d["valores"][k] is not None]
+            painter.setPen(QPen(color, 2))
+            for (xa, ya, _), (xb, yb, _) in zip(puntos, puntos[1:]):
+                painter.drawLine(int(xa), int(ya), int(xb), int(yb))
+            for x, y, es_fuera in puntos:
+                c = QColor("#e74c3c") if es_fuera else color
+                painter.setPen(QPen(c, 1))
+                painter.setBrush(QBrush(c))
+                painter.drawEllipse(QRectF(x - 4, y - 4, 8, 8))
+        # Leyenda arriba a la derecha
+        if self._series:
+            x = izq + ancho
+            for k in reversed(range(n_series)):
+                nombre = self._series[k]
+                w = metricas.horizontalAdvance(nombre)
+                x -= w + 4
+                painter.setPen(QPen(texto, 1))
+                painter.drawText(QRectF(x, arriba, w + 4, 14), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, nombre)
+                x -= 16
+                color = QColor(self.COLORES_SERIES[k % len(self.COLORES_SERIES)])
+                painter.setPen(QPen(color, 3))
+                painter.drawLine(int(x), int(arriba + 7), int(x + 12), int(arriba + 7))
+                x -= 10

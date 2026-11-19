@@ -218,6 +218,7 @@ const Map<String, String> traduccionesEs = {
     "chk_col_lectura": "Lectura",
     "chk_col_nota": "Nota",
     "chk_rango": "correcto",
+    "chk_desequilibrio": "Desequilibrio {p} % · se aparta más {fase}",
     "chk_resumen_mal": "{n} mal",
     "chk_resumen_na": "{n} no aplica",
     "chk_resumen_ok": "{n} bien",

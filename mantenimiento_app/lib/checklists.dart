@@ -65,12 +65,59 @@ double? _numero(dynamic v) {
   return texto.isEmpty ? null : double.tryParse(texto);
 }
 
-/// true si una lectura se sale del mínimo o el máximo del punto.
-bool fueraDeRango(Map<String, dynamic> punto, String valor) {
+/// Fases de un punto de tipo «trifasica» (motor trifásico). Las tres lecturas
+/// viajan juntas en «valor», separadas por «;» («12,1;12,3;12,0»), igual que
+/// en el PC (mantpro/nucleo/checklists.py).
+const fasesTrifasica = ['L1', 'L2', 'L3'];
+
+/// Las tres lecturas (texto, '' si falta alguna) de un valor trifásico.
+List<String> fasesDe(dynamic valor) {
+  final partes = (valor ?? '').toString().split(';').map((e) => e.trim()).take(3).toList();
+  while (partes.length < 3) {
+    partes.add('');
+  }
+  return partes;
+}
+
+/// Al revés que fasesDe: «12,1;12,3;12,0», o '' si no hay ninguna.
+String unirFases(List<String> lecturas) {
+  final partes = lecturas.map((e) => e.trim().replaceAll(';', '')).toList();
+  return partes.any((e) => e.isNotEmpty) ? partes.join(';') : '';
+}
+
+/// (porcentaje, índice de la fase que más se aparta de la media), o null si
+/// falta alguna lectura. Mismo cálculo que en el PC.
+(double, int)? desequilibrioFases(dynamic valor) {
+  final nums = fasesDe(valor).map(_numero).toList();
+  if (nums.any((n) => n == null)) return null;
+  final media = (nums[0]! + nums[1]! + nums[2]!) / 3;
+  if (media <= 0) return null;
+  var mayor = 0;
+  for (var k = 1; k < 3; k++) {
+    if ((nums[k]! - media).abs() > (nums[mayor]! - media).abs()) mayor = k;
+  }
+  return (((nums[mayor]! - media).abs() / media * 1000).round() / 10, mayor);
+}
+
+/// «Desequilibrio 3,2 % · se aparta más L2» o '' si no se puede calcular.
+String textoDesequilibrio(dynamic valor) {
+  final d = desequilibrioFases(valor);
+  if (d == null) return '';
+  return t('chk_desequilibrio').replaceAll('{p}', _fmt(d.$1)).replaceAll('{fase}', fasesTrifasica[d.$2]);
+}
+
+bool _fueraUno(Map<String, dynamic> punto, String valor) {
   final n = _numero(valor);
   if (n == null) return false;
   final minimo = _numero(punto['minimo']), maximo = _numero(punto['maximo']);
   return (minimo != null && n < minimo) || (maximo != null && n > maximo);
+}
+
+/// true si una lectura se sale del mínimo o el máximo del punto (en un motor
+/// trifásico, si se sale cualquiera de las tres fases).
+bool fueraDeRango(Map<String, dynamic> punto, String valor) {
+  if (punto['tipo'] == 'trifasica') return fasesDe(valor).any((v) => _fueraUno(punto, v));
+  return _fueraUno(punto, valor);
 }
 
 String _fmt(double n) => n == n.roundToDouble() ? n.toInt().toString() : n.toString();
@@ -150,6 +197,8 @@ class PantallaChecklist extends StatefulWidget {
 class _PantallaChecklistState extends State<PantallaChecklist> {
   late final List<Map<String, dynamic>> _items;
   late final List<TextEditingController> _valores, _notas;
+  /// Los tres campos (L1, L2, L3) de cada punto; solo se usan en los trifásicos.
+  late final List<List<TextEditingController>> _fases;
 
   @override
   void initState() {
@@ -157,22 +206,32 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
     _items = widget.items.map((e) => Map<String, dynamic>.from(e)).toList();
     _valores = _items.map((e) => TextEditingController(text: (e['valor'] ?? '').toString())).toList();
     _notas = _items.map((e) => TextEditingController(text: (e['nota'] ?? '').toString())).toList();
+    _fases = _items.map((e) => fasesDe(e['tipo'] == 'trifasica' ? e['valor'] : '')
+        .map((v) => TextEditingController(text: v)).toList()).toList();
   }
 
   @override
   void dispose() {
-    for (final c in [..._valores, ..._notas]) {
+    for (final c in [..._valores, ..._notas, for (final f in _fases) ...f]) {
       c.dispose();
     }
     super.dispose();
   }
 
+  String _valorDe(int i) {
+    switch (_items[i]['tipo']) {
+      case 'lectura': return _valores[i].text.trim();
+      case 'trifasica': return unirFases(_fases[i].map((c) => c.text).toList());
+      default: return '';
+    }
+  }
+
   void _lecturaCambiada(int i, String texto) {
     setState(() {
-      _items[i]['valor'] = texto.trim();
+      _items[i]['valor'] = _valorDe(i);
       if (_numero(texto) == null) return;   // vacío o aún no es un número
       // Fuera de rango: «mal»; dentro y sin marcar todavía: «bien».
-      if (fueraDeRango(_items[i], texto)) {
+      if (fueraDeRango(_items[i], _items[i]['valor'])) {
         _items[i]['estado'] = 'mal';
       } else if (_items[i]['estado'] == null) {
         _items[i]['estado'] = 'ok';
@@ -182,7 +241,7 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
 
   List<Map<String, dynamic>> _resultado() {
     for (var i = 0; i < _items.length; i++) {
-      _items[i]['valor'] = _items[i]['tipo'] == 'lectura' ? _valores[i].text.trim() : '';
+      _items[i]['valor'] = _valorDe(i);
       _items[i]['nota'] = _notas[i].text.trim();
     }
     return _items;
@@ -250,6 +309,30 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
                   Flexible(child: Text('${t('chk_rango')}: ${textoRango(_items[i])}',
                       style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
               ]),
+            ],
+            if (_items[i]['tipo'] == 'trifasica') ...[
+              const SizedBox(height: 6),
+              Row(children: [
+                for (var k = 0; k < 3; k++) ...[
+                  if (k > 0) const SizedBox(width: 6),
+                  Expanded(child: TextField(
+                    controller: _fases[i][k],
+                    readOnly: widget.soloLectura,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                    onChanged: (v) => _lecturaCambiada(i, v),
+                    style: TextStyle(
+                        color: _fueraUno(_items[i], _fases[i][k].text) ? Colors.red : null,
+                        fontWeight: _fueraUno(_items[i], _fases[i][k].text) ? FontWeight.bold : null),
+                    decoration: InputDecoration(isDense: true, border: const OutlineInputBorder(),
+                        labelText: fasesTrifasica[k], suffixText: (_items[i]['unidad'] ?? '').toString()),
+                  )),
+                ],
+              ]),
+              if (textoRango(_items[i]).isNotEmpty || textoDesequilibrio(_valorDe(i)).isNotEmpty)
+                Padding(padding: const EdgeInsets.only(top: 4), child: Text(
+                    [if (textoRango(_items[i]).isNotEmpty) '${t('chk_rango')}: ${textoRango(_items[i])}',
+                     if (textoDesequilibrio(_valorDe(i)).isNotEmpty) textoDesequilibrio(_valorDe(i))].join(' · '),
+                    style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
             ],
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 4, children: [

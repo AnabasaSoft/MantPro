@@ -56,7 +56,23 @@ def texto_rango(minimo, maximo, unidad=""):
 
 
 def nombre_punto(p):
-    return f"{p['texto']} ({p['unidad']})" if p["unidad"] else p["texto"]
+    nombre = f"{p['texto']} ({p['unidad']})" if p["unidad"] else p["texto"]
+    if p.get("tipo") == "trifasica":
+        nombre += " · " + "/".join(checklists.FASES)
+    return nombre
+
+
+def texto_valor_lectura(l, p):
+    """«9,1 bar» o, en un motor trifásico, «L1 12,1 · L2 12,3 · L3 12,0 A (Desequilibrio 1,1 % · …)»."""
+    texto = f"{l['valor_texto']} {p['unidad']}".strip()
+    if p.get("tipo") == "trifasica" and l.get("desequilibrio") is not None:
+        texto += " (" + tt("chk_desequilibrio", "Desequilibrio {p} % · se aparta más {fase}").format(
+            p=f"{l['desequilibrio']:g}", fase=checklists.FASES[l["fase_desviada"]]) + ")"
+    return texto
+
+
+def series_de(p):
+    return checklists.FASES if p.get("tipo") == "trifasica" else None
 
 
 class DialogoLecturasChecklist(QDialog):
@@ -153,16 +169,16 @@ class DialogoLecturasChecklist(QDialog):
             self.tabla.setRowCount(0)
             return
         lecturas = p["lecturas"]
-        self.grafico.establecer_datos(lecturas, p["minimo"], p["maximo"], p["unidad"])
+        self.grafico.establecer_datos(lecturas, p["minimo"], p["maximo"], p["unidad"], series_de(p))
         fuera = sum(1 for l in lecturas if l["fuera"])
         ultima = lecturas[-1]
         self.lbl_resumen.setText(tt("lbl_lect_resumen", "{n} lecturas · {fuera} fuera de rango · rango correcto: {rango} · última: {ultima} ({fecha})").format(
             n=len(lecturas), fuera=fuera, rango=texto_rango(p["minimo"], p["maximo"], p["unidad"]),
-            ultima=f"{ultima['valor_texto']} {p['unidad']}".strip(), fecha=idiomas.formato_fecha_localizada(ultima["fecha"])))
+            ultima=texto_valor_lectura(ultima, p), fecha=idiomas.formato_fecha_localizada(ultima["fecha"])))
         self.tabla.setRowCount(len(lecturas))
         for fila, l in enumerate(reversed(lecturas)):           # la más reciente arriba
             valores = (idiomas.formato_fecha_localizada(l["fecha"]), self._rutas.get(l["maquina_id"], ""),
-                       f"{l['valor_texto']} {p['unidad']}".strip(), texto_rango(l["minimo"], l["maximo"], p["unidad"]),
+                       texto_valor_lectura(l, p), texto_rango(l["minimo"], l["maximo"], p["unidad"]),
                        l["tecnico"], l["nota"])
             for col, texto in enumerate(valores):
                 item = QTableWidgetItem(texto)
@@ -238,7 +254,12 @@ class DialogoLecturasChecklist(QDialog):
         for i, linea in enumerate(cab[1:], start=1):
             ws.write(i, 0, linea)
         fila0 = len(cab) + 1
-        cabeceras = [t("hdr_fecha"), tt("hdr_maquina", "Máquina").upper(), tt("hdr_lect_valor", "VALOR"),
+        trifasica = p.get("tipo") == "trifasica"
+        # Columnas de valor: VALOR, o L1, L2, L3 y DESEQUILIBRIO % en un motor trifásico
+        col_valor = list(checklists.FASES) + [tt("hdr_lect_desequilibrio", "DESEQUILIBRIO %")] if trifasica \
+            else [tt("hdr_lect_valor", "VALOR")]
+        nv = len(col_valor)
+        cabeceras = [t("hdr_fecha"), tt("hdr_maquina", "Máquina").upper()] + col_valor + [
                      tt("hdr_lect_unidad", "UNIDAD"), tt("hdr_lect_rango", "RANGO"), tt("hdr_lect_estado", "ESTADO"),
                      tt("hdr_tecnico", "Técnico").upper(), tt("hdr_lect_nota", "NOTA")]
         for c, txt in enumerate(cabeceras):
@@ -250,24 +271,37 @@ class DialogoLecturasChecklist(QDialog):
             except ValueError:
                 ws.write(i, 0, l["fecha"], f_txt)
             ws.write(i, 1, maquina, f_txt)
-            if l["valor"] is not None:
+            if trifasica:
+                rango_fase = {"minimo": l["minimo"], "maximo": l["maximo"]}
+                for k, v in enumerate(l["valores"]):
+                    if v is not None:
+                        ws.write_number(i, 2 + k, v, f_mal if checklists.fuera_de_rango(rango_fase, v) else f_num)
+                    else:
+                        ws.write(i, 2 + k, "", f_txt)
+                if l["desequilibrio"] is not None:
+                    ws.write_number(i, 5, l["desequilibrio"], f_num)
+                else:
+                    ws.write(i, 5, "", f_txt)
+            elif l["valor"] is not None:
                 ws.write_number(i, 2, l["valor"], f_mal if l["fuera"] else f_num)
             else:
                 ws.write(i, 2, l["valor_texto"], f_txt)
-            ws.write(i, 3, p["unidad"], f_txt)
-            ws.write(i, 4, rango, f_txt)
-            ws.write(i, 5, tt("lbl_lect_fuera", "Fuera de rango") if l["fuera"] else tt("lbl_lect_correcta", "Correcta"), f_txt)
-            ws.write(i, 6, l["tecnico"], f_txt)
-            ws.write(i, 7, l["nota"], f_txt)
+            ws.write(i, 2 + nv, p["unidad"], f_txt)
+            ws.write(i, 3 + nv, rango, f_txt)
+            ws.write(i, 4 + nv, tt("lbl_lect_fuera", "Fuera de rango") if l["fuera"] else tt("lbl_lect_correcta", "Correcta"), f_txt)
+            ws.write(i, 5 + nv, l["tecnico"], f_txt)
+            ws.write(i, 6 + nv, l["nota"], f_txt)
         ultima = fila0 + len(filas)
-        ws.set_column(0, 0, 12); ws.set_column(1, 1, 28); ws.set_column(2, 3, 10); ws.set_column(4, 5, 16); ws.set_column(6, 6, 18); ws.set_column(7, 7, 40)
+        ws.set_column(0, 0, 12); ws.set_column(1, 1, 28); ws.set_column(2, 2 + nv, 10)
+        ws.set_column(3 + nv, 4 + nv, 16); ws.set_column(5 + nv, 5 + nv, 18); ws.set_column(6 + nv, 6 + nv, 40)
         ws.freeze_panes(fila0 + 1, 0)
         if filas:
             grafico = wb.add_chart({"type": "line"})
-            grafico.add_series({"name": nombre_punto(p), "categories": [ws.name, fila0 + 1, 0, ultima, 0],
-                                "values": [ws.name, fila0 + 1, 2, ultima, 2], "marker": {"type": "circle"}})
+            for k, nombre in enumerate(checklists.FASES if trifasica else [nombre_punto(p)]):
+                grafico.add_series({"name": nombre, "categories": [ws.name, fila0 + 1, 0, ultima, 0],
+                                    "values": [ws.name, fila0 + 1, 2 + k, ultima, 2 + k], "marker": {"type": "circle"}})
             grafico.set_title({"name": nombre_punto(p)})
-            grafico.set_legend({"none": True})
+            grafico.set_legend({"position": "bottom"} if trifasica else {"none": True})
             grafico.set_x_axis({"date_axis": True, "num_format": idiomas.formato_fecha_excel(corta=True)})
             ws.insert_chart(ultima + 2, 0, grafico, {"x_scale": 1.6, "y_scale": 1.2})
         wb.close()
@@ -301,7 +335,7 @@ class DialogoLecturasChecklist(QDialog):
         tmp = tempfile.mkdtemp(prefix="mantpro_lecturas_")
         try:
             grafico = GraficoEvolucion(color_texto="#000000", color_fondo="#ffffff", formato_fecha=idiomas.formato_fecha_localizada)
-            grafico.establecer_datos(p["lecturas"], p["minimo"], p["maximo"], p["unidad"])
+            grafico.establecer_datos(p["lecturas"], p["minimo"], p["maximo"], p["unidad"], series_de(p))
             grafico.resize(900, 340)
             png = os.path.join(tmp, "grafico.png")
             grafico.grab().save(png, "PNG")
@@ -309,11 +343,12 @@ class DialogoLecturasChecklist(QDialog):
             datos = [[Paragraph(esc(c), celda_cab) for c in (t("hdr_fecha"), tt("hdr_maquina", "Máquina").upper(), tt("hdr_lect_valor", "VALOR"),
                                                              tt("hdr_lect_rango", "RANGO"), tt("hdr_tecnico", "Técnico").upper(), tt("hdr_lect_nota", "NOTA"))]]
             for l, fecha, maquina, rango in reversed(self._filas(p)):
-                valor = f"{l['valor_texto']} {p['unidad']}".strip()
+                valor = texto_valor_lectura(l, p)
                 datos.append([Paragraph(esc(fecha), celda), Paragraph(esc(maquina), celda),
                               Paragraph(esc(valor), celda_mal if l["fuera"] else celda), Paragraph(esc(rango), celda),
                               Paragraph(esc(l["tecnico"]), celda), Paragraph(esc(l["nota"]), celda)])
-            anchos = [2.2*cm, 4.5*cm, 2.4*cm, 2.8*cm, 3*cm]
+            anchos = [2.2*cm, 3.6*cm, 4.6*cm, 2.4*cm, 2.6*cm] if p.get("tipo") == "trifasica" \
+                else [2.2*cm, 4.5*cm, 2.4*cm, 2.8*cm, 3*cm]
             anchos.append(ancho_util - sum(anchos))
             tabla = Table(datos, colWidths=anchos, repeatRows=1)
             tabla.setStyle(TableStyle([
