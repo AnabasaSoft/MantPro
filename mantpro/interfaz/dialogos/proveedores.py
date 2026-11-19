@@ -126,7 +126,9 @@ class DialogoProveedores(QDialog):
         btn_nuevo = QPushButton(tt("prov_btn_nuevo", "➕ Nuevo proveedor")); btn_nuevo.clicked.connect(self.nuevo)
         btn_editar = QPushButton(tt("prov_btn_editar", "✏️ Editar")); btn_editar.clicked.connect(self.editar)
         btn_borrar = QPushButton(tt("prov_btn_borrar", "🗑️ Borrar")); btn_borrar.clicked.connect(self.borrar)
-        for b in (btn_nuevo, btn_editar, btn_borrar):
+        btn_tarifa = QPushButton(tt("tar_btn_importar", "📥 Importar tarifa…")); btn_tarifa.clicked.connect(self.importar_tarifa)
+        btn_tarifa.setToolTip(tt("tar_tt_importar", "Cargar la tarifa de precios del proveedor seleccionado desde un Excel o CSV."))
+        for b in (btn_nuevo, btn_editar, btn_borrar, btn_tarifa):
             h.addWidget(b)
         h.addStretch()
         btn_cerrar = QPushButton(t("btn_cerrar")); btn_cerrar.clicked.connect(self.accept)
@@ -180,6 +182,14 @@ class DialogoProveedores(QDialog):
         ok, error = proveedores.editar_proveedor(proveedor_id, **dlg.get_data())
         if not ok:
             QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(error))
+        self.refrescar(proveedor_id)
+
+    def importar_tarifa(self):
+        proveedor_id = self._seleccionado()
+        if proveedor_id is None:
+            self._avisar_seleccion(); return
+        from .tarifas import DialogoImportarTarifa
+        DialogoImportarTarifa(self, proveedor_id).exec()
         self.refrescar(proveedor_id)
 
     def borrar(self):
@@ -278,6 +288,13 @@ class DialogoPreciosProveedor(QDialog):
         self.lbl_leyenda = QLabel(tt("prov_precios_leyenda", "En verde, el proveedor más barato."))
         l.addWidget(self.lbl_leyenda)
 
+        l.addWidget(QLabel("<b>" + tt("tar_referencias_titulo", "Referencia en cada proveedor") + "</b>"))
+        self.tabla_refs = self._tabla([tt("prov_hdr_nombre", "PROVEEDOR"), tt("prov_hdr_referencia", "REFERENCIA"),
+                                       tt("tar_hdr_tarifa", "TARIFA"), tt("tar_hdr_dto", "DTO. %"), tt("tar_hdr_neto", "NETO"),
+                                       tt("prov_hdr_fecha", "FECHA")])
+        self.tabla_refs.setMaximumHeight(130)
+        l.addWidget(self.tabla_refs)
+
         l.addWidget(QLabel("<b>" + tt("prov_precios_historial", "Historial de precios") + "</b>"))
         self.tabla = self._tabla([tt("prov_hdr_fecha", "FECHA"), tt("prov_hdr_nombre", "PROVEEDOR"),
                                   tt("prov_hdr_precio", "PRECIO"), tt("prov_hdr_cantidad", "CANTIDAD"),
@@ -291,7 +308,8 @@ class DialogoPreciosProveedor(QDialog):
         b1 = QPushButton(tt("prov_btn_apuntar_precio", "➕ Apuntar precio")); b1.clicked.connect(self.apuntar)
         b2 = QPushButton(tt("prov_btn_usar_precio", "💲 Usar como precio del artículo")); b2.clicked.connect(self.usar_precio)
         b3 = QPushButton(tt("prov_btn_borrar_apunte", "🗑️ Borrar apunte")); b3.clicked.connect(self.borrar_apunte)
-        for b in (b1, b2, b3):
+        b4 = QPushButton(tt("tar_btn_referencia", "🔖 Referencia del proveedor…")); b4.clicked.connect(self.cambiar_referencia)
+        for b in (b1, b2, b3, b4):
             h.addWidget(b)
         h.addStretch()
         bc = QPushButton(t("btn_cerrar")); bc.clicked.connect(self.accept)
@@ -345,6 +363,19 @@ class DialogoPreciosProveedor(QDialog):
         self.tabla_resumen.setVisible(bool(resumen))
         self.lbl_leyenda.setVisible(any(r["mas_barato"] for r in resumen))
 
+        from ...nucleo import tarifas
+        refs = tarifas.proveedores_de_articulo(self.material["id"])
+        self.tabla_refs.setRowCount(len(refs))
+        for fila, r in enumerate(refs):
+            dto = "" if r["descuento"] is None else f"{r['descuento']:g}"
+            for col, valor in enumerate((r["proveedor"], r["referencia"], self._importe(r["precio_lista"]) if r["precio_lista"] is not None else "",
+                                         dto, self._importe(r["precio"]) if r["precio"] is not None else "",
+                                         formato_fecha_localizada(r["fecha"]) if r["fecha"] else "")):
+                item = QTableWidgetItem(valor)
+                if col == 0:
+                    item.setData(Qt.ItemDataRole.UserRole, r["proveedor_id"])
+                self.tabla_refs.setItem(fila, col, item)
+
         hist = proveedores.historial_precios(self.material["id"])
         self.tabla.setRowCount(len(hist))
         for fila, h in enumerate(hist):
@@ -382,6 +413,44 @@ class DialogoPreciosProveedor(QDialog):
                                                   d["referencia"], "", usuarios.nombre_actual())
         if error:
             QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(error))
+        self.refrescar()
+
+    def cambiar_referencia(self):
+        """Pone o quita la referencia de un proveedor para este artículo (la que enlaza su tarifa)."""
+        lista = proveedores.listar_proveedores()
+        if not lista:
+            QMessageBox.information(self, tt("aviso", "Aviso"), tt(
+                "prov_msg_sin_proveedores", "Primero da de alta algún proveedor (botón «🏭 Proveedores» de la pestaña de stock)."))
+            return
+        from ...nucleo import tarifas
+        actuales = {r["proveedor_id"]: r["referencia"] for r in tarifas.proveedores_de_articulo(self.material["id"])}
+        fila = self.tabla_refs.currentRow()
+        item = self.tabla_refs.item(fila, 0) if fila >= 0 else None
+        elegido = item.data(Qt.ItemDataRole.UserRole) if item else self.material.get("proveedor_id")
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tt("tar_ref_title", "Referencia del proveedor"))
+        from PyQt6.QtWidgets import QComboBox, QFormLayout
+        form = QFormLayout(dlg)
+        combo = QComboBox()
+        for p in lista:
+            combo.addItem(p["nombre"], p["id"])
+        if combo.findData(elegido) >= 0:
+            combo.setCurrentIndex(combo.findData(elegido))
+        txt = QLineEdit(actuales.get(combo.currentData(), ""))
+        txt.setPlaceholderText(tt("tar_ph_referencia", "Vacío: quitar la referencia"))
+        combo.currentIndexChanged.connect(lambda _: txt.setText(actuales.get(combo.currentData(), "")))
+        form.addRow(tt("tar_lbl_proveedor", "Proveedor:"), combo)
+        form.addRow(tt("tar_lbl_referencia", "Referencia:"), txt)
+        botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        botones.accepted.connect(dlg.accept); botones.rejected.connect(dlg.reject)
+        form.addRow(botones)
+        if not dlg.exec():
+            return
+        ok, error = tarifas.fijar_referencia(self.material["id"], combo.currentData(), txt.text())
+        if not ok:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
+                "tar_msg_referencia_repetida", "Otro artículo ya tiene esa referencia de este proveedor.")
+                if error == "referencia_repetida" else texto_error(error))
         self.refrescar()
 
     def borrar_apunte(self):

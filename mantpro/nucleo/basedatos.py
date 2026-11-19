@@ -91,6 +91,9 @@ class GestorBaseDatos:
         # Proveedores del almacén y proveedor habitual de cada artículo
         from . import proveedores
         proveedores.inicializar()
+        # Referencia de cada artículo en cada proveedor y tarifas de proveedor (Excel/CSV)
+        from . import tarifas
+        tarifas.inicializar()
         # Punto de pedido: stock objetivo y múltiplo de pedido de cada artículo
         from . import pedidos
         pedidos.inicializar()

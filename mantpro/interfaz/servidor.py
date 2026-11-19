@@ -1644,6 +1644,8 @@ class ServidorSincronizacion(QThread):
                 habitual = proveedores.proveedor_habitual(material_id)
                 material["proveedor_nombre"] = habitual["nombre"] if habitual else None
                 material["precios_proveedores"] = proveedores.resumen_precios(material_id)
+                from ..nucleo import tarifas
+                material["referencias_proveedores"] = tarifas.proveedores_de_articulo(material_id)
             else:
                 _quitar_datos_de_compras(material)
             return jsonify({"status": "ok", "material": material})
@@ -1656,6 +1658,76 @@ class ServidorSincronizacion(QThread):
             if not usuarios.es_admin(g.usuario_mantpro):
                 return jsonify({"status": "error", "message": "Solo un administrador puede ver los proveedores."}), 403
             return jsonify({"status": "ok", "proveedores": proveedores.listar_proveedores()})
+
+        @self.app.route('/api/compras/tarifa', methods=['POST'])
+        @requiere_token
+        def api_compras_tarifa():
+            """Tarifa de un proveedor (Excel/CSV), solo administradores. Formulario: proveedor_id,
+            fichero, y opcionales hoja, fila_cabecera, mapeo (JSON {campo: índice}; sin él, el
+            guardado del proveedor o el automático), descuento (% general; se guarda en el
+            proveedor), enlaces (JSON {referencia: material_id}), cambiar_precio (JSON [material_id]),
+            crear (JSON [referencia]) y aplicar=1. Sin aplicar devuelve el análisis (vista previa)."""
+            import tempfile
+            from ..nucleo import tarifas, importar as _importar
+            if not usuarios.es_admin(g.usuario_mantpro):
+                return jsonify({"status": "error", "message": "Solo un administrador puede importar tarifas."}), 403
+            fichero = request.files.get('fichero')
+            try:
+                proveedor_id = int(request.form.get('proveedor_id') or 0)
+            except ValueError:
+                proveedor_id = 0
+            if proveedores.obtener_proveedor(proveedor_id) is None:
+                return jsonify({"status": "error", "message": "no_existe"}), 404
+            if fichero is None or not fichero.filename:
+                return jsonify({"status": "error", "message": "fichero"}), 400
+            extension = os.path.splitext(fichero.filename)[1].lower()
+            if extension not in (".xlsx", ".csv", ".txt"):
+                return jsonify({"status": "error", "message": "formato"}), 400
+
+            def json_form(nombre, defecto):
+                try:
+                    valor = json.loads(request.form.get(nombre) or "null")
+                except ValueError:
+                    valor = None
+                return defecto if valor is None else valor
+
+            temporal = tempfile.NamedTemporaryFile(suffix=extension, delete=False)
+            try:
+                fichero.save(temporal)
+                temporal.close()
+                fila = request.form.get('fila_cabecera')
+                cabeceras, filas, fila_cab = tarifas.leer(temporal.name, request.form.get('hoja') or None,
+                                                          int(fila) if fila and fila.isdigit() else None)
+                ajustes = tarifas.ajustes(proveedor_id)
+                mapeo = json_form('mapeo', None)
+                if isinstance(mapeo, dict):
+                    mapeo = {c: int(j) for c, j in mapeo.items() if c in dict(tarifas.CAMPOS) and str(j).lstrip('-').isdigit()}
+                else:
+                    mapeo = tarifas.mapeo_guardado(cabeceras, ajustes["mapeo"])
+                faltan = [c for c, oblig in tarifas.CAMPOS if oblig and c not in mapeo]
+                if faltan:
+                    return jsonify({"status": "error", "message": "faltan_columnas", "faltan": faltan,
+                                    "cabeceras": cabeceras, "fila_cabecera": fila_cab, "mapeo": mapeo}), 400
+                descuento = request.form.get('descuento')
+                tarifas.guardar_ajustes(proveedor_id, ajustes["descuento"] if descuento is None else descuento,
+                                        tarifas.mapeo_a_guardar(cabeceras, mapeo, fila_cab))
+                enlaces = json_form('enlaces', {})
+                if request.form.get('aplicar') == '1':
+                    resultado = tarifas.aplicar(proveedor_id, filas, mapeo, cambiar_precio=json_form('cambiar_precio', []),
+                                                enlaces=enlaces, crear=json_form('crear', []), fichero=fichero.filename,
+                                                usuario_id=g.usuario_mantpro.get('id'),
+                                                usuario_nombre=g.usuario_mantpro.get('nombre', ''))
+                    self.stock_actualizado.emit()
+                    return jsonify({"status": "ok", "resultado": resultado})
+                return jsonify({"status": "ok", "cabeceras": cabeceras, "fila_cabecera": fila_cab, "mapeo": mapeo,
+                                "analisis": tarifas.analizar(proveedor_id, filas, mapeo, enlaces)})
+            except _importar.ErrorLectura as e:
+                return jsonify({"status": "error", "message": str(e)}), 400
+            finally:
+                try:
+                    os.unlink(temporal.name)
+                except OSError:
+                    pass
 
         @self.app.route('/api/stock/material', methods=['POST'])
         @requiere_token

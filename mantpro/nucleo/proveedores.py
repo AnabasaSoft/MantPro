@@ -307,6 +307,9 @@ def registrar_precio(material_id, proveedor_id, precio=None, cantidad=None, fech
          _texto(referencia), _texto(nota, _MAX_NOTA), _texto(usuario_nombre))).lastrowid
     con.commit()
     con.close()
+    if _texto(referencia):     # la referencia queda fija para enlazar sus tarifas
+        from . import tarifas
+        tarifas.anotar_referencia(material_id, proveedor["id"], referencia)
     return nuevo, None
 
 
@@ -316,7 +319,9 @@ def historial_precios(material_id, limite=500):
     filas = con.execute("""
         SELECT pp.*, COALESCE(p.nombre, pp.proveedor_nombre) AS proveedor
         FROM precios_proveedor pp LEFT JOIN proveedores p ON p.id = pp.proveedor_id
-        WHERE pp.material_id = ? ORDER BY pp.fecha DESC, pp.id DESC LIMIT ?""",
+        WHERE pp.material_id IN (SELECT id FROM materiales WHERE COALESCE(articulo_id, id) =
+                                 (SELECT COALESCE(articulo_id, id) FROM materiales WHERE id = ?))
+        ORDER BY pp.fecha DESC, pp.id DESC LIMIT ?""",
         (material_id, limite)).fetchall()
     con.close()
     return [dict(f) for f in filas]

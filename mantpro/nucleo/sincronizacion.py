@@ -339,6 +339,8 @@ TABLAS = {
         "maquina_repuestos": {"tipo": "enlace", "clave_natural": ("maquina_id", "material_id"),
                               "refs": {"maquina_id": "mant.maquinas", "material_id": "alma.materiales"}},
         "precios_proveedor": {"tipo": "inmutable", "refs": {"material_id": "alma.materiales", "proveedor_id": "alma.proveedores"}},
+        "articulo_proveedor": {"tipo": "enlace", "clave_natural": ("material_id", "proveedor_id"),
+                               "refs": {"material_id": "alma.materiales", "proveedor_id": "alma.proveedores"}},
         "pedidos": {"tipo": "entidad", "refs": {"proveedor_id": "alma.proveedores", "almacen_id": "alma.almacenes"}},
         "pedidos_lineas": {"tipo": "entidad", "refs": {"pedido_id": "alma.pedidos", "material_id": "alma.materiales",
                                                      "almacen_id": "alma.almacenes"}},
