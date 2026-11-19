@@ -431,6 +431,7 @@ class DialogoPlantillasChecklist(QDialog):
             return False
         if r == QMessageBox.StandardButton.Save:
             return self._guardar()
+        self._modificada = False          # descartado: no volver a preguntar
         return True
 
     def _elegida(self, item, anterior=None):
@@ -590,12 +591,9 @@ class DialogoPlantillasChecklist(QDialog):
         else:
             self._cargar(None)
 
-    def closeEvent(self, e):
-        if not self._preguntar_guardar():
-            e.ignore()
-            return
-        super().closeEvent(e)
-
+    # Sin closeEvent propio: QDialog.closeEvent ya llama a reject(), y preguntar en los dos
+    # sacaba la confirmación dos veces y dejaba el diálogo abierto (con su exec() vivo, el
+    # programa no terminaba al salir).
     def reject(self):
         if self._preguntar_guardar():
             super().reject()
