@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Mejoras
+- **🖱️ La rueda del ratón ya no cambia los desplegables.** En el PC, girar la rueda con el cursor encima de un desplegable cerrado desplaza la ventana o la tabla que lo contiene, en vez de cambiar sin querer la opción elegida. Con el desplegable abierto, la rueda recorre su lista como siempre.
+
 ### Novedades
 - **🔗 Renombrar un punto de la lista no parte su historial.** Cada punto de una plantilla tiene ahora una identidad fija: si se renombra, se cambia su rango o su unidad, o se mueve de sitio, la evolución de sus lecturas (📈 Lecturas) sigue siendo una sola serie, con el nombre actual, y una lista a medias recupera lo apuntado en ese punto. Las listas ya terminadas no cambian (se guardan como copia, con el texto y el rango de entonces). Los puntos y listas anteriores reciben su identidad al actualizar, igual en todos los equipos; una plantilla duplicada estrena identidades para no mezclar sus lecturas con la original.
 - **✏️ Corregir una lectura la vuelve a «Bien».** Al corregir en el PC o en el móvil una lectura que estaba fuera de rango (y por eso en «Mal») a un valor correcto, el punto vuelve solo a «Bien». Un «Mal» puesto a mano con una lectura correcta se respeta.

@@ -186,6 +186,8 @@ def main():
     app = QApplication(sys.argv)
     from .widgets import columnas
     columnas.instalar(app)   # columnas de todas las tablas ajustables arrastrando
+    from .widgets import rueda
+    rueda.instalar(app)      # la rueda del ratón desplaza la ventana, no cambia los desplegables
 
     # --- 1. CONFIGURACIÓN DE IDENTIDAD ---
     app.setDesktopFileName("MantPro")
