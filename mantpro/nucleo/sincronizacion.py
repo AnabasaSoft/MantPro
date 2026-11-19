@@ -316,6 +316,10 @@ TABLAS = {
         "checklist_plantillas": {"tipo": "entidad", "refs": {}},
         "checklist_puntos": {"tipo": "entidad", "refs": {"plantilla_id": "mant.checklist_plantillas"}},
         "checklist_resultados": {"tipo": "entidad", "refs": {"tarea_id": "mant.tareas"}},
+        # Listas a medias de un aviso o un pendiente (una u otra columna; las dos son únicas, así el
+        # borrador del mismo aviso hecho en dos PCs es el mismo registro al combinar)
+        "checklist_borradores": {"tipo": "entidad", "refs": {"aviso_id": "mant.avisos_recurrentes",
+                                                             "pendiente_id": "mant.pendientes"}},
         "contadores": {"tipo": "entidad", "refs": {"maquina_id": "mant.maquinas"}},
         "lecturas_contador": {"tipo": "inmutable", "uuid_desde": "uid", "refs": {"contador_id": "mant.contadores", "usuario_id": "mant.usuarios",
                                                             "aviso_id": "mant.avisos_recurrentes", "tarea_id": "mant.tareas"}},

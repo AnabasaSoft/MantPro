@@ -105,15 +105,8 @@ def inicializar():
             nota      TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_checklist_resultados ON checklist_resultados(tarea_id, orden);
-        -- Listas a medias (se dejan para seguir otro día). Locales de este PC: no se
-        -- sincronizan (no están en sincronizacion.py) ni dependen de ninguna otra tabla.
-        CREATE TABLE IF NOT EXISTS checklist_borradores (
-            clave      TEXT PRIMARY KEY,
-            plantilla  TEXT,
-            fecha      TEXT,
-            items      TEXT
-        );
     """)
+    _inicializar_borradores(con)
     # Desequilibrio máximo (%) entre fases de los puntos trifásicos. Columna añadida
     # después: la sincronización ignora las columnas que no conoce, así que una versión
     # anterior en otro PC o en la nube simplemente no la usa.
@@ -484,10 +477,49 @@ def sin_marcar(items):
 # ---------------------------------------------------------------- borradores
 # Una lista larga se puede dejar a medias (fin del turno) y seguir otro día: lo
 # apuntado se guarda al momento por aviso o pendiente y se recupera al volver a
-# abrirla. Solo en este PC (el móvil tiene los suyos); se borra al completar.
+# abrirla. Se sincroniza entre PCs y con MantPro Cloud (el móvil tiene los suyos);
+# se borra al completar.
+
+def _inicializar_borradores(con):
+    """Listas a medias. Se sincronizan con MantPro Cloud (y entre PCs): por eso cada una es
+    una fila con su uuid que apunta a su aviso O a su pendiente por id (que la sincronización
+    traduce por uuid), y no por una clave de texto con el id local («aviso:12», que en otro PC
+    sería otro aviso). Las de la versión anterior (con esa clave) se pasan a la tabla nueva."""
+    viejas = []
+    if "clave" in _columnas(con, "checklist_borradores"):
+        viejas = [dict(f) for f in con.execute("SELECT clave, plantilla, fecha, items FROM checklist_borradores")]
+        con.execute("DROP TABLE checklist_borradores")
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS checklist_borradores (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            aviso_id     INTEGER UNIQUE,     -- uno de los dos
+            pendiente_id INTEGER UNIQUE,
+            plantilla    TEXT,
+            fecha        TEXT,
+            items        TEXT
+        )""")
+    for v in viejas:
+        columna, item_id = _columna_borrador(v["clave"])
+        if columna:
+            con.execute(f"INSERT OR IGNORE INTO checklist_borradores ({columna}, plantilla, fecha, items) VALUES (?,?,?,?)",
+                        (item_id, v["plantilla"], v["fecha"], v["items"]))
+    con.commit()
+
+
+_COLUMNA_BORRADOR = {"aviso": "aviso_id", "pendiente": "pendiente_id"}
+
+
+def _columna_borrador(clave):
+    """(«aviso_id» | «pendiente_id», id) de una clave «aviso:12», o (None, None)."""
+    tipo, _, item_id = str(clave or "").partition(":")
+    try:
+        return _COLUMNA_BORRADOR.get(tipo), int(item_id)
+    except ValueError:
+        return None, None
+
 
 def clave_borrador(tipo, item_id):
-    """«aviso:12» / «pendiente:7»."""
+    """«aviso:12» / «pendiente:7» (solo para la interfaz de este PC; en la tabla va el id)."""
     return f"{tipo}:{item_id}"
 
 
@@ -499,22 +531,31 @@ def _hay_algo(items):
 def guardar_borrador(clave, plantilla_nombre, items):
     """Guarda lo apuntado hasta ahora (o lo borra si no hay nada apuntado)."""
     from datetime import datetime
+    columna, item_id = _columna_borrador(clave)
+    if columna is None:
+        return
     limpios = normalizar_items(items)
     con = _conn()
     if _hay_algo(limpios):
-        con.execute("INSERT OR REPLACE INTO checklist_borradores (clave, plantilla, fecha, items) VALUES (?,?,?,?)",
-                    (clave, plantilla_nombre or "", datetime.now().isoformat(timespec="seconds"),
+        # Se actualiza la misma fila (mismo uuid): INSERT OR REPLACE la borraría y crearía otra
+        con.execute(f"""INSERT INTO checklist_borradores ({columna}, plantilla, fecha, items) VALUES (?,?,?,?)
+                        ON CONFLICT({columna}) DO UPDATE SET plantilla = excluded.plantilla, fecha = excluded.fecha,
+                                                             items = excluded.items""",
+                    (item_id, plantilla_nombre or "", datetime.now().isoformat(timespec="seconds"),
                      json.dumps(limpios, ensure_ascii=False)))
     else:
-        con.execute("DELETE FROM checklist_borradores WHERE clave=?", (clave,))
+        con.execute(f"DELETE FROM checklist_borradores WHERE {columna}=?", (item_id,))
     con.commit()
     con.close()
 
 
 def borrador_de(clave):
     """{"plantilla", "fecha", "items"} o None."""
+    columna, item_id = _columna_borrador(clave)
+    if columna is None:
+        return None
     con = _conn()
-    f = con.execute("SELECT plantilla, fecha, items FROM checklist_borradores WHERE clave=?", (clave,)).fetchone()
+    f = con.execute(f"SELECT plantilla, fecha, items FROM checklist_borradores WHERE {columna}=?", (item_id,)).fetchone()
     con.close()
     if not f:
         return None
@@ -522,23 +563,26 @@ def borrador_de(clave):
 
 
 def borrar_borrador(clave):
+    columna, item_id = _columna_borrador(clave)
+    if columna is None:
+        return
     con = _conn()
-    con.execute("DELETE FROM checklist_borradores WHERE clave=?", (clave,))
+    con.execute(f"DELETE FROM checklist_borradores WHERE {columna}=?", (item_id,))
     con.commit()
     con.close()
 
 
 def resumen_borradores(tipo):
     """{item_id: (hechos, total)} de los avisos o pendientes con la lista a medias."""
+    columna = _COLUMNA_BORRADOR.get(tipo)
+    if columna is None:
+        return {}
     con = _conn()
-    filas = con.execute("SELECT clave, items FROM checklist_borradores WHERE clave LIKE ?", (f"{tipo}:%",)).fetchall()
+    filas = con.execute(f"SELECT {columna} AS item_id, items FROM checklist_borradores WHERE {columna} IS NOT NULL").fetchall()
     con.close()
     resultado = {}
     for f in filas:
-        try:
-            item_id = int(f["clave"].split(":", 1)[1])
-        except ValueError:
-            continue
+        item_id = f["item_id"]
         items = normalizar_items(f["items"] or "")
         total = len(puntos_reales(items))
         resultado[item_id] = (total - recuento(items)["sin"], total)

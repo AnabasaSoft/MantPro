@@ -7,6 +7,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Mejoras
+- **☁️ Las listas de comprobación a medias se sincronizan.** Una lista dejada a medias en un PC (para seguir otro día) se ve y se puede seguir también en los demás PC y en MantPro Cloud, y desaparece en todos al completar el trabajo. Las que ya había a medias se conservan.
 - **🖱️ La rueda del ratón ya no cambia los desplegables.** En el PC, girar la rueda con el cursor encima de un desplegable cerrado desplaza la ventana o la tabla que lo contiene, en vez de cambiar sin querer la opción elegida. Con el desplegable abierto, la rueda recorre su lista como siempre.
 
 ### Novedades
