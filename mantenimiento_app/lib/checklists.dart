@@ -162,9 +162,13 @@ String textoRango(Map<String, dynamic> punto) {
 }
 
 /// {ok, mal, na, sin} de una lista rellenada.
+/// Separador de zona o máquina: un título que agrupa los puntos de debajo; no
+/// se marca ni cuenta (igual que en el PC, tipo «seccion»).
+bool esSeparador(dynamic it) => it is Map && it['tipo'] == 'seccion';
+
 Map<String, int> recuentoChecklist(List items) {
   final r = {'ok': 0, 'mal': 0, 'na': 0, 'sin': 0};
-  for (final it in items) {
+  for (final it in items.where((e) => !esSeparador(e))) {
     final e = (it is Map) ? it['estado'] : null;
     r[_estados.contains(e) ? e : 'sin'] = r[_estados.contains(e) ? e : 'sin']! + 1;
   }
@@ -210,7 +214,7 @@ Future<Map<String, dynamic>> _leerBorradores() async {
 }
 
 String _resumenBorrador(Map b) {
-  final items = (b['items'] as List? ?? []);
+  final items = (b['items'] as List? ?? []).where((e) => !esSeparador(e)).toList();
   final hechos = items.where((e) => e is Map && _estados.contains(e['estado'])).length;
   return '$hechos/${items.length}';
 }
@@ -416,7 +420,7 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
   }
 
   Future<void> _guardar() async {
-    final faltan = _items.where((e) => !_estados.contains(e['estado'])).length;
+    final faltan = _items.where((e) => !esSeparador(e) && !_estados.contains(e['estado'])).length;
     if (faltan > 0) {
       final seguir = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
         title: Text(t('title_checklist')),
@@ -447,17 +451,30 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
   @override
   Widget build(BuildContext context) {
     final hechos = _items.where((e) => _estados.contains(e['estado'])).length;
+    final total = _items.where((e) => !esSeparador(e)).length;
+    // Número de cada punto sin contar los separadores
+    final numeros = <int>[];
+    var n = 0;
+    for (final it in _items) {
+      numeros.add(esSeparador(it) ? 0 : ++n);
+    }
     return Scaffold(
       appBar: AppBar(title: Text(widget.soloLectura ? t('title_checklist') : t('title_rellenar_checklist'))),
       body: ListView(padding: const EdgeInsets.all(12), children: [
         Text(widget.titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 4),
-        Text('☑️ ${widget.plantilla} · $hechos/${_items.length}', style: const TextStyle(color: Colors.blueGrey)),
+        Text('☑️ ${widget.plantilla} · $hechos/$total', style: const TextStyle(color: Colors.blueGrey)),
         const SizedBox(height: 8),
-        for (var i = 0; i < _items.length; i++) Card(
+        for (var i = 0; i < _items.length; i++) if (esSeparador(_items[i])) Container(
+          margin: const EdgeInsets.only(top: 14, bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(color: Colors.blue.withOpacity(0.12), borderRadius: BorderRadius.circular(6),
+              border: Border(left: BorderSide(color: Colors.blue.shade700, width: 4))),
+          child: Text('${_items[i]['texto']}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue.shade800)),
+        ) else Card(
           margin: const EdgeInsets.symmetric(vertical: 5),
           child: Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${i + 1}. ${_items[i]['texto']}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+            Text('${numeros[i]}. ${_items[i]['texto']}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
             if (_items[i]['tipo'] == 'lectura') ...[
               const SizedBox(height: 6),
               Row(children: [
@@ -530,7 +547,7 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
           icon: const Icon(Icons.done_all),
           label: Text(t('btn_chk_todo_bien_corto')),
           onPressed: () => setState(() {
-            for (final it in _items) {
+            for (final it in _items.where((e) => !esSeparador(e))) {
               it['estado'] ??= 'ok';
             }
           }),

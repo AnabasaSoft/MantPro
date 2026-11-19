@@ -29,6 +29,8 @@ checklists.py — Listas de comprobación de preventivos y trabajos.
   `valor` como «12,1;12,3;12,0»; el mínimo y el máximo valen para cada fase y
   se calcula el desequilibrio entre fases para ver si una consume más; si se
   pasa del «desequilibrio máximo %» del punto, el punto queda como «mal»).
+  También hay «seccion»: un separador (zona o máquina) que agrupa los puntos
+  que le siguen; no se marca ni cuenta en los recuentos.
 - Una plantilla se asigna a avisos recurrentes y a pendientes
   (columna checklist_id).
 - Al completar, lo rellenado se guarda **como copia** junto al trabajo del
@@ -44,7 +46,8 @@ from .conexion_bd import sqlite3, conectar
 
 RUTA_DB = None
 
-TIPOS = ("estado", "lectura", "trifasica")
+TIPOS = ("estado", "lectura", "trifasica", "seccion")
+SECCION = "seccion"     # separador: título de zona o máquina, sin estado ni valor
 TIPOS_CON_VALOR = ("lectura", "trifasica")      # los que llevan unidad, mínimo, máximo y valor
 FASES = ("L1", "L2", "L3")
 SEP_FASES = ";"   # separador de las tres lecturas en `valor` (no «,», que es la coma decimal)
@@ -345,7 +348,7 @@ def normalizar_items(items):
         desconocido = bool(it.get("tipo")) and tipo == "estado" and it.get("tipo") != "estado"
         if desconocido:
             tipo = str(it["tipo"]).strip()[:20] or "estado"
-        estado = it.get("estado") if it.get("estado") in ESTADOS else None
+        estado = it.get("estado") if it.get("estado") in ESTADOS and tipo != SECCION else None
         valor = str(it.get("valor") or "").strip() if tipo == "lectura" or desconocido else ""
         if tipo == "trifasica":
             valor = unir_fases(fases(it.get("valor")))
@@ -413,13 +416,18 @@ def borrar_resultado(tarea_id, con=None):
 def recuento(items):
     """{"ok", "mal", "na", "sin"} de una lista rellenada."""
     r = {"ok": 0, "mal": 0, "na": 0, "sin": 0}
-    for it in items:
+    for it in puntos_reales(items):
         r[it.get("estado") if it.get("estado") in ESTADOS else "sin"] += 1
     return r
 
 
+def puntos_reales(items):
+    """Los puntos que se revisan (sin los separadores)."""
+    return [it for it in items if it.get("tipo") != SECCION]
+
+
 def sin_marcar(items):
-    return [it for it in items if it.get("estado") not in ESTADOS]
+    return [it for it in puntos_reales(items) if it.get("estado") not in ESTADOS]
 
 
 # ---------------------------------------------------------------- borradores
@@ -481,7 +489,8 @@ def resumen_borradores(tipo):
         except ValueError:
             continue
         items = normalizar_items(f["items"] or "")
-        resultado[item_id] = (len(items) - recuento(items)["sin"], len(items))
+        total = len(puntos_reales(items))
+        resultado[item_id] = (total - recuento(items)["sin"], total)
     return resultado
 
 
@@ -499,6 +508,8 @@ from . import usuarios as _usuarios
 
 
 def _texto_punto(p):
+    if p.get("tipo") == SECCION:
+        return f"── {p['texto']} ──"
     texto = p["texto"]
     if p.get("tipo") in TIPOS_CON_VALOR:
         rango = []
@@ -567,6 +578,8 @@ def cambios_resultado(antes_items, despues_items):
         return " · ".join(partes)
     cambios = []
     for a, d in zip(antes_items, despues_items):
+        if a.get("tipo") == SECCION:
+            continue
         if linea(a) != linea(d):
             cambios.append({"campo": a.get("texto", ""), "antes": linea(a), "despues": linea(d)})
     return cambios

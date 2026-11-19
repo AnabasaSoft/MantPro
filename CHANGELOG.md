@@ -7,6 +7,8 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 ## Sin publicar
 
 ### Novedades
+- **🗂️ Separadores en las listas de comprobación.** Nuevo tipo de punto **── Separador (zona / máquina)**: un título que agrupa los puntos de debajo, para que una lista larga no salga todo seguido. Se ve destacado al rellenarla (PC y app MantPro), en el PDF y en el Excel, y en las exportaciones del historial; no se marca ni cuenta en los recuentos ni en «📝 12/30».
+- **🛡️ Las listas no pierden datos de tipos nuevos.** Si una versión anterior (otro PC, o MantPro Cloud sin actualizar) recibe un punto de un tipo que no conoce, lo guarda tal cual con su valor en vez de convertirlo en bien / mal y perder las lecturas.
 - **🖨️ Imprimir y exportar la lista de comprobación de un trabajo.** Al abrir un trabajo del historial que lleva lista, el botón **☑️ Ver lista de comprobación (imprimir / exportar)** la abre; desde ahí (y desde el clic derecho «☑️ Ver lista de comprobación») se puede **🖨️ Imprimir** (abre un PDF en el visor del sistema), **📄 Exportar PDF** (con logo) y **📊 Exportar Excel** (con una columna por fase y el desequilibrio en los motores trifásicos). Sale lo que se ve en pantalla, también si se acaba de corregir. Traducido en los 8 idiomas.
 
 ## 3.10.11 — 2026-11-19

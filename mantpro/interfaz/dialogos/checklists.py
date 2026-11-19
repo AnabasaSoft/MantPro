@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
                              QHeaderView, QMessageBox, QAbstractItemView, QWidget, QButtonGroup,
                              QRadioButton, QSplitter, QDialogButtonBox, QFileDialog)
 from PyQt6.QtCore import Qt, QTimer, QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QDesktopServices, QColor
 
 from ... import idiomas
 from ...idiomas import t
@@ -74,7 +74,9 @@ def estado_plano(estado):
 
 
 def linea_export(it):
-    """«Presión de trabajo: Mal — 9,1 bar (Revisar presostato)»."""
+    """«Presión de trabajo: Mal — 9,1 bar (Revisar presostato)»; un separador, «── Zona 1 ──»."""
+    if it.get("tipo") == checklists.SECCION:
+        return f"── {it['texto']} ──"
     texto = f"{it['texto']}: {estado_plano(it.get('estado'))}"
     if it.get("valor"):
         texto += f" — {checklists.texto_valor(it)}"
@@ -110,7 +112,8 @@ def texto_export(lista):
     """Toda la lista en una celda (CSV y Excel)."""
     if not lista:
         return "-"
-    return lista["plantilla"] + "\n" + "\n".join("• " + linea_export(it) for it in lista["items"])
+    return lista["plantilla"] + "\n" + "\n".join(
+        ("" if it.get("tipo") == checklists.SECCION else "• ") + linea_export(it) for it in lista["items"])
 
 
 def llenar_combo_plantillas(combo, seleccionada=None):
@@ -162,6 +165,16 @@ class DialogoRellenarChecklist(QDialog):
         # _valores[fila]: QLineEdit (lectura), lista de tres QLineEdit (trifásica) o None
         self._grupos, self._valores, self._notas, self._desequilibrios = [], [], [], {}
         for fila, it in enumerate(self._items):
+            if it["tipo"] == checklists.SECCION:
+                # Separador: título de zona o máquina a lo ancho de la tabla, sin estado ni campos
+                celda = QTableWidgetItem(f"▸ {it['texto']}")
+                celda.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                letra = celda.font(); letra.setBold(True); letra.setPointSizeF(letra.pointSizeF() * 1.1); celda.setFont(letra)
+                celda.setBackground(QColor(61, 174, 233, 60))
+                self.tabla.setItem(fila, self.COL_PUNTO, celda)
+                self.tabla.setSpan(fila, 0, 1, 4)
+                self._grupos.append(QButtonGroup(self)); self._valores.append(None); self._notas.append(None)
+                continue
             texto = it["texto"]
             if it["tipo"] in checklists.TIPOS_CON_VALOR and texto_rango(it):
                 texto += f"\n({tt('chk_rango', 'correcto')}: {texto_rango(it)})"
@@ -234,7 +247,7 @@ class DialogoRellenarChecklist(QDialog):
             for campo in self._valores:
                 for c in (campo if isinstance(campo, list) else [campo] if campo is not None else []):
                     c.textChanged.connect(lambda *_: self._espera.start())
-            for nota in self._notas:
+            for nota in filter(None, self._notas):
                 nota.textChanged.connect(lambda *_: self._espera.start())
 
         botones = QHBoxLayout()
@@ -382,7 +395,7 @@ class DialogoRellenarChecklist(QDialog):
             nuevo = dict(it)
             nuevo["estado"] = self._estado_de(fila)
             nuevo["valor"] = self._valor_de(fila)
-            nuevo["nota"] = self._notas[fila].text().strip()
+            nuevo["nota"] = self._notas[fila].text().strip() if self._notas[fila] is not None else ""
             resultado.append(nuevo)
         return resultado
 
@@ -422,7 +435,7 @@ def rellenar_para(parent, plantilla_id, titulo, clave_borrador=None):
         msg.setText(tt("msg_chk_borrador",
             "Esta lista se empezó el {fecha} y se dejó a medias ({hechos} puntos revisados).\n\n¿Seguir donde se quedó?").format(
             fecha=idiomas.formato_fecha_localizada(borrador["fecha"][:10]) + " " + borrador["fecha"][11:16],
-            hechos=f"{len(borrador['items']) - r['sin']}/{len(borrador['items'])}"))
+            hechos=f"{len(checklists.puntos_reales(borrador['items'])) - r['sin']}/{len(checklists.puntos_reales(borrador['items']))}"))
         seguir = msg.addButton(tt("btn_chk_continuar", "Continuar"), QMessageBox.ButtonRole.AcceptRole)
         nueva = msg.addButton(tt("btn_chk_empezar_nuevo", "Empezar de nuevo"), QMessageBox.ButtonRole.DestructiveRole)
         msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
@@ -462,7 +475,8 @@ class DialogoPlantillasChecklist(QDialog):
             "Al completarlos, se pide rellenar la lista y queda guardada con el trabajo en el historial. "
             "Los puntos de tipo «Lectura» piden además un valor (con su unidad); si se sale del mínimo o el máximo, quedan como «mal». "
             "Los de tipo «Motor trifásico» piden tres lecturas (L1, L2, L3), con el mismo rango para cada fase, y además "
-            "quedan como «mal» si el desequilibrio entre fases pasa del «Deseq. máx. %»."))
+            "quedan como «mal» si el desequilibrio entre fases pasa del «Deseq. máx. %». "
+            "Los de tipo «Separador» no se revisan: son un título (una zona o una máquina) que agrupa los puntos de debajo."))
         ayuda.setWordWrap(True)
         l.addWidget(ayuda)
 
@@ -576,6 +590,7 @@ class DialogoPlantillasChecklist(QDialog):
         combo.addItem(tt("chk_tipo_estado", "Bien / Mal"), "estado")
         combo.addItem(tt("chk_tipo_lectura", "Lectura"), "lectura")
         combo.addItem(tt("chk_tipo_trifasica", "Motor trifásico (L1, L2, L3)"), "trifasica")
+        combo.addItem(tt("chk_tipo_seccion", "── Separador (zona / máquina)"), "seccion")
         combo.setCurrentIndex(max(0, combo.findData(p["tipo"])))
         combo.currentIndexChanged.connect(lambda _i, c=combo: self._tipo_cambiado(c))
         self.tabla.setCellWidget(fila, self.COL_TIPO, combo)

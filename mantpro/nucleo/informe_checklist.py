@@ -132,6 +132,7 @@ def generar_pdf(tarea_id, ruta, ruta_logo=None, items=None):
     celda = ParagraphStyle("CeldaChk", parent=estilos["BodyText"], fontSize=8.5, leading=10.5)
     celda_mal = ParagraphStyle("CeldaChkMal", parent=celda, textColor=colors.HexColor("#c0392b"), fontName="Helvetica-Bold")
     celda_cab = ParagraphStyle("CabChk", parent=celda, textColor=colors.whitesmoke, fontName="Helvetica-Bold")
+    celda_sec = ParagraphStyle("SecChk", parent=celda, fontSize=10, leading=13, textColor=colors.HexColor("#1d5f86"))
     esc = lambda s: escape(str(s or "")).replace("\n", "<br/>")   # noqa: E731
 
     elementos = []
@@ -150,7 +151,15 @@ def generar_pdf(tarea_id, ruta, ruta_logo=None, items=None):
 
     filas = [[Paragraph(esc(c), celda_cab) for c in
               ("#", _t("chk_col_punto"), _t("chk_col_resultado"), _t("chk_col_lectura"), _t("chk_col_nota"))]]
-    for i, it in enumerate(d["items"], start=1):
+    secciones = []                      # filas de los separadores, para darles su estilo
+    n = 0
+    for it in d["items"]:
+        if it.get("tipo") == checklists.SECCION:
+            secciones.append(len(filas))
+            filas.append([Paragraph(f"<b>{esc(it['texto'])}</b>", celda_sec), "", "", "", ""])
+            continue
+        n += 1
+        i = n
         punto = it["texto"] + (f"\n({_t('chk_rango')}: {_rango(it)})" if _rango(it) else "")
         mal = it.get("estado") == "mal"
         filas.append([Paragraph(str(i), celda), Paragraph(esc(punto), celda),
@@ -161,12 +170,15 @@ def generar_pdf(tarea_id, ruta, ruta_logo=None, items=None):
     anchos = [0.8 * cm, 6.2 * cm, 2.2 * cm, 4.2 * cm]
     anchos.append(ancho - sum(anchos))
     tabla = Table(filas, colWidths=anchos, repeatRows=1)
-    tabla.setStyle(TableStyle([
+    estilo = [
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3daee9")),
         ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f6f9")]),
-    ]))
+    ]
+    for f in secciones:
+        estilo += [("SPAN", (0, f), (-1, f)), ("BACKGROUND", (0, f), (-1, f), colors.HexColor("#d4ebf8"))]
+    tabla.setStyle(TableStyle(estilo))
     elementos.append(tabla)
     SimpleDocTemplate(ruta, pagesize=A4, rightMargin=1.5 * cm, leftMargin=1.5 * cm, topMargin=1.5 * cm,
                       bottomMargin=1.5 * cm, title=f"{_t('title_checklist')} - {d['titulo']}").build(elementos)
@@ -189,6 +201,7 @@ def generar_excel(tarea_id, ruta, items=None):
     f_cab = wb.add_format({"bold": True, "bg_color": "#3daee9", "color": "white", "border": 1, "align": "center",
                            "text_wrap": True})
     f_txt = wb.add_format({"border": 1, "text_wrap": True, "valign": "top"})
+    f_sec = wb.add_format({"border": 1, "bold": True, "font_size": 11, "bg_color": "#d4ebf8", "font_color": "#1d5f86"})
     f_mal = wb.add_format({"border": 1, "text_wrap": True, "valign": "top", "font_color": "#c0392b", "bold": True})
     f_num = wb.add_format({"border": 1, "num_format": "0.###", "valign": "top"})
     f_num_mal = wb.add_format({"border": 1, "num_format": "0.###", "valign": "top", "font_color": "#c0392b", "bold": True})
@@ -203,10 +216,14 @@ def generar_excel(tarea_id, ruta, items=None):
                  *checklists.FASES, _t("hdr_lect_desequilibrio"), _t("chk_rango").capitalize(), _t("chk_col_nota")]
     for c, txt in enumerate(cabeceras):
         ws.write(fila0, c, txt, f_cab)
-    for i, it in enumerate(d["items"], start=1):
-        f = fila0 + i
+    n = 0
+    for f, it in enumerate(d["items"], start=fila0 + 1):
+        if it.get("tipo") == checklists.SECCION:
+            ws.merge_range(f, 0, f, 9, it["texto"], f_sec)
+            continue
+        n += 1
         mal = it.get("estado") == "mal"
-        ws.write_number(f, 0, i, f_txt)
+        ws.write_number(f, 0, n, f_txt)
         ws.write(f, 1, it["texto"], f_txt)
         ws.write(f, 2, _estado(it.get("estado")), f_mal if mal else f_txt)
         ws.write(f, 3, checklists.texto_valor(it), f_mal if checklists.fuera_de_rango(it, it.get("valor")) else f_txt)
