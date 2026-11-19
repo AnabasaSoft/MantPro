@@ -554,8 +554,12 @@ class ServidorSincronizacion(QThread):
                 # Con sus contadores (horas, ciclos, km) y la última lectura,
                 # para apuntar lecturas desde la ficha de la máquina sin conexión
                 por_maquina = contadores.por_maquina()
+                # y la evolución de las lecturas de sus listas de comprobación (las últimas de
+                # cada punto), para verla en la ficha de la máquina sin conexión
+                lecturas = checklists.lecturas_por_maquina()
                 filtro = _filtro_sede()   # solo las de las sedes del técnico (con su sede, para filtrar en el móvil)
-                return jsonify([{**m, "sede_id": sedes.efectiva(m.get("sede_id")), "contadores": por_maquina.get(m["id"], [])}
+                return jsonify([{**m, "sede_id": sedes.efectiva(m.get("sede_id")), "contadores": por_maquina.get(m["id"], []),
+                                 "lecturas": lecturas.get(m["id"], [])}
                                 for m in maquinas.listar_maquinas() if sedes.de_la_sede(m.get("sede_id"), filtro)])
             except Exception as e:
                 return jsonify({"error": str(e)}), 500

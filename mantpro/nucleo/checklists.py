@@ -665,24 +665,47 @@ def evolucion_lecturas(maquina_ids):
     ids = [int(i) for i in (maquina_ids or []) if i is not None]
     if not ids:
         return []
+    return _agrupar_lecturas(_filas_lecturas(ids))
+
+
+_SQL_LECTURAS = """SELECT r.punto_uid, r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.desequilibrio_max, r.valor, r.nota,
+                          r.tarea_id, t.fecha, t.maquina_id, COALESCE(t.usuario_nombre, '') AS tecnico
+                   FROM checklist_resultados r JOIN tareas t ON t.id = r.tarea_id
+                   WHERE r.tipo IN ('lectura', 'trifasica') AND COALESCE(r.valor, '') != ''"""
+
+
+def _filas_lecturas(ids=None):
+    """Filas de lecturas de los trabajos de esas máquinas (None: de todas las que tengan máquina)."""
     con = _conn()
-    filas = []
-    for trozo in range(0, len(ids), 500):
-        parte = ids[trozo:trozo + 500]
-        filas += con.execute(
-            f"""SELECT r.punto_uid, r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.desequilibrio_max, r.valor, r.nota, r.tarea_id,
-                       t.fecha, t.maquina_id, COALESCE(t.usuario_nombre, '') AS tecnico
-                FROM checklist_resultados r JOIN tareas t ON t.id = r.tarea_id
-                WHERE r.tipo IN ('lectura', 'trifasica') AND COALESCE(r.valor, '') != ''
-                  AND t.maquina_id IN ({','.join('?' * len(parte))})""", parte).fetchall()
-    con.close()
+    try:
+        if ids is None:
+            return con.execute(_SQL_LECTURAS + " AND t.maquina_id IS NOT NULL").fetchall()
+        filas = []
+        for trozo in range(0, len(ids), 500):
+            parte = ids[trozo:trozo + 500]
+            filas += con.execute(_SQL_LECTURAS + f" AND t.maquina_id IN ({','.join('?' * len(parte))})",
+                                 parte).fetchall()
+        return filas
+    finally:
+        con.close()
+
+
+def _clave_texto(clave):
+    """La clave de un punto en texto, para el móvil (que junta los de la máquina y sus submáquinas
+    con la misma regla que evolucion_lecturas)."""
+    if len(clave) == 2:
+        return f"u|{clave[0]}|{clave[1]}"
+    return "t|" + "|".join(clave)
+
+
+def _agrupar_lecturas(filas):
     puntos = {}
     for f in sorted(filas, key=lambda f: (f["fecha"] or "", f["tarea_id"])):
         tipo = "trifasica" if f["tipo"] == "trifasica" else "lectura"
         # El mismo punto en revisiones distintas: por su punto_uid (aunque se haya renombrado o
         # cambiado de unidad); sin él, por texto y unidad.
         clave = (f["punto_uid"], tipo) if f["punto_uid"] else _clave_punto(f["texto"], f["unidad"], tipo)
-        p = puntos.setdefault(clave, {"tipo": tipo, "lecturas": []})
+        p = puntos.setdefault(clave, {"tipo": tipo, "clave": _clave_texto(clave), "lecturas": []})
         p["texto"], p["unidad"] = " ".join(f["texto"].split()), f["unidad"] or ""   # los de la más reciente
         p["minimo"], p["maximo"] = f["minimo"], f["maximo"]        # los de la más reciente (van en orden)
         p["desequilibrio_max"] = f["desequilibrio_max"]
@@ -701,3 +724,20 @@ def evolucion_lecturas(maquina_ids):
                            desequilibrio_fuera=desequilibrio_excesivo(rango, f["valor"]))
         p["lecturas"].append(lectura)
     return sorted(puntos.values(), key=lambda p: (p["texto"].casefold(), p["unidad"].casefold(), p["tipo"]))
+
+
+def lecturas_por_maquina(ultimas=30):
+    """Evolución de las lecturas de CADA máquina (solo las suyas, sin las de sus submáquinas),
+    para que el móvil la guarde con la lista de máquinas y la vea sin conexión:
+    {maquina_id: [puntos como en evolucion_lecturas, con "clave" y solo sus [ultimas] lecturas]}.
+    El móvil junta los puntos de la máquina y sus submáquinas por "clave"."""
+    por_maquina = {}
+    for f in _filas_lecturas():
+        por_maquina.setdefault(f["maquina_id"], []).append(f)
+    resultado = {}
+    for maquina_id, filas in por_maquina.items():
+        puntos = _agrupar_lecturas(filas)
+        for p in puntos:
+            p["lecturas"] = p["lecturas"][-ultimas:] if ultimas else p["lecturas"]
+        resultado[maquina_id] = puntos
+    return resultado

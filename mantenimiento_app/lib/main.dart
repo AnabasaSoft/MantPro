@@ -45,6 +45,7 @@ import 'conexion_segura.dart';
 import 'rutas_servidor.dart';
 import 'checklists.dart';
 import 'contadores.dart';
+import 'lecturas.dart';
 import 'sedes.dart';
 
 
@@ -4483,6 +4484,7 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
   List<Map<String, dynamic>> _contadores = [];
   Map<int, Map<String, dynamic>> _lecturasLocales = {};
   List<AvisoPC> _preventivos = [];
+  List<Map<String, dynamic>> _planas = [];   // todas las máquinas (con sus lecturas de las listas)
 
   @override
   void initState() {
@@ -4533,6 +4535,7 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
       _preventivos = ordenarAvisosPendientesPrimero(preventivos);
       _repuestos = repuestos;
       _maquina = maquina;
+      _planas = planas;
       _superior = ruta.join(' > ');
       _trabajos = historial.where((h) => h['maquinaId'] == widget.maquinaId).toList()
         ..sort((a, b) => '${b['titulo']}'.compareTo('${a['titulo']}'));
@@ -4659,6 +4662,16 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
                 label: Text(tt('btn_registrar_en_maquina', 'Registrar trabajo en esta máquina')),
                 onPressed: _registrarTrabajo,
               ),
+              // Evolución de las lecturas de las listas de comprobación (de la última sincronización)
+              if (hayLecturas(_planas, widget.maquinaId)) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.show_chart),
+                  label: Text(t('btn_lecturas_maquina')),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => PantallaLecturas(maquinaId: widget.maquinaId, planas: _planas))),
+                ),
+              ],
               if (_contadores.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 Text(t('lbl_contadores_maquina'), style: Theme.of(context).textTheme.titleMedium),
