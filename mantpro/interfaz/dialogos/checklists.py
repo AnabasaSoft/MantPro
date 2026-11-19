@@ -22,11 +22,16 @@
 una lista al completar un preventivo o un trabajo, y verla o corregirla desde
 el historial."""
 
+import os
+import re
+import tempfile
+
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListWidget,
                              QListWidgetItem, QLineEdit, QTableWidget, QTableWidgetItem, QComboBox,
                              QHeaderView, QMessageBox, QAbstractItemView, QWidget, QButtonGroup,
-                             QRadioButton, QSplitter, QDialogButtonBox)
-from PyQt6.QtCore import Qt, QTimer
+                             QRadioButton, QSplitter, QDialogButtonBox, QFileDialog)
+from PyQt6.QtCore import Qt, QTimer, QUrl
+from PyQt6.QtGui import QDesktopServices
 
 from ... import idiomas
 from ...idiomas import t
@@ -126,8 +131,9 @@ class DialogoRellenarChecklist(QDialog):
 
     COL_PUNTO, COL_ESTADO, COL_VALOR, COL_NOTA = 0, 1, 2, 3
 
-    def __init__(self, parent, titulo, items, plantilla_nombre="", solo_lectura=False, al_cambiar=None):
+    def __init__(self, parent, titulo, items, plantilla_nombre="", solo_lectura=False, al_cambiar=None, tarea_id=None):
         super().__init__(parent)
+        self.tarea_id = tarea_id          # con él (lista ya guardada con un trabajo): imprimir y exportar
         self._items = [dict(it) for it in items]
         self.solo_lectura = solo_lectura
         # al_cambiar(items): se llama (con un pequeño retraso) cada vez que se apunta algo,
@@ -138,6 +144,7 @@ class DialogoRellenarChecklist(QDialog):
         self.setWindowTitle(tt("title_checklist", "Lista de comprobación"))
         self.resize(900, 520)
         l = QVBoxLayout(self)
+        self._titulo = titulo
         cabecera = QLabel(f"<b>{titulo}</b>" + (f"<br>☑️ {plantilla_nombre}" if plantilla_nombre else ""))
         cabecera.setWordWrap(True)
         l.addWidget(cabecera)
@@ -231,7 +238,14 @@ class DialogoRellenarChecklist(QDialog):
                 nota.textChanged.connect(lambda *_: self._espera.start())
 
         botones = QHBoxLayout()
-        if not solo_lectura:
+        if tarea_id is not None:
+            for texto, clave, accion in (("🖨️ Imprimir", "btn_chk_imprimir", self._imprimir),
+                                         ("📄 Exportar PDF", "btn_exportar_pdf_corto", lambda: self._exportar("pdf")),
+                                         ("📊 Exportar Excel", "btn_exportar_excel_corto", lambda: self._exportar("xlsx"))):
+                b = QPushButton(tt(clave, texto))
+                b.clicked.connect(accion)
+                botones.addWidget(b)
+        if not solo_lectura and tarea_id is None:
             todo_bien = QPushButton(tt("btn_chk_todo_bien", "✅ Marcar los que faltan como bien"))
             todo_bien.clicked.connect(self._todo_bien)
             botones.addWidget(todo_bien)
@@ -248,6 +262,56 @@ class DialogoRellenarChecklist(QDialog):
             caja.rejected.connect(self.reject)
             botones.addWidget(caja)
         l.addLayout(botones)
+
+    # ------------------------------------------------------------- imprimir / exportar
+    def _logo(self):
+        from ...nucleo.rutas import DATA_DIR
+        return os.path.join(DATA_DIR, "Logo.jpg")
+
+    def _imprimir(self):
+        """PDF en una carpeta temporal, abierto con el visor del sistema para imprimirlo
+        (igual que los pedidos a proveedor)."""
+        from ...nucleo import informe_checklist
+        carpeta = tempfile.mkdtemp(prefix="mantpro_lista_")
+        ruta = os.path.join(carpeta, self._nombre_fichero() + ".pdf")
+        try:
+            informe_checklist.generar_pdf(self.tarea_id, ruta, self._logo(), self.items())
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(ruta))
+
+    def _nombre_fichero(self):
+        titulo = tt("title_checklist", "Lista de comprobación")
+        return re.sub(r"[^\w-]+", "_", f"{titulo}_{self._titulo}").strip("_")[:120] or "lista"
+
+    def _exportar(self, formato):
+        from ...nucleo import informe_checklist
+        if formato == "xlsx":
+            try: import xlsxwriter  # noqa: F401
+            except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
+        filtro = "PDF (*.pdf)" if formato == "pdf" else "Excel (*.xlsx)"
+        titulo_dlg = t("title_exportar_pdf") if formato == "pdf" else t("title_exportar_excel")
+        propuesto = f"{self._nombre_fichero()}.{formato}"
+        guardar = getattr(self.parent(), "guardar_archivo_dialogo", None)
+        if guardar:
+            archivo = guardar(titulo_dlg, propuesto, filtro)
+        else:
+            archivo, _ = QFileDialog.getSaveFileName(self, titulo_dlg, propuesto, filtro)
+        if not archivo:
+            return
+        if not archivo.lower().endswith("." + formato):
+            archivo += "." + formato
+        try:
+            if formato == "pdf":
+                informe_checklist.generar_pdf(self.tarea_id, archivo, self._logo(), self.items())
+            else:
+                informe_checklist.generar_excel(self.tarea_id, archivo, self.items())
+        except Exception as e:
+            QMessageBox.critical(self, t("title_error"), str(e))
+            return
+        QMessageBox.information(self, t("title_exportado"),
+                                tt("msg_chk_exportada", "Lista de comprobación exportada en:\n{ruta}").format(ruta=archivo))
 
     def _guardar_borrador(self):
         self._espera.stop()

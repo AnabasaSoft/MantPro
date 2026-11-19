@@ -76,8 +76,9 @@ def _montar_con_desplazamiento(dialogo, contenido, botones):
 
 class EditDialog(QDialog):
     def __init__(self, parent=None, fecha="", desc="", tags="", usuario_id=None, usuario_nombre="", maquina_id=None, horas_paro=None,
-                 repuestos=None, tiempo=None):
+                 repuestos=None, tiempo=None, ver_lista=None):
         super().__init__(parent)
+        self._ver_lista = ver_lista       # si el trabajo lleva lista de comprobación: abrirla (ver, corregir, imprimir)
         self.carpeta_fotos = parent.carpeta_fotos if parent else ""
         self.foto_filename = None
         self.ref_oculta = ""
@@ -188,6 +189,11 @@ class EditDialog(QDialog):
         self.repuestos.set_maquina(self.combo_maquina.currentData())
         self.combo_maquina.currentIndexChanged.connect(lambda _i: self.repuestos.set_maquina(self.combo_maquina.currentData()))
         l.addWidget(self.repuestos)
+
+        if ver_lista:
+            btn_lista = QPushButton(tt("btn_ver_checklist_trabajo", "☑️ Ver lista de comprobación (imprimir / exportar)"))
+            btn_lista.clicked.connect(ver_lista)
+            l.addWidget(btn_lista)
 
         b = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         b.button(QDialogButtonBox.StandardButton.Ok).setText(t("btn_aceptar")); b.button(QDialogButtonBox.StandardButton.Cancel).setText(t("btn_cancelar"))

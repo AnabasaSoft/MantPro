@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Novedades
+- **🖨️ Imprimir y exportar la lista de comprobación de un trabajo.** Al abrir un trabajo del historial que lleva lista, el botón **☑️ Ver lista de comprobación (imprimir / exportar)** la abre; desde ahí (y desde el clic derecho «☑️ Ver lista de comprobación») se puede **🖨️ Imprimir** (abre un PDF en el visor del sistema), **📄 Exportar PDF** (con logo) y **📊 Exportar Excel** (con una columna por fase y el desequilibrio en los motores trifásicos). Sale lo que se ve en pantalla, también si se acaba de corregir. Traducido en los 8 idiomas.
+
 ## 3.10.11 — 2026-11-19
 
 ### Novedades

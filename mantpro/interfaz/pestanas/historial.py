@@ -370,7 +370,8 @@ class PestanaHistorial:
             maquina_id = d[6] if len(d) > 6 else None
             horas_paro = d[7] if len(d) > 7 else None
             dlg = EditDialog(self, d[1], d[2], d[3], usuario_id=uid, usuario_nombre=unombre, maquina_id=maquina_id, horas_paro=horas_paro,
-                             repuestos=consumos.materiales_de_trabajo(i), tiempo=mano_obra.tiempo_de(i))
+                             repuestos=consumos.materiales_de_trabajo(i), tiempo=mano_obra.tiempo_de(i),
+                             ver_lista=(lambda: self.ver_checklist(i)) if checklists.resultado_de(i) else None)
             if dlg.exec():
                 fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro = dlg.get_data()
                 self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro)
@@ -538,7 +539,8 @@ class PestanaHistorial:
         fila = self.db.obtener_tarea_por_id(tarea_id)
         titulo = (fila[2] if fila else "").split("\n")[0]
         puede = self._puede_modificar(tarea_id)
-        dlg = DialogoRellenarChecklist(self, titulo, lista["items"], lista["plantilla"], solo_lectura=not puede)
+        dlg = DialogoRellenarChecklist(self, titulo, lista["items"], lista["plantilla"], solo_lectura=not puede,
+                                       tarea_id=tarea_id)
         if dlg.exec() and puede:
             nuevos = dlg.items()
             checklists.guardar_resultado(tarea_id, nuevos, lista["plantilla"])
