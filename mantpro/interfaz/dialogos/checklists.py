@@ -87,8 +87,17 @@ def texto_desequilibrio(it):
     d = checklists.desequilibrio(it.get("valor"))
     if not d:
         return ""
-    return tt("chk_desequilibrio", "Desequilibrio {p} % · se aparta más {fase}").format(
+    texto = tt("chk_desequilibrio", "Desequilibrio {p} % · se aparta más {fase}").format(
         p=f"{d[0]:g}", fase=checklists.FASES[d[1]])
+    if checklists.desequilibrio_excesivo(it, it.get("valor")):
+        texto += " — " + texto_deseq_max(it)
+    return texto
+
+
+def texto_deseq_max(punto):
+    """«desequilibrio máx. 5 %» de un punto trifásico con límite, o «»."""
+    limite = checklists._deseq_max(punto) if punto.get("tipo") == "trifasica" else None
+    return tt("chk_deseq_max", "desequilibrio máx. {p} %").format(p=f"{limite:g}") if limite is not None else ""
 
 
 def texto_export(lista):
@@ -143,6 +152,8 @@ class DialogoRellenarChecklist(QDialog):
             texto = it["texto"]
             if it["tipo"] in checklists.TIPOS_CON_VALOR and texto_rango(it):
                 texto += f"\n({tt('chk_rango', 'correcto')}: {texto_rango(it)})"
+            if texto_deseq_max(it):
+                texto += f"\n({texto_deseq_max(it)})"
             celda = QTableWidgetItem(texto)
             celda.setFlags(Qt.ItemFlag.ItemIsEnabled)
             self.tabla.setItem(fila, self.COL_PUNTO, celda)
@@ -251,8 +262,12 @@ class DialogoRellenarChecklist(QDialog):
                 c.setStyleSheet(rojo if checklists.fuera_de_rango(punto, c.text()) else "")
             lbl = self._desequilibrios.get(fila)
             if lbl is not None:
-                lbl.setText(texto_desequilibrio(dict(self._items[fila], valor=self._valor_de(fila))))
+                valor = self._valor_de(fila)
+                lbl.setText(texto_desequilibrio(dict(self._items[fila], valor=valor)))
                 lbl.setVisible(bool(lbl.text()))
+                excesivo = checklists.desequilibrio_excesivo(self._items[fila], valor)
+                lbl.setStyleSheet("color: #c0392b; font-weight: bold; font-size: 11px;" if excesivo
+                                  else "color: gray; font-size: 11px;")
             return
         fuera = checklists.fuera_de_rango(self._items[fila], campo.text())
         campo.setStyleSheet(rojo if fuera else "")
@@ -317,7 +332,7 @@ def rellenar_para(parent, plantilla_id, titulo):
 class DialogoPlantillasChecklist(QDialog):
     """Herramientas → Listas de comprobación: crear, editar y borrar plantillas."""
 
-    COL_TEXTO, COL_TIPO, COL_UNIDAD, COL_MIN, COL_MAX = range(5)
+    COL_TEXTO, COL_TIPO, COL_UNIDAD, COL_MIN, COL_MAX, COL_DESEQ = range(6)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -330,7 +345,9 @@ class DialogoPlantillasChecklist(QDialog):
         ayuda = QLabel(tt("lbl_info_plantillas_checklist",
             "Crea aquí las listas de comprobación y asígnalas a los avisos recurrentes y a los pendientes. "
             "Al completarlos, se pide rellenar la lista y queda guardada con el trabajo en el historial. "
-            "Los puntos de tipo «Lectura» piden además un valor (con su unidad); si se sale del mínimo o el máximo, quedan como «mal»."))
+            "Los puntos de tipo «Lectura» piden además un valor (con su unidad); si se sale del mínimo o el máximo, quedan como «mal». "
+            "Los de tipo «Motor trifásico» piden tres lecturas (L1, L2, L3), con el mismo rango para cada fase, y además "
+            "quedan como «mal» si el desequilibrio entre fases pasa del «Deseq. máx. %»."))
         ayuda.setWordWrap(True)
         l.addWidget(ayuda)
 
@@ -354,13 +371,16 @@ class DialogoPlantillasChecklist(QDialog):
         self.nombre.textEdited.connect(self._tocada)
         fila_n.addWidget(self.nombre, 1)
         ld.addLayout(fila_n)
-        self.tabla = QTableWidget(0, 5)
+        self.tabla = QTableWidget(0, 6)
         self.tabla.setHorizontalHeaderLabels([tt("chk_col_punto", "Punto"), tt("chk_col_tipo", "Tipo"),
                                               tt("chk_col_unidad", "Unidad"), tt("chk_col_minimo", "Mínimo"),
-                                              tt("chk_col_maximo", "Máximo")])
+                                              tt("chk_col_maximo", "Máximo"), tt("chk_col_deseq_max", "Deseq. máx. %")])
+        self.tabla.horizontalHeaderItem(self.COL_DESEQ).setToolTip(tt("tt_chk_deseq_max",
+            "Solo en los motores trifásicos: si la fase que más se aparta de la media de las tres "
+            "lo hace más de este porcentaje, el punto queda como «mal». Vacío: sin límite."))
         cab = self.tabla.horizontalHeader()
         cab.setSectionResizeMode(self.COL_TEXTO, QHeaderView.ResizeMode.Stretch)
-        for c in (self.COL_TIPO, self.COL_UNIDAD, self.COL_MIN, self.COL_MAX):
+        for c in (self.COL_TIPO, self.COL_UNIDAD, self.COL_MIN, self.COL_MAX, self.COL_DESEQ):
             cab.setSectionResizeMode(c, QHeaderView.ResizeMode.ResizeToContents)
         self.tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabla.itemChanged.connect(self._tocada)
@@ -445,16 +465,18 @@ class DialogoPlantillasChecklist(QDialog):
         self.tabla.setCellWidget(fila, self.COL_TIPO, combo)
         fmt = lambda n: "" if n is None else f"{n:g}"
         for col, valor in ((self.COL_UNIDAD, p.get("unidad") or ""), (self.COL_MIN, fmt(p.get("minimo"))),
-                           (self.COL_MAX, fmt(p.get("maximo")))):
+                           (self.COL_MAX, fmt(p.get("maximo"))), (self.COL_DESEQ, fmt(p.get("desequilibrio_max")))):
             self.tabla.setItem(fila, col, QTableWidgetItem(valor))
-        self._activar_lectura(fila, p["tipo"] in checklists.TIPOS_CON_VALOR)
+        self._activar_lectura(fila, p["tipo"])
 
-    def _activar_lectura(self, fila, lectura):
-        for col in (self.COL_UNIDAD, self.COL_MIN, self.COL_MAX):
+    def _activar_lectura(self, fila, tipo):
+        """Unidad, mínimo y máximo solo en las lecturas; el desequilibrio máximo, solo en los trifásicos."""
+        for col in (self.COL_UNIDAD, self.COL_MIN, self.COL_MAX, self.COL_DESEQ):
             item = self.tabla.item(fila, col)
             if item is None:
                 continue
-            if lectura:
+            activa = tipo == "trifasica" if col == self.COL_DESEQ else tipo in checklists.TIPOS_CON_VALOR
+            if activa:
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsEnabled)
             else:
                 item.setText("")
@@ -464,7 +486,7 @@ class DialogoPlantillasChecklist(QDialog):
         for fila in range(self.tabla.rowCount()):
             if self.tabla.cellWidget(fila, self.COL_TIPO) is combo:
                 self.tabla.blockSignals(True)
-                self._activar_lectura(fila, combo.currentData() in checklists.TIPOS_CON_VALOR)
+                self._activar_lectura(fila, combo.currentData())
                 self.tabla.blockSignals(False)
         self._tocada()
 
@@ -479,7 +501,8 @@ class DialogoPlantillasChecklist(QDialog):
                 continue
             leer = lambda col: self.tabla.item(fila, col).text() if self.tabla.item(fila, col) else ""
             puntos.append({"texto": texto, "tipo": self.tabla.cellWidget(fila, self.COL_TIPO).currentData(),
-                           "unidad": leer(self.COL_UNIDAD), "minimo": leer(self.COL_MIN), "maximo": leer(self.COL_MAX)})
+                           "unidad": leer(self.COL_UNIDAD), "minimo": leer(self.COL_MIN), "maximo": leer(self.COL_MAX),
+                           "desequilibrio_max": leer(self.COL_DESEQ)})
         return puntos
 
     def _anadir_punto(self):
@@ -505,7 +528,8 @@ class DialogoPlantillasChecklist(QDialog):
             leer = lambda col: self.tabla.item(f, col).text() if self.tabla.item(f, col) else ""
             puntos.append({"texto": leer(self.COL_TEXTO), "tipo": self.tabla.cellWidget(f, self.COL_TIPO).currentData(),
                            "unidad": leer(self.COL_UNIDAD), "minimo": checklists._num(leer(self.COL_MIN)),
-                           "maximo": checklists._num(leer(self.COL_MAX))})
+                           "maximo": checklists._num(leer(self.COL_MAX)),
+                           "desequilibrio_max": checklists._num(leer(self.COL_DESEQ))})
         puntos[fila], puntos[destino] = puntos[destino], puntos[fila]
         self.tabla.blockSignals(True)
         self.tabla.setRowCount(0)

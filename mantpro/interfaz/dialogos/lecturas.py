@@ -71,6 +71,15 @@ def texto_valor_lectura(l, p):
     return texto
 
 
+def texto_rango_punto(minimo, maximo, unidad, p):
+    """El rango y, en un trifásico con límite, «· desequilibrio máx. 5 %»."""
+    texto = texto_rango(minimo, maximo, unidad)
+    limite = checklists._deseq_max(p) if p.get("tipo") == "trifasica" else None
+    if limite is not None:
+        texto += " · " + tt("chk_deseq_max", "desequilibrio máx. {p} %").format(p=f"{limite:g}")
+    return texto
+
+
 def series_de(p):
     return checklists.FASES if p.get("tipo") == "trifasica" else None
 
@@ -173,12 +182,12 @@ class DialogoLecturasChecklist(QDialog):
         fuera = sum(1 for l in lecturas if l["fuera"])
         ultima = lecturas[-1]
         self.lbl_resumen.setText(tt("lbl_lect_resumen", "{n} lecturas · {fuera} fuera de rango · rango correcto: {rango} · última: {ultima} ({fecha})").format(
-            n=len(lecturas), fuera=fuera, rango=texto_rango(p["minimo"], p["maximo"], p["unidad"]),
+            n=len(lecturas), fuera=fuera, rango=texto_rango_punto(p["minimo"], p["maximo"], p["unidad"], p),
             ultima=texto_valor_lectura(ultima, p), fecha=idiomas.formato_fecha_localizada(ultima["fecha"])))
         self.tabla.setRowCount(len(lecturas))
         for fila, l in enumerate(reversed(lecturas)):           # la más reciente arriba
             valores = (idiomas.formato_fecha_localizada(l["fecha"]), self._rutas.get(l["maquina_id"], ""),
-                       texto_valor_lectura(l, p), texto_rango(l["minimo"], l["maximo"], p["unidad"]),
+                       texto_valor_lectura(l, p), texto_rango_punto(l["minimo"], l["maximo"], p["unidad"], l | {"tipo": p.get("tipo")}),
                        l["tecnico"], l["nota"])
             for col, texto in enumerate(valores):
                 item = QTableWidgetItem(texto)
@@ -199,7 +208,7 @@ class DialogoLecturasChecklist(QDialog):
     def _filas(self, p):
         """Filas de la tabla en orden cronológico (para el PDF y el Excel)."""
         return [(l, idiomas.formato_fecha_localizada(l["fecha"]), self._rutas.get(l["maquina_id"], ""),
-                 texto_rango(l["minimo"], l["maximo"], p["unidad"])) for l in p["lecturas"]]
+                 texto_rango_punto(l["minimo"], l["maximo"], p["unidad"], l | {"tipo": p.get("tipo")})) for l in p["lecturas"]]
 
     def _exportar(self, formato):
         p = self.punto()
@@ -236,7 +245,7 @@ class DialogoLecturasChecklist(QDialog):
         return [tt("title_lect_informe", "Evolución de lecturas"),
                 f"{tt('lbl_lect_maquina', 'Máquina')}: {self.combo_maquina.currentText()}",
                 f"{tt('lbl_lect_punto', 'Medida')}: {nombre_punto(p)}",
-                f"{tt('lbl_lect_rango', 'Rango correcto')}: {texto_rango(p['minimo'], p['maximo'], p['unidad'])}",
+                f"{tt('lbl_lect_rango', 'Rango correcto')}: {texto_rango_punto(p['minimo'], p['maximo'], p['unidad'], p)}",
                 tt("txt_fecha_informe", "Fecha: {fecha}").format(fecha=idiomas.formato_fecha_localizada(datetime.now().strftime("%Y-%m-%d")))]
 
     def a_excel(self, archivo, p):
@@ -279,7 +288,7 @@ class DialogoLecturasChecklist(QDialog):
                     else:
                         ws.write(i, 2 + k, "", f_txt)
                 if l["desequilibrio"] is not None:
-                    ws.write_number(i, 5, l["desequilibrio"], f_num)
+                    ws.write_number(i, 5, l["desequilibrio"], f_mal if l.get("desequilibrio_fuera") else f_num)
                 else:
                     ws.write(i, 5, "", f_txt)
             elif l["valor"] is not None:

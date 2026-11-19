@@ -27,7 +27,8 @@ checklists.py — Listas de comprobación de preventivos y trabajos.
   máximo y el valor se sale, el punto queda como «mal») o «trifasica» (motor
   trifásico: tres lecturas, una por fase L1/L2/L3, guardadas en el mismo campo
   `valor` como «12,1;12,3;12,0»; el mínimo y el máximo valen para cada fase y
-  se calcula el desequilibrio entre fases para ver si una consume más).
+  se calcula el desequilibrio entre fases para ver si una consume más; si se
+  pasa del «desequilibrio máximo %» del punto, el punto queda como «mal»).
 - Una plantilla se asigna a avisos recurrentes y a pendientes
   (columna checklist_id).
 - Al completar, lo rellenado se guarda **como copia** junto al trabajo del
@@ -100,6 +101,12 @@ def inicializar():
         );
         CREATE INDEX IF NOT EXISTS idx_checklist_resultados ON checklist_resultados(tarea_id, orden);
     """)
+    # Desequilibrio máximo (%) entre fases de los puntos trifásicos. Columna añadida
+    # después: la sincronización ignora las columnas que no conoce, así que una versión
+    # anterior en otro PC o en la nube simplemente no la usa.
+    for tabla in ("checklist_puntos", "checklist_resultados"):
+        if "desequilibrio_max" not in _columnas(con, tabla):
+            con.execute(f"ALTER TABLE {tabla} ADD COLUMN desequilibrio_max REAL")
     for tabla in ("avisos_recurrentes", "pendientes"):
         try:
             if "checklist_id" not in _columnas(con, tabla):
@@ -127,9 +134,15 @@ def _num(v):
         return None
 
 
+def _deseq_max(p):
+    """Desequilibrio máximo (%) de un punto, o None si no tiene o no es un número positivo."""
+    n = _num(p.get("desequilibrio_max"))
+    return n if n is not None and n > 0 else None
+
+
 def _punto(fila):
     return {"texto": fila["texto"], "tipo": fila["tipo"] or "estado", "unidad": fila["unidad"] or "",
-            "minimo": fila["minimo"], "maximo": fila["maximo"]}
+            "minimo": fila["minimo"], "maximo": fila["maximo"], "desequilibrio_max": fila["desequilibrio_max"]}
 
 
 def listar_plantillas():
@@ -154,7 +167,7 @@ def obtener_plantilla(plantilla_id):
 
 def guardar_plantilla(plantilla_id, nombre, puntos):
     """Crea (plantilla_id None) o actualiza una plantilla con sus puntos
-    [{texto, tipo, unidad, minimo, maximo}]. Devuelve su id."""
+    [{texto, tipo, unidad, minimo, maximo, desequilibrio_max}]. Devuelve su id."""
     nombre = (nombre or "").strip()
     if not nombre:
         raise ValueError("nombre")
@@ -167,7 +180,8 @@ def guardar_plantilla(plantilla_id, nombre, puntos):
         limpios.append((texto, tipo,
                         (p.get("unidad") or "").strip() if tipo in TIPOS_CON_VALOR else None,
                         _num(p.get("minimo")) if tipo in TIPOS_CON_VALOR else None,
-                        _num(p.get("maximo")) if tipo in TIPOS_CON_VALOR else None))
+                        _num(p.get("maximo")) if tipo in TIPOS_CON_VALOR else None,
+                        _deseq_max(p) if tipo == "trifasica" else None))
     con = _conn()
     try:
         if plantilla_id:
@@ -176,8 +190,8 @@ def guardar_plantilla(plantilla_id, nombre, puntos):
         else:
             plantilla_id = con.execute("INSERT INTO checklist_plantillas (nombre) VALUES (?)", (nombre,)).lastrowid
         con.executemany(
-            "INSERT INTO checklist_puntos (plantilla_id, orden, texto, tipo, unidad, minimo, maximo) "
-            "VALUES (?,?,?,?,?,?,?)",
+            "INSERT INTO checklist_puntos (plantilla_id, orden, texto, tipo, unidad, minimo, maximo, desequilibrio_max) "
+            "VALUES (?,?,?,?,?,?,?,?)",
             [(plantilla_id, i, *p) for i, p in enumerate(limpios)])
         con.commit()
     finally:
@@ -273,11 +287,18 @@ def _fuera_uno(punto, valor):
     return (minimo is not None and n < minimo) or (maximo is not None and n > maximo)
 
 
+def desequilibrio_excesivo(punto, valor):
+    """True si el desequilibrio entre fases pasa del máximo del punto trifásico."""
+    limite = _deseq_max(punto)
+    d = desequilibrio(valor) if limite is not None and punto.get("tipo") == "trifasica" else None
+    return d is not None and d[0] > limite
+
+
 def fuera_de_rango(punto, valor):
     """True si una lectura se sale del mínimo o el máximo del punto (en un punto
-    trifásico, si se sale cualquiera de las tres fases)."""
+    trifásico, si se sale cualquiera de las tres fases o el desequilibrio pasa del máximo)."""
     if punto.get("tipo") == "trifasica":
-        return any(_fuera_uno(punto, x) for x in fases(valor))
+        return any(_fuera_uno(punto, x) for x in fases(valor)) or desequilibrio_excesivo(punto, valor)
     return _fuera_uno(punto, valor)
 
 
@@ -318,6 +339,7 @@ def normalizar_items(items):
             "texto": str(it["texto"]).strip()[:500], "tipo": tipo,
             "unidad": str(it.get("unidad") or "").strip()[:30] if tipo in TIPOS_CON_VALOR else "",
             "minimo": _num(it.get("minimo")), "maximo": _num(it.get("maximo")),
+            "desequilibrio_max": _deseq_max(it) if tipo == "trifasica" else None,
             "estado": estado, "valor": valor[:60], "nota": str(it.get("nota") or "").strip()[:1000]})
     return limpios
 
@@ -330,10 +352,10 @@ def guardar_resultado(tarea_id, items, plantilla_nombre="", con=None):
         con = _conn()
     con.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (tarea_id,))
     con.executemany(
-        "INSERT INTO checklist_resultados (tarea_id, plantilla, orden, texto, tipo, unidad, minimo, maximo, estado, valor, nota) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO checklist_resultados (tarea_id, plantilla, orden, texto, tipo, unidad, minimo, maximo, "
+        "desequilibrio_max, estado, valor, nota) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
         [(tarea_id, plantilla_nombre or "", i, it["texto"], it["tipo"], it["unidad"], it["minimo"], it["maximo"],
-          it["estado"], it["valor"], it["nota"]) for i, it in enumerate(items)])
+          it["desequilibrio_max"], it["estado"], it["valor"], it["nota"]) for i, it in enumerate(items)])
     if propia:
         con.commit()
         con.close()
@@ -353,7 +375,8 @@ def resultados_de(tarea_ids):
                              f"ORDER BY tarea_id, orden", parte):
             r = resultado.setdefault(f["tarea_id"], {"plantilla": f["plantilla"] or "", "items": []})
             r["items"].append({"texto": f["texto"], "tipo": f["tipo"], "unidad": f["unidad"] or "",
-                               "minimo": f["minimo"], "maximo": f["maximo"], "estado": f["estado"],
+                               "minimo": f["minimo"], "maximo": f["maximo"],
+                               "desequilibrio_max": f["desequilibrio_max"], "estado": f["estado"],
                                "valor": f["valor"] or "", "nota": f["nota"] or ""})
     con.close()
     return resultado
@@ -395,6 +418,8 @@ def _texto_punto(p):
         rango = []
         if p.get("minimo") is not None: rango.append(f"mín. {_num(p['minimo']):g}")
         if p.get("maximo") is not None: rango.append(f"máx. {_num(p['maximo']):g}")
+        if p.get("tipo") == "trifasica" and _deseq_max(p) is not None:
+            rango.append(f"desequilibrio máx. {_deseq_max(p):g} %")
         nombre = "motor trifásico" if p.get("tipo") == "trifasica" else "lectura"
         texto += f" [{nombre}{(' ' + p['unidad']) if p.get('unidad') else ''}{(', ' + ', '.join(rango)) if rango else ''}]"
     return texto
@@ -479,7 +504,8 @@ def evolucion_lecturas(maquina_ids):
     "valor" (número o None si no se entiende), "valor_texto", "fuera" (de su propio rango),
     "minimo", "maximo", "tarea_id", "maquina_id", "tecnico", "nota"}]}], los puntos por su texto.
     En los motores trifásicos (tipo «trifasica») cada lectura lleva además "valores" (las tres
-    fases, número o None), "desequilibrio" (% o None) y "fase_desviada" (índice o None);
+    fases, número o None), "desequilibrio" (% o None), "fase_desviada" (índice o None),
+    "desequilibrio_max" y "desequilibrio_fuera" (si pasa de ese máximo); el punto, "desequilibrio_max";
     su "valor" es el de la fase más alta y "valor_texto", las tres («L1 12,1 · L2 …»)."""
     ids = [int(i) for i in (maquina_ids or []) if i is not None]
     if not ids:
@@ -489,7 +515,7 @@ def evolucion_lecturas(maquina_ids):
     for trozo in range(0, len(ids), 500):
         parte = ids[trozo:trozo + 500]
         filas += con.execute(
-            f"""SELECT r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.valor, r.nota, r.tarea_id,
+            f"""SELECT r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.desequilibrio_max, r.valor, r.nota, r.tarea_id,
                        t.fecha, t.maquina_id, COALESCE(t.usuario_nombre, '') AS tecnico
                 FROM checklist_resultados r JOIN tareas t ON t.id = r.tarea_id
                 WHERE r.tipo IN ('lectura', 'trifasica') AND COALESCE(r.valor, '') != ''
@@ -502,7 +528,8 @@ def evolucion_lecturas(maquina_ids):
         p = puntos.setdefault(clave, {"texto": " ".join(f["texto"].split()), "unidad": f["unidad"] or "",
                                       "tipo": tipo, "lecturas": []})
         p["minimo"], p["maximo"] = f["minimo"], f["maximo"]        # los de la más reciente (van en orden)
-        rango = {"minimo": f["minimo"], "maximo": f["maximo"], "tipo": tipo}
+        p["desequilibrio_max"] = f["desequilibrio_max"]
+        rango = {"minimo": f["minimo"], "maximo": f["maximo"], "tipo": tipo, "desequilibrio_max": f["desequilibrio_max"]}
         lectura = {
             "fecha": (f["fecha"] or "")[:10], "valor": _num(f["valor"]), "valor_texto": f["valor"],
             "fuera": fuera_de_rango(rango, f["valor"]), "minimo": f["minimo"], "maximo": f["maximo"],
@@ -512,6 +539,8 @@ def evolucion_lecturas(maquina_ids):
             deseq = desequilibrio(f["valor"])
             lectura.update(valores=valores, valor=max((v for v in valores if v is not None), default=None),
                            valor_texto=" · ".join(f"{n} {v or '-'}" for n, v in zip(FASES, fases(f["valor"]))),
-                           desequilibrio=deseq[0] if deseq else None, fase_desviada=deseq[1] if deseq else None)
+                           desequilibrio=deseq[0] if deseq else None, fase_desviada=deseq[1] if deseq else None,
+                           desequilibrio_max=f["desequilibrio_max"],
+                           desequilibrio_fuera=desequilibrio_excesivo(rango, f["valor"]))
         p["lecturas"].append(lectura)
     return sorted(puntos.values(), key=lambda p: (p["texto"].casefold(), p["unidad"].casefold(), p["tipo"]))

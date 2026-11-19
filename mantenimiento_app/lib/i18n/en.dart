@@ -219,6 +219,7 @@ const Map<String, String> traduccionesEn = {
     "chk_col_nota": "Note",
     "chk_rango": "correct",
     "chk_desequilibrio": "Imbalance {p} % · furthest off: {fase}",
+    "chk_deseq_max": "max. imbalance {p} %",
     "chk_resumen_mal": "{n} not OK",
     "chk_resumen_na": "{n} N/A",
     "chk_resumen_ok": "{n} OK",

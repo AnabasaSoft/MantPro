@@ -218,6 +218,7 @@ const Map<String, String> traduccionesGl = {
     "chk_col_nota": "Nota",
     "chk_rango": "correcto",
     "chk_desequilibrio": "Desequilibrio {p} % · apártase máis {fase}",
+    "chk_deseq_max": "desequilibrio máx. {p} %",
     "chk_resumen_mal": "{n} mal",
     "chk_resumen_na": "{n} non aplica",
     "chk_resumen_ok": "{n} ben",

@@ -106,6 +106,25 @@ String textoDesequilibrio(dynamic valor) {
   return t('chk_desequilibrio').replaceAll('{p}', _fmt(d.$1)).replaceAll('{fase}', fasesTrifasica[d.$2]);
 }
 
+/// Desequilibrio máximo (%) de un punto trifásico, o null si no tiene.
+double? _deseqMax(Map<String, dynamic> punto) {
+  final n = punto['tipo'] == 'trifasica' ? _numero(punto['desequilibrio_max']) : null;
+  return (n != null && n > 0) ? n : null;
+}
+
+/// «desequilibrio máx. 5 %» o '' si el punto no tiene límite.
+String textoDeseqMax(Map<String, dynamic> punto) {
+  final limite = _deseqMax(punto);
+  return limite == null ? '' : t('chk_deseq_max').replaceAll('{p}', _fmt(limite));
+}
+
+/// true si el desequilibrio entre fases pasa del máximo del punto.
+bool desequilibrioExcesivo(Map<String, dynamic> punto, dynamic valor) {
+  final limite = _deseqMax(punto);
+  final d = limite == null ? null : desequilibrioFases(valor);
+  return d != null && d.$1 > limite!;
+}
+
 bool _fueraUno(Map<String, dynamic> punto, String valor) {
   final n = _numero(valor);
   if (n == null) return false;
@@ -116,7 +135,9 @@ bool _fueraUno(Map<String, dynamic> punto, String valor) {
 /// true si una lectura se sale del mínimo o el máximo del punto (en un motor
 /// trifásico, si se sale cualquiera de las tres fases).
 bool fueraDeRango(Map<String, dynamic> punto, String valor) {
-  if (punto['tipo'] == 'trifasica') return fasesDe(valor).any((v) => _fueraUno(punto, v));
+  if (punto['tipo'] == 'trifasica') {
+    return fasesDe(valor).any((v) => _fueraUno(punto, v)) || desequilibrioExcesivo(punto, valor);
+  }
   return _fueraUno(punto, valor);
 }
 
@@ -328,11 +349,16 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
                   )),
                 ],
               ]),
-              if (textoRango(_items[i]).isNotEmpty || textoDesequilibrio(_valorDe(i)).isNotEmpty)
+              if (textoRango(_items[i]).isNotEmpty || textoDeseqMax(_items[i]).isNotEmpty)
                 Padding(padding: const EdgeInsets.only(top: 4), child: Text(
                     [if (textoRango(_items[i]).isNotEmpty) '${t('chk_rango')}: ${textoRango(_items[i])}',
-                     if (textoDesequilibrio(_valorDe(i)).isNotEmpty) textoDesequilibrio(_valorDe(i))].join(' · '),
+                     if (textoDeseqMax(_items[i]).isNotEmpty) textoDeseqMax(_items[i])].join(' · '),
                     style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
+              if (textoDesequilibrio(_valorDe(i)).isNotEmpty)
+                Padding(padding: const EdgeInsets.only(top: 2), child: Text(textoDesequilibrio(_valorDe(i)),
+                    style: TextStyle(fontSize: 12,
+                        color: desequilibrioExcesivo(_items[i], _valorDe(i)) ? Colors.red : Colors.blueGrey,
+                        fontWeight: desequilibrioExcesivo(_items[i], _valorDe(i)) ? FontWeight.bold : null))),
             ],
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 4, children: [

@@ -233,6 +233,7 @@ const Map<String, String> traduccionesDe = {
   "chk_col_nota": "Notiz",
   "chk_rango": "korrekt",
   "chk_desequilibrio": "Unsymmetrie {p} % · größte Abweichung: {fase}",
+  "chk_deseq_max": "max. Unsymmetrie {p} %",
   "chk_resumen_mal": "{n} nicht in Ordnung",
   "chk_resumen_na": "{n} entfällt",
   "chk_resumen_ok": "{n} in Ordnung",
