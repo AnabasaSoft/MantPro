@@ -339,15 +339,21 @@ def normalizar_items(items):
         if not isinstance(it, dict) or not str(it.get("texto") or "").strip():
             continue
         tipo = it.get("tipo") if it.get("tipo") in TIPOS else "estado"
+        # Un tipo que esta versión no conoce (de una versión más nueva del móvil o del PC)
+        # se conserva tal cual con su valor, en vez de convertirlo en «estado» y perder las
+        # lecturas: así llegan enteras al PC o a la nube que sí lo entiende.
+        desconocido = bool(it.get("tipo")) and tipo == "estado" and it.get("tipo") != "estado"
+        if desconocido:
+            tipo = str(it["tipo"]).strip()[:20] or "estado"
         estado = it.get("estado") if it.get("estado") in ESTADOS else None
-        valor = str(it.get("valor") or "").strip() if tipo == "lectura" else ""
+        valor = str(it.get("valor") or "").strip() if tipo == "lectura" or desconocido else ""
         if tipo == "trifasica":
             valor = unir_fases(fases(it.get("valor")))
         limpios.append({
             "texto": str(it["texto"]).strip()[:500], "tipo": tipo,
-            "unidad": str(it.get("unidad") or "").strip()[:30] if tipo in TIPOS_CON_VALOR else "",
+            "unidad": str(it.get("unidad") or "").strip()[:30] if tipo in TIPOS_CON_VALOR or desconocido else "",
             "minimo": _num(it.get("minimo")), "maximo": _num(it.get("maximo")),
-            "desequilibrio_max": _deseq_max(it) if tipo == "trifasica" else None,
+            "desequilibrio_max": _deseq_max(it) if tipo == "trifasica" or desconocido else None,
             "estado": estado, "valor": valor[:60], "nota": str(it.get("nota") or "").strip()[:1000]})
     return limpios
 
