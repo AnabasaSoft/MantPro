@@ -143,6 +143,9 @@ class DialogoRellenarChecklist(QDialog):
         # para guardar el borrador de una lista que se deja a medias.
         self._al_cambiar = None if solo_lectura else al_cambiar
         self._espera = QTimer(self); self._espera.setSingleShot(True); self._espera.setInterval(400)
+        # Si cada punto tiene ahora su lectura fuera de rango: así se sabe si un «mal» lo
+        # puso la lectura (y al corregirla vuelve a «bien») o el técnico a propósito.
+        self._fuera = [checklists.fuera_de_rango(it, it.get("valor")) for it in self._items]
         self._espera.timeout.connect(self._guardar_borrador)
         self.setWindowTitle(tt("title_checklist", "Lista de comprobación"))
         self.resize(900, 520)
@@ -378,11 +381,15 @@ class DialogoRellenarChecklist(QDialog):
         texto = self._valor_de(fila)
         if not texto:
             return
-        # Fuera de rango: «mal». Dentro y sin marcar todavía: «bien».
-        if checklists.fuera_de_rango(self._items[fila], texto):
+        # Fuera de rango: «mal». Dentro: «bien» si aún no tenía estado o si el «mal» venía de
+        # una lectura fuera de rango que se acaba de corregir (un «mal» puesto a mano con una
+        # lectura correcta se respeta).
+        fuera = checklists.fuera_de_rango(self._items[fila], texto)
+        if fuera:
             self._marcar(fila, "mal")
-        elif self._estado_de(fila) is None:
+        elif self._estado_de(fila) is None or (self._fuera[fila] and self._estado_de(fila) == "mal"):
             self._marcar(fila, "ok")
+        self._fuera[fila] = fuera
 
     def _todo_bien(self):
         for fila in range(len(self._items)):
@@ -585,7 +592,10 @@ class DialogoPlantillasChecklist(QDialog):
         p = p or {"texto": "", "tipo": "estado", "unidad": "", "minimo": None, "maximo": None}
         fila = self.tabla.rowCount()
         self.tabla.insertRow(fila)
-        self.tabla.setItem(fila, self.COL_TEXTO, QTableWidgetItem(p["texto"]))
+        celda_texto = QTableWidgetItem(p["texto"])
+        # Identidad fija del punto: viaja con la fila aunque se renombre o se mueva
+        celda_texto.setData(Qt.ItemDataRole.UserRole, p.get("punto_uid"))
+        self.tabla.setItem(fila, self.COL_TEXTO, celda_texto)
         combo = QComboBox()
         combo.addItem(tt("chk_tipo_estado", "Bien / Mal"), "estado")
         combo.addItem(tt("chk_tipo_lectura", "Lectura"), "lectura")
@@ -632,6 +642,7 @@ class DialogoPlantillasChecklist(QDialog):
                 continue
             leer = lambda col: self.tabla.item(fila, col).text() if self.tabla.item(fila, col) else ""
             puntos.append({"texto": texto, "tipo": self.tabla.cellWidget(fila, self.COL_TIPO).currentData(),
+                           "punto_uid": self.tabla.item(fila, self.COL_TEXTO).data(Qt.ItemDataRole.UserRole),
                            "unidad": leer(self.COL_UNIDAD), "minimo": leer(self.COL_MIN), "maximo": leer(self.COL_MAX),
                            "desequilibrio_max": leer(self.COL_DESEQ)})
         return puntos
@@ -658,6 +669,8 @@ class DialogoPlantillasChecklist(QDialog):
         for f in range(self.tabla.rowCount()):
             leer = lambda col: self.tabla.item(f, col).text() if self.tabla.item(f, col) else ""
             puntos.append({"texto": leer(self.COL_TEXTO), "tipo": self.tabla.cellWidget(f, self.COL_TIPO).currentData(),
+                           "punto_uid": self.tabla.item(f, self.COL_TEXTO).data(Qt.ItemDataRole.UserRole)
+                           if self.tabla.item(f, self.COL_TEXTO) else None,
                            "unidad": leer(self.COL_UNIDAD), "minimo": checklists._num(leer(self.COL_MIN)),
                            "maximo": checklists._num(leer(self.COL_MAX)),
                            "desequilibrio_max": checklists._num(leer(self.COL_DESEQ))})
@@ -699,7 +712,9 @@ class DialogoPlantillasChecklist(QDialog):
         if self._actual is None or not self._preguntar_guardar():
             return
         p = checklists.obtener_plantilla(self._actual)
-        nuevo = checklists.guardar_plantilla(None, f"{p['nombre']} ({tt('chk_copia', 'copia')})", p["puntos"])
+        # La copia es otra lista: sus puntos estrenan identidad (no mezclan lecturas con la original)
+        nuevo = checklists.guardar_plantilla(None, f"{p['nombre']} ({tt('chk_copia', 'copia')})",
+                                             [dict(x, punto_uid=None) for x in p["puntos"]])
         self._recargar(elegir=nuevo)
         self._cargar(checklists.obtener_plantilla(nuevo))
 

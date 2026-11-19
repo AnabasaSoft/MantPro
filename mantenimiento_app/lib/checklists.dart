@@ -251,10 +251,14 @@ Future<void> borrarBorradorChecklist(String clave) async {
 /// punto, solo si coincide el texto y el tipo (por si la plantilla ha cambiado).
 int _aplicarBorrador(List<Map<String, dynamic>> items, Map borrador) {
   final viejos = (borrador['items'] as List? ?? []).whereType<Map>().toList();
+  // Por el identificador fijo del punto (punto_uid), aunque se haya renombrado o
+  // movido en la plantilla; los borradores de antes, por posición y texto.
+  final porUid = {for (final v in viejos) if (v['punto_uid'] != null) v['punto_uid']: v};
   var n = 0;
-  for (var i = 0; i < items.length && i < viejos.length; i++) {
-    final v = viejos[i];
-    if (v['texto'] != items[i]['texto'] || v['tipo'] != items[i]['tipo']) continue;
+  for (var i = 0; i < items.length; i++) {
+    Map? v = items[i]['punto_uid'] != null ? porUid[items[i]['punto_uid']] : null;
+    if (v == null && i < viejos.length && viejos[i]['texto'] == items[i]['texto']) v = viejos[i];
+    if (v == null || v['tipo'] != items[i]['tipo'] || esSeparador(items[i])) continue;
     items[i]['estado'] = _estados.contains(v['estado']) ? v['estado'] : null;
     items[i]['valor'] = (v['valor'] ?? '').toString();
     items[i]['nota'] = (v['nota'] ?? '').toString();
@@ -350,6 +354,9 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
   late final List<TextEditingController> _valores, _notas;
   /// Los tres campos (L1, L2, L3) de cada punto; solo se usan en los trifásicos.
   late final List<List<TextEditingController>> _fases;
+  /// Si cada punto tiene ahora su lectura fuera de rango: así se sabe si un «mal»
+  /// lo puso la lectura (y al corregirla vuelve a «bien») o el técnico a propósito.
+  late final List<bool> _fuera;
 
   @override
   void initState() {
@@ -357,6 +364,7 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
     _items = widget.items.map((e) => Map<String, dynamic>.from(e)).toList();
     _valores = _items.map((e) => TextEditingController(text: (e['valor'] ?? '').toString())).toList();
     _notas = _items.map((e) => TextEditingController(text: (e['nota'] ?? '').toString())).toList();
+    _fuera = _items.map((e) => fueraDeRango(e, (e['valor'] ?? '').toString())).toList();
     _fases = _items.map((e) => fasesDe(e['tipo'] == 'trifasica' ? e['valor'] : '')
         .map((v) => TextEditingController(text: v)).toList()).toList();
   }
@@ -402,12 +410,16 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
     setState(() {
       _items[i]['valor'] = _valorDe(i);
       if (_numero(texto) == null) return;   // vacío o aún no es un número
-      // Fuera de rango: «mal»; dentro y sin marcar todavía: «bien».
-      if (fueraDeRango(_items[i], _items[i]['valor'])) {
+      // Fuera de rango: «mal». Dentro: «bien» si aún no tenía estado o si el «mal»
+      // venía de una lectura fuera de rango que se acaba de corregir (un «mal»
+      // puesto a mano con una lectura correcta se respeta).
+      final fuera = fueraDeRango(_items[i], _items[i]['valor']);
+      if (fuera) {
         _items[i]['estado'] = 'mal';
-      } else if (_items[i]['estado'] == null) {
+      } else if (_items[i]['estado'] == null || (_fuera[i] && _items[i]['estado'] == 'mal')) {
         _items[i]['estado'] = 'ok';
       }
+      _fuera[i] = fuera;
     });
   }
 

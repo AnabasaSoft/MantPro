@@ -40,7 +40,9 @@ checklists.py — Listas de comprobación de preventivos y trabajos.
 Todo vive en mantenimiento.db.
 """
 
+import hashlib
 import json
+import uuid
 
 from .conexion_bd import sqlite3, conectar
 
@@ -118,6 +120,19 @@ def inicializar():
     for tabla in ("checklist_puntos", "checklist_resultados"):
         if "desequilibrio_max" not in _columnas(con, tabla):
             con.execute(f"ALTER TABLE {tabla} ADD COLUMN desequilibrio_max REAL")
+    # Identidad fija de cada punto (punto_uid): sobrevive a renombrarlo o cambiarle el rango,
+    # así la evolución de sus lecturas y las listas a medias no se parten. Se copia con cada
+    # lista rellenada. Lo anterior a esta columna recibe uno calculado (plantilla + texto +
+    # unidad): el mismo en todos los PC y en la nube, sin tener que ponerse de acuerdo.
+    for tabla in ("checklist_puntos", "checklist_resultados"):
+        if "punto_uid" not in _columnas(con, tabla):
+            con.execute(f"ALTER TABLE {tabla} ADD COLUMN punto_uid TEXT")
+    con.create_function("_uid_antiguo", 3, uid_antiguo)
+    con.execute("""UPDATE checklist_puntos SET punto_uid = _uid_antiguo(
+                       (SELECT nombre FROM checklist_plantillas pl WHERE pl.id = checklist_puntos.plantilla_id), texto, unidad)
+                   WHERE punto_uid IS NULL""")
+    con.execute("UPDATE checklist_resultados SET punto_uid = _uid_antiguo(plantilla, texto, unidad) "
+                "WHERE punto_uid IS NULL AND tipo != 'seccion'")
     for tabla in ("avisos_recurrentes", "pendientes"):
         try:
             if "checklist_id" not in _columnas(con, tabla):
@@ -145,6 +160,17 @@ def _num(v):
         return None
 
 
+def uid_antiguo(plantilla, texto, unidad):
+    """punto_uid calculado para los puntos y resultados de antes de que existiera."""
+    clave = "\n".join(" ".join(str(x or "").split()).casefold() for x in (plantilla, texto, unidad))
+    return "h" + hashlib.sha1(clave.encode("utf-8")).hexdigest()[:20]
+
+
+def _uid_valido(v):
+    v = str(v or "").strip()
+    return v[:40] if v else None
+
+
 def _deseq_max(p):
     """Desequilibrio máximo (%) de un punto, o None si no tiene o no es un número positivo."""
     n = _num(p.get("desequilibrio_max"))
@@ -153,7 +179,8 @@ def _deseq_max(p):
 
 def _punto(fila):
     return {"texto": fila["texto"], "tipo": fila["tipo"] or "estado", "unidad": fila["unidad"] or "",
-            "minimo": fila["minimo"], "maximo": fila["maximo"], "desequilibrio_max": fila["desequilibrio_max"]}
+            "minimo": fila["minimo"], "maximo": fila["maximo"], "desequilibrio_max": fila["desequilibrio_max"],
+            "punto_uid": fila["punto_uid"]}
 
 
 def listar_plantillas():
@@ -178,17 +205,23 @@ def obtener_plantilla(plantilla_id):
 
 def guardar_plantilla(plantilla_id, nombre, puntos):
     """Crea (plantilla_id None) o actualiza una plantilla con sus puntos
-    [{texto, tipo, unidad, minimo, maximo, desequilibrio_max}]. Devuelve su id."""
+    [{texto, tipo, unidad, minimo, maximo, desequilibrio_max, punto_uid}]. Devuelve su id.
+    Cada punto conserva su punto_uid (el editor lo arrastra aunque se renombre o se mueva);
+    los nuevos reciben uno."""
     nombre = (nombre or "").strip()
     if not nombre:
         raise ValueError("nombre")
-    limpios = []
+    limpios, usados = [], set()
     for p in puntos:
         texto = (p.get("texto") or "").strip()
         if not texto:
             continue
         tipo = p.get("tipo") if p.get("tipo") in TIPOS else "estado"
-        limpios.append((texto, tipo,
+        uid = _uid_valido(p.get("punto_uid"))
+        if uid is None or uid in usados:
+            uid = uuid.uuid4().hex
+        usados.add(uid)
+        limpios.append((uid, texto, tipo,
                         (p.get("unidad") or "").strip() if tipo in TIPOS_CON_VALOR else None,
                         _num(p.get("minimo")) if tipo in TIPOS_CON_VALOR else None,
                         _num(p.get("maximo")) if tipo in TIPOS_CON_VALOR else None,
@@ -201,8 +234,8 @@ def guardar_plantilla(plantilla_id, nombre, puntos):
         else:
             plantilla_id = con.execute("INSERT INTO checklist_plantillas (nombre) VALUES (?)", (nombre,)).lastrowid
         con.executemany(
-            "INSERT INTO checklist_puntos (plantilla_id, orden, texto, tipo, unidad, minimo, maximo, desequilibrio_max) "
-            "VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT INTO checklist_puntos (plantilla_id, orden, punto_uid, texto, tipo, unidad, minimo, maximo, desequilibrio_max) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             [(plantilla_id, i, *p) for i, p in enumerate(limpios)])
         con.commit()
     finally:
@@ -357,25 +390,42 @@ def normalizar_items(items):
             "unidad": str(it.get("unidad") or "").strip()[:30] if tipo in TIPOS_CON_VALOR or desconocido else "",
             "minimo": _num(it.get("minimo")), "maximo": _num(it.get("maximo")),
             "desequilibrio_max": _deseq_max(it) if tipo == "trifasica" or desconocido else None,
-            "estado": estado, "valor": valor[:60], "nota": str(it.get("nota") or "").strip()[:1000]})
+            "estado": estado, "valor": valor[:60], "nota": str(it.get("nota") or "").strip()[:1000],
+            "punto_uid": _uid_valido(it.get("punto_uid")) if tipo != SECCION else None})
     return limpios
 
 
 def guardar_resultado(tarea_id, items, plantilla_nombre="", con=None):
     """Guarda lo rellenado junto al trabajo [tarea_id] (sustituye lo que hubiera)."""
     items = normalizar_items(items)
+    _completar_uids(items, plantilla_nombre)
     propia = con is None
     if propia:
         con = _conn()
     con.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (tarea_id,))
     con.executemany(
-        "INSERT INTO checklist_resultados (tarea_id, plantilla, orden, texto, tipo, unidad, minimo, maximo, "
-        "desequilibrio_max, estado, valor, nota) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-        [(tarea_id, plantilla_nombre or "", i, it["texto"], it["tipo"], it["unidad"], it["minimo"], it["maximo"],
-          it["desequilibrio_max"], it["estado"], it["valor"], it["nota"]) for i, it in enumerate(items)])
+        "INSERT INTO checklist_resultados (tarea_id, plantilla, orden, punto_uid, texto, tipo, unidad, minimo, maximo, "
+        "desequilibrio_max, estado, valor, nota) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [(tarea_id, plantilla_nombre or "", i, it["punto_uid"], it["texto"], it["tipo"], it["unidad"], it["minimo"],
+          it["maximo"], it["desequilibrio_max"], it["estado"], it["valor"], it["nota"]) for i, it in enumerate(items)])
     if propia:
         con.commit()
         con.close()
+
+
+def _completar_uids(items, plantilla_nombre):
+    """Pone punto_uid a los puntos que llegan sin él (de una versión anterior del móvil o
+    de la nube): el del punto de la plantilla con ese nombre que tenga el mismo texto y tipo
+    y, si no lo hay, el calculado."""
+    faltan = [it for it in items if not it.get("punto_uid") and it["tipo"] != SECCION]
+    if not faltan:
+        return
+    plantilla = next((p for p in listar_plantillas() if p["nombre"] == plantilla_nombre), None)
+    actuales = {(" ".join(p["texto"].split()).casefold(), p["tipo"]): p["punto_uid"]
+                for p in (plantilla or {}).get("puntos", []) if p.get("punto_uid")}
+    for it in faltan:
+        it["punto_uid"] = actuales.get((" ".join(it["texto"].split()).casefold(), it["tipo"])) \
+            or uid_antiguo(plantilla_nombre, it["texto"], it["unidad"])
 
 
 def resultados_de(tarea_ids):
@@ -393,7 +443,8 @@ def resultados_de(tarea_ids):
             r = resultado.setdefault(f["tarea_id"], {"plantilla": f["plantilla"] or "", "items": []})
             r["items"].append({"texto": f["texto"], "tipo": f["tipo"], "unidad": f["unidad"] or "",
                                "minimo": f["minimo"], "maximo": f["maximo"],
-                               "desequilibrio_max": f["desequilibrio_max"], "estado": f["estado"],
+                               "desequilibrio_max": f["desequilibrio_max"], "punto_uid": f["punto_uid"],
+                               "estado": f["estado"],
                                "valor": f["valor"] or "", "nota": f["nota"] or ""})
     con.close()
     return resultado
@@ -497,8 +548,13 @@ def resumen_borradores(tipo):
 def aplicar_borrador(items, borrador):
     """Pasa lo apuntado del borrador a los puntos actuales, punto a punto, solo si
     coincide el texto y el tipo (por si la plantilla ha cambiado entretanto)."""
-    for it, viejo in zip(items, (borrador or {}).get("items", [])):
-        if it.get("texto") == viejo.get("texto") and it.get("tipo") == viejo.get("tipo"):
+    viejos = (borrador or {}).get("items", [])
+    por_uid = {v["punto_uid"]: v for v in viejos if v.get("punto_uid")}
+    for i, it in enumerate(items):
+        viejo = por_uid.get(it.get("punto_uid")) if it.get("punto_uid") else None
+        if viejo is None and i < len(viejos) and it.get("texto") == viejos[i].get("texto"):
+            viejo = viejos[i]                 # borradores de antes del punto_uid: por posición y texto
+        if viejo is not None and it.get("tipo") == viejo.get("tipo") and it.get("tipo") != SECCION:
             it.update(estado=viejo.get("estado"), valor=viejo.get("valor") or "", nota=viejo.get("nota") or "")
     return items
 
@@ -614,7 +670,7 @@ def evolucion_lecturas(maquina_ids):
     for trozo in range(0, len(ids), 500):
         parte = ids[trozo:trozo + 500]
         filas += con.execute(
-            f"""SELECT r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.desequilibrio_max, r.valor, r.nota, r.tarea_id,
+            f"""SELECT r.punto_uid, r.texto, r.unidad, r.tipo, r.minimo, r.maximo, r.desequilibrio_max, r.valor, r.nota, r.tarea_id,
                        t.fecha, t.maquina_id, COALESCE(t.usuario_nombre, '') AS tecnico
                 FROM checklist_resultados r JOIN tareas t ON t.id = r.tarea_id
                 WHERE r.tipo IN ('lectura', 'trifasica') AND COALESCE(r.valor, '') != ''
@@ -623,9 +679,11 @@ def evolucion_lecturas(maquina_ids):
     puntos = {}
     for f in sorted(filas, key=lambda f: (f["fecha"] or "", f["tarea_id"])):
         tipo = "trifasica" if f["tipo"] == "trifasica" else "lectura"
-        clave = _clave_punto(f["texto"], f["unidad"], tipo)
-        p = puntos.setdefault(clave, {"texto": " ".join(f["texto"].split()), "unidad": f["unidad"] or "",
-                                      "tipo": tipo, "lecturas": []})
+        # El mismo punto en revisiones distintas: por su punto_uid (aunque se haya renombrado o
+        # cambiado de unidad); sin él, por texto y unidad.
+        clave = (f["punto_uid"], tipo) if f["punto_uid"] else _clave_punto(f["texto"], f["unidad"], tipo)
+        p = puntos.setdefault(clave, {"tipo": tipo, "lecturas": []})
+        p["texto"], p["unidad"] = " ".join(f["texto"].split()), f["unidad"] or ""   # los de la más reciente
         p["minimo"], p["maximo"] = f["minimo"], f["maximo"]        # los de la más reciente (van en orden)
         p["desequilibrio_max"] = f["desequilibrio_max"]
         rango = {"minimo": f["minimo"], "maximo": f["maximo"], "tipo": tipo, "desequilibrio_max": f["desequilibrio_max"]}
