@@ -26,8 +26,9 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
                              QListWidgetItem, QLineEdit, QTableWidget, QTableWidgetItem, QComboBox,
                              QHeaderView, QMessageBox, QAbstractItemView, QWidget, QButtonGroup,
                              QRadioButton, QSplitter, QDialogButtonBox)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 
+from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ...nucleo import checklists
@@ -125,10 +126,15 @@ class DialogoRellenarChecklist(QDialog):
 
     COL_PUNTO, COL_ESTADO, COL_VALOR, COL_NOTA = 0, 1, 2, 3
 
-    def __init__(self, parent, titulo, items, plantilla_nombre="", solo_lectura=False):
+    def __init__(self, parent, titulo, items, plantilla_nombre="", solo_lectura=False, al_cambiar=None):
         super().__init__(parent)
         self._items = [dict(it) for it in items]
         self.solo_lectura = solo_lectura
+        # al_cambiar(items): se llama (con un pequeño retraso) cada vez que se apunta algo,
+        # para guardar el borrador de una lista que se deja a medias.
+        self._al_cambiar = None if solo_lectura else al_cambiar
+        self._espera = QTimer(self); self._espera.setSingleShot(True); self._espera.setInterval(400)
+        self._espera.timeout.connect(self._guardar_borrador)
         self.setWindowTitle(tt("title_checklist", "Lista de comprobación"))
         self.resize(900, 520)
         l = QVBoxLayout(self)
@@ -215,6 +221,14 @@ class DialogoRellenarChecklist(QDialog):
             self._notas.append(nota)
         self.tabla.resizeRowsToContents()
         l.addWidget(self.tabla)
+        if self._al_cambiar:
+            for grupo in self._grupos:
+                grupo.buttonToggled.connect(lambda *_: self._espera.start())
+            for campo in self._valores:
+                for c in (campo if isinstance(campo, list) else [campo] if campo is not None else []):
+                    c.textChanged.connect(lambda *_: self._espera.start())
+            for nota in self._notas:
+                nota.textChanged.connect(lambda *_: self._espera.start())
 
         botones = QHBoxLayout()
         if not solo_lectura:
@@ -234,6 +248,16 @@ class DialogoRellenarChecklist(QDialog):
             caja.rejected.connect(self.reject)
             botones.addWidget(caja)
         l.addLayout(botones)
+
+    def _guardar_borrador(self):
+        self._espera.stop()
+        if self._al_cambiar:
+            self._al_cambiar(self.items())
+
+    def done(self, r):
+        if self._espera.isActive():          # lo último escrito antes de cerrar
+            self._guardar_borrador()
+        super().done(r)
 
     def _estado_de(self, fila):
         b = self._grupos[fila].checkedButton()
@@ -314,14 +338,41 @@ class DialogoRellenarChecklist(QDialog):
         self.accept()
 
 
-def rellenar_para(parent, plantilla_id, titulo):
+def rellenar_para(parent, plantilla_id, titulo, clave_borrador=None):
     """Al completar un aviso o un pendiente con lista: la pide rellenar.
     Devuelve (items, nombre de la plantilla), ([], "") si no tiene lista (o la
-    plantilla ya no existe), o None si se cancela."""
+    plantilla ya no existe), o None si se cancela.
+    Con [clave_borrador] (checklists.clave_borrador), lo apuntado se guarda al
+    momento y, si se deja a medias, se ofrece seguir donde se quedó. El borrador
+    lo borra quien completa el trabajo (checklists.borrar_borrador)."""
     plantilla = checklists.obtener_plantilla(plantilla_id) if plantilla_id else None
     if not plantilla or not plantilla["puntos"]:
         return [], ""
-    dlg = DialogoRellenarChecklist(parent, titulo, checklists.items_de_plantilla(plantilla), plantilla["nombre"])
+    items = checklists.items_de_plantilla(plantilla)
+    borrador = checklists.borrador_de(clave_borrador) if clave_borrador else None
+    if borrador:
+        r = checklists.recuento(borrador["items"])
+        msg = QMessageBox(parent)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(tt("title_chk_borrador", "Lista a medias"))
+        msg.setText(tt("msg_chk_borrador",
+            "Esta lista se empezó el {fecha} y se dejó a medias ({hechos} puntos revisados).\n\n¿Seguir donde se quedó?").format(
+            fecha=idiomas.formato_fecha_localizada(borrador["fecha"][:10]) + " " + borrador["fecha"][11:16],
+            hechos=f"{len(borrador['items']) - r['sin']}/{len(borrador['items'])}"))
+        seguir = msg.addButton(tt("btn_chk_continuar", "Continuar"), QMessageBox.ButtonRole.AcceptRole)
+        nueva = msg.addButton(tt("btn_chk_empezar_nuevo", "Empezar de nuevo"), QMessageBox.ButtonRole.DestructiveRole)
+        msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(seguir)
+        msg.exec()
+        if msg.clickedButton() == seguir:
+            checklists.aplicar_borrador(items, borrador)
+        elif msg.clickedButton() == nueva:
+            checklists.borrar_borrador(clave_borrador)
+        else:
+            return None
+    al_cambiar = (lambda actual: checklists.guardar_borrador(clave_borrador, plantilla["nombre"], actual)) \
+        if clave_borrador else None
+    dlg = DialogoRellenarChecklist(parent, titulo, items, plantilla["nombre"], al_cambiar=al_cambiar)
     if not dlg.exec():
         return None
     return dlg.items(), plantilla["nombre"]

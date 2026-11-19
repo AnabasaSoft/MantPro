@@ -6,6 +6,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ## Sin publicar
 
+### Novedades
+- **📝 Listas de comprobación a medias.** Una lista larga se puede dejar sin terminar (fin del turno) y seguir otro día: lo apuntado se guarda al momento, en el PC y en la app MantPro (también sin conexión). Al volver a completar el aviso o el pendiente, pregunta si **Continuar** donde se quedó o **Empezar de nuevo**. Mientras tanto, la tarjeta o la fila del aviso o pendiente muestra «📝 12/30». Cada equipo guarda sus propias listas a medias (no se sincronizan) y se borran al completar el trabajo.
+
 ## 3.10.10 — 2026-11-19
 
 ### Novedades

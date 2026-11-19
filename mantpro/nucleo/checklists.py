@@ -100,6 +100,14 @@ def inicializar():
             nota      TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_checklist_resultados ON checklist_resultados(tarea_id, orden);
+        -- Listas a medias (se dejan para seguir otro día). Locales de este PC: no se
+        -- sincronizan (no están en sincronizacion.py) ni dependen de ninguna otra tabla.
+        CREATE TABLE IF NOT EXISTS checklist_borradores (
+            clave      TEXT PRIMARY KEY,
+            plantilla  TEXT,
+            fecha      TEXT,
+            items      TEXT
+        );
     """)
     # Desequilibrio máximo (%) entre fases de los puntos trifásicos. Columna añadida
     # después: la sincronización ignora las columnas que no conoce, así que una versión
@@ -406,6 +414,78 @@ def recuento(items):
 
 def sin_marcar(items):
     return [it for it in items if it.get("estado") not in ESTADOS]
+
+
+# ---------------------------------------------------------------- borradores
+# Una lista larga se puede dejar a medias (fin del turno) y seguir otro día: lo
+# apuntado se guarda al momento por aviso o pendiente y se recupera al volver a
+# abrirla. Solo en este PC (el móvil tiene los suyos); se borra al completar.
+
+def clave_borrador(tipo, item_id):
+    """«aviso:12» / «pendiente:7»."""
+    return f"{tipo}:{item_id}"
+
+
+def _hay_algo(items):
+    return any(it.get("estado") in ESTADOS or str(it.get("valor") or "").strip() or str(it.get("nota") or "").strip()
+               for it in items)
+
+
+def guardar_borrador(clave, plantilla_nombre, items):
+    """Guarda lo apuntado hasta ahora (o lo borra si no hay nada apuntado)."""
+    from datetime import datetime
+    limpios = normalizar_items(items)
+    con = _conn()
+    if _hay_algo(limpios):
+        con.execute("INSERT OR REPLACE INTO checklist_borradores (clave, plantilla, fecha, items) VALUES (?,?,?,?)",
+                    (clave, plantilla_nombre or "", datetime.now().isoformat(timespec="seconds"),
+                     json.dumps(limpios, ensure_ascii=False)))
+    else:
+        con.execute("DELETE FROM checklist_borradores WHERE clave=?", (clave,))
+    con.commit()
+    con.close()
+
+
+def borrador_de(clave):
+    """{"plantilla", "fecha", "items"} o None."""
+    con = _conn()
+    f = con.execute("SELECT plantilla, fecha, items FROM checklist_borradores WHERE clave=?", (clave,)).fetchone()
+    con.close()
+    if not f:
+        return None
+    return {"plantilla": f["plantilla"] or "", "fecha": f["fecha"] or "", "items": normalizar_items(f["items"] or "")}
+
+
+def borrar_borrador(clave):
+    con = _conn()
+    con.execute("DELETE FROM checklist_borradores WHERE clave=?", (clave,))
+    con.commit()
+    con.close()
+
+
+def resumen_borradores(tipo):
+    """{item_id: (hechos, total)} de los avisos o pendientes con la lista a medias."""
+    con = _conn()
+    filas = con.execute("SELECT clave, items FROM checklist_borradores WHERE clave LIKE ?", (f"{tipo}:%",)).fetchall()
+    con.close()
+    resultado = {}
+    for f in filas:
+        try:
+            item_id = int(f["clave"].split(":", 1)[1])
+        except ValueError:
+            continue
+        items = normalizar_items(f["items"] or "")
+        resultado[item_id] = (len(items) - recuento(items)["sin"], len(items))
+    return resultado
+
+
+def aplicar_borrador(items, borrador):
+    """Pasa lo apuntado del borrador a los puntos actuales, punto a punto, solo si
+    coincide el texto y el tipo (por si la plantilla ha cambiado entretanto)."""
+    for it, viejo in zip(items, (borrador or {}).get("items", [])):
+        if it.get("texto") == viejo.get("texto") and it.get("tipo") == viejo.get("tipo"):
+            it.update(estado=viejo.get("estado"), valor=viejo.get("valor") or "", nota=viejo.get("nota") or "")
+    return items
 
 
 # ---------------------------------------------------------------- registro de cambios

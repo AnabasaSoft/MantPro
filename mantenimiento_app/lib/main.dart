@@ -930,6 +930,7 @@ void main() async {
   final bool isDark = prefs.getBool('is_dark_mode') ?? true;
   themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   await cargarIdiomaGuardado();
+  await cargarBorradoresChecklist();   // listas de comprobación a medias (marca 📝 en las tarjetas)
   // Después de cargar el idioma: el nombre del canal de su notificación va traducido.
   ServicioConexion.inicializar();
   await AuthService.cargar();
@@ -2633,6 +2634,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                         Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 6),
                             decoration: BoxDecoration(color: _colorPrioridad(item.prioridad), shape: BoxShape.circle)),
                         Flexible(child: Text("${item.checklistId != null ? '☑️ ' : ''}${item.titulo}", style: const TextStyle(fontWeight: FontWeight.bold))),
+                        if (item.checklistId != null) marcaBorradorChecklist(claveBorradorChecklist('pendiente', item.uuid, item.id)),
                       ]),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2872,7 +2874,8 @@ class _TabAvisosState extends State<TabAvisos> {
     // Con lista de comprobación, rellenarla es la confirmación; si se
     // cancela, el aviso sigue como estaba. Sin conexión funciona igual: la
     // plantilla está guardada en el móvil y lo rellenado va en la cola.
-    final lista = await rellenarChecklistSiHay(context, a.checklistId, a.titulo);
+    final claveBorrador = claveBorradorChecklist('aviso', a.uuid, a.id);
+    final lista = await rellenarChecklistSiHay(context, a.checklistId, a.titulo, claveBorrador: claveBorrador);
     if (lista == null || !mounted) return;
     // Repuestos usados (opcional): sin lista, con un botón más en la
     // confirmación; con lista, se pregunta al guardarla.
@@ -2914,6 +2917,7 @@ class _TabAvisosState extends State<TabAvisos> {
       if (elegidos == null) return;   // cancelado: el aviso sigue como estaba
       materiales = elegidos;
     }
+    borrarBorradorChecklist(claveBorrador);   // completada: ya no hay lista a medias
     setState(() => _colaCompletados.add({'id': a.id.toString(), if (a.uuid != null) 'uuid': a.uuid!, 'op': nuevaOperacion(), 'titulo': a.titulo, 'fecha': DateTime.now().toString().split(' ')[0], ...camposChecklist(lista),
         if (materiales.isNotEmpty) 'materiales': json.encode(materiales),
         if (minutos != null) 'minutos_trabajo': '$minutos', if (minutos != null) 'personas': '$personas',
@@ -2944,7 +2948,7 @@ class _TabAvisosState extends State<TabAvisos> {
             String st = traducirEstadoAviso(a.estado); String cl = a.color; if (ec) { st = t("estado_listo_subir"); cl = "green"; } else if (er) { st = t("estado_pendiente_subir"); cl = "red"; }
             Color c = cl == 'red' ? Colors.redAccent : (cl == 'orange' ? Colors.orange : (cl == 'green' ? Colors.green : Colors.blue));
             Widget w; if (cl == 'green') { w = ActionChip(avatar: ec ? const Icon(Icons.undo,size:14,color:Colors.white):const Icon(Icons.close,size:14,color:Colors.white), label: Text(ec?t("btn_deshacer"):t("lbl_desmarcar"),style:const TextStyle(color:Colors.white,fontSize:10)), backgroundColor: c, onPressed: () => _descompletar(a)); } else if (cl == 'red' || cl == 'orange') { w = ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), visualDensity: VisualDensity.compact), icon: const Icon(Icons.check, size: 16), label: Text(t("btn_completar_min")), onPressed: () => _completar(a)); } else { w = Chip(label: Text(st, style: const TextStyle(color: Colors.white, fontSize: 10)), backgroundColor: c); }
-            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:(a.contador != null ? Icons.speed : Icons.calendar_month)), color: c, size: 24)), title: Text("${a.checklistId != null ? '☑️ ' : ''}${a.titulo}", style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
+            return Card(elevation: 2, margin: const EdgeInsets.symmetric(vertical: 6), shape: RoundedRectangleBorder(side: BorderSide(color: c.withOpacity(0.3)), borderRadius: BorderRadius.circular(8)), child: ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: c.withOpacity(0.1), shape: BoxShape.circle), child: Icon((cl=='red'||cl=='orange')?Icons.warning_amber_rounded:(cl=='green'?Icons.check_circle_outline:(a.contador != null ? Icons.speed : Icons.calendar_month)), color: c, size: 24)), title: Row(children: [Flexible(child: Text("${a.checklistId != null ? '☑️ ' : ''}${a.titulo}", style: const TextStyle(fontWeight: FontWeight.bold))), if (a.checklistId != null) marcaBorradorChecklist(claveBorradorChecklist('aviso', a.uuid, a.id))]), subtitle: Text((cl=='red'||cl=='orange') ? "$st · ${t('lbl_proxima')}${a.rango}" : "${t('lbl_proxima')}${a.rango}", style: TextStyle(fontSize: 12, color: (cl=='red'||cl=='orange') ? c : null, fontWeight: (cl=='red'||cl=='orange') ? FontWeight.bold : null)), trailing: w));
           }))),
       ]),
       floatingActionButton: FloatingActionButton(mini: true, backgroundColor: p>0?Colors.white:Colors.blue, child: _cargando ? const Padding(padding:EdgeInsets.all(10),child:CircularProgressIndicator(color:Colors.white,strokeWidth:2)) : Icon(Icons.sync, color: p>0?Colors.orange:Colors.white), onPressed: _sincronizar),
@@ -3802,7 +3806,8 @@ class _FormScreenState extends State<FormScreen> {
     // se cancela, se vuelve al formulario sin perder nada.
     Map<String, dynamic>? lista;
     if (end && widget.pendientePC?.checklistId != null) {
-      lista = await rellenarChecklistSiHay(context, widget.pendientePC!.checklistId, _t.text);
+      lista = await rellenarChecklistSiHay(context, widget.pendientePC!.checklistId, _t.text,
+          claveBorrador: claveBorradorChecklist('pendiente', widget.pendientePC!.uuid, widget.pendientePC!.id));
       if (lista == null || !mounted) return;
     }
     List<String> l=[]; if(_u)l.add("Urgente"); if(_e)l.add("Eléctrico"); if(_m)l.add("Mecánico"); if(_p)l.add("Preventivo"); if(_tag.text.isNotEmpty)l.add(_tag.text.trim());
@@ -3830,6 +3835,9 @@ class _FormScreenState extends State<FormScreen> {
     Registro r = Registro(id: widget.registroExistente?.id, titulo: _t.text, detalles: df, tags: l.join(", "), imagePath: _img, imagePathDespues: _imgDespues, fecha: fechaFinal, maquinaId: _maquinaId, prioridad: _prioridad, materiales: _materiales, especialidadId: _especialidadId, fotosExtra: galeriaLocal, serverFotosExtra: galeriaServidor,
         checklist: (lista != null && lista.isNotEmpty) ? lista : null,
         minutosTrabajo: leerDuracion(_tiempoCtrl.text), personas: _personas);
+    if (end && widget.pendientePC != null) {
+      borrarBorradorChecklist(claveBorradorChecklist('pendiente', widget.pendientePC!.uuid, widget.pendientePC!.id));
+    }
     if (end) widget.onSave(r); else if (widget.onUpdate != null) widget.onUpdate!(r); else widget.onSave(r);
     if (widget.onUpdate == null || end) Navigator.pop(context);
   }

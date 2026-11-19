@@ -280,6 +280,7 @@ class PestanaPendientes:
 
         iconos_prioridad = {"Crítica": "🔴", "Alta": "🟠", "Media": "⬜", "Baja": "🟢"}
         con_lista = checklists.checklists_de("pendiente")
+        a_medias = checklists.resumen_borradores("pendiente")
         plantillas = {p["id"]: p["nombre"] for p in checklists.listar_plantillas()}
         if hasattr(self, 'combo_checklist_todo'):
             llenar_combo_plantillas(self.combo_checklist_todo, self.combo_checklist_todo.currentData())
@@ -305,6 +306,9 @@ class PestanaPendientes:
                 texto_visual += f"\n   👤 {asig_nombre}"
             if plantillas.get(con_lista.get(i)):
                 texto_visual += f"\n   ☑️ {plantillas[con_lista[i]]}"
+                if i in a_medias:
+                    texto_visual += "  " + tt("chk_borrador_lista", "📝 a medias: {hechos}").format(
+                        hechos=f"{a_medias[i][0]}/{a_medias[i][1]}")
 
             it = QListWidgetItem(texto_visual)
 
@@ -358,8 +362,10 @@ class PestanaPendientes:
             fecha, tags, foto_nueva, fotos_coleccion = dialogo.get_data()
             # Con lista de comprobación: se rellena antes de pasarlo al
             # historial; si se cancela, el pendiente sigue como estaba.
-            lista = rellenar_para(self, checklists.checklist_de("pendiente", id_pendiente), titulo)
+            clave_borrador = checklists.clave_borrador("pendiente", id_pendiente)
+            lista = rellenar_para(self, checklists.checklist_de("pendiente", id_pendiente), titulo, clave_borrador)
             if lista is None:
+                self.refresh_todos()       # la marca 📝 de la lista a medias
                 return
 
             # --- MEJORA: LIMPIEZA INTELIGENTE ---
@@ -384,6 +390,7 @@ class PestanaPendientes:
                 mano_obra.fijar_tiempo(tarea_id, dialogo.tiempo.minutos(), dialogo.tiempo.personas(), registrar=False)
                 if lista[0]:
                     checklists.guardar_resultado(tarea_id, lista[0], lista[1])
+                checklists.borrar_borrador(clave_borrador)       # completada: ya no hay lista a medias
                 self.db.borrar_pendiente(id_pendiente, motivo="completar")
                 self.refresh_todos()
                 self.refresh_all()

@@ -26,6 +26,7 @@
 /// de los puntos, y «checklist_plantilla», el nombre de la plantilla).
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -184,19 +185,141 @@ String resumenChecklist(List items) {
 String _textoEstado(String estado) =>
     {'ok': t('chk_txt_ok'), 'mal': t('chk_txt_mal'), 'na': t('chk_txt_na')}[estado] ?? t('chk_txt_sin');
 
+// ---------------------------------------------------------------- borradores
+// Una lista larga se puede dejar a medias (fin del turno) y seguir otro día:
+// lo apuntado se guarda en el móvil al momento, por aviso o pendiente, y se
+// recupera al volver a abrirla. Solo vive en este móvil (no se sincroniza);
+// se borra al guardar la lista completa o al «Empezar de nuevo».
+
+const _claveBorradores = 'checklist_borradores';
+
+/// Resumen de los borradores para las tarjetas: {clave: "12/30"}.
+final ValueNotifier<Map<String, String>> borradoresChecklist = ValueNotifier({});
+
+/// Clave del borrador de un aviso o un pendiente («aviso:<uuid o id>»).
+String claveBorradorChecklist(String tipo, dynamic uuid, dynamic id) => '$tipo:${uuid ?? id}';
+
+Future<Map<String, dynamic>> _leerBorradores() async {
+  final prefs = await SharedPreferences.getInstance();
+  try {
+    final d = json.decode(prefs.getString(_claveBorradores) ?? '{}');
+    return d is Map ? Map<String, dynamic>.from(d) : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+String _resumenBorrador(Map b) {
+  final items = (b['items'] as List? ?? []);
+  final hechos = items.where((e) => e is Map && _estados.contains(e['estado'])).length;
+  return '$hechos/${items.length}';
+}
+
+Future<void> _escribirBorradores(Map<String, dynamic> todos) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_claveBorradores, json.encode(todos));
+  borradoresChecklist.value = {for (final e in todos.entries) if (e.value is Map) e.key: _resumenBorrador(e.value as Map)};
+}
+
+/// Carga el resumen de borradores (al arrancar la app).
+Future<void> cargarBorradoresChecklist() async {
+  final todos = await _leerBorradores();
+  borradoresChecklist.value = {for (final e in todos.entries) if (e.value is Map) e.key: _resumenBorrador(e.value as Map)};
+}
+
+Future<void> guardarBorradorChecklist(String clave, String plantilla, List<Map<String, dynamic>> items) async {
+  final todos = await _leerBorradores();
+  final algo = items.any((e) => _estados.contains(e['estado']) || '${e['valor'] ?? ''}'.isNotEmpty || '${e['nota'] ?? ''}'.isNotEmpty);
+  if (algo) {
+    todos[clave] = {'plantilla': plantilla, 'fecha': DateTime.now().toIso8601String(), 'items': items};
+  } else {
+    todos.remove(clave);
+  }
+  await _escribirBorradores(todos);
+}
+
+Future<void> borrarBorradorChecklist(String clave) async {
+  final todos = await _leerBorradores();
+  if (todos.remove(clave) != null) await _escribirBorradores(todos);
+}
+
+/// Pasa lo apuntado del borrador a los puntos de la plantilla actual: punto a
+/// punto, solo si coincide el texto y el tipo (por si la plantilla ha cambiado).
+int _aplicarBorrador(List<Map<String, dynamic>> items, Map borrador) {
+  final viejos = (borrador['items'] as List? ?? []).whereType<Map>().toList();
+  var n = 0;
+  for (var i = 0; i < items.length && i < viejos.length; i++) {
+    final v = viejos[i];
+    if (v['texto'] != items[i]['texto'] || v['tipo'] != items[i]['tipo']) continue;
+    items[i]['estado'] = _estados.contains(v['estado']) ? v['estado'] : null;
+    items[i]['valor'] = (v['valor'] ?? '').toString();
+    items[i]['nota'] = (v['nota'] ?? '').toString();
+    n++;
+  }
+  return n;
+}
+
+/// «📝 12/30» en la tarjeta del aviso o pendiente con la lista a medias.
+Widget marcaBorradorChecklist(String clave) => ValueListenableBuilder<Map<String, String>>(
+      valueListenable: borradoresChecklist,
+      builder: (_, mapa, __) => mapa[clave] == null
+          ? const SizedBox.shrink()
+          : Padding(padding: const EdgeInsets.only(left: 6), child: Tooltip(message: t('chk_borrador_tarjeta'),
+              child: Text('📝 ${mapa[clave]}', style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold)))),
+    );
+
+String _fechaBorrador(String? iso) {
+  final f = DateTime.tryParse(iso ?? '');
+  if (f == null) return '';
+  String dd(int n) => n.toString().padLeft(2, '0');
+  // Fecha corta como en el PC: AAAA/MM/DD en euskera, DD.MM.AAAA en alemán, DD/MM/AAAA en el resto.
+  final fecha = switch (idiomaNotifier.value) {
+    'eu' => '${f.year}/${dd(f.month)}/${dd(f.day)}',
+    'de' => '${dd(f.day)}.${dd(f.month)}.${f.year}',
+    _ => '${dd(f.day)}/${dd(f.month)}/${f.year}',
+  };
+  return '$fecha ${dd(f.hour)}:${dd(f.minute)}';
+}
+
 /// Al completar un aviso o un pendiente: si tiene lista, la pide rellenar.
 /// Devuelve {} si no tiene (o la plantilla no está en el móvil), null si se
 /// cancela, o {"plantilla": nombre, "items": [...]} con lo rellenado.
-Future<Map<String, dynamic>?> rellenarChecklistSiHay(BuildContext context, int? checklistId, String titulo) async {
+/// Con [claveBorrador], lo apuntado se guarda al momento y, si se deja a
+/// medias, se ofrece seguir donde se quedó la próxima vez.
+Future<Map<String, dynamic>?> rellenarChecklistSiHay(BuildContext context, int? checklistId, String titulo,
+    {String? claveBorrador}) async {
   final plantilla = await plantillaChecklist(checklistId);
   if (plantilla == null || (plantilla['puntos'] as List? ?? []).isEmpty) return {};
   if (!context.mounted) return null;
   final items = (plantilla['puntos'] as List).map((p) => <String, dynamic>{
         ...Map<String, dynamic>.from(p), 'estado': null, 'valor': '', 'nota': ''}).toList();
+  if (claveBorrador != null) {
+    final borrador = (await _leerBorradores())[claveBorrador];
+    if (borrador is Map && context.mounted) {
+      final seguir = await showDialog<bool>(context: context, barrierDismissible: false, builder: (ctx) => AlertDialog(
+        title: Text(t('title_chk_borrador')),
+        content: Text(t('msg_chk_borrador')
+            .replaceAll('{fecha}', _fechaBorrador(borrador['fecha']?.toString()))
+            .replaceAll('{hechos}', _resumenBorrador(borrador))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('btn_chk_empezar_nuevo'))),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t('btn_chk_continuar'))),
+        ],
+      ));
+      if (seguir == true) {
+        _aplicarBorrador(items, borrador);
+      } else if (seguir == false) {
+        await borrarBorradorChecklist(claveBorrador);
+      }
+      if (!context.mounted) return null;
+    }
+  }
+  final nombre = plantilla['nombre'].toString();
   final resultado = await Navigator.push<List<Map<String, dynamic>>>(context, MaterialPageRoute(
-      builder: (_) => PantallaChecklist(titulo: titulo, plantilla: plantilla['nombre'].toString(), items: items)));
+      builder: (_) => PantallaChecklist(titulo: titulo, plantilla: nombre, items: items,
+          alCambiar: claveBorrador == null ? null : (actual) => guardarBorradorChecklist(claveBorrador, nombre, actual))));
   if (resultado == null) return null;
-  return {'plantilla': plantilla['nombre'].toString(), 'items': resultado};
+  return {'plantilla': nombre, 'items': resultado};
 }
 
 /// Campos que se añaden al envío al PC (formulario) a partir de lo rellenado.
@@ -210,7 +333,10 @@ class PantallaChecklist extends StatefulWidget {
   final String titulo, plantilla;
   final List<Map<String, dynamic>> items;
   final bool soloLectura;
-  const PantallaChecklist({super.key, required this.titulo, required this.plantilla, required this.items, this.soloLectura = false});
+  /// Se llama con la lista tal como va cada vez que se apunta algo (borrador).
+  final void Function(List<Map<String, dynamic>>)? alCambiar;
+  const PantallaChecklist({super.key, required this.titulo, required this.plantilla, required this.items,
+      this.soloLectura = false, this.alCambiar});
   @override
   State<PantallaChecklist> createState() => _PantallaChecklistState();
 }
@@ -231,8 +357,29 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
         .map((v) => TextEditingController(text: v)).toList()).toList();
   }
 
+  Timer? _espera;
+
+  /// Guarda el borrador (con un pequeño retraso mientras se escribe).
+  void _avisarCambio() {
+    if (widget.alCambiar == null || widget.soloLectura) return;
+    _espera?.cancel();
+    _espera = Timer(const Duration(milliseconds: 400), _guardarBorradorYa);
+  }
+
+  void _guardarBorradorYa() {
+    _espera?.cancel();
+    widget.alCambiar?.call(_resultado().map((e) => Map<String, dynamic>.from(e)).toList());
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _avisarCambio();
+  }
+
   @override
   void dispose() {
+    if (_espera?.isActive ?? false) _guardarBorradorYa();   // lo último escrito antes de salir
     for (final c in [..._valores, ..._notas, for (final f in _fases) ...f]) {
       c.dispose();
     }
@@ -368,7 +515,7 @@ class _PantallaChecklistState extends State<PantallaChecklist> {
             ]),
             if (!widget.soloLectura || _notas[i].text.isNotEmpty) ...[
               const SizedBox(height: 6),
-              TextField(controller: _notas[i], readOnly: widget.soloLectura,
+              TextField(controller: _notas[i], readOnly: widget.soloLectura, onChanged: (_) => _avisarCambio(),
                   decoration: InputDecoration(isDense: true, hintText: t('chk_col_nota'), prefixIcon: const Icon(Icons.notes, size: 18))),
             ],
           ])),

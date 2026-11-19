@@ -148,6 +148,7 @@ class PestanaAvisos:
         if hasattr(self, 'btn_borrar_aviso'): self.btn_borrar_aviso.setEnabled(es_admin)
 
         con_lista = checklists.checklists_de("aviso")
+        a_medias = checklists.resumen_borradores("aviso")
         plantillas = {p["id"]: p["nombre"] for p in checklists.listar_plantillas()}
         if hasattr(self, 'in_av_checklist'):
             llenar_combo_plantillas(self.in_av_checklist, self.in_av_checklist.currentData())
@@ -272,7 +273,8 @@ class PestanaAvisos:
             self.table_avisos.setCellWidget(r, 0, cw)
 
             # Rellenar fila
-            item_t = QTableWidgetItem(("☑️ " if aid in con_lista else "") + tit)
+            item_t = QTableWidgetItem(("☑️ " if aid in con_lista else "") + tit +
+                                      (f"  📝 {a_medias[aid][0]}/{a_medias[aid][1]}" if aid in con_lista and aid in a_medias else ""))
             item_t.setData(Qt.ItemDataRole.UserRole, aid)
             if aid in con_lista:
                 plantilla = plantillas.get(con_lista[aid])
@@ -302,7 +304,8 @@ class PestanaAvisos:
         if estado:
             # Con lista de comprobación: se rellena antes de completarlo; si
             # se cancela, el aviso queda como estaba.
-            lista = rellenar_para(self, checklists.checklist_de("aviso", id_aviso), titulo)
+            clave_borrador = checklists.clave_borrador("aviso", id_aviso)
+            lista = rellenar_para(self, checklists.checklist_de("aviso", id_aviso), titulo, clave_borrador)
             if lista is None:
                 self.refresh_avisos()
                 return
@@ -328,6 +331,8 @@ class PestanaAvisos:
                                              sede_id=sedes.sede_de("avisos_recurrentes", id_aviso))
             if tarea_id and lista[0]:
                 checklists.guardar_resultado(tarea_id, lista[0], lista[1])
+            if tarea_id:
+                checklists.borrar_borrador(clave_borrador)       # completada: ya no hay lista a medias
             if info and tarea_id:
                 contadores.registrar_completado(id_aviso, lectura, fecha=hoy, tarea_id=tarea_id)
             self.statusBar().showMessage(t("msg_guardado_historial").format(titulo=titulo), 3000)
