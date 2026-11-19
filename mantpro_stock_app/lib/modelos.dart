@@ -113,6 +113,8 @@ class Articulo {
   final String? fotoLocal;
   /// Precio unitario (para el coste de los repuestos en los trabajos), o null.
   final double? precio;
+  /// uuid del artículo: el mismo en el PC y en la nube (el id es de cada base). Null sin MantPro Cloud.
+  final String? uuid;
 
   Articulo({
     required this.id,
@@ -128,6 +130,7 @@ class Articulo {
     this.baldaIdPendiente,
     this.fotoLocal,
     this.precio,
+    this.uuid,
   });
 
   bool get bajoMinimo => stockActual <= 0 || stockActual < stockMinimo;
@@ -144,6 +147,7 @@ class Articulo {
         foto: (j['foto'] as String?)?.isEmpty == true ? null : j['foto'],
         ubicacion: j['ubicacion'] ?? '',
         precio: (j['precio'] as num?)?.toDouble(),
+        uuid: j['uuid'] as String?,
       );
 
   /// Copia con la cantidad actual ajustada en [delta]. Se usa para reflejar en
@@ -162,6 +166,7 @@ class Articulo {
         baldaIdPendiente: baldaIdPendiente,
         fotoLocal: fotoLocal,
         precio: precio,
+        uuid: uuid,
       );
 }
 

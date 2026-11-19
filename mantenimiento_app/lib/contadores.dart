@@ -86,9 +86,11 @@ Future<void> _guardarCola(List<Map<String, dynamic>> cola) async {
 }
 
 /// Apunta una lectura en la cola local (se ve al instante en el móvil).
-Future<void> apuntarLectura(int contadorId, double valor) async {
+/// [uuid]: el del contador (el mismo en el PC y en la nube), para que la lectura vaya a él
+/// aunque se envíe por la otra ruta (ver nucleo/ids_movil.py en el PC).
+Future<void> apuntarLectura(int contadorId, double valor, {String? uuid}) async {
   final cola = await colaLecturas();
-  cola.add({'uid': nuevoUidLectura(), 'contador_id': contadorId, 'valor': valor, 'fecha': _ahoraIso()});
+  cola.add({'uid': nuevoUidLectura(), 'contador_id': contadorId, if (uuid != null) 'contador_id_uuid': uuid, 'valor': valor, 'fecha': _ahoraIso()});
   await _guardarCola(cola);
 }
 
@@ -108,7 +110,8 @@ Future<int> enviarColaLecturas(Future<int?> Function(Map<String, String> campos)
   final enviadas = <String>{};
   for (final l in cola) {
     final codigo = await enviar({
-      'contador_id': '${l['contador_id']}', 'valor': '${l['valor']}', 'fecha': '${l['fecha']}', 'uid': '${l['uid']}'});
+      'contador_id': '${l['contador_id']}', 'valor': '${l['valor']}', 'fecha': '${l['fecha']}', 'uid': '${l['uid']}',
+      if (l['contador_id_uuid'] != null) 'contador_id_uuid': '${l['contador_id_uuid']}'});
     if (codigo == 200 || codigo == 400) enviadas.add('${l['uid']}');
     if (codigo == null) break;   // sin conexión: lo demás, luego
   }

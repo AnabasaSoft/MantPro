@@ -70,6 +70,7 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
 
   Map<String, dynamic> _lineaNueva(Articulo a) => {
         'material_id': a.id,
+        if (a.uuid != null) 'material_id_uuid': a.uuid,
         'codigo': a.codigo,
         'nombre': a.nombre,
         'ubicacion': a.ubicacion,
@@ -126,6 +127,7 @@ class _PantallaComprobarStockState extends State<PantallaComprobarStock> {
           'fecha': _fechaDeHoy(),
           'periodo': RevisionAlmacen.texto(inicio),
           if (almacenId != null) 'almacen_id': almacenId,
+          if (AlmacenesCache.uuid(almacenId) != null) 'almacen_id_uuid': AlmacenesCache.uuid(almacenId),
           'lineas': [for (final a in _seleccionados) _lineaNueva(a)],
         };
         // Queda constancia de que se ha abierto la revisión aunque luego no

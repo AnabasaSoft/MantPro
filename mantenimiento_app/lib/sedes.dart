@@ -43,6 +43,9 @@ final ValueNotifier<int> sedesListaNotifier = ValueNotifier(0);
 class SedesCache {
   static const _clave = 'sedes_cache';
   static const _claveElegida = 'sede_elegida';
+  /// uuid de la sede elegida: el id es de cada base (PC o nube); al bajar la lista de la otra
+  /// ruta, la elegida se vuelve a buscar por su uuid para que siga siendo la misma sede.
+  static const _claveElegidaUuid = 'sede_elegida_uuid';
 
   /// Sedes del técnico: [{id, nombre, tipo, principal}].
   static List<Map<String, dynamic>> lista = [];
@@ -56,7 +59,13 @@ class SedesCache {
     } catch (_) {
       lista = [];
     }
-    final elegida = prefs.getInt(_claveElegida);
+    var elegida = prefs.getInt(_claveElegida);
+    final uuidElegida = prefs.getString(_claveElegidaUuid);
+    final porUuid = uuidElegida == null ? null : lista.where((s) => s['uuid'] == uuidElegida).firstOrNull;
+    if (porUuid != null && porUuid['id'] != elegida) {
+      elegida = porUuid['id'] as int?;
+      if (elegida != null) await prefs.setInt(_claveElegida, elegida);
+    }
     sedeElegidaNotifier.value = (elegida != null && lista.any((s) => s['id'] == elegida)) ? elegida : null;
     sedesListaNotifier.value++;
   }
@@ -77,10 +86,19 @@ class SedesCache {
     final prefs = await SharedPreferences.getInstance();
     if (sedeId == null) {
       await prefs.remove(_claveElegida);
+      await prefs.remove(_claveElegidaUuid);
     } else {
       await prefs.setInt(_claveElegida, sedeId);
+      final u = uuid(sedeId);
+      if (u != null) { await prefs.setString(_claveElegidaUuid, u); } else { await prefs.remove(_claveElegidaUuid); }
     }
     sedeElegidaNotifier.value = sedeId;
+  }
+
+  /// uuid de la sede [sedeId] (null sin MantPro Cloud o si no está en la lista).
+  static String? uuid(int? sedeId) {
+    if (sedeId == null) return null;
+    return lista.where((x) => x['id'] == sedeId).firstOrNull?['uuid'] as String?;
   }
 
   static String nombre(int? sedeId) {

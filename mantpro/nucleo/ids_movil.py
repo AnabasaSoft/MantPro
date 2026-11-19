@@ -68,7 +68,18 @@ CAMPOS = {
     "material_id": ("alma", "materiales"),
     "contador_id": ("mant", "contadores"),
     "almacen_id": ("alma", "almacenes"),
+    "seccion_id": ("alma", "secciones"),
+    "balda_id": ("alma", "baldas"),
+    "estanteria_id": ("alma", "estanterias"),
 }
+# Rutas con el id en la dirección (regla de Flask -> argumento y tabla). El uuid llega en el
+# formulario o en la consulta (?uuid=, en un DELETE).
+EN_RUTA = {
+    "/api/stock/material/<int:material_id>": ("material_id", "alma", "materiales"),
+    "/api/stock/material/<int:material_id>/movimiento": ("material_id", "alma", "materiales"),
+}
+# Cuerpos JSON: la revisión del almacén (almacen_id y cada línea con su material_id)
+JSON_RUTAS = {"/api/stock/revision"}
 ID_INEXISTENTE = "-1"
 
 
@@ -142,6 +153,36 @@ def traducir(ruta, campos, cons):
     return nuevos
 
 
+def traducir_en_ruta(regla, view_args, uuid, cons):
+    """Cambia en [view_args] el id de la dirección por el local del registro [uuid] (-1 si no existe)."""
+    nombre, base, tabla = EN_RUTA[regla]
+    local = Traductor(cons).resolver(base, tabla, uuid, view_args.get(nombre))
+    view_args[nombre] = -1 if local is None else int(local)
+
+
+def traducir_json(datos, cons):
+    """La revisión del almacén con sus ids traducidos (almacen_id y el material_id de cada línea).
+    Una línea de un artículo que aquí no existe se quita (no se revisa OTRO)."""
+    if not isinstance(datos, dict):
+        return datos
+    t = Traductor(cons)
+    nuevos = dict(datos)
+    if nuevos.get("almacen_id_uuid"):
+        local = t.resolver("alma", "almacenes", nuevos["almacen_id_uuid"], nuevos.get("almacen_id"))
+        nuevos["almacen_id"] = -1 if local is None else int(local)
+    if isinstance(nuevos.get("lineas"), list):
+        lineas = []
+        for linea in nuevos["lineas"]:
+            if isinstance(linea, dict) and linea.get("material_id_uuid"):
+                local = t.resolver("alma", "materiales", linea["material_id_uuid"], linea.get("material_id"))
+                if local is None:
+                    continue
+                linea = dict(linea, material_id=int(local))
+            lineas.append(linea)
+        nuevos["lineas"] = lineas
+    return nuevos
+
+
 def uuids(con, tabla, ids):
     """{id: uuid} de esos registros (vacío si la tabla no tiene uuid: PC sin MantPro Cloud)."""
     ids = [int(i) for i in ids if i is not None]
@@ -155,52 +196,67 @@ def uuids(con, tabla, ids):
     return resultado
 
 
-# Listas que guarda el móvil -> tabla del `id` de sus elementos (None: sus elementos no tienen
-# id propio que el móvil devuelva). Los campos de CAMPOS se completan en todas.
+# Listas que guarda el móvil (regla de Flask) -> tabla del `id` de sus elementos (None: sus elementos
+# no tienen id propio que el móvil devuelva). Los campos de CAMPOS se completan en todas.
 LISTAS = {
     "/api/pendientes": ("mant", "pendientes"),
     "/api/avisos": ("mant", "avisos_recurrentes"),
     "/api/historial": ("mant", "tareas"),
     "/api/historial_todo": ("mant", "tareas"),
     "/api/maquinas": ("mant", "maquinas"),
+    "/api/sedes": ("mant", "sedes"),
+    "/api/especialidades": ("mant", "especialidades"),
     "/api/stock/materiales": ("alma", "materiales"),
+    "/api/stock/bajo_minimo": ("alma", "materiales"),
+    "/api/stock/material/<int:material_id>": ("alma", "materiales"),
+    "/api/stock/almacenes": ("alma", "almacenes"),
+    "/api/stock/estructura": ("alma", "estanterias"),
     "/api/repuestos": None,
+}
+# Listas anidadas dentro de un elemento: su clave -> tabla de sus elementos
+NIDOS = {
+    "estanterias": ("alma", "estanterias"),
+    "baldas": ("alma", "baldas"),
+    "secciones": ("alma", "secciones"),
+    "contadores": ("mant", "contadores"),
 }
 
 
-def _elementos(datos):
-    """Los elementos de la lista de una respuesta: la propia lista, o las listas de un dict."""
-    if isinstance(datos, list):
-        return [e for e in datos if isinstance(e, dict)]
-    if isinstance(datos, dict):
-        return [e for v in datos.values() if isinstance(v, list) for e in v if isinstance(e, dict)]
-    return []
-
-
-def _dicts(valor):
-    """Todos los dicts dentro de [valor] (también los anidados: los materiales de un trabajo)."""
+def _con_tabla(valor, tabla, salida):
+    """Recorre [valor] y apunta (dict, tabla de su id) de cada elemento: los de la lista principal
+    con [tabla], los de las listas anidadas de NIDOS con la suya, y el resto con None."""
     if isinstance(valor, dict):
-        yield valor
-        for v in valor.values():
-            yield from _dicts(v)
+        salida.append((valor, tabla))
+        for clave, v in valor.items():
+            if isinstance(v, list):
+                for e in v:
+                    _con_tabla(e, NIDOS.get(clave), salida)
+            elif isinstance(v, dict):
+                _con_tabla(v, NIDOS.get(clave), salida)
     elif isinstance(valor, list):
         for v in valor:
-            yield from _dicts(v)
+            _con_tabla(v, tabla, salida)
 
 
 def anadir_uuids(ruta, datos, cons):
-    """Pone «uuid» a cada elemento de la lista de [ruta] y «<campo>_uuid» a cada campo de CAMPOS
-    (en cualquier nivel). Modifica [datos]; devuelve True si añadió algo."""
-    pedidos = {}                                     # (base, tabla) -> ids
-    elementos = _elementos(datos)
+    """Pone «uuid» a cada elemento de la lista de [ruta] (y de sus listas anidadas, NIDOS) y
+    «<campo>_uuid» a cada campo de CAMPOS (en cualquier nivel). Modifica [datos]; True si añadió algo."""
     destino = LISTAS.get(ruta)
-    if destino:
-        pedidos.setdefault(destino, set()).update(e["id"] for e in elementos if isinstance(e.get("id"), int))
-    todos = list(_dicts(datos))
-    for d in todos:
-        for campo, tabla in CAMPOS.items():
+    pares = []
+    if isinstance(datos, dict):
+        # La respuesta: sus listas (o un único elemento, «material») son de la tabla de la ruta
+        for clave, v in datos.items():
+            if isinstance(v, (list, dict)):
+                _con_tabla(v, NIDOS.get(clave, destino), pares)
+    else:
+        _con_tabla(datos, destino, pares)
+    pedidos = {}                                     # (base, tabla) -> ids
+    for d, tabla in pares:
+        if tabla and isinstance(d.get("id"), int):
+            pedidos.setdefault(tabla, set()).add(d["id"])
+        for campo, t_campo in CAMPOS.items():
             if isinstance(d.get(campo), int):
-                pedidos.setdefault(tabla, set()).add(d[campo])
+                pedidos.setdefault(t_campo, set()).add(d[campo])
     mapas = {}
     for (base, tabla), ids in pedidos.items():
         try:
@@ -209,14 +265,12 @@ def anadir_uuids(ruta, datos, cons):
             mapas[(base, tabla)] = {}
     if not any(mapas.values()):
         return False
-    if destino:
-        for e in elementos:
-            u = mapas.get(destino, {}).get(e.get("id"))
-            if u:
-                e["uuid"] = u
-    for d in todos:
-        for campo, tabla in CAMPOS.items():
-            u = mapas.get(tabla, {}).get(d.get(campo)) if isinstance(d.get(campo), int) else None
+    for d, tabla in pares:
+        u = mapas.get(tabla, {}).get(d.get("id")) if tabla and isinstance(d.get("id"), int) else None
+        if u:
+            d["uuid"] = u
+        for campo, t_campo in CAMPOS.items():
+            u = mapas.get(t_campo, {}).get(d.get(campo)) if isinstance(d.get(campo), int) else None
             if u:
                 d[f"{campo}_uuid"] = u
     return True

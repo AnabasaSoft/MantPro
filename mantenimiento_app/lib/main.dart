@@ -993,6 +993,37 @@ Map<String, String> camposUuid(Map d) => {
       e.key.toString(): '${e.value}'
 };
 
+/// uuid de los registros de colas que solo guardan el id (pendientes por borrar, avisos por
+/// deshacer): se apuntan aparte, en «uuids_<cola>», al crear el cambio.
+Future<void> anotarUuidCola(String cola, String id, String? uuid) async {
+  if (uuid == null || uuid.isEmpty) return;
+  final p = await SharedPreferences.getInstance();
+  Map<String, dynamic> m = {};
+  try { m = Map<String, dynamic>.from(json.decode(p.getString('uuids_$cola') ?? '{}')); } catch (_) {}
+  m[id] = uuid;
+  await p.setString('uuids_$cola', json.encode(m));
+}
+
+/// {'uuid': ...} del registro [id] de esa cola, para mandarlo con él (vacío si no se apuntó).
+Future<Map<String, String>> uuidDeCola(String cola, String id) async {
+  final p = await SharedPreferences.getInstance();
+  try {
+    final u = Map<String, dynamic>.from(json.decode(p.getString('uuids_$cola') ?? '{}'))[id];
+    return u is String && u.isNotEmpty ? {'uuid': u} : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+/// uuid de la especialidad [id] en la lista guardada en el móvil.
+Future<String?> uuidDeEspecialidad(int? id) async {
+  if (id == null) return null;
+  for (final e in await EspecialidadesCache.obtener()) {
+    if (e['id'] == id) return e['uuid'] as String?;
+  }
+  return null;
+}
+
 /// uuid de la máquina [id] en la lista guardada en el móvil (la misma de la que se eligió).
 Future<String?> uuidDeMaquina(int? id) async {
   if (id == null) return null;
@@ -2212,7 +2243,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
     if (_urlPC == null) return;
     if (!silencioso) setState(() => _cargando = true);
 
-    List<int> bo = []; for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString()}, descripcion: tt('lbl_eliminar_trabajo', 'Eliminar trabajo'))) bo.add(id); }
+    List<int> bo = []; for (var id in _colaBorrados) { if (await _apiPost('eliminar_pendiente', {'id': id.toString(), ...await uuidDeCola('cola_borrados', '$id')}, descripcion: tt('lbl_eliminar_trabajo', 'Eliminar trabajo'))) bo.add(id); }
     if (bo.isNotEmpty) setState(() { for (var id in bo) _colaBorrados.remove(id); });
 
     List<Map<String, dynamic>> no = []; for (var t in _colaNuevos) { if (await _apiMultipart('agregar_pendiente', t)) no.add(t); }
@@ -2481,7 +2512,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
         String? ref = RegExp(r"\[REF:(\d+)\]").firstMatch(p.detalles)?.group(1); String k = ref ?? p.id.toString();
         if (r.imagePath != null) setState(() => _fotosLocales[k] = r.imagePath!);
         setState(() { _tagsLocales[k] = r.tags; _galeriaLocales[k] = r.fotosExtra; });
-        Map<String, dynamic> mapTempEdit = {'id': p.id, 'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad,
+        Map<String, dynamic> mapTempEdit = {'id': p.id, if (p.uuid != null) 'uuid': p.uuid, 'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': r.detalles, 'tags': r.tags, 'imagePath': r.imagePath, 'imagePathDespues': r.imagePathDespues, 'prioridad': r.prioridad,
             'fotosExtra': r.fotosExtra, 'galeriaClave': k};
         setState(() {
           _colaEdiciones.removeWhere((e) => e['id'] == p.id.toString());
@@ -2653,14 +2684,18 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task),
           label: Text(t("lbl_anadir")),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) {
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) async {
+            final especialidadUuid = await uuidDeEspecialidad(r.especialidadId);   // de la lista de la que se eligió
+            if (!mounted) return;
             String ru = DateTime.now().millisecondsSinceEpoch.toString();
             if (r.imagePath != null) setState(() => _fotosLocales[ru] = r.imagePath!);
             if (r.tags.isNotEmpty) setState(() => _tagsLocales[ru] = r.tags);
             String d = "${r.detalles} [REF:$ru]";
             if (r.fotosExtra.isNotEmpty) setState(() => _galeriaLocales[ru] = r.fotosExtra);
             final sedeNueva = sedeElegidaNotifier.value;   // va a la sede elegida (null = la que decida el PC)
-            Map<String, dynamic> mapTempNuevo = {'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId,
+            final sedeUuid = SedesCache.uuid(sedeNueva);
+            Map<String, dynamic> mapTempNuevo = {if (sedeUuid != null) 'sede_id_uuid': sedeUuid,
+                if (especialidadUuid != null) 'especialidad_id_uuid': especialidadUuid,'op': nuevaOperacion(), 'titulo': r.titulo, 'detalles': d, 'tags': r.tags, 'imagePath': r.imagePath, 'prioridad': r.prioridad, 'especialidad_id': r.especialidadId,
                 'fotosExtra': r.fotosExtra, 'galeriaClave': ru, 'sede_id': sedeNueva};
             setState(() => _colaNuevos.add(mapTempNuevo));
             setState(() => _listaPC.insert(0, PendientePC(id: -DateTime.now().millisecondsSinceEpoch, titulo: r.titulo, detalles: d, prioridad: r.prioridad, especialidadId: r.especialidadId, sedeId: sedeNueva)));
@@ -2703,6 +2738,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       return;
     }
 
+    await anotarUuidCola('cola_borrados', '$id', _listaPC.where((p) => p.id == id).firstOrNull?.uuid);
     setState(() { _listaPC.removeWhere((p) => p.id == id); _colaBorrados.add(id); });
     _guardarCache();
     _sincronizarTodo(silencioso: true);
@@ -2786,7 +2822,7 @@ class _TabAvisosState extends State<TabAvisos> {
     setState(() => _cargando = true);
 
     await sincronizarLecturas(_urlPC!);
-    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
+    List<String> ro = []; for (var id in _colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/descompletar_aviso"), body: {'id': id, ...await uuidDeCola('avisos_cola_restaurar', id)}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) { /* */ } }
     List<Map<String, String>> co = []; for (var item in _colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$_urlPC/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], ...camposUuid(item), 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) { /* */ } }
 
     if (ro.isNotEmpty || co.isNotEmpty) {
@@ -2888,6 +2924,7 @@ class _TabAvisosState extends State<TabAvisos> {
     if (_colaCompletados.any((i) => i['id'] == a.id.toString())) { setState(() => _colaCompletados.removeWhere((i) => i['id'] == a.id.toString())); await _guardarColas(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t("msg_deshecho")))); return; }
     if (await showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(t("lbl_desmarcar")), content: Text(t("msg_volver_pendiente")), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t("btn_cancelar_mayus"))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(ctx, true), child: Text(t("btn_desmarcar_mayus"), style: const TextStyle(color: Colors.white)))])) != true) return;
     await guardarOpRestaurar(a.id.toString(), nuevaOperacion());
+    await anotarUuidCola('avisos_cola_restaurar', a.id.toString(), a.uuid);
     setState(() => _colaRestaurar.add(a.id.toString())); await _guardarColas(); _sincronizar();
   }
   @override Widget build(BuildContext context) {
@@ -4153,7 +4190,7 @@ class SincronizadorGlobal {
     List<Map<String, dynamic>> colaSalida = prefs.getString('cola_salida') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_salida')!)) : [];
     List<Map<String, dynamic>> colaRevertir = prefs.getString('cola_revertir') != null ? List<Map<String, dynamic>>.from(json.decode(prefs.getString('cola_revertir')!)) : [];
 
-    List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/eliminar_pendiente"), body: {'id': id.toString()}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
+    List<int> bo = []; for (var id in colaBorrados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/eliminar_pendiente"), body: {'id': id.toString(), ...await uuidDeCola('cola_borrados', '$id')}); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_eliminar_trabajo', 'Eliminar trabajo')); bo.add(id); } else if (r.statusCode == 200) bo.add(id); } catch(e){} }
     for (var id in bo) { colaBorrados.remove(id); }
 
     List<Map<String, dynamic>> rv = []; for (var t in colaRevertir) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/revertir_pendiente"), body: {'id': t['id'].toString(), ...camposUuid(t)}, headers: cabeceraOperacion(t['op'])); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_revertir_trabajo', 'Revertir trabajo')); rv.add(t); } else if (r.statusCode == 200) rv.add(t); } catch (e) {} }
@@ -4210,7 +4247,7 @@ class SincronizadorGlobal {
     if (cc != null) { colaCompletados = (json.decode(cc) as List<dynamic>).map((e) => Map<String, String>.from(e)).toList(); }
     List<String> colaRestaurar = prefs.getString('avisos_cola_restaurar') != null ? List<String>.from(json.decode(prefs.getString('avisos_cola_restaurar')!)) : [];
 
-    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
+    List<String> ro = []; for (var id in colaRestaurar) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/descompletar_aviso"), body: {'id': id, ...await uuidDeCola('avisos_cola_restaurar', id)}, headers: cabeceraOperacion(await opRestaurar(id))).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(tt('lbl_restaurar_aviso', 'Restaurar aviso')); ro.add(id); } else if (r.statusCode == 200) ro.add(id); } catch (e) {} }
     List<Map<String, String>> co = []; for (var item in colaCompletados) { try { final r = await httpPostAuth(Uri.parse("$esquemaPC://$ip/api/completar_aviso"), headers: cabeceraOperacion(item['op']), body: {'id': item['id'], ...camposUuid(item), 'titulo': item['titulo'], 'fecha_custom': item['fecha'], if (item['checklist'] != null) 'checklist': item['checklist']!, if (item['checklist_plantilla'] != null) 'checklist_plantilla': item['checklist_plantilla']!, if (item['materiales'] != null) 'materiales': item['materiales']!, if (item['minutos_trabajo'] != null) 'minutos_trabajo': item['minutos_trabajo']!, if (item['personas'] != null) 'personas': item['personas']!, if (item['lectura'] != null) 'lectura': item['lectura']!, if (item['lectura_uid'] != null) 'lectura_uid': item['lectura_uid']!, if (item['lectura_fecha'] != null) 'lectura_fecha': item['lectura_fecha']!}).timeout(const Duration(seconds: 5)); if (r.statusCode == 403) { avisarSinPermisoTrabajos(item['titulo'] ?? tt('lbl_completar_aviso', 'Completar aviso')); co.add(item); } else if (r.statusCode == 200) co.add(item); } catch (e) {} }
 
     await quitarDeColaGuardada(prefs, 'avisos_cola_completados', co);
@@ -4520,7 +4557,7 @@ class _PantallaMaquinaState extends State<PantallaMaquina> {
     final actual = (lecturaActual(c, _lecturasLocales)?['valor'] as num?)?.toDouble();
     final valor = await pedirLecturaContador(context, c, actual);
     if (valor == null) return;
-    await apuntarLectura(c['id'] as int, valor);
+    await apuntarLectura(c['id'] as int, valor, uuid: c['uuid'] as String?);
     await _cargar();
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('msg_lectura_guardada'))));
     final prefs = await SharedPreferences.getInstance();

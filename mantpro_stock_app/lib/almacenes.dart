@@ -43,6 +43,9 @@ final ValueNotifier<int> almacenesListaNotifier = ValueNotifier(0);
 class AlmacenesCache {
   static const _clave = 'stock_almacenes';
   static const _claveElegido = 'stock_almacen_elegido';
+  /// uuid del almacén elegido: el id es de cada base (PC o nube); al bajar la lista de la otra
+  /// ruta, el elegido se vuelve a buscar por su uuid para que siga siendo el mismo almacén.
+  static const _claveElegidoUuid = 'stock_almacen_elegido_uuid';
 
   /// [{id, nombre, comun, principal, sede}]
   static List<Map<String, dynamic>> lista = [];
@@ -55,7 +58,13 @@ class AlmacenesCache {
     } catch (_) {
       lista = [];
     }
-    final elegido = prefs.getInt(_claveElegido);
+    var elegido = prefs.getInt(_claveElegido);
+    final uuidElegido = prefs.getString(_claveElegidoUuid);
+    final porUuid = uuidElegido == null ? null : lista.where((a) => a['uuid'] == uuidElegido).firstOrNull;
+    if (porUuid != null && porUuid['id'] != elegido) {
+      elegido = porUuid['id'] as int?;
+      if (elegido != null) await prefs.setInt(_claveElegido, elegido);
+    }
     if (elegido != null && lista.any((a) => a['id'] == elegido)) {
       almacenElegidoNotifier.value = elegido;
     } else {
@@ -83,7 +92,15 @@ class AlmacenesCache {
   static Future<void> elegir(int id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_claveElegido, id);
+    final u = uuid(id);
+    if (u != null) { await prefs.setString(_claveElegidoUuid, u); } else { await prefs.remove(_claveElegidoUuid); }
     almacenElegidoNotifier.value = id;
+  }
+
+  /// uuid del almacén [id] (null sin MantPro Cloud o si no está en la lista).
+  static String? uuid(int? id) {
+    if (id == null) return null;
+    return lista.where((a) => a['id'] == id).firstOrNull?['uuid'] as String?;
   }
 
   static String nombre(int? id) {

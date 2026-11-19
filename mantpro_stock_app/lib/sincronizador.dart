@@ -89,10 +89,22 @@ class StockSincronizador {
         omitir: const ['localId', 'borrarFoto']);
   }
 
+  /// {'uuid': ...} del artículo [id] de la cola de borrados, si se apuntó (ver StockApi.borrarMaterial).
+  static Future<Map<String, String>?> _uuidBorrado(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final u = Map<String, dynamic>.from(json.decode(prefs.getString(kStockUuidsBorrados) ?? '{}'))['$id'];
+      return u is String && u.isNotEmpty ? {'uuid': u} : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<_ResultadoEnvio> _enviarBorrado(String ip, int id) async {
     try {
       final res = await http
-          .delete(Uri.parse('$esquemaPC://$ip/api/stock/material/$id'), headers: AuthService.cabeceras())
+          .delete(Uri.parse('$esquemaPC://$ip/api/stock/material/$id').replace(queryParameters: await _uuidBorrado(id)),
+              headers: AuthService.cabeceras())
           .timeout(const Duration(seconds: 10));
       await comprobar401(res.statusCode);
       // 404 (el material ya no existe en el PC) también se considera hecho.
@@ -111,6 +123,7 @@ class StockSincronizador {
         Uri.parse('$esquemaPC://$ip/api/stock/material/${item['materialId']}/movimiento'),
         headers: {...AuthService.cabeceras(), ...cabeceraOperacion(item)},
         body: {
+          if (item['uuid'] != null) 'uuid': item['uuid'].toString(),
           'tipo': item['tipo'].toString(),
           'cantidad': item['cantidad'].toString(),
           'motivo': (item['motivo'] ?? '').toString(),

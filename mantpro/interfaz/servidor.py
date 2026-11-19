@@ -157,21 +157,32 @@ class ServidorSincronizacion(QThread):
         # correcto, no al que tenga aquí el mismo número.
         @self.app.before_request
         def _traducir_ids_movil():
-            if request.method != "POST" or not request.path.startswith("/api/"):
+            if request.method not in ("POST", "DELETE") or not request.path.startswith("/api/"):
                 return None
-            campos = request.form.to_dict()
-            if not ids_movil.necesita(request.path, campos):
+            regla = request.url_rule.rule if request.url_rule else request.path
+            campos = request.form.to_dict() if request.method == "POST" else {}
+            uuid_ruta = (campos.get("uuid") or request.args.get("uuid")) if regla in ids_movil.EN_RUTA else None
+            cuerpo = request.get_json(silent=True) if regla in ids_movil.JSON_RUTAS else None
+            hay_json = isinstance(cuerpo, dict) and ("almacen_id_uuid" in cuerpo or "material_id_uuid" in json.dumps(cuerpo.get("lineas") or []))
+            if not (uuid_ruta or hay_json or ids_movil.necesita(regla, campos)):
                 return None
             con_mant, con_alma = self._conn(), almacen._conn()
+            cons = {"mant": con_mant, "alma": con_alma}
             try:
-                nuevos = ids_movil.traducir(request.path, campos, {"mant": con_mant, "alma": con_alma})
+                if uuid_ruta and request.view_args is not None:
+                    ids_movil.traducir_en_ruta(regla, request.view_args, uuid_ruta, cons)
+                if hay_json:
+                    nuevo = ids_movil.traducir_json(cuerpo, cons)
+                    request._cached_json = (nuevo, nuevo)        # lo que leerá request.get_json()
+                if campos and ids_movil.necesita(regla, campos):
+                    nuevos = ids_movil.traducir(regla, campos, cons)
+                    form = MultiDict(request.form)
+                    for clave, valor in nuevos.items():
+                        if campos.get(clave) != valor:
+                            form.setlist(clave, [valor])
+                    request.form = ImmutableMultiDict(form)
             finally:
                 con_mant.close(); con_alma.close()
-            form = MultiDict(request.form)
-            for clave, valor in nuevos.items():
-                if campos.get(clave) != valor:
-                    form.setlist(clave, [valor])
-            request.form = ImmutableMultiDict(form)
             return None
 
         # Y a la vuelta: las listas que guarda el móvil llevan el uuid de cada elemento («uuid»)
@@ -179,14 +190,15 @@ class ServidorSincronizacion(QThread):
         # sus cambios. Solo con MantPro Cloud (sin ella las tablas no tienen uuid y no se toca nada).
         @self.app.after_request
         def _anadir_uuids_movil(respuesta):
-            if request.method != "GET" or request.path not in ids_movil.LISTAS or respuesta.status_code != 200 \
+            regla = request.url_rule.rule if request.url_rule else request.path
+            if request.method != "GET" or regla not in ids_movil.LISTAS or respuesta.status_code != 200 \
                     or not respuesta.is_json:
                 return respuesta
             try:
                 datos = respuesta.get_json()
                 con_mant, con_alma = self._conn(), almacen._conn()
                 try:
-                    if ids_movil.anadir_uuids(request.path, datos, {"mant": con_mant, "alma": con_alma}):
+                    if ids_movil.anadir_uuids(regla, datos, {"mant": con_mant, "alma": con_alma}):
                         respuesta.set_data(json.dumps(datos))
                 finally:
                     con_mant.close(); con_alma.close()

@@ -470,11 +470,47 @@ const String kStockColaNuevos = 'stock_cola_nuevos';
 const String kStockColaEdiciones = 'stock_cola_ediciones';
 const String kStockColaMovimientos = 'stock_cola_movimientos';
 const String kStockColaBorrados = 'stock_cola_borrados';
+/// uuid de los artículos de la cola de borrados (que solo guarda ids): {id: uuid}
+const String kStockUuidsBorrados = 'stock_cola_borrados_uuid';
 // Revisión diaria del almacén (los 5 artículos al azar): la cola lleva una
 // entrada por revisión (clave 'uid'); 'stock_revision_hoy' guarda la de hoy
 // para poder seguirla si se sale y se vuelve a entrar el mismo día.
 const String kStockColaRevisiones = 'stock_cola_revisiones';
 const String kStockRevisionHoy = 'stock_revision_hoy';
+
+/// uuid (el mismo en el PC y en la nube: el id es de cada base) del registro [id] de una respuesta
+/// guardada en el móvil en [clave], bajando por las listas de [camino] (p. ej. estanterías > baldas).
+/// Se guarda con cada cambio al crearlo, de la misma lista de la que se eligió el id, para que el PC
+/// o la nube lo apliquen al registro correcto aunque se envíe por la otra ruta.
+String? uuidEnCache(SharedPreferences prefs, String clave, List<String> camino, int? id) {
+  if (id == null) return null;
+  dynamic raiz;
+  try { raiz = json.decode(prefs.getString(clave) ?? 'null'); } catch (_) { return null; }
+  var nivel = <dynamic>[raiz];
+  for (final k in camino) {
+    nivel = [for (final n in nivel) if (n is Map && n[k] is List) ...(n[k] as List)];
+  }
+  for (final e in nivel) {
+    if (e is Map && e['id'] == id && e['uuid'] is String) return e['uuid'] as String;
+  }
+  return null;
+}
+
+String? uuidDeMaterial(SharedPreferences prefs, int? id) =>
+    uuidEnCache(prefs, kStockCacheMateriales, const ['materiales'], id) ??
+    uuidEnCache(prefs, kStockCacheBajoMinimo, const ['materiales'], id);
+
+/// Los uuid de la ubicación elegida (sección o balda) y del almacén, para un alta o una edición.
+Map<String, String> uuidsUbicacion(SharedPreferences prefs, Map<String, String> campos, {bool conAlmacen = false}) {
+  final sec = uuidEnCache(prefs, kStockCacheEstructura, const ['estanterias', 'baldas', 'secciones'], int.tryParse(campos['seccion_id'] ?? ''));
+  final bal = uuidEnCache(prefs, kStockCacheEstructura, const ['estanterias', 'baldas'], int.tryParse(campos['balda_id'] ?? ''));
+  final alm = conAlmacen ? AlmacenesCache.uuid(almacenElegidoNotifier.value) : null;
+  return {
+    if (sec != null) 'seccion_id_uuid': sec,
+    if (bal != null) 'balda_id_uuid': bal,
+    if (alm != null) 'almacen_id_uuid': alm,
+  };
+}
 
 List<Map<String, dynamic>> leerColaMapas(SharedPreferences prefs, String key) {
   final s = prefs.getString(key);
@@ -873,6 +909,7 @@ class StockApi {
       cola[idx] = {
         ...cola[idx],
         ...campos,
+        ...uuidsUbicacion(prefs, campos),
         'fotoPath': borrarFoto ? null : (foto?.path ?? cola[idx]['fotoPath']),
       };
       await prefs.setString(kStockColaNuevos, json.encode(cola));
@@ -892,7 +929,7 @@ class StockApi {
     final colaKey = esNuevo ? kStockColaNuevos : kStockColaEdiciones;
     if (esNuevo) {
       final cola = leerColaMapas(prefs, kStockColaNuevos);
-      cola.add({'localId': localId, 'op': nuevaOperacion(), ...campos, 'fotoPath': foto?.path,
+      cola.add({'localId': localId, 'op': nuevaOperacion(), ...campos, ...uuidsUbicacion(prefs, campos, conAlmacen: true), 'fotoPath': foto?.path,
                 if (almacenElegidoNotifier.value != null) 'almacen_id': '${almacenElegidoNotifier.value}'});
       await prefs.setString(kStockColaNuevos, json.encode(cola));
       avisarCambioLocal();
@@ -908,7 +945,9 @@ class StockApi {
         'localId': localId,
         'op': nuevaOperacion(),
         'id': id,
+        if (uuidDeMaterial(prefs, id) != null) 'uuid': uuidDeMaterial(prefs, id),
         ...campos,
+        ...uuidsUbicacion(prefs, campos),
         'fotoPath': borrarFoto ? null : (foto?.path ?? fotoPathAnterior),
         'borrarFoto': borrarFoto,
       });
@@ -957,7 +996,9 @@ class StockApi {
     final ip = await _ip();
     final localId = DateTime.now().microsecondsSinceEpoch;
     final cola = leerColaMapas(prefs, kStockColaMovimientos);
-    cola.add({'localId': localId, 'op': nuevaOperacion(), 'materialId': materialId, 'tipo': tipo, 'cantidad': cantidad, 'motivo': motivo});
+    final uuid = uuidDeMaterial(prefs, materialId);
+    cola.add({'localId': localId, 'op': nuevaOperacion(), 'materialId': materialId, if (uuid != null) 'uuid': uuid,
+              'tipo': tipo, 'cantidad': cantidad, 'motivo': motivo});
     await prefs.setString(kStockColaMovimientos, json.encode(cola));
     avisarCambioLocal();
 
@@ -1041,6 +1082,13 @@ class StockApi {
     final ip = await _ip();
     final cola = leerColaIds(prefs, kStockColaBorrados);
     if (!cola.contains(id)) cola.add(id);
+    final uuid = uuidDeMaterial(prefs, id);
+    if (uuid != null) {
+      Map<String, dynamic> uuids = {};
+      try { uuids = Map<String, dynamic>.from(json.decode(prefs.getString(kStockUuidsBorrados) ?? '{}')); } catch (_) {}
+      uuids['$id'] = uuid;
+      await prefs.setString(kStockUuidsBorrados, json.encode(uuids));
+    }
     await prefs.setString(kStockColaBorrados, json.encode(cola));
     avisarCambioLocal();
 
