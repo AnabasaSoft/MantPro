@@ -32,6 +32,7 @@ from ...idiomas import t
 from ..comun import tt, avanzar_qdate, combo_frecuencias
 from ..dialogos.trabajos import AvisoEditDialog
 from ...nucleo import usuarios, checklists, consumos, contadores, sedes, frecuencias
+from ...nucleo import avisos as avisos_nucleo
 from ..dialogos.contadores import CamposContadorAviso, pedir_lectura
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.basedatos import get_db_connection
@@ -131,12 +132,7 @@ class PestanaAvisos:
         (y, si no están asignados, coinciden con alguna de sus especialidades
         o no tienen ninguna), pero no los asignados a otro técnico ni los
         restringidos a una especialidad que no tiene."""
-        avisos = self.db.obtener_avisos(sede=self.sede_filtro())
-        if usuarios.es_admin():
-            return avisos
-        uid = usuarios.id_actual()
-        especialidades = usuarios.especialidades_actuales()
-        return [a for a in avisos if a[6] == uid or (a[6] is None and (a[8] is None or a[8] in especialidades))]
+        return avisos_nucleo.visibles(self.db.obtener_avisos(sede=self.sede_filtro()), usuarios.SESION_ACTUAL)
 
     def refresh_avisos(self):
         self.table_avisos.setRowCount(0)

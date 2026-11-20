@@ -21,14 +21,14 @@
 """Pestaña «Dashboard»: indicadores y gráficos."""
 
 from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QProgressBar, QPushButton
-from PyQt6.QtCore import QDate, Qt
+from PyQt6.QtCore import Qt
 
 from ... import idiomas
 from ...idiomas import t
-from ..comun import tt, avanzar_qdate
+from ..comun import tt
 from ..dialogos.estadisticas import DialogoEstadisticasTecnicos
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking
-from ...nucleo import maquinas, consumos, costes, usuarios
+from ...nucleo import consumos, dashboard, usuarios
 
 def _importe_corto(valor):
     """Importe abreviado para las barras del gráfico mensual: «850», «1,2k»."""
@@ -113,71 +113,37 @@ class PestanaDashboard:
     def _importe_largo(valor):
         return consumos.formato_importe(valor, consumos.moneda())
 
-    def _refrescar_costes(self):
-        # Los costes (repuestos y mano de obra) solo los ve un administrador
-        ver = usuarios.es_admin()
+    def _refrescar_costes(self, resumen):
+        # Los costes (repuestos y mano de obra) solo los ve un administrador: el núcleo da None al resto
+        ver = resumen is not None
         for w in (self.card_coste_mes, self.card_coste_anio, self.lbl_titulo_ranking_coste, self.grafico_ranking_coste,
                   self.lbl_titulo_coste_mes, self.grafico_coste_mes):
             w.setVisible(ver)
         if not ver:
             return
-        r = costes.resumen(sede=self.sede_filtro())
         # «≥» avisa de que a algún repuesto u hora le falta el precio y el total se queda corto
-        marca = "≥ " if r["sin_precio"] else ""
-        self.lbl_coste_mes.setText(marca + self._importe_largo(r["mes"]))
-        self.lbl_coste_anio.setText(marca + self._importe_largo(r["anio"]))
-        self.grafico_ranking_coste.establecer_datos(r["ranking"])
-        self.grafico_coste_mes.establecer_datos(r["por_mes"])
+        marca = "≥ " if resumen["sin_precio"] else ""
+        self.lbl_coste_mes.setText(marca + self._importe_largo(resumen["mes"]))
+        self.lbl_coste_anio.setText(marca + self._importe_largo(resumen["anio"]))
+        self.grafico_ranking_coste.establecer_datos(resumen["ranking"])
+        self.grafico_coste_mes.establecer_datos(resumen["por_mes"])
 
     def refresh_dashboard(self):
-        avisos = self._avisos_visibles(); hoy = QDate.currentDate(); pendientes_reales = 0
-        from ...nucleo import contadores
-        por_contador = contadores.estados_avisos()
-        for aid, tit, finicio, freq, dur, ult, *_ in avisos:
-            info = por_contador.get(aid)
-            # Por contador: cuenta si toca por contador (y no se ha hecho hoy);
-            # si además tiene fecha, también si toca por fecha (abajo)
-            if info and ult != hoy.toString("yyyy-MM-dd") and info["estado"] in ("PENDIENTE", "ATRASADO"):
-                pendientes_reales += 1; continue
-            if info and info["solo_contador"]: continue
-            if not finicio: continue
-            fi = QDate.fromString(finicio, "yyyy-MM-dd")
-            if not freq: freq = "Anual"
-            freq = idiomas.normalizar_frecuencia(freq)
-            # Un aviso "Diario" se resetea cada día: no le aplicamos la duración
-            # configurada, porque un margen de varios días haría que el de ayer
-            # siguiera contando como "hecho" hoy.
-            dur_ventana = 0 if freq == "Diario" else dur
-            ocurrencia = fi
-            while ocurrencia.addDays(dur_ventana) < hoy:
-                siguiente = avanzar_qdate(ocurrencia, freq)
-                if siguiente <= ocurrencia: break      # frecuencia desconocida: no avanza
-                ocurrencia = siguiente
-            fin_ocurrencia = ocurrencia.addDays(dur_ventana)
-            if ocurrencia <= hoy <= fin_ocurrencia and ult != ocurrencia.toString("yyyy-MM-dd"): pendientes_reales += 1
+        # Los cálculos son los del núcleo (los mismos que usa MantPro Web); aquí solo se pintan
+        d = dashboard.datos(self.db, usuarios.SESION_ACTUAL, sede=self.sede_filtro())
+        pendientes_reales = d["avisos_pendientes"]
         self.lbl_count_avisos.setText(str(pendientes_reales))
         self.lbl_count_avisos.setStyleSheet("color: #e74c3c; font-size: 32px; font-weight: bold;" if pendientes_reales > 0 else "color: #2ecc71; font-size: 32px; font-weight: bold;")
-        todos = self.db.obtener_pendientes(sede=self.sede_filtro()); self.lbl_count_todos.setText(str(len(todos))); self.lbl_count_todos.setStyleSheet("color: #f1c40f; font-size: 32px; font-weight: bold;")
-        registros = self.db.obtener_todas_cronologico(sede=self.sede_filtro()); mes_actual = hoy.toString("yyyy-MM"); count_mes = sum(1 for r in registros if r[1].startswith(mes_actual))
-        self.lbl_count_regs.setText(str(count_mes)); self.lbl_count_regs.setStyleSheet("color: #3daee9; font-size: 32px; font-weight: bold;")
-        sede = self.sede_filtro()   # gráficos e indicadores de la sede elegida
-        self.grafico_ranking_averias.establecer_datos(maquinas.ranking_trabajos(sede=sede))
-        self.grafico_averias_mes.establecer_datos(maquinas.averias_por_mes(sede=sede))
-        self._refrescar_costes()
-        indicadores = maquinas.indicadores_fiabilidad_global(sede=sede)
-        mtbf = indicadores["mtbf_dias"]
+        self.lbl_count_todos.setText(str(d["por_hacer"])); self.lbl_count_todos.setStyleSheet("color: #f1c40f; font-size: 32px; font-weight: bold;")
+        self.lbl_count_regs.setText(str(d["registros_mes"])); self.lbl_count_regs.setStyleSheet("color: #3daee9; font-size: 32px; font-weight: bold;")
+        self.grafico_ranking_averias.establecer_datos(d["ranking_trabajos"])
+        self.grafico_averias_mes.establecer_datos(d["averias_por_mes"])
+        self._refrescar_costes(d["costes"])
+        mtbf = d["mtbf_dias"]
         self.lbl_mtbf_global.setText(f"{mtbf:.0f} {tt('lbl_dias_abrev', 'días')}" if mtbf is not None else "--")
-        mttr = indicadores["mttr_horas"]
+        mttr = d["mttr_horas"]
         self.lbl_mttr_global.setText(f"{mttr:.1f} {tt('lbl_horas_abrev', 'h')}" if mttr is not None else "--")
-        total_tareas = len(registros)
-        if total_tareas > 0:
-            c_elec = sum(1 for r in registros if "eléctrico" in r[3].lower() or "electrico" in r[3].lower())
-            c_mec = sum(1 for r in registros if "mecánico" in r[3].lower() or "mecanico" in r[3].lower())
-            c_prev = sum(1 for r in registros if "preventivo" in r[3].lower())
-            c_urg = sum(1 for r in registros if "urgente" in r[3].lower() or "avería" in r[3].lower())
-            self.bar_elec.setValue(int((c_elec/total_tareas)*100)); self.bar_elec.setFormat(f"{int((c_elec/total_tareas)*100)}% ({c_elec})")
-            self.bar_mec.setValue(int((c_mec/total_tareas)*100)); self.bar_mec.setFormat(f"{int((c_mec/total_tareas)*100)}% ({c_mec})")
-            self.bar_prev.setValue(int((c_prev/total_tareas)*100)); self.bar_prev.setFormat(f"{int((c_prev/total_tareas)*100)}% ({c_prev})")
-            self.bar_urg.setValue(int((c_urg/total_tareas)*100)); self.bar_urg.setFormat(f"{int((c_urg/total_tareas)*100)}% ({c_urg})")
-        else:
-            for b in [self.bar_elec, self.bar_mec, self.bar_prev, self.bar_urg]: b.setValue(0)
+        for barra, tipo in zip((self.bar_elec, self.bar_mec, self.bar_prev, self.bar_urg), d["distribucion"]):
+            barra.setValue(tipo["porcentaje"])
+            if tipo["cantidad"] or any(x["cantidad"] for x in d["distribucion"]):
+                barra.setFormat(f"{tipo['porcentaje']}% ({tipo['cantidad']})")

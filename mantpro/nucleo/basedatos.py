@@ -565,6 +565,8 @@ class LectorBD:
 
     obtener_tarea_por_id = GestorBaseDatos.obtener_tarea_por_id
     obtener_avisos = GestorBaseDatos.obtener_avisos
+    obtener_pendientes = GestorBaseDatos.obtener_pendientes                  # Dashboard de MantPro Web
+    obtener_todas_cronologico = GestorBaseDatos.obtener_todas_cronologico
 
 
 # Para el servidor de los móviles: fotografía de cada cosa y nombres de campo
