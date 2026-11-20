@@ -32,8 +32,15 @@ from PyQt6.QtGui import QIcon, QColor, QPixmap
 from ...idiomas import t
 from ..comun import _estilo_check_etiqueta, traducir_tags_bd, tt
 from ..dialogos.trabajos import EditDialog
-from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes
+from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes, historial
 from ..dialogos.checklists import DialogoRellenarChecklist, resumen_texto, texto_tiempo_export
+
+# Colores de las filas por tipo (historial.clase): ((fondo, letra) en tema oscuro, (fondo, letra) en claro)
+COLORES_FILA = {"averia": (("#4a2424", "#ffffff"), ("#f2b8bd", "#58151c")),
+                "preventivo": (("#213c21", "#ffffff"), ("#a3d9ac", "#1e4620")),
+                "electrico": (("#555", "#ffffff"), ("#e0e0e0", "#333333")),
+                "mecanico": (("#5a4a2d", "#ffffff"), ("#fff3cd", "#5c4813"))}
+
 
 class PestanaHistorial:
     """Pestañas «Historial» y «Buscador»: consulta, edición, borrado y reasignación de trabajos.
@@ -42,18 +49,8 @@ class PestanaHistorial:
     principal (self.db, self.tabs...) como si estuvieran en la propia clase."""
 
     def _hay_foto_disponible(self, desc):
-        # Busca primero la foto de ANTES; si no existe físicamente, prueba la de DESPUÉS.
-        m = re.search(r"\[FOTO:\s*(.*?)\]", desc)
-        if m:
-            nombre = m.group(1).split("]")[0].strip()
-            if nombre and os.path.exists(os.path.join(self.carpeta_fotos, nombre)):
-                return True
-        m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", desc)
-        if m_d:
-            nombre_d = m_d.group(1).split("]")[0].strip()
-            if nombre_d and os.path.exists(os.path.join(self.carpeta_fotos, nombre_d)):
-                return True
-        return False
+        # La foto de ANTES o, si no existe físicamente, la de DESPUÉS (lo decide el núcleo, igual que en MantPro Web)
+        return historial.hay_foto(desc, self.carpeta_fotos)
 
     def fill_t(self, table, data):
         table.setRowCount(len(data))
@@ -69,8 +66,7 @@ class PestanaHistorial:
             autor = fila[4] if len(fila) > 4 else ""
             if not autor: autor = usuarios.ETIQUETA_HISTORICO
             # LIMPIEZA VISUAL (FOTO Y REF)
-            desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", desc)
-            desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
+            desc_limpia = historial.texto_visible(desc)
 
             desc_visual = desc_limpia.replace("\n", "  ➜  ")
             lista = listas.get(id_t)
@@ -94,15 +90,11 @@ class PestanaHistorial:
                     (" *" if sin_precio else "")
 
             oscuro = self._tema_actual == "oscuro"
-            tags_lower = tags.lower(); color_bg = None; color_fg = None
-            if any(x in tags_lower for x in ["urgente", "avería", "rotura", "fallo", "paro"]):
-                color_bg = QColor("#4a2424" if oscuro else "#f2b8bd"); color_fg = QColor("#ffffff" if oscuro else "#58151c")
-            elif any(x in tags_lower for x in ["preventivo", "revisión", "ok", "limpieza"]):
-                color_bg = QColor("#213c21" if oscuro else "#a3d9ac"); color_fg = QColor("#ffffff" if oscuro else "#1e4620")
-            elif "eléctrico" in tags_lower or "cuadro" in tags_lower:
-                color_bg = QColor("#555" if oscuro else "#e0e0e0"); color_fg = QColor("#ffffff" if oscuro else "#333333")
-            elif "mecánico" in tags_lower:
-                color_bg = QColor("#5a4a2d" if oscuro else "#fff3cd"); color_fg = QColor("#ffffff" if oscuro else "#5c4813")
+            color_bg = color_fg = None
+            colores = COLORES_FILA.get(historial.clase(tags))      # el tipo de fila lo decide el núcleo (también la web)
+            if colores:
+                fondo, letra = colores[0 if oscuro else 1]
+                color_bg, color_fg = QColor(fondo), QColor(letra)
 
             item_f = QTableWidgetItem(fecha); item_f.setData(Qt.ItemDataRole.UserRole, id_t)
             item_d = QTableWidgetItem(desc_visual); item_d.setToolTip(desc_limpia)
@@ -132,19 +124,11 @@ class PestanaHistorial:
         if self.s_chk_date.isChecked(): fecha = self.s_date.date().toString("yyyy-MM-dd")
         resultados = self.db.buscar_tareas_avanzado(texto, fecha, sede=self.sede_filtro())
         self.fill_t(self.s_table, resultados)
-        filtros_activos = []
-        if self.chk_s_urg.isChecked(): filtros_activos.append("urgente")
-        if self.chk_s_elec.isChecked(): filtros_activos.append("léctrico")
-        if self.chk_s_mec.isChecked(): filtros_activos.append("ecánico")
-        if self.chk_s_prev.isChecked(): filtros_activos.append("preventivo")
+        marcadas = (self.chk_s_urg, self.chk_s_elec, self.chk_s_mec, self.chk_s_prev)
+        filtros_activos = [et[0] for et, chk in zip(historial.ETIQUETAS_BUSCADOR, marcadas) if chk.isChecked()]
         filas_visibles = 0
         for row in range(self.s_table.rowCount()):
-            item_tags = self.s_table.item(row, 2).text().lower()
-            mostrar = True
-            for f in filtros_activos:
-                if f not in item_tags:
-                    sin_tilde = f.replace("léctrico", "lectrico").replace("ecánico", "ecanico")
-                    if sin_tilde not in item_tags: mostrar = False; break
+            mostrar = historial.coincide_etiquetas(self.s_table.item(row, 2).text(), filtros_activos)
             self.s_table.setRowHidden(row, not mostrar)
             if mostrar: filas_visibles += 1
         self.statusBar().showMessage(t("msg_mostrando_resultados").format(n=filas_visibles), 3000)
@@ -157,13 +141,7 @@ class PestanaHistorial:
 
         # Construir árbol de fechas dinámico
         self.tree_history.clear()
-        arbol_datos = {}
-        for row in datos:
-            fecha = row[1]
-            if not fecha or len(fecha) < 7: continue
-            year, month = fecha[:4], fecha[5:7]
-            if year not in arbol_datos: arbol_datos[year] = set()
-            arbol_datos[year].add(month)
+
 
         meses = {"01":t("mes_01"), "02":t("mes_02"), "03":t("mes_03"), "04":t("mes_04"), "05":t("mes_05"), "06":t("mes_06"), "07":t("mes_07"), "08":t("mes_08"), "09":t("mes_09"), "10":t("mes_10"), "11":t("mes_11"), "12":t("mes_12")}
 
@@ -171,12 +149,12 @@ class PestanaHistorial:
         item_todo.setData(0, Qt.ItemDataRole.UserRole, "TODO")
         self.tree_history.addTopLevelItem(item_todo)
 
-        for year in sorted(arbol_datos.keys(), reverse=True):
+        for year, meses_anio in historial.arbol_fechas(datos):
             item_year = QTreeWidgetItem([f"📅 {year}"])
             item_year.setData(0, Qt.ItemDataRole.UserRole, year)
             self.tree_history.addTopLevelItem(item_year)
 
-            for month in sorted(arbol_datos[year], reverse=True):
+            for month in meses_anio:
                 item_month = QTreeWidgetItem([meses.get(month, month)])
                 item_month.setData(0, Qt.ItemDataRole.UserRole, f"{year}-{month}")
                 item_year.addChild(item_month)
@@ -281,25 +259,11 @@ class PestanaHistorial:
         for row in range(self.h_table.rowCount()):
             item_fecha = self.h_table.item(row, 0)
             if not item_fecha: continue
-            mostrar = True
-
-            # El filtro puede ser "2026" (año) o "2026-07" (año-mes)
-            if filtro_fecha != "TODO" and not item_fecha.text().startswith(filtro_fecha):
-                mostrar = False
-
-            if mostrar and filtro_usuario not in (None, "TODOS"):
-                item_usuario = self.h_table.item(row, 3)
-                if not item_usuario or item_usuario.text() != filtro_usuario:
-                    mostrar = False
-
-            if mostrar and filtro_tipo not in (None, "TODOS"):
-                item_tags = self.h_table.item(row, 2)
-                tags_crudas = item_tags.data(Qt.ItemDataRole.UserRole) if item_tags else ""
-                es_preventivo = "Aviso Recurrente" in (tags_crudas or "")
-                if filtro_tipo == "PREVENTIVOS" and not es_preventivo:
-                    mostrar = False
-                elif filtro_tipo == "TRABAJOS" and es_preventivo:
-                    mostrar = False
+            # El filtro de fecha puede ser "2026" (año) o "2026-07" (año-mes); los tres los aplica el núcleo
+            item_usuario, item_tags = self.h_table.item(row, 3), self.h_table.item(row, 2)
+            fila = (None, item_fecha.text(), None, item_tags.data(Qt.ItemDataRole.UserRole) if item_tags else "",
+                    item_usuario.text() if item_usuario else "")
+            mostrar = historial.coincide(fila, filtro_fecha, filtro_usuario, filtro_tipo)
 
             self.h_table.setRowHidden(row, not mostrar)
             if mostrar: visibles += 1
@@ -311,14 +275,10 @@ class PestanaHistorial:
         """Rellena el combo con los autores que aparecen realmente en el histórico."""
         if not hasattr(self, 'combo_filtro_historial'): return
         anterior = self.combo_filtro_historial.currentData()
-        nombres = set()
         try:
-            conn = self.db.conectar(); c = conn.cursor()
-            c.execute("SELECT DISTINCT COALESCE(usuario_nombre,'') FROM tareas")
-            nombres = {r[0] for r in c.fetchall() if r[0]}
-            conn.close()
+            nombres = historial.tecnicos(self.db)
         except Exception:
-            pass
+            nombres = []
         self.combo_filtro_historial.blockSignals(True)
         self.combo_filtro_historial.clear()
         self.combo_filtro_historial.addItem(tt("filtro_todos", "Todos"), "TODOS")

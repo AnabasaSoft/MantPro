@@ -191,6 +191,25 @@ def nombres_parecidos(nombre, padre_id, excluir_id=None):
             if f["id"] != excluir_id and nombres.son_parecidos(nombre, f["nombre"])]
 
 
+def para_elegir(sede=None):
+    """[(id, nivel, nombre)] del árbol de máquinas de [sede] (un id, una lista o None = todas), en el orden del
+    desplegable del PC: cada una debajo de su padre (una submáquina cuyo padre es de otra sede no sale)."""
+    from . import sedes
+    todas = [m for m in listar_maquinas() if sedes.de_la_sede(m.get("sede_id"), sede)]
+    por_padre = {}
+    for m in todas:
+        por_padre.setdefault(m["padre_id"], []).append(m)
+    resultado = []
+
+    def anadir(padre_id, nivel):
+        for m in por_padre.get(padre_id, []):
+            resultado.append((m["id"], nivel, m["nombre"]))
+            anadir(m["id"], nivel + 1)
+
+    anadir(None, 0)
+    return resultado
+
+
 def listar_maquinas():
     """Todas las máquinas (planas, con su padre_id, su zona y su uuid, o None si aún
     no tiene), ordenadas por nombre."""

@@ -20,6 +20,7 @@
 
 """Marcas de fotos dentro de la descripción de un trabajo ([FOTOS: ...])."""
 
+import os
 import re
 
 # --- Colección de fotos de un trabajo -------------------------------------
@@ -53,3 +54,49 @@ def quitar_marcas_foto(texto):
     [FOTOS:]) y la de referencia [REF:], para mostrarlo."""
     texto = re.sub(r"\[FOTO.*?:.*?\]", "", texto or "")
     return re.sub(r"\[REF:.*?\]", "", texto).strip()
+
+
+# --- Fotos recibidas (móviles y MantPro Web) -------------------------------
+
+def nombres_en(texto):
+    """Todos los ficheros de las marcas de [texto]: la foto de antes, la de después y la colección."""
+    texto = texto or ""
+    nombres = [m.group(2).split("]")[0].strip() for m in re.finditer(r"\[(FOTO|FOTO_DESPUES):\s*(.*?)\]", texto)]
+    return [n for n in nombres if n] + fotos_galeria(texto)
+
+
+def nombre_seguro(nombre):
+    """[nombre] con solo letras, números y «_» (y la extensión en minúsculas): no puede salirse de la carpeta
+    de fotos (sin «/», «\\» ni «..») y cabe en los nombres que admite MantPro Cloud."""
+    base, extension = os.path.splitext(os.path.basename(str(nombre or "")))
+    base = re.sub(r"[^a-zA-Z0-9_]", "_", base)[:100] or "foto"
+    return base + re.sub(r"[^a-zA-Z0-9.]", "", extension.lower())[:10]
+
+
+def ruta_en(carpeta, nombre):
+    """Ruta de [nombre] dentro de [carpeta], o None si el nombre no es sencillo o se saldría de ella."""
+    if not nombre or nombre != nombre_seguro(nombre):
+        return None
+    carpeta = os.path.realpath(carpeta)
+    ruta = os.path.realpath(os.path.join(carpeta, nombre))
+    return ruta if os.path.dirname(ruta) == carpeta else None
+
+
+def guardar_recibida(fichero, carpeta, nombre, solo_imagen=False):
+    """Guarda una foto o un vídeo recibido ([fichero]: lo que tenga .save(ruta), como los de Flask) en [carpeta]
+    con [nombre] saneado, y la comprueba (extensión, tamaño y que sea de verdad lo que dice; ver seguridad.py).
+    Con [solo_imagen] (fotos de antes y de después) un vídeo no vale. Devuelve el nombre guardado, o None si no
+    vale (y entonces no deja nada en la carpeta)."""
+    from . import seguridad
+    nombre = nombre_seguro(nombre)
+    ruta = ruta_en(carpeta, nombre)
+    if ruta is None or (solo_imagen and seguridad.es_video(nombre)):
+        return None
+    fichero.save(ruta)
+    if not seguridad.foto_valida(ruta):
+        try:
+            os.remove(ruta)
+        except OSError:
+            pass
+        return None
+    return nombre

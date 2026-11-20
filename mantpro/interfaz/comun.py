@@ -215,34 +215,18 @@ def _poblar_combo_maquinas(combo, seleccion_id=None, sede=None):
     """Rellena un QComboBox con el árbol de máquinas (indentado por nivel) y una
     primera opción de 'sin máquina', dejando seleccionada la máquina indicada.
     [sede]: solo las máquinas de esa sede (None = todas)."""
-    from ..nucleo import sedes
     combo.clear()
     combo.addItem(tt("lbl_sin_maquina", "— Sin máquina —"), None)
-    todas = [m for m in maquinas.listar_maquinas() if sedes.de_la_sede(m.get("sede_id"), sede)]
-    por_padre = {}
-    for m in todas:
-        por_padre.setdefault(m["padre_id"], []).append(m)
-
-    def anadir(padre_id, nivel):
-        for m in por_padre.get(padre_id, []):
-            combo.addItem(("    " * nivel) + m["nombre"], m["id"])
-            anadir(m["id"], nivel + 1)
-
-    anadir(None, 0)
+    for maquina_id, nivel, nombre in maquinas.para_elegir(sede):     # el árbol lo da el núcleo (también a MantPro Web)
+        combo.addItem(("    " * nivel) + nombre, maquina_id)
     idx = combo.findData(seleccion_id)
     if idx >= 0:
         combo.setCurrentIndex(idx)
 
 
 def traducir_tags_bd(tags_bd):
-    traducciones = {
-        "Urgente": t("tag_urgente"),
-        "Eléctrico": t("tag_electrico"),
-        "Mecánico": t("tag_mecanico"),
-        "Preventivo": t("tag_preventivo"),
-        "Avería": tt("tag_averia", "Avería"),
-    }
-    return ", ".join([traducciones.get(x.strip(), x.strip()) for x in tags_bd.split(",") if x.strip()])
+    from ..nucleo import historial            # lo mismo que enseña MantPro Web
+    return historial.etiquetas_visibles(tags_bd, t)
 
 
 def traducir_prioridad(codigo):

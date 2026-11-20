@@ -33,8 +33,8 @@ from ...idiomas import t
 from ..comun import (_crear_checks_etiquetas, _estilo_zona_arrastre, _poblar_combo_maquinas,
                      _tags_desde_checks, tt)
 from ..widgets.fotos import DialogoSelectorFoto, GaleriaFotosWidget, LabelArrastrable, VisorFoto
-from ...nucleo.fotos import con_fotos_galeria
-from ...nucleo import consumos, usuarios, mano_obra
+from ...nucleo import usuarios, trabajos
+from ...nucleo import pendientes as pendientes_nucleo
 from ..widgets.repuestos import RepuestosUsadosWidget
 from ..widgets.tiempo import CampoTiempoTrabajo
 
@@ -151,25 +151,21 @@ class PestanaRegistrar:
 
     def save_entry(self):
         d, r = self.ide.date().toString("yyyy-MM-dd"), self.ire.text().strip()
-        de = self.idet.toPlainText().strip()
         if not r: QMessageBox.warning(self, t("title_atencion"), t("msg_falta_resumen")); return
-        full_desc = r
-        if de: full_desc += f"\n{de}"
-        if self.entry_foto_filename: full_desc += f"\n[FOTO: {self.entry_foto_filename}]"
-        if self.entry_foto_despues_filename: full_desc += f"\n[FOTO_DESPUES: {self.entry_foto_despues_filename}]"
-        full_desc = con_fotos_galeria(full_desc, self.galeria_entry.nombres())
-        lista_tags = _tags_desde_checks(self)
-        manuales = self.itag.text().strip()
-        if manuales: lista_tags.append(manuales)
-        maquina_id = self.combo_maquina_entry.currentData()
-        horas_paro = self.spin_horas_paro_entry.value() if self.chk_averia.isChecked() else None
-        tarea_id = self.db.agregar_tarea(d, full_desc, ", ".join(lista_tags), maquina_id=maquina_id, horas_paro=horas_paro,
-                                         sede_id=self.sede_para_nuevo())
+        # Lo guarda el núcleo, igual que MantPro Web (descripción con sus fotos, repuestos, tiempo y sede)
+        try:
+            tarea_id = trabajos.registrar(
+                self.db, usuarios.SESION_ACTUAL, d, r, self.idet.toPlainText().strip(),
+                pendientes_nucleo.etiquetas(_tags_desde_checks(self), self.itag.text(), pendientes_nucleo.ETIQUETAS_REGISTRAR),
+                maquina_id=self.combo_maquina_entry.currentData(),
+                horas_paro=self.spin_horas_paro_entry.value() if self.chk_averia.isChecked() else None,
+                sede=self.sede_filtro(), repuestos=self.repuestos_entry.items(),
+                minutos=self.tiempo_entry.minutos(), personas=self.tiempo_entry.personas(),
+                foto=self.entry_foto_filename, foto_despues=self.entry_foto_despues_filename,
+                fotos=self.galeria_entry.nombres())
+        except ValueError:
+            tarea_id = None
         if tarea_id:
-            # Repuestos usados: salen del stock y quedan con el trabajo y su precio
-            consumos.registrar_consumo(tarea_id, self.repuestos_entry.items(), usuarios.id_actual(),
-                                       usuarios.nombre_actual(), r, d)
-            mano_obra.fijar_tiempo(tarea_id, self.tiempo_entry.minutos(), self.tiempo_entry.personas(), registrar=False)
             self.repuestos_entry.vaciar(); self.tiempo_entry.vaciar()
             self.statusBar().showMessage(t("msg_registro_guardado"), 4000)
             self.ire.clear(); self.idet.clear(); self.itag.clear()

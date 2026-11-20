@@ -508,13 +508,15 @@ GestorBaseDatos.borrar_aviso = _borrar_aviso
 _borrar_pendiente_original = GestorBaseDatos.borrar_pendiente
 
 
-def _borrar_pendiente(self, i, motivo="borrar"):
-    """motivo="completar" cuando el pendiente pasa al historial (no es un borrado)."""
+def _borrar_pendiente(self, i, motivo="borrar", detalle=""):
+    """motivo="completar" cuando el pendiente pasa al historial (no es un borrado); [detalle]: lo que se añade
+    en el registro de cambios (el resumen de la lista de comprobación)."""
     antes = _foto_pendiente(self, i)
     ok = _borrar_pendiente_original(self, i)
     if ok and antes:
         if motivo == "completar":
-            usuarios.auditar("pendientes", "completar", antes.get("titulo", ""), detalle="Pasa al historial")
+            usuarios.auditar("pendientes", "completar", antes.get("titulo", ""),
+                             detalle="Pasa al historial" + (f"\n{detalle}" if detalle else ""))
         else:
             usuarios.auditar("pendientes", "borrar", antes.get("titulo", ""), cambios=usuarios.diferencias(antes, {}, _ETIQ_PENDIENTE))
     return ok
@@ -567,6 +569,9 @@ class LectorBD:
     obtener_avisos = GestorBaseDatos.obtener_avisos
     obtener_pendientes = GestorBaseDatos.obtener_pendientes                  # Dashboard de MantPro Web
     obtener_todas_cronologico = GestorBaseDatos.obtener_todas_cronologico
+    # Completar un pendiente desde la app MantPro (nucleo/pendientes.completar): con su registro de cambios
+    agregar_tarea = GestorBaseDatos.agregar_tarea
+    borrar_pendiente = GestorBaseDatos.borrar_pendiente
 
 
 # Para el servidor de los móviles: fotografía de cada cosa y nombres de campo

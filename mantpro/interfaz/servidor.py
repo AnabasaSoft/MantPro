@@ -39,6 +39,8 @@ from ..nucleo import operaciones_movil, frecuencias, ids_movil
 from ..nucleo import certificado, usuarios, almacen, almacenes, sedes, maquinas, seguridad, checklists, consumos, mano_obra, contadores, revisiones_almacen, proveedores, compras
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
+from ..nucleo import fotos as fotos_nucleo
+from ..nucleo import pendientes as pendientes_nucleo
 
 PUERTO_POR_DEFECTO = 5000
 
@@ -713,50 +715,38 @@ class ServidorSincronizacion(QThread):
                                for (d,) in c.fetchall()):
                             return jsonify({"status": "ok", "ya_completado": True})
 
-                filename, ruta_local = self._procesar_foto(request, 'foto')
+                filename, _ = self._procesar_foto(request, 'foto')
                 filename_d, _ = self._procesar_foto(request, 'foto_despues')
-                raw_desc = ruta_local if ruta_local else detalles
-
-                # --- FIX: CREAR LA DESCRIPCIÓN COMPLETA CON TÍTULO Y FOTO ---
-                desc_final = titulo
-                if detalles:
-                    desc_final += f"\n{detalles}"
-                if filename:
-                    desc_final += f"\n[FOTO: {filename}]"
-                if filename_d:
-                    desc_final += f"\n[FOTO_DESPUES: {filename_d}]"
-                # Colección de fotos extra: las que ya traían los detalles (marca
-                # [FOTOS:], p. ej. de un pendiente que venía de revertir un
-                # trabajo) más las nuevas recibidas como ficheros.
-                desc_final = con_fotos_galeria(desc_final, fotos_galeria(desc_final) + self._procesar_galeria(request))
-
-                with get_db_connection(self.db_path) as conn:
-                    c = conn.cursor()
-                    # El trabajo se queda en la sede del pendiente
-                    fila_sede = c.execute('SELECT sede_id FROM pendientes WHERE id=?', (id_pend,)).fetchone()
-                    c.execute('DELETE FROM pendientes WHERE id=?', (id_pend,))
-                    if c.rowcount == 0:
-                        # El pendiente no existe (id inválido, ya completado o aún no
-                        # sincronizado desde el móvil): no creamos nada en el historial
-                        # para no duplicar el trabajo.
-                        return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
-                    # Usamos el INSERT completo para alimentar todas las columnas
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, raw_desc, foto, usuario_id, usuario_nombre, sede_id) VALUES (?,?,?,?,?,?,?,?)',
-                              (fecha_final, desc_final, tags, _raw_desc_para_bd(raw_desc, ruta_local), filename,
-                               usuario['id'], usuario['nombre'], fila_sede[0] if fila_sede else None))
-                    nueva_tarea = c.lastrowid
-                    # Lista de comprobación rellenada en el móvil (JSON)
-                    lista = checklists.normalizar_items(request.form.get('checklist', ''))
-                    if lista:
-                        checklists.guardar_resultado(c.lastrowid, lista, request.form.get('checklist_plantilla', ''), con=conn)
-                    conn.commit()
-
-                self._descontar_materiales_trabajo(request, usuario, titulo, nueva_tarea, fecha_final)
-                self._tiempo_trabajo(request, nueva_tarea)
+                # Colección de fotos extra: las que ya traían los detalles (marca [FOTOS:], p. ej. de un pendiente
+                # que venía de revertir un trabajo) más las nuevas recibidas como ficheros.
+                galeria = fotos_galeria(detalles) + self._procesar_galeria(request)
+                try:
+                    materiales = json.loads(request.form.get('materiales') or "[]")
+                except (ValueError, TypeError):
+                    materiales = []
+                minutos_txt = (request.form.get('minutos_trabajo') or "").strip()
+                try:
+                    personas = int(request.form.get('personas') or 1)
+                except ValueError:
+                    personas = 1
                 lista = checklists.normalizar_items(request.form.get('checklist', ''))
-                usuarios.auditar("pendientes", "completar", titulo, detalle="Pasa al historial" + (
-                    f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
-                    + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
+                # Lo hace el núcleo, igual que el PC y MantPro Web (en modo tolerante: lo que llega de la cola
+                # del móvil no se puede quedar atascado). Se queda en la sede del pendiente.
+                try:
+                    pendientes_nucleo.completar(
+                        self._lector, usuario, int(id_pend), fecha_final, tags,
+                        repuestos=materiales if isinstance(materiales, list) else [],
+                        minutos=mano_obra.leer_duracion(minutos_txt + " min") if minutos_txt else None,
+                        personas=personas, lista=(lista, request.form.get('checklist_plantilla', '')) if lista else None,
+                        foto=filename or None, foto_despues=filename_d or None, fotos=galeria,
+                        texto=(titulo, detalles), estricto=False)
+                except (ValueError, TypeError) as e:
+                    # El pendiente no existe (id inválido, ya completado o aún no sincronizado desde el móvil)
+                    # o no es de una sede del técnico: no se crea nada en el historial, para no duplicar.
+                    print(f"completar_pendiente rechazado: {e}")
+                    return jsonify({"status": "error", "message": "El pendiente ya no existe."}), 404
+                if materiales:
+                    self.stock_actualizado.emit()
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
@@ -1920,22 +1910,12 @@ class ServidorSincronizacion(QThread):
         """Guarda una foto (o un vídeo de la colección) llegada del móvil, con un
         nombre ya saneado, y la comprueba (extensión, tamaño y que sea de verdad
         lo que dice; ver nucleo/seguridad.py). Con [solo_imagen] (fotos de antes
-        y después) un vídeo no vale. Si no vale, la borra y devuelve None."""
-        # Solo letras, números, «_» y un punto: el nombre no puede salirse de
-        # la carpeta de fotos (sin «/», «\\» ni «..»).
-        base, extension = os.path.splitext(filename)
-        filename = re.sub(r'[^a-zA-Z0-9_]', '_', base) + re.sub(r'[^a-zA-Z0-9.]', '', extension.lower())
-        ruta = os.path.join(self.carpeta_destino, filename)
-        if solo_imagen and seguridad.es_video(filename):
-            print(f"Vídeo rechazado como foto de antes/después: {filename}")
-            return None
-        file.save(ruta)
-        if not seguridad.foto_valida(ruta):
-            try: os.remove(ruta)
-            except OSError: pass
-            print(f"Foto rechazada (no es una imagen válida o es demasiado grande): {filename}")
-            return None
-        return filename
+        y después) un vídeo no vale. Si no vale, la borra y devuelve None. Lo hace
+        el núcleo (nucleo/fotos.guardar_recibida), igual que para MantPro Web."""
+        guardado = fotos_nucleo.guardar_recibida(file, self.carpeta_destino, filename, solo_imagen=solo_imagen)
+        if guardado is None:
+            print(f"Foto rechazada (no es una imagen válida, es demasiado grande o es un vídeo como foto): {filename}")
+        return guardado
 
     def _procesar_foto(self, req, key='foto', solo_imagen=True):
         if key in req.files:
