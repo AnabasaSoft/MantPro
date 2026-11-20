@@ -236,35 +236,23 @@ class AccionesExportar:
         que un PDF exportado por rango o por mes muestre sus propias
         estadísticas y no las de todo el histórico. Si no hay ninguna avería
         registrada en el periodo, no genera nada."""
-        indicadores = maquinas.indicadores_fiabilidad_global(fecha_inicio, fecha_fin, sede=self.sede_filtro())
-        if indicadores["num_averias"] == 0:
+        # Los datos salen del núcleo (los mismos que usa MantPro Web); aquí solo se pintan con Qt
+        datos = informe_historial.datos_graficos(self.db, fecha_inicio, fecha_fin, sede=self.sede_filtro())
+        if datos is None:
             return None
-
-        registros = self.db.obtener_todas_cronologico(sede=self.sede_filtro())
-        if fecha_inicio and fecha_fin:
-            registros = [r for r in registros if r[1] and fecha_inicio <= r[1] <= fecha_fin]
-        total = len(registros)
-        c_elec = sum(1 for r in registros if "eléctrico" in r[3].lower() or "electrico" in r[3].lower())
-        c_mec = sum(1 for r in registros if "mecánico" in r[3].lower() or "mecanico" in r[3].lower())
-        c_prev = sum(1 for r in registros if "preventivo" in r[3].lower())
-        c_urg = sum(1 for r in registros if "urgente" in r[3].lower() or "avería" in r[3].lower())
-        datos_pie = [
-            (tt("tag_electrico", "Eléctrico"), c_elec), (tt("tag_mecanico", "Mecánico"), c_mec),
-            (tt("tag_preventivo", "Preventivo"), c_prev), (tt("tag_urgente", "Urgente"), c_urg),
-        ] if total else []
 
         ancho, alto = 760, 260
         color_fondo_pdf = "#f0f0f0"
         grafico_ranking = GraficoBarrasRanking(color="#c0392b", color_texto="#000000", color_fondo=color_fondo_pdf)
-        grafico_ranking.establecer_datos(maquinas.ranking_averias(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, sede=self.sede_filtro()))
+        grafico_ranking.establecer_datos(datos["ranking"])
         grafico_ranking.resize(ancho, alto)
 
         grafico_mensual = GraficoBarrasMensual(color="#e67e22", color_texto="#000000", color_fondo=color_fondo_pdf)
-        grafico_mensual.establecer_datos(maquinas.averias_por_mes(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, sede=self.sede_filtro()))
+        grafico_mensual.establecer_datos(datos["mensual"])
         grafico_mensual.resize(ancho, alto)
 
         grafico_pie = GraficoCircularTrabajos(color_texto="#000000", color_fondo=color_fondo_pdf)
-        grafico_pie.establecer_datos(datos_pie)
+        grafico_pie.establecer_datos(datos["pie"])
         grafico_pie.resize(ancho, alto)
 
         tmp_dir = tempfile.mkdtemp(prefix="mantpro_pdf_graficos_")
@@ -275,10 +263,7 @@ class AccionesExportar:
         grafico_mensual.grab().save(png_mensual, "PNG")
         grafico_pie.grab().save(png_pie, "PNG")
 
-        return {
-            "png_ranking": png_ranking, "png_mensual": png_mensual, "png_pie": png_pie,
-            "indicadores": indicadores, "tmp_dir": tmp_dir,
-        }
+        return dict(datos, png_ranking=png_ranking, png_mensual=png_mensual, png_pie=png_pie, tmp_dir=tmp_dir)
 
     def pdf_finalizado(self, exito, mensaje):
         self.progreso_pdf.accept() # Cierra el diálogo de progreso

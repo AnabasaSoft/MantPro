@@ -17,7 +17,7 @@ import re
 from datetime import datetime
 
 from .. import idiomas
-from . import estadisticas, usuarios
+from . import estadisticas, graficos_pdf, usuarios
 
 # Tipos del desplegable «Tipo», en su orden: None (todos), solo trabajos y averías, solo preventivos
 TIPOS = (None, "trabajos", "preventivos")
@@ -121,27 +121,6 @@ def generar_excel(tab, salida):
     wb.close()
 
 
-def _grafico_pdf(pares, ancho):
-    """El gráfico de barras dibujado con reportlab (sin Qt), como el del PC: nombre a la izquierda, barra y valor."""
-    from reportlab.graphics.shapes import Drawing, Rect, String
-    from reportlab.lib import colors
-    alto_fila, margen = 22, 6
-    alto = margen * 2 + alto_fila * len(pares)
-    d = Drawing(ancho, alto)
-    d.add(Rect(0, 0, ancho, alto, fillColor=colors.HexColor("#f0f0f0"), strokeColor=None))
-    ancho_nombre = min(ancho * 0.3, 170)
-    hueco = ancho - ancho_nombre - 50
-    maximo = max(v for _, v in pares) or 1
-    for i, (nombre, valor) in enumerate(pares):
-        y = alto - margen - alto_fila * (i + 1) + 5
-        texto = nombre if len(nombre) <= 28 else nombre[:27] + "…"
-        d.add(String(ancho_nombre - 6, y + 4, texto, fontSize=9, textAnchor="end"))
-        largo = max(2, hueco * valor / maximo)
-        d.add(Rect(ancho_nombre, y, largo, alto_fila - 8, fillColor=colors.HexColor("#3daee9"), strokeColor=None))
-        d.add(String(ancho_nombre + largo + 5, y + 4, f"{valor:g}", fontSize=9))
-    return d
-
-
 def generar_pdf(tab, salida, ruta_logo=None, grafico_png=None):
     """[salida]: ruta o fichero abierto en binario. [grafico_png]: (ruta, ancho_px, alto_px) del gráfico ya dibujado
     (el PC usa el mismo de la ventana); sin él se dibuja con reportlab."""
@@ -177,7 +156,9 @@ def generar_pdf(tab, salida, ruta_logo=None, grafico_png=None):
         ruta, ancho_px, alto_px = grafico_png
         elementos += [PDFImage(ruta, width=ancho_util, height=ancho_util * alto_px / ancho_px), Spacer(1, 10)]
     elif pares:
-        elementos += [_grafico_pdf(pares, ancho_util), Spacer(1, 10)]
+        # Las mismas proporciones que el PNG del PC (900 px de ancho y 30 px por técnico)
+        alto = ancho_util * max(120, 30 * len(pares) + 20) / 900
+        elementos += [graficos_pdf.ranking(pares, ancho_util, alto, "#3daee9", formato=lambda v: f"{v:g}"), Spacer(1, 10)]
 
     fijas = 2 + len(tab["columnas"])
 

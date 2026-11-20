@@ -22,7 +22,7 @@ import re
 from xml.sax.saxutils import escape
 
 from .. import idiomas
-from . import checklists as _checklists, consumos, mano_obra, usuarios
+from . import checklists as _checklists, consumos, graficos_pdf, mano_obra, usuarios
 from .fotos import _RE_GALERIA, fotos_galeria
 from .seguridad import es_video
 
@@ -309,10 +309,33 @@ def _miniatura_pdf(carpeta_fotos, nombre, ancho_max=None, alto_max=None):
         return None
 
 
+def datos_graficos(db, fecha_inicio=None, fecha_fin=None, sede=None):
+    """Los datos de la página «Estadísticas del periodo» del informe en PDF: {indicadores (MTBF, MTTR, averías),
+    ranking (máquinas con más averías), mensual (averías por mes), pie (trabajos por tipo)}, o None si en el periodo
+    no hay ninguna avería (entonces el PDF no lleva esa página). Con [fecha_inicio]/[fecha_fin] ('AAAA-MM-DD'), solo
+    ese periodo; [sede]: solo esa (None = todas). Lo usan el PC (que los dibuja con Qt) y MantPro Web."""
+    from . import maquinas
+    indicadores = maquinas.indicadores_fiabilidad_global(fecha_inicio, fecha_fin, sede=sede)
+    if indicadores["num_averias"] == 0:
+        return None
+    registros = db.obtener_todas_cronologico(sede=sede)
+    if fecha_inicio and fecha_fin:
+        registros = [r for r in registros if r[1] and fecha_inicio <= r[1] <= fecha_fin]
+    cuenta = lambda *palabras: sum(1 for r in registros if any(p in (r[3] or "").lower() for p in palabras))   # noqa: E731
+    pie = [(_tt("tag_electrico", "Eléctrico"), cuenta("eléctrico", "electrico")),
+           (_tt("tag_mecanico", "Mecánico"), cuenta("mecánico", "mecanico")),
+           (_tt("tag_preventivo", "Preventivo"), cuenta("preventivo")),
+           (_tt("tag_urgente", "Urgente"), cuenta("urgente", "avería"))] if registros else []
+    return {"indicadores": indicadores, "pie": pie,
+            "ranking": maquinas.ranking_averias(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, sede=sede),
+            "mensual": maquinas.averias_por_mes(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, sede=sede)}
+
+
 def generar_pdf(lista_trabajos, carpeta_fotos, mapa_maquinas=None, ruta_logo=None, admin=None):
     """El informe del historial en PDF (uno por elemento de [lista_trabajos]: {"archivo": ruta o fichero abierto en
     binario, "titulo", "datos": filas (fecha, descripcion, tags, autor, maquina_id, id), "sede": líneas bajo el
-    título, "graficos": {png_ranking, png_mensual, png_pie, indicadores} o None}). Con fotos en miniatura, lista de
+    título, "graficos": datos_graficos() o None; el PC añade png_ranking, png_mensual y png_pie, sus gráficos de Qt,
+    y sin ellos se dibujan con reportlab}). Con fotos en miniatura, lista de
     comprobación, tiempo, repuestos y colección de cada trabajo. Lo usan el PC (en un hilo) y MantPro Web."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -482,14 +505,17 @@ def generar_pdf(lista_trabajos, carpeta_fotos, mapa_maquinas=None, ruta_logo=Non
             ancho_grafico = 17 * cm
             alto_grafico = ancho_grafico * 260 / 760
             elements.append(Paragraph(_tt("titulo_ranking_averias_pdf", "Máquinas con más averías"), styles["Heading2"]))
-            elements.append(PDFImage(graficos["png_ranking"], width=ancho_grafico, height=alto_grafico))
+            elements.append(PDFImage(graficos["png_ranking"], width=ancho_grafico, height=alto_grafico) if graficos.get("png_ranking")
+                            else graficos_pdf.ranking(graficos["ranking"], ancho_grafico, alto_grafico, "#c0392b"))
             elements.append(Spacer(1, 14))
 
             elements.append(Paragraph(_tt("titulo_averias_mes_pdf", "Averías por mes"), styles["Heading2"]))
-            elements.append(PDFImage(graficos["png_mensual"], width=ancho_grafico, height=alto_grafico))
+            elements.append(PDFImage(graficos["png_mensual"], width=ancho_grafico, height=alto_grafico) if graficos.get("png_mensual")
+                            else graficos_pdf.mensual(graficos["mensual"], ancho_grafico, alto_grafico, "#e67e22"))
             elements.append(Spacer(1, 14))
 
             elements.append(Paragraph(_tt("titulo_distribucion_pdf", "Distribución de trabajos por tipo"), styles["Heading2"]))
-            elements.append(PDFImage(graficos["png_pie"], width=ancho_grafico, height=alto_grafico))
+            elements.append(PDFImage(graficos["png_pie"], width=ancho_grafico, height=alto_grafico) if graficos.get("png_pie")
+                            else graficos_pdf.circular(graficos["pie"], ancho_grafico, alto_grafico))
 
         doc.build(elements)
