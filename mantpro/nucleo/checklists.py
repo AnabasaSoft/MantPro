@@ -351,6 +351,51 @@ def texto_valor(it):
     return f"{texto} {unidad}".strip() if texto else ""
 
 
+def texto_rango(punto):
+    """«8–10 bar», «≥ 8 bar», «≤ 10 bar» o «» del rango correcto de un punto."""
+    minimo, maximo, unidad = _num(punto.get("minimo")), _num(punto.get("maximo")), punto.get("unidad") or ""
+    if minimo is not None and maximo is not None:
+        return f"{minimo:g}–{maximo:g} {unidad}".strip()
+    if minimo is not None:
+        return f"≥ {minimo:g} {unidad}".strip()
+    if maximo is not None:
+        return f"≤ {maximo:g} {unidad}".strip()
+    return ""
+
+
+def ajustar_por_lecturas(items, anteriores=()):
+    """Lo que hace el PC al escribir una lectura, para quien recibe la lista entera de golpe (MantPro Web):
+    en cada punto cuya lectura ha cambiado respecto a [anteriores] (la lista tal como se enseñó), si se sale
+    del rango queda «mal»; si no, «bien» cuando aún no tenía estado o cuando su «mal» venía de una lectura
+    fuera de rango que se acaba de corregir. Una lectura que no cambia respeta el estado elegido a mano."""
+    anteriores = list(anteriores or ())
+    for i, it in enumerate(items):
+        if it.get("tipo") not in TIPOS_CON_VALOR or not it.get("valor"):
+            continue
+        antes = (anteriores[i] if i < len(anteriores) else {}).get("valor") or ""
+        if it["valor"] == antes:
+            continue
+        if fuera_de_rango(it, it["valor"]):
+            it["estado"] = "mal"
+        elif it.get("estado") not in ESTADOS or (it.get("estado") == "mal" and fuera_de_rango(it, antes)):
+            it["estado"] = "ok"
+    return items
+
+
+def firma(items):
+    """Huella de los puntos de una lista (identidad, texto y tipo), para saber si la plantilla ha cambiado
+    entre que se enseña la lista y se manda rellenada."""
+    clave = json.dumps([(it.get("punto_uid"), it.get("texto"), it.get("tipo")) for it in items], ensure_ascii=False)
+    return hashlib.sha1(clave.encode("utf-8")).hexdigest()[:16]
+
+
+def para_rellenar(plantilla, clave_borrador=None):
+    """(puntos de [plantilla] listos para rellenar con lo que tenga apuntado su lista a medias, borrador o None)."""
+    borrador = borrador_de(clave_borrador) if clave_borrador else None
+    items = items_de_plantilla(plantilla)
+    return (aplicar_borrador(items, borrador) if borrador else items), borrador
+
+
 def items_de_plantilla(plantilla):
     """Puntos de una plantilla listos para rellenar (sin estado ni valor)."""
     return [dict(p, estado=None, valor="", nota="") for p in plantilla["puntos"]]

@@ -44,16 +44,7 @@ def texto_estado(estado):
             "na": tt("chk_estado_na", "➖ No aplica")}.get(estado, tt("chk_estado_sin", "Sin revisar"))
 
 
-def texto_rango(punto):
-    minimo, maximo, unidad = punto.get("minimo"), punto.get("maximo"), punto.get("unidad") or ""
-    fmt = lambda n: f"{n:g}"
-    if minimo is not None and maximo is not None:
-        return f"{fmt(minimo)}–{fmt(maximo)} {unidad}".strip()
-    if minimo is not None:
-        return f"≥ {fmt(minimo)} {unidad}".strip()
-    if maximo is not None:
-        return f"≤ {fmt(maximo)} {unidad}".strip()
-    return ""
+texto_rango = checklists.texto_rango     # en el núcleo: lo usa también MantPro Web
 
 
 def resumen_texto(items):
