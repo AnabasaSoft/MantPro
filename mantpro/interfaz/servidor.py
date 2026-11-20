@@ -41,6 +41,7 @@ from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pen
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 from ..nucleo import fotos as fotos_nucleo
 from ..nucleo import pendientes as pendientes_nucleo
+from ..nucleo import trabajos as trabajos_nucleo
 
 PUERTO_POR_DEFECTO = 5000
 
@@ -1471,65 +1472,15 @@ class ServidorSincronizacion(QThread):
             try:
                 usuario = g.usuario_mantpro
                 id_t = request.form.get('id')
-
-                conn = self._conn()
-                c = conn.cursor()
-                c.execute("SELECT id, fecha, descripcion, tags, usuario_id, COALESCE(usuario_nombre,''), maquina_id FROM tareas WHERE id=?", (id_t,))
-                d = c.fetchone()
-                if not d:
-                    conn.close()
-                    return jsonify({"status": "error", "message": "Registro no encontrado"}), 404
-
-                fecha_tarea, desc_tarea = d[1], d[2]
-                uid_original = d[4] if len(d) > 4 else None
-                unombre_original = d[5] if len(d) > 5 else ""
-
-                if not usuarios.es_admin(usuario) and uid_original != usuario['id']:
-                    conn.close()
-                    return jsonify({"status": "error", "message": "Solo puedes modificar tus propios trabajos."}), 403
-
-                # Si el trabajo venía de un aviso recurrente, lo "descompletamos" igual
-                # que se hace al borrar un registro del historial.
-                prefijo = "Mantenimiento Preventivo: "
-                if desc_tarea.startswith(prefijo):
-                    titulo_aviso = desc_tarea.replace(prefijo, "").strip()
-                    try:
-                        c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
-                        aviso = c.fetchone()
-                        if aviso:
-                            c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
-                            conn.commit()
-                    except Exception as e:
-                        print(f"Error intentando restaurar aviso: {e}")
-
-                lineas = desc_tarea.split("\n")
-                titulo = lineas[0].strip()
-                detalles = "\n".join(lineas[1:]).strip()
-
-                lista_previa = checklists.resultado_de(id_t)
+                # Lo hace el núcleo, igual que el PC y MantPro Web
                 try:
-                    c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,sede_id) '
-                              'VALUES (?,?,?,?,(SELECT sede_id FROM tareas WHERE id=?))',
-                              (titulo, detalles, uid_original, unombre_original or None, id_t))
-                    nuevo_pendiente = c.lastrowid
-                    # Vuelve con su lista de comprobación, si la plantilla sigue existiendo
-                    if lista_previa:
-                        plantilla = next((p for p in checklists.listar_plantillas()
-                                          if p["nombre"] == lista_previa["plantilla"]), None)
-                        if plantilla:
-                            c.execute("UPDATE pendientes SET checklist_id=? WHERE id=?", (plantilla["id"], nuevo_pendiente))
-                    conn.commit()
-                except Exception as e:
-                    conn.close()
-                    print(f"Error revirtiendo a pendiente: {e}")
-                    return jsonify({"status": "error", "message": "No se ha podido revertir el trabajo a pendiente."}), 500
-
-                detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
-                c.execute("DELETE FROM tareas WHERE id=?", (id_t,))
-                c.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (id_t,))
-                consumos.olvidar_trabajo(int(id_t))
-                conn.commit(); conn.close()
-                usuarios.registrar_auditoria(usuario['id'], id_t, "revertir", detalle_auditoria)
+                    trabajos_nucleo.revertir(self._lector, usuario, int(id_t))
+                except (TypeError, ValueError) as e:
+                    if str(e) == "solo_tus_trabajos":
+                        return jsonify({"status": "error", "message": "Solo puedes modificar tus propios trabajos."}), 403
+                    if str(e) == "no_guardado":
+                        return jsonify({"status": "error", "message": "No se ha podido revertir el trabajo a pendiente."}), 500
+                    return jsonify({"status": "error", "message": "Registro no encontrado"}), 404
 
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})

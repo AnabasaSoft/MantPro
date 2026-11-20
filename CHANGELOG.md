@@ -26,6 +26,7 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 
 ### Correcciones
 - **🧹 Sin línea en blanco al completar un pendiente con foto nueva.** Al completar en el PC un pendiente eligiendo otra foto, la descripción del trabajo ya no se queda con una línea vacía donde estaba la foto anterior.
+- **🗓️ Borrar un preventivo con foto deja el aviso sin completar.** Al borrar del historial un trabajo que venía de completar un aviso recurrente y llevaba foto, el aviso volvía a no aparecer como pendiente para ese día; ahora sí vuelve a estar sin completar, como pasaba con los trabajos sin foto.
 
 ## 3.10.11 — 2026-11-19
 

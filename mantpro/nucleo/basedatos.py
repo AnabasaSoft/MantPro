@@ -572,6 +572,7 @@ class LectorBD:
     # Completar un pendiente desde la app MantPro (nucleo/pendientes.completar): con su registro de cambios
     agregar_tarea = GestorBaseDatos.agregar_tarea
     borrar_pendiente = GestorBaseDatos.borrar_pendiente
+    agregar_pendiente = GestorBaseDatos.agregar_pendiente           # revertir un trabajo desde la app
 
 
 # Para el servidor de los móviles: fotografía de cada cosa y nombres de campo

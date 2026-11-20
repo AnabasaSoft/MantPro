@@ -20,8 +20,6 @@
 
 """Pestañas «Historial» y «Buscador»: consulta, edición, borrado y reasignación de trabajos."""
 
-import os
-import re
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                              QPushButton, QDateEdit, QMessageBox, QTableWidget, QTableWidgetItem,
                              QDialog, QDialogButtonBox, QAbstractItemView, QComboBox, QCheckBox,
@@ -32,7 +30,7 @@ from PyQt6.QtGui import QIcon, QColor, QPixmap
 from ...idiomas import t
 from ..comun import _estilo_check_etiqueta, traducir_tags_bd, tt
 from ..dialogos.trabajos import EditDialog
-from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes, historial
+from ...nucleo import usuarios, checklists, consumos, mano_obra, historial, trabajos
 from ..dialogos.checklists import DialogoRellenarChecklist, resumen_texto, texto_tiempo_export
 
 # Colores de las filas por tipo (historial.clase): ((fondo, letra) en tema oscuro, (fondo, letra) en claro)
@@ -309,10 +307,8 @@ class PestanaHistorial:
         return uid_registro == usuarios.id_actual()
 
     def _puede_modificar(self, tarea_id):
-        """Admin puede todo; técnico solo sus registros."""
-        if usuarios.es_admin():
-            return True
-        return self._es_mi_registro(tarea_id)
+        """Admin puede todo; técnico solo sus registros (lo decide el núcleo, igual que en MantPro Web)."""
+        return trabajos.puede_modificar(usuarios.SESION_ACTUAL, self.db.obtener_tarea_por_id(tarea_id))
 
     def edit_rec(self, tabla_widget):
         r = tabla_widget.currentRow()
@@ -334,11 +330,12 @@ class PestanaHistorial:
                              ver_lista=(lambda: self.ver_checklist(i)) if checklists.resultado_de(i) else None)
             if dlg.exec():
                 fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro = dlg.get_data()
-                self.db.actualizar_tarea(i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id, nuevas_horas_paro)
-                mano_obra.fijar_tiempo(i, dlg.tiempo.minutos(), dlg.tiempo.personas())
-                # Repuestos: si han cambiado, el stock se ajusta por la diferencia
-                consumos.corregir_consumo(i, dlg.repuestos.items(), usuarios.id_actual(), usuarios.nombre_actual(),
-                                          (desc or "").split("\n")[0])
+                # Lo guarda el núcleo, igual que MantPro Web: tiempo y repuestos (el stock se ajusta por la diferencia)
+                try:
+                    trabajos.guardar_editado(self.db, i, fecha, desc, tags, nuevo_uid, nuevo_nombre, nueva_maquina_id,
+                                             nuevas_horas_paro, dlg.repuestos.items(), dlg.tiempo.minutos(), dlg.tiempo.personas())
+                except ValueError:
+                    return
                 self.refresh_all()
                 if hasattr(self, 'arbol_maquinas'):
                     self.refrescar_arbol_maquinas()
@@ -372,38 +369,8 @@ class PestanaHistorial:
         if msg.clickedButton() != btn_si:
             return
 
-        for i in permitidos:
-            d = self.db.obtener_tarea_por_id(i)
-            if not d:
-                continue
-            # Si venía de un aviso recurrente, se vuelve a marcar como pendiente
-            try:
-                desc_tarea = d[2]
-                fecha_tarea = d[1]
-                prefijo = "Mantenimiento Preventivo: "
-                if desc_tarea.startswith(prefijo):
-                    titulo_aviso = desc_tarea.replace(prefijo, "").strip()
-                    conn = self.db.conectar()
-                    c = conn.cursor()
-                    c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
-                    aviso = c.fetchone()
-                    if aviso:
-                        c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
-                        conn.commit()
-                    conn.close()
-            except Exception as e:
-                print(f"Error intentando restaurar aviso: {e}")
-
-            m = re.search(r"\[FOTO:\s*(.*?)\]", d[2])
-            if m:
-                nombre = m.group(1).split("]")[0].strip()
-                ruta = os.path.join(self.carpeta_fotos, nombre)
-                if os.path.exists(ruta):
-                    try: os.remove(ruta)
-                    except: pass
-
-            self.db.borrar_tarea(i)
-
+        # Lo hace el núcleo, igual que MantPro Web: el aviso del que venía queda sin completar y la foto se borra
+        trabajos.borrar(self.db, usuarios.SESION_ACTUAL, permitidos, carpeta_fotos=self.carpeta_fotos)
         self.refresh_all()
         if hasattr(self, 'servidor') and self.servidor:
             self.servidor.pendiente_actualizado.emit()
@@ -421,9 +388,6 @@ class PestanaHistorial:
 
         d = self.db.obtener_tarea_por_id(i)
         if not d: return
-        fecha_tarea, desc_tarea, tags_tarea = d[1], d[2], d[3]
-        uid_original = d[4] if len(d) > 4 else None
-        unombre_original = d[5] if len(d) > 5 else ""
         maquina_id = d[6] if len(d) > 6 else None
 
         texto_aviso = tt("msg_confirmar_revertir_pendiente",
@@ -441,49 +405,13 @@ class PestanaHistorial:
         msg.exec()
         if msg.clickedButton() != btn_si: return
 
-        # Si el trabajo venía de un aviso recurrente, lo "descompletamos" igual
-        # que ya se hace al borrar un registro del historial.
-        prefijo = "Mantenimiento Preventivo: "
-        if desc_tarea.startswith(prefijo):
-            titulo_aviso = desc_tarea.replace(prefijo, "").strip()
-            try:
-                conn = self.db.conectar(); c = conn.cursor()
-                c.execute("SELECT id FROM avisos_recurrentes WHERE titulo=? AND ultima_completada=?", (titulo_aviso, fecha_tarea))
-                aviso = c.fetchone()
-                if aviso:
-                    c.execute("UPDATE avisos_recurrentes SET ultima_completada=NULL WHERE id=?", (aviso[0],))
-                    conn.commit()
-                conn.close()
-            except Exception as e:
-                print(f"Error intentando restaurar aviso: {e}")
-
-        lineas = desc_tarea.split("\n")
-        titulo = lineas[0].strip()
-        detalles = "\n".join(lineas[1:]).strip()
-
-        lista_previa = checklists.resultado_de(i)
-        nuevo_pendiente = self.db.agregar_pendiente(titulo, detalles, uid_original, unombre_original or None,
-                                                    sede_id=sedes.sede_de("tareas", i))
-        if not nuevo_pendiente:
+        # Lo hace el núcleo, igual que MantPro Web y la app: el aviso del que venía queda sin completar, y el
+        # pendiente vuelve con su técnico, su sede y su lista de comprobación
+        try:
+            trabajos.revertir(self.db, usuarios.SESION_ACTUAL, i)
+        except ValueError:
             QMessageBox.critical(self, t("aviso"), tt("msg_error_revertir", "No se ha podido revertir el trabajo a pendiente."))
             return
-
-        detalle_auditoria = f"Registro del {fecha_tarea}: {titulo[:80]} (autor original: {unombre_original or usuarios.ETIQUETA_HISTORICO})"
-        try:
-            conn = self.db.conectar(); c = conn.cursor()
-            c.execute("DELETE FROM tareas WHERE id=?", (i,))
-            c.execute("DELETE FROM checklist_resultados WHERE tarea_id=?", (i,))
-            conn.commit(); conn.close()
-            consumos.olvidar_trabajo(i)
-        except Exception as e:
-            print(f"Error eliminando tarea al revertir: {e}")
-        # Si tenía lista de comprobación y su plantilla sigue existiendo, el
-        # pendiente vuelve con ella, para rellenarla de nuevo al completarlo.
-        if lista_previa:
-            plantilla = next((p for p in checklists.listar_plantillas() if p["nombre"] == lista_previa["plantilla"]), None)
-            if plantilla:
-                checklists.asignar("pendiente", nuevo_pendiente, plantilla["id"])
-        usuarios.registrar_auditoria(usuarios.id_actual(), i, "revertir", detalle_auditoria)
         self.refresh_todos()
         self.refresh_all()
         if hasattr(self, 'servidor') and self.servidor:
@@ -601,35 +529,14 @@ class PestanaHistorial:
         progreso.setValue(0)
         QApplication.processEvents()
 
-        try:
-            conn = self.db.conectar()
-            c = conn.cursor()
-            auditorias = []
-            for i, tarea_id in enumerate(ids):
-                c.execute("SELECT COALESCE(usuario_nombre,'') FROM tareas WHERE id=?", (tarea_id,))
-                fila = c.fetchone()
-                anterior = fila[0] if fila and fila[0] else usuarios.ETIQUETA_HISTORICO
-                if anterior != nuevo_nombre:
-                    c.execute("UPDATE tareas SET usuario_id=?, usuario_nombre=? WHERE id=?",
-                              (nuevo_uid, nuevo_nombre, tarea_id))
-                    auditorias.append((tarea_id, f"autor: {anterior} → {nuevo_nombre}"))
-                progreso.setValue(i + 1)
-                progreso.setLabelText(
-                    tt("msg_reasignando_n", "Reasignando {i} de {n}…").format(i=i + 1, n=len(ids)))
-                QApplication.processEvents()
-            conn.commit()
-            conn.close()
-
-            # Auditoría DESPUÉS de cerrar la conexión (evita deadlock en SQLite)
-            progreso.setLabelText(tt("msg_guardando_auditoria", "Guardando registro de cambios…"))
-            progreso.setMaximum(len(auditorias))
-            progreso.setValue(0)
+        def _avance(hechos, total):
+            progreso.setValue(hechos)
+            progreso.setLabelText(tt("msg_reasignando_n", "Reasignando {i} de {n}…").format(i=hechos, n=total))
             QApplication.processEvents()
-            for i, (tarea_id, detalle) in enumerate(auditorias):
-                usuarios.registrar_auditoria(usuarios.id_actual(), tarea_id, "editar", detalle)
-                progreso.setValue(i + 1)
-                if i % 10 == 0:
-                    QApplication.processEvents()
+
+        try:
+            # Lo hace el núcleo, igual que MantPro Web (y apunta cada cambio en el registro de cambios)
+            trabajos.reasignar_autor(self.db, usuarios.SESION_ACTUAL, ids, nuevo_uid, progreso=_avance)
         except Exception as e:
             progreso.close()
             QMessageBox.critical(self, t("title_error"), str(e))
