@@ -39,6 +39,7 @@
 
 import json
 import os
+import threading
 
 IDIOMAS_DISPONIBLES = [
     ("es", "Español"),
@@ -78,8 +79,27 @@ def set_idioma(codigo):
         _idioma_actual = "es"
 
 
+# Idioma de la petición en curso (MantPro Web: cada usuario ve la web en su idioma, y cada petición la atiende
+# un hilo). Si no se ha fijado, manda el idioma global de arriba: el escritorio y la API de los móviles no cambian.
+_por_peticion = threading.local()
+
+
+def fijar_idioma_peticion(codigo):
+    """Idioma solo para el hilo actual (una petición web). Un código desconocido queda en español."""
+    _por_peticion.codigo = codigo if codigo in TRADUCCIONES else "es"
+
+
+def limpiar_idioma_peticion():
+    """Al terminar la petición: el hilo vuelve a usar el idioma global (los hilos se reutilizan)."""
+    _por_peticion.codigo = None
+
+
+def _activo():
+    return getattr(_por_peticion, "codigo", None) or _idioma_actual
+
+
 def get_idioma():
-    return _idioma_actual
+    return _activo()
 
 
 def formato_fecha_localizada(fecha_iso):
@@ -91,9 +111,9 @@ def formato_fecha_localizada(fecha_iso):
         fecha_obj = _dt.datetime.strptime(fecha_iso, "%Y-%m-%d")
     except (ValueError, TypeError):
         return fecha_iso or ""
-    if _idioma_actual == "eu":
+    if _activo() == "eu":
         return fecha_obj.strftime("%Y/%m/%d")
-    if _idioma_actual == "de":
+    if _activo() == "de":
         return fecha_obj.strftime("%d.%m.%Y")
     return fecha_obj.strftime("%d/%m/%Y")
 
@@ -103,27 +123,27 @@ def formato_fecha_excel(corta=False):
     formato_fecha_localizada): AAAA/MM/DD en euskera, DD.MM.AAAA en alemán y DD/MM/AAAA en el resto.
     [corta]: con el año en dos cifras (para los ejes de los gráficos)."""
     a = "yy" if corta else "yyyy"
-    if _idioma_actual == "eu":
+    if _activo() == "eu":
         return f"{a}/mm/dd"
-    if _idioma_actual == "de":
+    if _activo() == "de":
         return f"dd.mm.{a}"
     return f"dd/mm/{a}"
 
 
 def formato_fecha_corta_qt():
     """Patrón día/mes (sin año) para QDate.toString(), según el idioma activo."""
-    return {"eu": "MM/dd", "de": "dd.MM."}.get(_idioma_actual, "dd/MM")
+    return {"eu": "MM/dd", "de": "dd.MM."}.get(_activo(), "dd/MM")
 
 
 def formato_fecha_corta_py():
     """Patrón día/mes (sin año) para datetime.strftime(), según el idioma activo."""
-    return {"eu": "%m/%d", "de": "%d.%m."}.get(_idioma_actual, "%d/%m")
+    return {"eu": "%m/%d", "de": "%d.%m."}.get(_activo(), "%d/%m")
 
 
 def t(clave):
     """Devuelve el texto traducido para 'clave' en el idioma activo.
     Si falta en el idioma activo, cae a español. Si tampoco existe, devuelve la propia clave."""
-    dic_actual = TRADUCCIONES.get(_idioma_actual, TRADUCCIONES["es"])
+    dic_actual = TRADUCCIONES.get(_activo(), TRADUCCIONES["es"])
     if clave in dic_actual:
         return dic_actual[clave]
     return TRADUCCIONES["es"].get(clave, clave)
