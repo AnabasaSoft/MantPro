@@ -37,6 +37,9 @@ from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ...nucleo import checklists
+# Los textos de las listas en exportaciones e informes están en el núcleo (también los usa MantPro Web)
+from ...nucleo.informe_historial import (resumen_texto, estado_plano, linea_export, texto_desequilibrio,  # noqa: F401
+                                          texto_deseq_max, texto_export, texto_repuestos_export, texto_tiempo_export)
 
 
 def texto_estado(estado):
@@ -45,66 +48,6 @@ def texto_estado(estado):
 
 
 texto_rango = checklists.texto_rango     # en el núcleo: lo usa también MantPro Web
-
-
-def resumen_texto(items):
-    """«8 bien · 1 mal · 1 sin revisar» para el historial y las exportaciones."""
-    r = checklists.recuento(items)
-    partes = []
-    if r["ok"]: partes.append(tt("chk_resumen_ok", "{n} bien").format(n=r["ok"]))
-    if r["mal"]: partes.append(tt("chk_resumen_mal", "{n} mal").format(n=r["mal"]))
-    if r["na"]: partes.append(tt("chk_resumen_na", "{n} no aplica").format(n=r["na"]))
-    if r["sin"]: partes.append(tt("chk_resumen_sin", "{n} sin revisar").format(n=r["sin"]))
-    return " · ".join(partes)
-
-
-def estado_plano(estado):
-    """Resultado en texto sin emojis (para PDF, Excel y CSV)."""
-    return {"ok": tt("chk_txt_ok", "Bien"), "mal": tt("chk_txt_mal", "Mal"),
-            "na": tt("chk_txt_na", "No aplica")}.get(estado, tt("chk_txt_sin", "Sin revisar"))
-
-
-def linea_export(it):
-    """«Presión de trabajo: Mal — 9,1 bar (Revisar presostato)»; un separador, «── Zona 1 ──»."""
-    if it.get("tipo") == checklists.SECCION:
-        return f"── {it['texto']} ──"
-    texto = f"{it['texto']}: {estado_plano(it.get('estado'))}"
-    if it.get("valor"):
-        texto += f" — {checklists.texto_valor(it)}"
-        deseq = texto_desequilibrio(it)
-        if deseq:
-            texto += f" ({deseq})"
-    if it.get("nota"):
-        texto += f" ({it['nota']})"
-    return texto
-
-
-def texto_desequilibrio(it):
-    """«Desequilibrio 3,2 % · se aparta más L2» de un punto trifásico con las tres fases, o «»."""
-    if it.get("tipo") != "trifasica":
-        return ""
-    d = checklists.desequilibrio(it.get("valor"))
-    if not d:
-        return ""
-    texto = tt("chk_desequilibrio", "Desequilibrio {p} % · se aparta más {fase}").format(
-        p=f"{d[0]:g}", fase=checklists.FASES[d[1]])
-    if checklists.desequilibrio_excesivo(it, it.get("valor")):
-        texto += " — " + texto_deseq_max(it)
-    return texto
-
-
-def texto_deseq_max(punto):
-    """«desequilibrio máx. 5 %» de un punto trifásico con límite, o «»."""
-    limite = checklists._deseq_max(punto) if punto.get("tipo") == "trifasica" else None
-    return tt("chk_deseq_max", "desequilibrio máx. {p} %").format(p=f"{limite:g}") if limite is not None else ""
-
-
-def texto_export(lista):
-    """Toda la lista en una celda (CSV y Excel)."""
-    if not lista:
-        return "-"
-    return lista["plantilla"] + "\n" + "\n".join(
-        ("" if it.get("tipo") == checklists.SECCION else "• ") + linea_export(it) for it in lista["items"])
 
 
 def llenar_combo_plantillas(combo, seleccionada=None):
@@ -735,31 +678,3 @@ class DialogoPlantillasChecklist(QDialog):
             super().reject()
 
 
-
-def texto_repuestos_export(mats, moneda):
-    """Repuestos usados en una celda (CSV y Excel) o en el PDF."""
-    if not mats:
-        return "-"
-    from ...nucleo import consumos, usuarios
-    ver_precios = usuarios.es_admin()   # precios e importes: solo para administradores
-    lineas = [f"• {m['cantidad']:g} {m.get('unidad') or ''} {m['nombre']}".replace("  ", " ") +
-              (f" — {consumos.formato_importe(m['importe'], moneda)}" if ver_precios and m.get("importe") is not None else "")
-              for m in mats]
-    if not ver_precios:
-        return "\n".join(lineas)
-    importe, sin_precio = consumos.coste(mats)
-    lineas.append(f"{tt('lbl_coste_material', 'Coste de material')}: {consumos.formato_importe(importe, moneda)}" +
-                  (f" ({tt('lbl_sin_precio_algunos', '(hay artículos sin precio)').strip('()')})" if sin_precio else ""))
-    return "\n".join(lineas)
-
-
-
-def texto_tiempo_export(t, moneda):
-    """«1 h 30 min × 2 — 54,00 €» (o «-» si no hay tiempo apuntado)."""
-    if not t:
-        return "-"
-    from ...nucleo import consumos, mano_obra, usuarios
-    texto = mano_obra.texto_tiempo(t)
-    if t.get("importe") is not None and usuarios.es_admin():   # el coste: solo administradores
-        texto += f" — {consumos.formato_importe(t['importe'], moneda)}"
-    return texto

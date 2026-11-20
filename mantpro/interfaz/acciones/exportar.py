@@ -24,22 +24,16 @@ import os
 import shutil
 import tempfile
 import re
-import csv
 from datetime import datetime
 from PyQt6.QtWidgets import QVBoxLayout, QLabel, QMessageBox, QDialog, QFileDialog, QProgressBar
 from PyQt6.QtCore import QDate, Qt
-from PyQt6.QtGui import QPixmap
 
-from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import DialogoExportarPDF, DialogoFiltroTecnico
 from ..hilos import GeneradorPDFThread
 from ..widgets.graficos import GraficoBarrasMensual, GraficoBarrasRanking, GraficoCircularTrabajos
-from ...nucleo import usuarios, maquinas, checklists, consumos, mano_obra
-from ..dialogos.checklists import texto_export, texto_repuestos_export, texto_tiempo_export
-from ...nucleo.fotos import fotos_galeria
-from ...nucleo.seguridad import es_video
+from ...nucleo import maquinas, informe_historial
 from ...nucleo.rutas import DATA_DIR
 
 class AccionesExportar:
@@ -83,40 +77,8 @@ class AccionesExportar:
         if not archivo: return
         try:
             datos = self.db.obtener_todas_cronologico(filtro_usuario, sede=self.sede_filtro())
-            mapa_maquinas = maquinas.mapa_rutas_completas()
-            listas = checklists.resultados_de([tarea[0] for tarea in datos])
-            usados = consumos.materiales_de_trabajos([tarea[0] for tarea in datos]); moneda = consumos.moneda()
-            tiempos = mano_obra.tiempos_de([tarea[0] for tarea in datos])
             with open(archivo, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f, delimiter=';')
-                # Nuevos encabezados sin Tags, añadiendo Máquina, Foto Antes y Foto Después
-                writer.writerow([tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después"), tt("lbl_coleccion_fotos", "Colección de fotos"), tt("lbl_checklist", "Lista de comprobación"),
-                                 tt("lbl_repuestos_usados", "🔩 Materiales usados").replace("🔩", "").strip(),
-                                 tt("lbl_tiempo_trabajado", "⏱️ Tiempo trabajado").replace("⏱️", "").strip()])
-                for tarea in datos:
-                    # Convertir formato de fecha de YYYY-MM-DD al formato corto del idioma activo
-                    fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
-
-                    # Limpiamos FOTO y REF de la descripción
-                    desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
-                    desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
-
-                    # Extraer nombres de fotos
-                    foto_antes = "-"
-                    m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
-                    if m: foto_antes = m.group(1).split("]")[0].strip()
-
-                    foto_despues = "-"
-                    m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
-                    if m_d: foto_despues = m_d.group(1).split("]")[0].strip()
-
-                    autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
-                    maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
-                    coleccion = ", ".join(fotos_galeria(tarea[2])) or "-"
-                    writer.writerow([tarea[0], fecha_formateada, desc_limpia, maquina_nombre, autor, foto_antes, foto_despues, coleccion,
-                                     texto_export(listas.get(tarea[0])),
-                                     texto_repuestos_export(usados.get(tarea[0]), moneda),
-                                     texto_tiempo_export(tiempos.get(tarea[0]), moneda)])
+                informe_historial.generar_csv(datos, f, maquinas.mapa_rutas_completas())     # el núcleo (también la web)
             QMessageBox.information(self, t("title_exportado"), t("msg_csv_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
@@ -132,172 +94,9 @@ class AccionesExportar:
         archivo = self.guardar_archivo_dialogo(t("title_exportar_excel"), nombre_defecto, "Excel (*.xlsx)")
         if not archivo: return
         try:
-            workbook = xlsxwriter.Workbook(archivo)
-            worksheet = workbook.add_worksheet("Registro")
-
-            # Estilos profesionales
-            bold = workbook.add_format({'bold': True, 'bg_color': '#3daee9', 'color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
-            wrap = workbook.add_format({'text_wrap': True, 'valign': 'top', 'border': 1})
-            center = workbook.add_format({'valign': 'vcenter', 'align': 'center', 'border': 1})
-
-            # Nuevos encabezados
-            headers = [tt("hdr_id", "ID"), tt("hdr_fecha", "Fecha"), tt("hdr_descripcion", "Descripción"), tt("hdr_maquina", "Máquina"), tt("hdr_realizado_por", "Realizado por"), tt("hdr_foto_antes", "Foto Antes"), tt("hdr_foto_despues", "Foto Después")]
-            for col, text in enumerate(headers): worksheet.write(0, col, text, bold)
-            datos_sede = self._lineas_sede()
-            if datos_sede:   # la sede (nombre, CIF, dirección…) en el encabezado de cada página impresa
-                worksheet.set_header("&L&B" + " · ".join(datos_sede).replace("&", "&&"))
-
-            # Ajuste de anchura de columnas
-            worksheet.set_column('A:A', 5)
-            worksheet.set_column('B:B', 12)
-            worksheet.set_column('C:C', 60) # Descripción ancha
-            worksheet.set_column('D:D', 25) # Máquina
-            worksheet.set_column('E:E', 20) # Realizado por
-            worksheet.set_column('F:F', 25) # Foto Antes
-            worksheet.set_column('G:G', 25) # Foto Después
-
-            # --- FUNCIÓN INTERNA PARA CALCULAR LA ESCALA PERFECTA ---
-            def obtener_opciones_img(ruta_img):
-                pix = QPixmap(ruta_img)
-                if pix.isNull() or pix.width() == 0 or pix.height() == 0:
-                    return None
-
-                # Tamaño máximo deseado en píxeles (para que quepa justo en la celda)
-                max_w = 160.0
-                max_h = 100.0
-
-                # Calcular escala manteniendo la proporción real de la foto
-                scale = min(max_w / pix.width(), max_h / pix.height())
-
-                return {
-                    'x_scale': scale,
-                    'y_scale': scale,
-                    'x_offset': 5,
-                    'y_offset': 5,
-                    'object_position': 1
-                }
-
-            def miniatura_excel(ruta_img):
-                """Foto de la colección reducida (JPEG de 320 px como mucho) e
-                insertada desde memoria: con muchas fotos, incrustar los
-                originales dispara el tamaño del Excel."""
-                try:
-                    from io import BytesIO
-                    from PIL import Image as ImagenPIL, ImageOps
-                    with ImagenPIL.open(ruta_img) as original:
-                        foto = ImageOps.exif_transpose(original).convert("RGB")
-                        foto.thumbnail((320, 320))
-                        buffer = BytesIO(); foto.save(buffer, "JPEG", quality=80)
-                        ancho, alto = foto.size
-                except Exception:
-                    return None
-                escala = min(160.0 / ancho, 100.0 / alto)
-                return {'image_data': buffer, 'x_scale': escala, 'y_scale': escala,
-                        'x_offset': 5, 'y_offset': 5, 'object_position': 1}
-
-            datos = self.db.obtener_todas_cronologico(filtro_usuario, sede=self.sede_filtro())
-            mapa_maquinas = maquinas.mapa_rutas_completas()
-            # Colección de fotos: una columna por foto a partir de la H
-            # («Colección 1», «Colección 2»…), tantas como tenga el trabajo que más.
-            # Columna H: lista de comprobación (solo si algún trabajo la tiene);
-            # la colección de fotos va a continuación.
-            listas = checklists.resultados_de([tarea[0] for tarea in datos])
-            usados = consumos.materiales_de_trabajos([tarea[0] for tarea in datos]); moneda = consumos.moneda()
-            col_coleccion = 7
-            col_lista = col_repuestos = col_tiempo = None
-            tiempos = mano_obra.tiempos_de([tarea[0] for tarea in datos])
-            if listas:
-                col_lista = col_coleccion
-                worksheet.write(0, col_lista, tt("lbl_checklist", "Lista de comprobación"), bold)
-                worksheet.set_column(col_lista, col_lista, 45)
-                col_coleccion += 1
-            if usados:
-                col_repuestos = col_coleccion
-                worksheet.write(0, col_repuestos, tt("lbl_repuestos_usados", "🔩 Materiales usados").replace("🔩", "").strip(), bold)
-                worksheet.set_column(col_repuestos, col_repuestos, 40)
-                col_coleccion += 1
-            if tiempos:
-                col_tiempo = col_coleccion
-                worksheet.write(0, col_tiempo, tt("lbl_tiempo_trabajado", "⏱️ Tiempo trabajado").replace("⏱️", "").strip(), bold)
-                worksheet.set_column(col_tiempo, col_tiempo, 26)
-                col_coleccion += 1
-            max_coleccion = max((len(fotos_galeria(tarea[2])) for tarea in datos), default=0)
-            for k in range(max_coleccion):
-                worksheet.write(0, col_coleccion + k, tt("hdr_coleccion_n", "Colección {n}").format(n=k + 1), bold)
-                worksheet.set_column(col_coleccion + k, col_coleccion + k, 25)
-            row = 1
-            for tarea in datos:
-                # Convertir formato de fecha al formato corto del idioma activo
-                fecha_formateada = idiomas.formato_fecha_localizada(tarea[1])
-
-                worksheet.write(row, 0, tarea[0], center)
-                worksheet.write(row, 1, fecha_formateada, center)
-
-                # Limpieza de texto
-                desc_limpia = re.sub(r"\[FOTO.*?:.*?\]", "", tarea[2])
-                desc_limpia = re.sub(r"\[REF:.*?\]", "", desc_limpia).strip()
-
-                worksheet.write(row, 2, desc_limpia, wrap)
-
-                maquina_nombre = mapa_maquinas.get(tarea[5], "-") if len(tarea) > 5 and tarea[5] else "-"
-                worksheet.write(row, 3, maquina_nombre, center)
-
-                autor = tarea[4] if len(tarea) > 4 and tarea[4] else usuarios.ETIQUETA_HISTORICO
-                worksheet.write(row, 4, autor, center)
-
-                # Incrustar FOTO ANTES
-                m = re.search(r"\[FOTO:\s*(.*?)\]", tarea[2])
-                if m:
-                    nombre = m.group(1).split("]")[0].strip()
-                    ruta = os.path.join(self.carpeta_fotos, nombre)
-                    if os.path.exists(ruta):
-                        opc = obtener_opciones_img(ruta)
-                        if opc:
-                            try: worksheet.insert_image(row, 5, ruta, opc)
-                            except: worksheet.write(row, 5, "Err Img", center)
-                        else:
-                            worksheet.write(row, 5, "Err Img", center)
-                    else: worksheet.write(row, 5, "No File", center)
-                else: worksheet.write(row, 5, "-", center)
-
-                # Incrustar FOTO DESPUÉS
-                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", tarea[2])
-                if m_d:
-                    nombre_d = m_d.group(1).split("]")[0].strip()
-                    ruta_d = os.path.join(self.carpeta_fotos, nombre_d)
-                    if os.path.exists(ruta_d):
-                        opc = obtener_opciones_img(ruta_d)
-                        if opc:
-                            try: worksheet.insert_image(row, 6, ruta_d, opc)
-                            except: worksheet.write(row, 6, "Err Img", center)
-                        else:
-                            worksheet.write(row, 6, "Err Img", center)
-                    else: worksheet.write(row, 6, "No File", center)
-                else: worksheet.write(row, 6, "-", center)
-
-                if col_lista is not None:
-                    worksheet.write(row, col_lista, texto_export(listas.get(tarea[0])), wrap)
-                if col_repuestos is not None:
-                    worksheet.write(row, col_repuestos, texto_repuestos_export(usados.get(tarea[0]), moneda), wrap)
-                if col_tiempo is not None:
-                    worksheet.write(row, col_tiempo, texto_tiempo_export(tiempos.get(tarea[0]), moneda), wrap)
-                for k, nombre_g in enumerate(fotos_galeria(tarea[2])):
-                    ruta_g = os.path.join(self.carpeta_fotos, nombre_g)
-                    if es_video(nombre_g):
-                        # Un vídeo no tiene miniatura en Excel: se pone su nombre.
-                        worksheet.write(row, col_coleccion + k, f"{tt('lbl_video', 'Vídeo')}: {nombre_g}", wrap)
-                        continue
-                    opc = miniatura_excel(ruta_g) if os.path.exists(ruta_g) else None
-                    if opc:
-                        try: worksheet.insert_image(row, col_coleccion + k, nombre_g, opc)
-                        except Exception: worksheet.write(row, col_coleccion + k, "Err Img", center)
-                    else:
-                        worksheet.write(row, col_coleccion + k, "No File", center)
-
-                worksheet.set_row(row, 90) # Altura de fila fija
-                row += 1
-
-            workbook.close()
+            # Lo genera el núcleo (también lo usa MantPro Web)
+            informe_historial.generar_excel(self.db.obtener_todas_cronologico(filtro_usuario, sede=self.sede_filtro()), archivo,
+                                            self.carpeta_fotos, maquinas.mapa_rutas_completas(), self._lineas_sede())
             QMessageBox.information(self, t("title_exportado"), t("msg_excel_guardado"))
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
 
