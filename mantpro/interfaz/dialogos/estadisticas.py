@@ -22,19 +22,16 @@
 preventivos, horas de parada y pendientes asignados (se abre desde el Dashboard)."""
 
 import os
-import re
 import tempfile
-from datetime import datetime
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QTableWidget,
                              QTableWidgetItem, QHeaderView, QAbstractItemView, QPushButton, QMessageBox)
 from PyQt6.QtCore import Qt
 
-from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ..widgets.graficos import GraficoBarrasRanking
-from ...nucleo import estadisticas, usuarios
+from ...nucleo import estadisticas, informe_estadisticas
 from ...nucleo.rutas import DATA_DIR
 
 
@@ -72,9 +69,8 @@ class DialogoEstadisticasTecnicos(QDialog):
         barra.addSpacing(16)
         barra.addWidget(QLabel(tt("hdr_tipo_historial", "Tipo") + ":"))
         self.combo_tipo = QComboBox()
-        self.combo_tipo.addItem(tt("filtro_todos", "Todos"), None)
-        self.combo_tipo.addItem(tt("filtro_trabajos_averias", "Trabajos y averías"), "trabajos")
-        self.combo_tipo.addItem(tt("filtro_mantenimiento_preventivo", "Mantenimiento preventivo"), "preventivos")
+        for tipo in informe_estadisticas.TIPOS:
+            self.combo_tipo.addItem(informe_estadisticas.nombre_tipo(tipo), tipo)
         self.combo_tipo.currentIndexChanged.connect(self._cargar)
         barra.addWidget(self.combo_tipo); barra.addStretch()
         l.addLayout(barra)
@@ -89,7 +85,7 @@ class DialogoEstadisticasTecnicos(QDialog):
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.setSortingEnabled(True)
         l.addWidget(self.tabla, 1)
-        self.lbl_nota = QLabel(tt("msg_nota_estadisticas_tecnicos", "Las horas de parada son las de los trabajos de avería. «Pendientes» son los trabajos que cada técnico tiene asignados ahora mismo."))
+        self.lbl_nota = QLabel(informe_estadisticas.texto_nota())
         self.lbl_nota.setWordWrap(True); self.lbl_nota.setStyleSheet("color: gray;")
         l.addWidget(self.lbl_nota)
 
@@ -102,40 +98,20 @@ class DialogoEstadisticasTecnicos(QDialog):
         self._cargar()
 
     def _cargar(self):
-        anio = self.combo_anio.currentData()
-        tipo = self.combo_tipo.currentData()
-        datos = estadisticas.por_tecnico(self.ruta_db, anio, tipo, self.sede)
-        for d in datos:
-            if d["nombre"] == usuarios.ETIQUETA_HISTORICO:
-                d["nombre"] = tt("lbl_tecnico_historico", "Histórico (sin usuario)")
-        self._datos, self._anio, self._tipo = datos, anio, tipo
-        self.grafico.establecer_datos([(d["nombre"], d["total"]) for d in datos if d["total"]])
-
-        meses = [t(f"mes_{m:02d}_corto") for m in range(1, 13)] if anio else []
-        # Primero los totales (lo que más se mira) y después los meses, que en
-        # pantallas estrechas pueden quedar a la derecha con desplazamiento.
-        # Las columnas que no aportan nada con el tipo elegido no se muestran
-        # (en preventivos todo es preventivo y no hay averías ni pendientes; en
-        # trabajos no hay preventivos).
-        # Horas trabajadas (el tiempo apuntado en sus trabajos): en todos los tipos
-        self._columnas = ["horas_trabajo"] + ([] if tipo == "preventivos" else [
-            c for c in ("averias", "preventivos", "horas_paro", "pendientes") if not (tipo == "trabajos" and c == "preventivos")])
-        self._con_nota = tipo != "preventivos"
-        self.lbl_nota.setVisible(self._con_nota)
-        nombres_col = {"averias": tt("hdr_averias", "Averías"), "preventivos": tt("hdr_preventivos", "Preventivos"),
-                       "horas_paro": tt("hdr_horas_paro", "Horas de parada"), "pendientes": tt("hdr_pendientes_asignados", "Pendientes"),
-                       "horas_trabajo": tt("hdr_horas_trabajadas", "Horas trabajadas")}
-        cabeceras = ([tt("hdr_tecnico", "Técnico"), tt("hdr_total", "Total")]
-                     + [nombres_col[c] for c in self._columnas] + meses)
+        # La tabla (columnas según el tipo, cabeceras y filas) sale del núcleo, la misma que usa MantPro Web
+        self._tabla = tab = informe_estadisticas.tabla(self.ruta_db, self.combo_anio.currentData(),
+                                                        self.combo_tipo.currentData(), self.sede)
+        self.grafico.establecer_datos(informe_estadisticas.grafico(tab))
+        self.lbl_nota.setVisible(tab["con_nota"])
+        fijas = 2 + len(tab["columnas"])
         self.tabla.setSortingEnabled(False)
         self.tabla.clear()
-        self.tabla.setColumnCount(len(cabeceras)); self.tabla.setHorizontalHeaderLabels(cabeceras)
-        self.tabla.setRowCount(len(datos))
-        for i, d in enumerate(datos):
-            celdas = [QTableWidgetItem(d["nombre"]), _ItemNumero(d["total"])]
-            celdas += [_ItemNumero(round(d[c], 2), f"{round(d[c], 2):g}") for c in self._columnas]
-            if anio:
-                celdas += [_ItemNumero(n, str(n) if n else "·") for n in d["meses"]]
+        self.tabla.setColumnCount(len(tab["cabeceras"])); self.tabla.setHorizontalHeaderLabels(tab["cabeceras"])
+        self.tabla.setRowCount(len(tab["filas"]))
+        for i, fila in enumerate(tab["filas"]):
+            celdas = [QTableWidgetItem(fila[0]), _ItemNumero(fila[1])]
+            celdas += [_ItemNumero(v, f"{v:g}") for v in fila[2:fijas]]
+            celdas += [_ItemNumero(n, str(n) if n else "·") for n in fila[fijas:]]
             for j, item in enumerate(celdas):
                 if j == 1:
                     fuente = item.font(); fuente.setBold(True); item.setFont(fuente)
@@ -149,35 +125,18 @@ class DialogoEstadisticasTecnicos(QDialog):
     # ------------------------------------------------------------ exportar
 
     def _cabeceras_y_filas(self):
-        """Cabeceras y filas tal y como se ven en la tabla (mismo orden de
-        columnas), con números de verdad para que Excel pueda sumarlos."""
-        cabeceras = [self.tabla.horizontalHeaderItem(c).text() for c in range(self.tabla.columnCount())]
-        filas = []
-        for d in self._datos:
-            fila = [d["nombre"], d["total"]] + [round(d[c], 2) for c in self._columnas]
-            if self._anio:
-                fila += d["meses"]
-            filas.append(fila)
-        return cabeceras, filas
+        """Cabeceras y filas tal y como se ven en la tabla, con números de verdad para que Excel pueda sumarlos."""
+        return self._tabla["cabeceras"], self._tabla["filas"]
 
     def _exportar(self, formato):
-        if not self._datos:
+        tab = self._tabla
+        if not tab["filas"]:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_datos_estadisticas", "No hay trabajos que exportar en ese periodo."))
             return
         if formato == "xlsx":
             try: import xlsxwriter  # noqa: F401
             except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
-        periodo = str(self._anio) if self._anio else tt("lbl_todos_los_anos", "Todos los años")
-        titulo = f"{tt('title_estadisticas_tecnicos', 'Estadísticas por técnico')} — {periodo}"
-        if self._tipo:
-            titulo += f" — {self.combo_tipo.currentText()}"
-        base = re.sub(r"[^\w-]+", "_", tt("title_estadisticas_tecnicos", "Estadísticas por técnico")).strip("_")
-        sufijo_tipo = "_" + re.sub(r"[^\w-]+", "_", self.combo_tipo.currentText()).strip("_") if self._tipo else ""
-        # Fuera de la f-string: una barra invertida dentro de {…} solo vale
-        # desde Python 3.12, y CI compila con 3.10 (PyInstaller dejaba fuera
-        # este módulo sin avisar y la app no arrancaba).
-        periodo_fichero = self._anio or re.sub(r'[^\w-]+', '_', periodo)
-        nombre_defecto = f"{base}_{periodo_fichero}{sufijo_tipo}.{formato}"
+        nombre_defecto = informe_estadisticas.nombre_fichero(tab, formato)
         filtro = "PDF (*.pdf)" if formato == "pdf" else "Excel (*.xlsx)"
         titulo_dlg = t("title_exportar_pdf") if formato == "pdf" else t("title_exportar_excel")
         guardar = getattr(self.parent(), "guardar_archivo_dialogo", None)
@@ -188,116 +147,30 @@ class DialogoEstadisticasTecnicos(QDialog):
             archivo, _ = QFileDialog.getSaveFileName(self, titulo_dlg, nombre_defecto, filtro)
         if not archivo: return
         if not archivo.lower().endswith("." + formato): archivo += "." + formato
-        fecha = tt("txt_fecha_informe", "Fecha: {fecha}").format(
-            fecha=idiomas.formato_fecha_localizada(datetime.now().strftime("%Y-%m-%d")))
         try:
             if formato == "pdf":
-                self._a_pdf(archivo, titulo, fecha)
+                self._a_pdf(archivo)
             else:
-                self._a_excel(archivo, titulo, fecha)
+                informe_estadisticas.generar_excel(tab, archivo)
             QMessageBox.information(self, t("title_exportado"),
                 tt("msg_estadisticas_exportadas", "Estadísticas exportadas en:\n{ruta}").format(ruta=archivo))
         except Exception as e:
             QMessageBox.critical(self, t("title_error"), str(e))
 
-    def _a_excel(self, archivo, titulo, fecha):
-        import xlsxwriter
-        cabeceras, filas = self._cabeceras_y_filas()
-        wb = xlsxwriter.Workbook(archivo)
-        ws = wb.add_worksheet(re.sub(r"[\[\]:*?/\\]", "", tt("title_estadisticas_tecnicos", "Estadísticas por técnico"))[:31])
-        f_tit = wb.add_format({"bold": True, "font_size": 14})
-        f_nota = wb.add_format({"italic": True, "font_color": "#7f8c8d"})
-        f_cab = wb.add_format({"bold": True, "bg_color": "#3daee9", "color": "white", "border": 1, "align": "center", "valign": "vcenter"})
-        f_txt = wb.add_format({"border": 1})
-        f_num = wb.add_format({"border": 1, "num_format": "0.##", "align": "right"})
-        f_total = wb.add_format({"border": 1, "num_format": "0.##", "align": "right", "bold": True})
-        ws.write(0, 0, titulo, f_tit)
-        ws.write(1, 0, fecha)
-        if self._con_nota:
-            ws.write(2, 0, self.lbl_nota.text(), f_nota)
-        fila0 = 4
-        for c, txt in enumerate(cabeceras): ws.write(fila0, c, txt, f_cab)
-        for i, fila in enumerate(filas, start=fila0 + 1):
-            ws.write(i, 0, fila[0], f_txt)
-            for c, valor in enumerate(fila[1:], start=1):
-                ws.write_number(i, c, valor, f_total if c == 1 else f_num)
-        ws.set_column(0, 0, max(14, max(len(f[0]) for f in filas) + 2))
-        fijas = 2 + len(self._columnas)
-        ws.set_column(1, fijas - 1, 13)
-        if len(cabeceras) > fijas: ws.set_column(fijas, len(cabeceras) - 1, 6)
-        ws.freeze_panes(fila0 + 1, 1)
-        ws.autofilter(fila0, 0, fila0 + len(filas), len(cabeceras) - 1)
-        wb.close()
-
-    def _a_pdf(self, archivo, titulo, fecha):
-        from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as PDFImage
-        from reportlab.lib import colors
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.units import cm
-        cabeceras, filas = self._cabeceras_y_filas()
-        # Con los meses la tabla tiene 18 columnas: en apaisado caben bien.
-        pagina = landscape(A4) if self._anio else A4
-        doc = SimpleDocTemplate(archivo, pagesize=pagina, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-        styles = getSampleStyleSheet()
-        celda = ParagraphStyle("CeldaEst", parent=styles["BodyText"], fontSize=8, leading=10)
-        celda_cab = ParagraphStyle("CabEst", parent=celda, textColor=colors.whitesmoke, fontName="Helvetica-Bold", alignment=1)
-        nota = ParagraphStyle("NotaEst", parent=styles["Normal"], fontSize=8, textColor=colors.grey)
-        esc = lambda s: (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        elementos = []
-        ruta_logo = os.path.join(DATA_DIR, "Logo.jpg")
-        if os.path.exists(ruta_logo):
-            try:
-                logo = PDFImage(ruta_logo, width=4*cm, height=2*cm); logo.hAlign = "LEFT"; logo.keepAspectRatio = True
-                elementos += [logo, Spacer(1, 8)]
-            except Exception: pass
-        elementos += [Paragraph(esc(titulo), styles["Title"]), Paragraph(esc(fecha), styles["Normal"]), Spacer(1, 8)]
-
-        # Gráfico de barras (el mismo de la ventana, con texto negro sobre fondo claro).
-        ancho_util = pagina[0] - 60
+    def _a_pdf(self, archivo):
+        # El gráfico, el mismo de la ventana (con texto negro sobre fondo claro); el resto lo hace el núcleo
         tmp = tempfile.mkdtemp(prefix="mantpro_estadisticas_")
         try:
-            con_trabajos = [(f[0], f[1]) for f in filas if f[1]]
-            if con_trabajos:
+            png = None
+            pares = informe_estadisticas.grafico(self._tabla)
+            if pares:
                 grafico = GraficoBarrasRanking(color="#3daee9", color_texto="#000000", color_fondo="#f0f0f0")
-                grafico.establecer_datos(con_trabajos)
-                alto_px = max(120, 30 * len(con_trabajos) + 20)
+                grafico.establecer_datos(pares)
+                alto_px = max(120, 30 * len(pares) + 20)
                 grafico.resize(900, alto_px)
-                png = os.path.join(tmp, "grafico.png"); grafico.grab().save(png, "PNG")
-                img = PDFImage(png, width=ancho_util, height=ancho_util * alto_px / 900)
-                elementos += [img, Spacer(1, 10)]
-
-            fijas = 2 + len(self._columnas)
-
-            def num(v):
-                return f"{v:g}" if v else "·"
-            datos = [[Paragraph(esc(c), celda_cab) for c in cabeceras]]
-            for f in filas:
-                datos.append([Paragraph(esc(f[0]), celda), f"{f[1]:g}"] + [num(v) if i >= fijas else f"{v:g}" for i, v in enumerate(f[2:], start=2)])
-            ancho_nombre = 5.5*cm if self._anio else 6*cm
-            resto = (ancho_util - ancho_nombre)
-            if self._anio:
-                # Las columnas de totales no necesitan más de 2,6 cm; el resto, para los meses.
-                ancho_fija = min(2.6*cm, resto * 0.55 / (fijas - 1))
-                anchos = [ancho_nombre] + [ancho_fija] * (fijas - 1) + [(resto - ancho_fija * (fijas - 1)) / 12] * 12
-            else:
-                anchos = [ancho_nombre] + [resto / (fijas - 1)] * (fijas - 1)
-            tabla = Table(datos, colWidths=anchos, repeatRows=1)
-            tabla.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3daee9")),
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
-                ("FONTSIZE", (1, 1), (-1, -1), 8),
-                ("FONTNAME", (1, 1), (1, -1), "Helvetica-Bold"),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f6f9")]),
-                # Meses: poco margen para que quepan abreviaturas de 4 letras («Janv»).
-                ("LEFTPADDING", (fijas, 0), (-1, -1), 1), ("RIGHTPADDING", (fijas, 0), (-1, -1), 2),
-            ]))
-            elementos.append(tabla)
-            if self._con_nota:
-                elementos += [Spacer(1, 8), Paragraph(esc(self.lbl_nota.text()), nota)]
-            doc.build(elementos)
+                ruta_png = os.path.join(tmp, "grafico.png"); grafico.grab().save(ruta_png, "PNG")
+                png = (ruta_png, 900, alto_px)
+            informe_estadisticas.generar_pdf(self._tabla, archivo, ruta_logo=os.path.join(DATA_DIR, "Logo.jpg"), grafico_png=png)
         finally:
             import shutil
             shutil.rmtree(tmp, ignore_errors=True)
