@@ -23,6 +23,9 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **🛡️ Las listas no pierden datos de tipos nuevos.** Si una versión anterior (otro PC, o MantPro Cloud sin actualizar) recibe un punto de un tipo que no conoce, lo guarda tal cual con su valor en vez de convertirlo en bien / mal y perder las lecturas.
 - **🖨️ Imprimir y exportar la lista de comprobación de un trabajo.** Al abrir un trabajo del historial que lleva lista, el botón **☑️ Ver lista de comprobación (imprimir / exportar)** la abre; desde ahí (y desde el clic derecho «☑️ Ver lista de comprobación») se puede **🖨️ Imprimir** (abre un PDF en el visor del sistema), **📄 Exportar PDF** (con logo) y **📊 Exportar Excel** (con una columna por fase y el desequilibrio en los motores trifásicos). Sale lo que se ve en pantalla, también si se acaba de corregir. Traducido en los 8 idiomas.
 
+### Correcciones
+- **🧹 Sin línea en blanco al completar un pendiente con foto nueva.** Al completar en el PC un pendiente eligiendo otra foto, la descripción del trabajo ya no se queda con una línea vacía donde estaba la foto anterior.
+
 ## 3.10.11 — 2026-11-19
 
 ### Novedades

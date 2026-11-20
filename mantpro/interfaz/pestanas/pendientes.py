@@ -33,7 +33,7 @@ from ...idiomas import t
 from ..comun import tt
 from ..dialogos.trabajos import CompleteDialog, DialogoEditarPendiente
 from ..widgets.fotos import GaleriaFotosWidget
-from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes
+from ...nucleo import usuarios, checklists, sedes
 from ...nucleo import pendientes as pendientes_nucleo
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria
@@ -332,30 +332,16 @@ class PestanaPendientes:
                 self.refresh_todos()       # la marca 📝 de la lista a medias
                 return
 
-            # --- MEJORA: LIMPIEZA INTELIGENTE ---
-            detalles_limpios = detalles_originales
-            # Si el usuario ha elegido una FOTO NUEVA, borramos la etiqueta de la vieja del texto
-            if foto_nueva and detalles_originales:
-                 detalles_limpios = re.sub(r"\[FOTO:.*?\]", "", detalles_originales).strip()
-            # ------------------------------------
-
-            desc_final = titulo
-            if detalles_limpios: desc_final += f"\n{detalles_limpios}"
-            if foto_nueva: desc_final += f"\n[FOTO: {os.path.basename(foto_nueva)}]"
-            # La colección del diálogo ya incluye la que traía el pendiente (si
-            # venía de revertir un trabajo): sustituye a la marca anterior.
-            desc_final = con_fotos_galeria(desc_final, fotos_coleccion)
-
-            # Guardar en Historial y borrar de Pendientes
-            tarea_id = self.db.agregar_tarea(fecha, desc_final, tags, sede_id=sedes.sede_de("pendientes", id_pendiente))
+            # Pasarlo al historial lo hace el núcleo, igual que en MantPro Web: la foto nueva sustituye
+            # a la anterior y la colección del diálogo (que ya incluye la que traía) a la marca de antes
+            try:
+                tarea_id = pendientes_nucleo.completar(
+                    self.db, usuarios.SESION_ACTUAL, id_pendiente, fecha, tags, repuestos=dialogo.repuestos.items(),
+                    minutos=dialogo.tiempo.minutos(), personas=dialogo.tiempo.personas(), lista=lista,
+                    foto=os.path.basename(foto_nueva) if foto_nueva else None, fotos=fotos_coleccion)
+            except ValueError:
+                tarea_id = None
             if tarea_id:
-                consumos.registrar_consumo(tarea_id, dialogo.repuestos.items(), usuarios.id_actual(),
-                                           usuarios.nombre_actual(), titulo, fecha)
-                mano_obra.fijar_tiempo(tarea_id, dialogo.tiempo.minutos(), dialogo.tiempo.personas(), registrar=False)
-                if lista[0]:
-                    checklists.guardar_resultado(tarea_id, lista[0], lista[1])
-                checklists.borrar_borrador(clave_borrador)       # completada: ya no hay lista a medias
-                self.db.borrar_pendiente(id_pendiente, motivo="completar")
                 self.refresh_todos()
                 self.refresh_all()
                 self.statusBar().showMessage(t("msg_tarea_completada").format(titulo=titulo), 5000)

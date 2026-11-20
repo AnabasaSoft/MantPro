@@ -874,6 +874,8 @@ MantPro is and will remain **free and open source**: everything in this README w
 
 Your data is still yours: if you stop paying, the PC keeps working with everything it has locally; it just stops syncing.
 
+🚧 **In development: MantPro Cloud App.** Use MantPro from your browser with nothing to install, with your company's same users, permissions and sites. What you do there will reach your PCs and phones, and vice versa.
+
 > 🎁 **Special price for early customers:** with the code **PRIMEROS30** you get **30% off for the first 6 months**.
 
 ---

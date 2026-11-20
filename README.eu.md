@@ -900,6 +900,8 @@ MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azal
 
 Zure datuak zureak dira: ordaintzeari uzten badiozu, PCak lokalean duen guztiarekin funtzionatzen jarraitzen du; sinkronizatzeari uzten dio, besterik ez.
 
+🚧 **Garatzen: MantPro Cloud App.** MantPro nabigatzailetik erabiltzea, ezer instalatu gabe, zure enpresako erabiltzaile, baimen eta egoitza berberekin. Bertan egiten dena PCetara eta mugikorretara iritsiko da, eta alderantziz.
+
 > 🎁 **Prezio berezia lehen bezeroentzat:** **PRIMEROS30** kodearekin **% 30eko deskontua** duzu **lehen 6 hilabeteetan**.
 
 ---

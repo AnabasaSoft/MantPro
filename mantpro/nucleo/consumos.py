@@ -106,6 +106,18 @@ def _agrupar(items):
     return total
 
 
+def materiales_elegibles(sede=None):
+    """Los artículos que se pueden apuntar como usados en un trabajo: los de los almacenes que se ven desde
+    [sede] (un id, una lista o None = todos), con el almacén detrás del nombre si hay varios."""
+    from . import almacenes
+    materiales = almacen.listar_materiales(almacen_ids=almacenes.ids_de_sede(sede))
+    if almacenes.hay_varios():   # con varios almacenes, el nombre dice de cuál es
+        nombres_alm = almacenes.nombres()
+        materiales = [dict(m, nombre=f"{m['nombre']}  · {nombres_alm.get(almacenes.efectivo(m['almacen_id']), '')}")
+                      for m in materiales]
+    return materiales
+
+
 # ---------------------------------------------------------------- consumir
 
 def registrar_consumo(tarea_id, items, usuario_id, usuario_nombre, referencia="", fecha=None):

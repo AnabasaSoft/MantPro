@@ -888,6 +888,8 @@ O **MantPro Cloud** é um serviço **opcional e pago** para quem precisa de mais
 
 Seus dados continuam sendo seus: se você deixar de pagar, o PC continua funcionando com tudo o que tem localmente; apenas deixa de sincronizar.
 
+🚧 **Em desenvolvimento: MantPro Cloud App.** Usar o MantPro no navegador, sem instalar nada, com os mesmos usuários, permissões e unidades da sua empresa. O que for feito nele chegará aos PCs e aos celulares, e vice-versa.
+
 > 🎁 **Preço especial para os primeiros clientes:** com o código **PRIMEROS30** você tem **30% de desconto nos primeiros 6 meses**.
 
 ---

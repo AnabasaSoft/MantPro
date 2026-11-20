@@ -416,9 +416,9 @@ class CompleteDialog(QDialog):
             self.lbl_foto.setStyleSheet("border: 2px solid #3daee9;")
         except Exception as e: QMessageBox.critical(self, t("title_error"), str(e))
     def get_data(self):
-        lista_tags = _tags_desde_checks(self, incluir_averia=False)
-        manual = self.tag.text().strip(); (lista_tags.append(manual) if manual else None)
-        return (self.de.date().toString("yyyy-MM-dd"), ", ".join(lista_tags), self.foto_filename, self.galeria.nombres())
+        from ...nucleo import pendientes as pendientes_nucleo
+        tags = pendientes_nucleo.etiquetas(_tags_desde_checks(self, incluir_averia=False), self.tag.text())
+        return (self.de.date().toString("yyyy-MM-dd"), tags, self.foto_filename, self.galeria.nombres())
 
 
 class AvisoEditDialog(QDialog):

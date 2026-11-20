@@ -49,13 +49,7 @@ class DialogoElegirRepuesto(QDialog):
         ventana = parent
         while ventana is not None and not hasattr(ventana, "sede_filtro"):
             ventana = ventana.parent()
-        from ...nucleo import almacenes
-        materiales = almacen.listar_materiales(
-            almacen_ids=almacenes.ids_de_sede(ventana.sede_filtro()) if ventana is not None else None)
-        if almacenes.hay_varios():   # con varios almacenes, el nombre dice de cuál es
-            nombres_alm = almacenes.nombres()
-            materiales = [dict(m, nombre=f"{m['nombre']}  · {nombres_alm.get(almacenes.efectivo(m['almacen_id']), '')}")
-                          for m in materiales]
+        materiales = consumos.materiales_elegibles(ventana.sede_filtro() if ventana is not None else None)
         # Primero los de la máquina, luego el resto por nombre
         self._materiales = sorted(materiales, key=lambda m: (m["id"] not in self._montados, (m.get("nombre") or "").lower()))
         self.moneda = consumos.moneda()

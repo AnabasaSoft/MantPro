@@ -31,9 +31,10 @@ La descripción guarda marcas que no se enseñan: [REF:n] (la del móvil), [FOTO
 
 import os
 import re
+from datetime import datetime
 
 from .. import idiomas
-from . import checklists, fotos as _fotos, sedes, usuarios
+from . import checklists, consumos, fotos as _fotos, mano_obra, sedes, usuarios
 
 PRIORIDADES = ("Baja", "Media", "Alta", "Crítica")          # en el orden de los desplegables
 _ORDEN = {"Crítica": 0, "Alta": 1, "Media": 2, "Baja": 3}
@@ -240,3 +241,92 @@ def reasignar(db, usuario, ids, asignado_id=MANTENER, especialidad_id=MANTENER):
         if especialidad_id is not MANTENER:
             db.asignar_especialidad_pendiente(i, especialidad_id)
     return len(ids)
+
+
+# ---------------------------------------------------------------- completar
+
+# Etiquetas rápidas al completar: (lo que se guarda, clave del texto), en el orden en que se guardan
+ETIQUETAS_RAPIDAS = (("Urgente", "tag_urgente"), ("Eléctrico", "tag_electrico"),
+                     ("Mecánico", "tag_mecanico"), ("Preventivo", "tag_preventivo"))
+MAX_PERSONAS = 50                 # como el campo de personas del PC
+MAX_MINUTOS = 60 * 24 * 366
+
+
+def etiquetas(rapidas=(), otras=""):
+    """El texto de etiquetas de un trabajo: las rápidas marcadas, en su orden de siempre, y las escritas a mano."""
+    marcadas = set(rapidas or ())
+    lista = [valor for valor, _ in ETIQUETAS_RAPIDAS if valor in marcadas]
+    otras = (otras or "").strip()
+    if otras:
+        lista.append(otras)
+    return ", ".join(lista)
+
+
+def _fecha(fecha):
+    try:
+        dia = datetime.strptime((fecha or "").strip(), "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("fecha_no_valida") from None
+    if not 2000 <= dia.year <= 2100:
+        raise ValueError("fecha_no_valida")
+    return dia.strftime("%Y-%m-%d")
+
+
+def _repuestos(repuestos, usuario):
+    """Los repuestos usados, comprobados: artículos de los almacenes que ve el usuario y cantidades mayores que cero."""
+    items = [r for r in (repuestos or []) if r.get("material_id") is not None]
+    if not items:
+        return []
+    elegibles = {m["id"] for m in consumos.materiales_elegibles(sedes.permitidas(usuario))}
+    limpios = []
+    for r in items:
+        if r["material_id"] not in elegibles:
+            raise ValueError("material_no_existe")
+        cantidad = consumos.numero(r.get("cantidad"))
+        if cantidad is None or not 0 < cantidad < 1e9:
+            raise ValueError("cantidad_no_valida")
+        limpios.append({"material_id": r["material_id"], "cantidad": cantidad})
+    return limpios
+
+
+def lista_pendiente(pendiente_id):
+    """La plantilla de la lista de comprobación que hay que rellenar al completar el pendiente, o None."""
+    plantilla_id = checklists.checklist_de("pendiente", pendiente_id)
+    plantilla = checklists.obtener_plantilla(plantilla_id) if plantilla_id else None
+    return plantilla if plantilla and plantilla["puntos"] else None
+
+
+def completar(db, usuario, pendiente_id, fecha, tags="", repuestos=(), minutos=None, personas=1, lista=None,
+              foto=None, fotos=MANTENER):
+    """Pasa un pendiente al historial (lo que hace «✅ Completar» en el PC) y devuelve el id del trabajo nuevo.
+    [fecha]: AAAA-MM-DD. [repuestos]: [{material_id, cantidad}], que se descuentan del stock. [minutos] y
+    [personas]: tiempo trabajado (None = sin tiempo). [lista]: (items, nombre de la plantilla) de la lista de
+    comprobación rellenada; obligatoria si el pendiente tiene una. [foto]: nombre de una foto nueva, que sustituye
+    a la que tenía (None = la de siempre). [fotos]: la colección (MANTENER = la que traía el pendiente)."""
+    fila = _accesibles(db, usuario, [pendiente_id])[0]
+    fecha = _fecha(fecha)
+    if minutos is not None and (isinstance(minutos, bool) or not isinstance(minutos, int) or not 0 <= minutos <= MAX_MINUTOS):
+        raise ValueError("tiempo_no_valido")
+    if isinstance(personas, bool) or not isinstance(personas, int) or not 1 <= personas <= MAX_PERSONAS:
+        raise ValueError("personas_no_validas")
+    items = _repuestos(repuestos, usuario)
+    if lista_pendiente(pendiente_id) is not None and not (lista and lista[0]):
+        raise ValueError("lista_sin_rellenar")
+    titulo, detalles = fila[1], fila[2] or ""
+    if foto and detalles:   # la foto nueva sustituye a la anterior
+        detalles = re.sub(r"\n?\[FOTO:.*?\]", "", detalles).strip()     # con su salto de línea
+    descripcion = titulo + (f"\n{detalles}" if detalles else "") + (f"\n[FOTO: {foto}]" if foto else "")
+    descripcion = _fotos.con_fotos_galeria(descripcion, _fotos.fotos_galeria(fila[2] or "") if fotos is MANTENER else fotos)
+    usuario_id = usuario["id"] if usuario else usuarios.id_actual()
+    usuario_nombre = usuario["nombre"] if usuario else usuarios.nombre_actual()
+    tarea_id = db.agregar_tarea(fecha, descripcion, tags or "", usuario_id, usuario_nombre,
+                                sede_id=sedes.sede_de("pendientes", pendiente_id))
+    if not tarea_id:
+        raise ValueError("no_guardado")
+    consumos.registrar_consumo(tarea_id, items, usuario_id, usuario_nombre, titulo, fecha)
+    mano_obra.fijar_tiempo(tarea_id, minutos, personas, registrar=False)
+    if lista and lista[0]:
+        checklists.guardar_resultado(tarea_id, lista[0], lista[1])
+    checklists.borrar_borrador(checklists.clave_borrador("pendiente", pendiente_id))   # ya no hay lista a medias
+    db.borrar_pendiente(pendiente_id, motivo="completar")
+    return tarea_id

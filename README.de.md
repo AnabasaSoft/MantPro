@@ -889,6 +889,8 @@ MantPro ist und bleibt **kostenlos und Open Source**: Alles, was in diesem READM
 
 Ihre Daten bleiben Ihre Daten: Wenn Sie nicht mehr zahlen, arbeitet der PC mit allem weiter, was er lokal hat; er synchronisiert nur nicht mehr.
 
+🚧 **In Entwicklung: MantPro Cloud App.** MantPro im Browser nutzen, ohne etwas zu installieren, mit denselben Benutzern, Rechten und Standorten Ihres Unternehmens. Was dort getan wird, landet auf den PCs und Smartphones – und umgekehrt.
+
 > 🎁 **Sonderpreis für die ersten Kunden:** Mit dem Code **PRIMEROS30** erhalten Sie **30 % Rabatt in den ersten 6 Monaten**.
 
 ---

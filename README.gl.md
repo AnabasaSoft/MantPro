@@ -880,6 +880,8 @@ MantPro é e seguirá sendo **gratuíto e de código aberto**: todo o que se exp
 
 Os teus datos seguen sendo teus: se deixas de pagar, o PC segue funcionando con todo o que ten en local; só deixa de sincronizar.
 
+🚧 **En desenvolvemento: MantPro Cloud App.** Usar MantPro desde o navegador, sen instalar nada, cos mesmos usuarios, permisos e sedes da túa empresa. O que se faga nela chegará aos PC e aos móbiles, e ao revés.
+
 > 🎁 **Prezo especial para os primeiros clientes:** co código **PRIMEROS30** tes un **30 % de desconto durante os primeiros 6 meses**.
 
 ---
