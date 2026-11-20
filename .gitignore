@@ -67,11 +67,12 @@ MantPro_Stock.png
 .claude/
 .serena/
 CLAUDE.md
-resumen_tarea.txt
 descargas-mantpro.sh
 
 # Roadmap interno (ideas y notas de desarrollo, no se sube al repo)
 ROADMAP.md
+PLAN_MANTPRO_WEB.md
+resumen_tarea.txt
 
 # Certificado TLS y clave privada del servidor (los genera MantPro)
 servidor_cert.pem
