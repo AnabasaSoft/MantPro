@@ -55,6 +55,15 @@ ETIQUETA_HISTORICO = "Histórico"
 # «dias_sesion», en Sesiones de dispositivos).
 DIAS_VALIDEZ_TOKEN = 60
 OPCIONES_DIAS_SESION = (30, 60, 90, 180, 365)
+# Sesiones de MantPro Web (el navegador, en MantPro Cloud): su «dispositivo» empieza por este prefijo, NO cuentan
+# como móviles (ni para el tope del plan ni para adjudicar) y caducan tras unas horas SIN USO en vez de días.
+PREFIJO_WEB = "🌐 Web"
+HORAS_SESION_WEB = 8
+
+
+def es_sesion_web(sesion):
+    """True si [sesion] (fila o dict con «dispositivo») es de MantPro Web y no de un móvil."""
+    return str((sesion or {}).get("dispositivo") or "").startswith(PREFIJO_WEB)
 
 
 def dias_sesion():
@@ -76,7 +85,8 @@ def fijar_dias_sesion(dias):
     con = _conn()
     con.execute("CREATE TABLE IF NOT EXISTS config (clave TEXT PRIMARY KEY, valor TEXT)")
     con.execute("INSERT OR REPLACE INTO config (clave, valor) VALUES ('dias_sesion', ?)", (str(dias),))
-    for token, ultimo, creado in con.execute("SELECT token, ultimo_contacto, creado FROM sesiones").fetchall():
+    for token, ultimo, creado in con.execute("SELECT token, ultimo_contacto, creado FROM sesiones "
+                                             "WHERE COALESCE(dispositivo, '') NOT LIKE ?", (PREFIJO_WEB + "%",)).fetchall():
         base = _ULTIMO_CONTACTO.get(token) or datetime.fromisoformat(ultimo or creado)
         con.execute("UPDATE sesiones SET expira=? WHERE token=?",
                     ((base + timedelta(days=dias)).isoformat(timespec="seconds"), token))
@@ -692,14 +702,17 @@ def huella_token(token):
     return hashlib.sha256((token or "").encode("utf-8")).hexdigest()
 
 
-def crear_token(usuario_id, dispositivo=None, dispositivo_id=None):
+def crear_token(usuario_id, dispositivo=None, dispositivo_id=None, horas=None):
+    """Abre una sesión y devuelve su token. [horas]: sesión de MantPro Web, que caduca tras esas horas sin uso
+    (ver renovar_sesion_web) y no sustituye a otra (cada navegador es una sesión aparte, aunque se llamen igual)."""
     token = secrets.token_urlsafe(32)
     dispositivo_id = limpiar_dispositivo_id(dispositivo_id)
     if dispositivo_id:
         registrar_movil(dispositivo_id, dispositivo)
     ahora = datetime.now()
+    caduca = ahora + (timedelta(hours=horas) if horas else timedelta(days=dias_sesion()))
     con = _conn()
-    if dispositivo:
+    if dispositivo and not horas:
         # Si ese mismo usuario ya tenía una sesión abierta desde el mismo
         # dispositivo (p. ej. reconecta el móvil tras cerrar/reinstalar la
         # app), la sustituimos en vez de dejarla acumulada como sesión suelta.
@@ -711,8 +724,7 @@ def crear_token(usuario_id, dispositivo=None, dispositivo_id=None):
         "INSERT INTO sesiones (token, usuario_id, dispositivo, creado, expira, dispositivo_id, huella) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (token, usuario_id, dispositivo or "",
-         ahora.isoformat(timespec="seconds"),
-         (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"),
+         ahora.isoformat(timespec="seconds"), caduca.isoformat(timespec="seconds"),
          dispositivo_id, huella_token(token)),
     )
     con.commit()
@@ -861,15 +873,39 @@ def registrar_contacto(token, cifrada=None):
     _ULTIMA_ESCRITURA_CONTACTO[token] = ahora
     try:
         con = _conn()
-        # Cada contacto renueva la sesión: caduca tras X días SIN conectar
+        # Cada contacto renueva la sesión: caduca tras X días SIN conectar (las de MantPro Web no: caducan por
+        # horas sin uso, ver renovar_sesion_web, aunque alguien use su token contra la API de los móviles)
         con.execute("UPDATE sesiones SET ultimo_contacto = ?, cifrada = COALESCE(?, cifrada), expira = ? "
-                    "WHERE token = ? OR huella = ?",
+                    "WHERE (token = ? OR huella = ?) AND COALESCE(dispositivo, '') NOT LIKE ?",
                     (ahora.isoformat(timespec="seconds"), None if cifrada is None else int(cifrada),
-                     (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"), token, huella_token(token)))
+                     (ahora + timedelta(days=dias_sesion())).isoformat(timespec="seconds"), token, huella_token(token),
+                     PREFIJO_WEB + "%"))
         con.commit()
         con.close()
     except sqlite3.Error:
         pass  # no es crítico: la hora en memoria sigue valiendo para "en línea"
+
+
+def renovar_sesion_web(token, horas=HORAS_SESION_WEB):
+    """El usuario de MantPro Web acaba de hacer algo: su sesión caduca [horas] después de AHORA (caducidad por
+    inactividad). Se escribe como mucho una vez por minuto; lo que la web pide sola para refrescar la pantalla
+    no debe llamar aquí, o una pestaña olvidada no caducaría nunca."""
+    if not token or token.startswith("~"):
+        return
+    ahora = datetime.now()
+    ultima = _ULTIMA_ESCRITURA_CONTACTO.get(token)
+    if ultima and (ahora - ultima).total_seconds() < 60:
+        return
+    _ULTIMA_ESCRITURA_CONTACTO[token] = ahora
+    try:
+        con = _conn()
+        con.execute("UPDATE sesiones SET ultimo_contacto = ?, expira = ? WHERE token = ? AND expira >= ?",
+                    (ahora.isoformat(timespec="seconds"), (ahora + timedelta(hours=horas)).isoformat(timespec="seconds"),
+                     token, ahora.isoformat(timespec="seconds")))
+        con.commit()
+        con.close()
+    except sqlite3.Error:
+        pass  # no es crítico: como mucho la sesión caduca antes
 
 
 def sesiones_sin_cifrar():
@@ -917,9 +953,10 @@ def fijar_http_desactivado(desactivado):
 _actor = threading.local()
 
 
-def fijar_actor_peticion(usuario, dispositivo=None):
+def fijar_actor_peticion(usuario, dispositivo=None, origen=None):
+    """[origen]: el texto del origen tal cual (MantPro Web pasa PREFIJO_WEB); si no, el del móvil."""
     _actor.usuario = usuario
-    _actor.origen = f"📱 {dispositivo}" if dispositivo else "📱"
+    _actor.origen = origen or (f"📱 {dispositivo}" if dispositivo else "📱")
 
 
 def limpiar_actor_peticion():
