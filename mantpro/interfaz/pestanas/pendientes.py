@@ -30,10 +30,11 @@ from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextE
 from PyQt6.QtCore import Qt
 
 from ...idiomas import t
-from ..comun import traducir_prioridad, tt
+from ..comun import tt
 from ..dialogos.trabajos import CompleteDialog, DialogoEditarPendiente
 from ..widgets.fotos import GaleriaFotosWidget
 from ...nucleo import usuarios, checklists, consumos, mano_obra, sedes
+from ...nucleo import pendientes as pendientes_nucleo
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
 from ...nucleo.fotos import con_fotos_galeria, fotos_galeria
 
@@ -98,15 +99,14 @@ class PestanaPendientes:
     def add_todo(self):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
         d = con_fotos_galeria(d, self.galeria_todo.nombres())
-        uid = self.combo_asignar.currentData()
-        nombre = self.combo_asignar.currentText() if uid is not None else None
-        prioridad = self.combo_prioridad_todo.currentData()
-        especialidad_id = self.combo_especialidad_todo.currentData()
-        nuevo_id = self.db.agregar_pendiente(tit, d, uid, nombre, prioridad, especialidad_id,
-                                             sede_id=self.sede_para_nuevo()) if tit else None
+        try:
+            # Lo mismo que hace MantPro Web (nucleo/pendientes.py)
+            nuevo_id = pendientes_nucleo.crear(self.db, usuarios.SESION_ACTUAL, tit, d, self.combo_asignar.currentData(),
+                                               self.combo_prioridad_todo.currentData(), self.combo_especialidad_todo.currentData(),
+                                               self.combo_checklist_todo.currentData(), sede=self.sede_filtro())
+        except ValueError:
+            nuevo_id = None
         if nuevo_id:
-            if self.combo_checklist_todo.currentData():
-                checklists.asignar("pendiente", nuevo_id, self.combo_checklist_todo.currentData())
             self.combo_checklist_todo.setCurrentIndex(0)
             self.in_todo_t.clear(); self.in_todo_d.clear(); self.galeria_todo.set_nombres([]); self.combo_prioridad_todo.setCurrentIndex(1); self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
@@ -144,11 +144,11 @@ class PestanaPendientes:
         lay.addWidget(caja)
         if dlg.exec() != QDialog.DialogCode.Accepted: return
 
-        uid = combo.currentData()
-        nombre = combo.currentText() if uid is not None else None
-        especialidad_id = combo_esp.currentData()
-        ok = self.db.asignar_pendiente(pid, uid, nombre)
-        ok = self.db.asignar_especialidad_pendiente(pid, especialidad_id) and ok
+        try:
+            ok = pendientes_nucleo.reasignar(self.db, usuarios.SESION_ACTUAL, [pid], asignado_id=combo.currentData(),
+                                             especialidad_id=combo_esp.currentData())
+        except ValueError:
+            ok = False
         if ok:
             self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
@@ -197,8 +197,10 @@ class PestanaPendientes:
         msg.exec()
 
         if msg.clickedButton() == btn_si:
-            for id_p in ids:
-                self.db.borrar_pendiente(id_p)
+            try:
+                pendientes_nucleo.borrar(self.db, usuarios.SESION_ACTUAL, ids)
+            except ValueError:
+                pass
             self.refresh_todos()
             if hasattr(self, 'servidor') and self.servidor:
                 self.servidor.pendiente_actualizado.emit()
@@ -249,14 +251,13 @@ class PestanaPendientes:
         if not chk_tecnico.isChecked() and not chk_especialidad.isChecked():
             return
 
-        uid = combo.currentData()
-        nombre = combo.currentText() if uid is not None else None
-        especialidad_id = combo_esp.currentData()
-        for id_p in ids:
-            if chk_tecnico.isChecked():
-                self.db.asignar_pendiente(id_p, uid, nombre)
-            if chk_especialidad.isChecked():
-                self.db.asignar_especialidad_pendiente(id_p, especialidad_id)
+        mantener = pendientes_nucleo.MANTENER
+        try:
+            pendientes_nucleo.reasignar(self.db, usuarios.SESION_ACTUAL, ids,
+                                        asignado_id=combo.currentData() if chk_tecnico.isChecked() else mantener,
+                                        especialidad_id=combo_esp.currentData() if chk_especialidad.isChecked() else mantener)
+        except ValueError:
+            return
         self.refresh_todos()
         if hasattr(self, 'servidor') and self.servidor:
             self.servidor.pendiente_actualizado.emit()
@@ -265,64 +266,24 @@ class PestanaPendientes:
         self.todo_list.clear()
         if hasattr(self, 'b_asig_todo'):
             self.b_asig_todo.setEnabled(usuarios.es_admin())
-        ps = self.db.obtener_pendientes(sede=self.sede_filtro())
-
-        # Filtro por técnico asignado
-        filtro = self.combo_filtro_todos.currentData() if hasattr(self, 'combo_filtro_todos') else "TODOS"
-        if filtro != "TODOS":
-            ps = [p for p in ps if p[3] == filtro]
-
-        if not ps:
+        # Lo que se lista, su orden y su texto salen del núcleo (lo mismo que enseña MantPro Web)
+        filtro = self.combo_filtro_todos.currentData() if hasattr(self, 'combo_filtro_todos') else pendientes_nucleo.TODOS
+        filas = pendientes_nucleo.lista(self.db, sede=self.sede_filtro(), asignado=filtro, carpeta_fotos=self.carpeta_fotos)
+        if not filas:
             self.todo_list.addItem(t("msg_nada"))
-
-        orden_prioridad = {"Crítica": 0, "Alta": 1, "Media": 2, "Baja": 3}
-        ps = sorted(ps, key=lambda p: orden_prioridad.get(p[5], 2))
-
-        iconos_prioridad = {"Crítica": "🔴", "Alta": "🟠", "Media": "⬜", "Baja": "🟢"}
-        con_lista = checklists.checklists_de("pendiente")
-        a_medias = checklists.resumen_borradores("pendiente")
-        plantillas = {p["id"]: p["nombre"] for p in checklists.listar_plantillas()}
         if hasattr(self, 'combo_checklist_todo'):
             llenar_combo_plantillas(self.combo_checklist_todo, self.combo_checklist_todo.currentData())
-        for i, tit, d, asig_id, asig_nombre, prioridad, especialidad_id in ps:
-            # 1. LIMPIEZA TOTAL (Quitamos FOTO y REF)
-            d_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", d)
-            d_limpio = re.sub(r"\[REF:.*?\]", "", d_limpio).strip()
-
-            tiene_foto = self._hay_foto_disponible(d)
-
-            # Texto visual limpio
-            icono = iconos_prioridad.get(prioridad, "⬜")
-            texto_visual = f"{icono} {tit}"
-            if prioridad in ("Crítica", "Alta"):
-                texto_visual += f"  [{traducir_prioridad(prioridad)}]"
-            if d_limpio:
-                texto_visual += f"\n   ↳ {d_limpio}"
-
-            if tiene_foto:
-                texto_visual += "  (📸 Foto)"
-
-            if asig_nombre:
-                texto_visual += f"\n   👤 {asig_nombre}"
-            if plantillas.get(con_lista.get(i)):
-                texto_visual += f"\n   ☑️ {plantillas[con_lista[i]]}"
-                if i in a_medias:
-                    texto_visual += "  " + tt("chk_borrador_lista", "📝 a medias: {hechos}").format(
-                        hechos=f"{a_medias[i][0]}/{a_medias[i][1]}")
-
-            it = QListWidgetItem(texto_visual)
-
-            # Guardamos los datos originales (sucios) por debajo para la lógica
-            it.setData(Qt.ItemDataRole.UserRole, i)
-            it.setData(Qt.ItemDataRole.UserRole + 1, tit)
-            it.setData(Qt.ItemDataRole.UserRole + 2, d)
-            it.setData(Qt.ItemDataRole.UserRole + 3, asig_id)
-            it.setData(Qt.ItemDataRole.UserRole + 4, prioridad)
-            it.setData(Qt.ItemDataRole.UserRole + 5, especialidad_id)
-
-            if tiene_foto:
+        for fila in filas:
+            it = QListWidgetItem(pendientes_nucleo.texto(fila))
+            # Los datos originales (con las marcas de foto y referencia) van por debajo, para la lógica
+            it.setData(Qt.ItemDataRole.UserRole, fila["id"])
+            it.setData(Qt.ItemDataRole.UserRole + 1, fila["titulo"])
+            it.setData(Qt.ItemDataRole.UserRole + 2, fila["descripcion"])
+            it.setData(Qt.ItemDataRole.UserRole + 3, fila["asignado_id"])
+            it.setData(Qt.ItemDataRole.UserRole + 4, fila["prioridad"])
+            it.setData(Qt.ItemDataRole.UserRole + 5, fila["especialidad_id"])
+            if fila["tiene_foto"]:
                 it.setToolTip("📸 Tiene foto adjunta")
-
             self.todo_list.addItem(it)
 
     def del_todo(self):
@@ -343,7 +304,10 @@ class PestanaPendientes:
                 msg.exec()
 
                 if msg.clickedButton() == btn_si:
-                    self.db.borrar_pendiente(i)
+                    try:
+                        pendientes_nucleo.borrar(self.db, usuarios.SESION_ACTUAL, [i])
+                    except ValueError:
+                        pass
                     self.refresh_todos()
 
     def complete_todo(self):
@@ -411,7 +375,6 @@ class PestanaPendientes:
         # --- LÓGICA DE LIMPIEZA VISUAL ---
         ruta_foto_actual = ""
         texto_limpio = detalles_raw
-        ref_oculta = "" # Aquí guardaremos la matrícula para no perderla
 
         if detalles_raw:
             # 1. Detectar FOTO
@@ -422,14 +385,8 @@ class PestanaPendientes:
                 if os.path.exists(ruta_posible):
                     ruta_foto_actual = ruta_posible
 
-            # 2. Detectar y Guardar REF (Matrícula)
-            m_ref = re.search(r"\[REF:\s*(\d+)\]", detalles_raw)
-            if m_ref:
-                ref_oculta = m_ref.group(0) # Guardamos "[REF:12345]" entero
-
-            # 3. Limpiar el texto para que tú lo veas bonito
-            texto_limpio = re.sub(r"\[FOTO.*?:.*?\]", "", detalles_raw)
-            texto_limpio = re.sub(r"\[REF:.*?\]", "", texto_limpio).strip()
+            # 2. El texto sin las marcas (la referencia del móvil y las fotos las conserva el núcleo al guardar)
+            texto_limpio = pendientes_nucleo.detalles_visibles(detalles_raw)
 
         # Abrimos el diálogo con el texto LIMPIO
         dlg = DialogoEditarPendiente(self, titulo_actual, texto_limpio, ruta_foto_actual, prioridad_actual, asignado_actual_id, especialidad_actual_id,
@@ -440,43 +397,24 @@ class PestanaPendientes:
         if dlg.exec():
             nuevo_t, nuevo_d, nueva_foto, nueva_prioridad, nuevo_asignado_id, nuevo_asignado_nombre, nueva_especialidad_id, fotos_coleccion = dlg.get_data()
 
-            if nuevo_t:
-                desc_final = nuevo_d
-
-                # --- RECONSTRUCCIÓN INVISIBLE ---
-                # 1. Volvemos a pegar la REF oculta para que el móvil no pierda la foto
-                if ref_oculta:
-                    desc_final += f" {ref_oculta}"
-
-                # 2. Gestionar Foto nueva
-                if nueva_foto:
-                    nombre_final = os.path.basename(nueva_foto)
-                    if nueva_foto != ruta_foto_actual:
-                        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        nombre_final = f"pc_edit_{ts}_{nombre_final}"
-                        destino = os.path.join(self.carpeta_fotos, nombre_final)
-                        try: shutil.copy2(nueva_foto, destino)
-                        except: pass
-
-                    desc_final += f"\n[FOTO: {nombre_final}]"
-                # La foto de después (p. ej. de un trabajo revertido) no se edita
-                # aquí, pero no se debe perder.
-                m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", detalles_raw or "")
-                if m_d: desc_final += f"\n[FOTO_DESPUES: {m_d.group(1).strip()}]"
-                desc_final = con_fotos_galeria(desc_final, fotos_coleccion)
-
-                # La asignación/especialidad de un trabajo ya existente solo la
-                # puede tocar un admin; un técnico solo las fija al crearlo.
-                if not usuarios.es_admin():
-                    nueva_especialidad_id = especialidad_actual_id
-                    nuevo_asignado_id, nuevo_asignado_nombre = None, None
-
-                # Guardamos en BD (con la REF oculta de nuevo)
-                if self.db.actualizar_pendiente(pid, nuevo_t, desc_final, nueva_prioridad, nueva_especialidad_id):
-                    checklists.asignar("pendiente", pid, dlg.checklist_id())
-                    if dlg.sede_elegida() is not None:
-                        sedes.poner_sede("pendientes", pid, dlg.sede_elegida())
-                    if usuarios.es_admin():
-                        self.db.asignar_pendiente(pid, nuevo_asignado_id, nuevo_asignado_nombre)
-                    self.refresh_todos()
-                    self.statusBar().showMessage(t("msg_pendiente_actualizado"), 3000)
+            # La foto nueva se copia a la carpeta de fotos; el resto (conservar la referencia y la foto de
+            # después, quién puede reasignar, comprobar lo elegido) lo hace el núcleo, igual que en MantPro Web
+            nombre_final = None
+            if nueva_foto:
+                nombre_final = os.path.basename(nueva_foto)
+                if nueva_foto != ruta_foto_actual:
+                    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    nombre_final = f"pc_edit_{ts}_{nombre_final}"
+                    destino = os.path.join(self.carpeta_fotos, nombre_final)
+                    try: shutil.copy2(nueva_foto, destino)
+                    except: pass
+            try:
+                guardado = pendientes_nucleo.editar(
+                    self.db, usuarios.SESION_ACTUAL, pid, nuevo_t, nuevo_d, nueva_prioridad,
+                    asignado_id=nuevo_asignado_id, especialidad_id=nueva_especialidad_id, checklist_id=dlg.checklist_id(),
+                    sede_id=dlg.sede_elegida(), foto=nombre_final, fotos=fotos_coleccion)
+            except ValueError:
+                guardado = False
+            if guardado:
+                self.refresh_todos()
+                self.statusBar().showMessage(t("msg_pendiente_actualizado"), 3000)
