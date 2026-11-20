@@ -36,7 +36,7 @@ from ..widgets.fotos import GaleriaFotosWidget
 from ...nucleo import usuarios, checklists, sedes
 from ...nucleo import pendientes as pendientes_nucleo
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
-from ...nucleo.fotos import con_fotos_galeria, fotos_galeria
+from ...nucleo.fotos import fotos_galeria
 
 class PestanaPendientes:
     """Pestaña «Pendientes»: trabajos por hacer.
@@ -98,12 +98,12 @@ class PestanaPendientes:
 
     def add_todo(self):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
-        d = con_fotos_galeria(d, self.galeria_todo.nombres())
         try:
             # Lo mismo que hace MantPro Web (nucleo/pendientes.py)
             nuevo_id = pendientes_nucleo.crear(self.db, usuarios.SESION_ACTUAL, tit, d, self.combo_asignar.currentData(),
                                                self.combo_prioridad_todo.currentData(), self.combo_especialidad_todo.currentData(),
-                                               self.combo_checklist_todo.currentData(), sede=self.sede_filtro())
+                                               self.combo_checklist_todo.currentData(), sede=self.sede_filtro(),
+                                               fotos=self.galeria_todo.nombres())
         except ValueError:
             nuevo_id = None
         if nuevo_id:

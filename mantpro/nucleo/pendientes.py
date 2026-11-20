@@ -144,7 +144,7 @@ def _accesibles(db, usuario, ids):
 # ---------------------------------------------------------------- escribir
 
 def crear(db, usuario, titulo, detalles, asignado_id=None, prioridad="Media", especialidad_id=None,
-          checklist_id=None, sede=None):
+          checklist_id=None, sede=None, fotos=()):
     """Da de alta un pendiente y devuelve su id. [sede]: la elegida en el selector (id, lista o None); el
     pendiente va a esa sede o, con varias, a la principal si el usuario la ve (como en el PC)."""
     titulo = (titulo or "").strip()
@@ -156,7 +156,10 @@ def crear(db, usuario, titulo, detalles, asignado_id=None, prioridad="Media", es
     permitidas = sedes.permitidas(usuario)
     if isinstance(sede, int) and permitidas is not None and sede not in permitidas:
         raise ValueError("sede_no_permitida")
-    nuevo = db.agregar_pendiente(titulo, (detalles or "").strip(), asignado_id, asignado_nombre, prioridad,
+    detalles = (detalles or "").strip()
+    if fotos:                                              # la colección de fotos
+        detalles = _fotos.con_fotos_galeria(detalles, list(fotos))
+    nuevo = db.agregar_pendiente(titulo, detalles, asignado_id, asignado_nombre, prioridad,
                                  especialidad_id, sede_id=sedes.para_nuevo(sede if sede is not None else permitidas, usuario))
     if not nuevo:
         raise ValueError("no_guardado")

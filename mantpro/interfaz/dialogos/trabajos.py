@@ -378,7 +378,7 @@ class CompleteDialog(QDialog):
         self.foto_filename = None
         self.setWindowTitle(f"Completar: {titulo}"); self.resize(500, 550); l = QVBoxLayout()
         oscuro = QSettings("MyCompany", "MantenimientoApp").value("tema", "oscuro") == "oscuro"
-        lbl_info = QLabel(f"<b>Trabajo:</b> {titulo}<br><i>{quitar_marcas_foto(detalles)}</i>"); lbl_info.setWordWrap(True)
+        lbl_info = QLabel(f"<b>{tt('lbl_trabajo', 'Trabajo:')}</b> {titulo}<br><i>{quitar_marcas_foto(detalles)}</i>"); lbl_info.setWordWrap(True)
         lbl_info.setStyleSheet("background-color: #333; padding: 10px; border-radius: 5px; color: #eee;" if oscuro
                                 else "background-color: #eee; padding: 10px; border-radius: 5px; color: #333;")
         l.addWidget(lbl_info)
