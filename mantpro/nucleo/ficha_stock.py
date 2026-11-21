@@ -342,3 +342,66 @@ def mover_materiales(usuario, ids, seccion_id):
         almacen.actualizar_material(m["id"], m.get("codigo") or "", m["nombre"], m.get("descripcion") or "",
                                     m.get("unidad") or "", m.get("stock_minimo") or 0, seccion_id, m.get("foto"), uid, unombre)
     return len(lista)
+
+
+# ---------------------------------------------------------------- 🔁 Traspasar y 📜 Historial del almacén
+
+ERRORES_TRASPASO = {"mismo_almacen": "alm_msg_mismo", "cantidad_no_valida": "alm_msg_cantidad",
+                    "stock_insuficiente": "msg_stock_insuficiente", "material_no_existe": "alm_msg_no_existe"}
+
+
+def destinos_traspaso(material):
+    """[(almacén, «Nombre  (sede)»)] a los que se puede traspasar el artículo: todos los activos menos el suyo (como
+    el diálogo del PC, que no limita por sede: llevar material a otra sede es justo para lo que sirve)."""
+    actual = almacenes.efectivo(material["almacen_id"])
+    nombres_sedes = sedes.nombres()
+    destinos = []
+    for a in almacenes.listar():
+        if a["id"] == actual:
+            continue
+        sede = idiomas.t("alm_comun") if a["comun"] else nombres_sedes.get(sedes.efectiva(a["sede_id"]), "")
+        destinos.append((a["id"], f"{a['nombre']}  ({sede})"))
+    return destinos
+
+
+def traspasar(usuario, material_id, destino, cantidad):
+    """Lleva [cantidad] del artículo a otro almacén (lo crea allí si no está). Devuelve el id en el destino."""
+    m = material_visible(usuario, material_id)
+    if destino not in {d for d, _ in destinos_traspaso(m)}:
+        raise ValueError("mismo_almacen" if almacenes.efectivo(destino) == almacenes.efectivo(m["almacen_id"]) else "almacen_no_permitido")
+    cantidad = _cantidad(cantidad)
+    nuevo, error = almacenes.traspasar(material_id, destino, cantidad, usuario["id"] if usuario else None,
+                                       usuario["nombre"] if usuario else None)
+    if error:
+        raise ValueError(error)
+    return nuevo
+
+
+TIPOS_HISTORIAL = (("filtro_todos", None), ("txt_entradas", "entrada"), ("txt_salidas", "salida"), ("txt_traslados", "traslado"))
+
+
+def historial_almacen(sede, tipo=None, buscar=""):
+    """«📜 Historial de movimientos del almacén»: los movimientos de los almacenes que se ven desde [sede], del más
+    reciente al más antiguo, de [tipo] (entrada, salida, traslado o None) y que contengan [buscar] (artículo, usuario o
+    motivo). Cada fila: {material_id, tipo, fecha, codigo, material, movimiento, cantidad, detalle, usuario}."""
+    t = idiomas.t
+    texto = (buscar or "").strip().lower()
+    filas = []
+    for mv in almacen.listar_movimientos(almacen_ids=almacenes.ids_de_sede(sede)):
+        if tipo and mv["tipo"] != tipo:
+            continue
+        if mv["tipo"] == "traslado":
+            movimiento, cantidad, detalle = t("mov_traslado"), "", mv.get("motivo") or ""
+        else:
+            movimiento = t("btn_entrada_stock") if mv["tipo"] == "entrada" else t("btn_salida_stock")
+            cantidad = f"{'+' if mv['tipo'] == 'entrada' else '−'}{mv['cantidad']:g}"
+            detalle = motivo_visible(mv.get("motivo") or "")
+        fecha, _, hora = (mv["fecha"] or "").partition(" ")
+        fila = {"material_id": mv["material_id"], "tipo": mv["tipo"],
+                "fecha": f"{idiomas.formato_fecha_localizada(fecha)} {hora[:5]}".strip(),
+                "codigo": mv.get("material_codigo") or "", "material": mv.get("material_nombre") or "",
+                "movimiento": movimiento, "cantidad": cantidad, "detalle": detalle, "usuario": mv.get("usuario_nombre") or ""}
+        if texto and texto not in " ".join(str(v) for k, v in fila.items() if k not in ("material_id", "tipo")).lower():
+            continue
+        filas.append(fila)
+    return filas

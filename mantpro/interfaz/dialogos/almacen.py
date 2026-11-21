@@ -31,8 +31,7 @@ from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QColor, QPixmap
 
 from ...idiomas import t
-from ... import idiomas
-from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, traducir_motivo_movimiento, tt
+from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
 from ...nucleo import almacen, almacenes, maquinas, consumos, usuarios, proveedores, pedidos
 
@@ -993,47 +992,25 @@ class DialogoHistorialAlmacen(QDialog):
 
         # Los de los almacenes que se ven desde la sede elegida en la ventana principal
         sede = parent.sede_filtro() if hasattr(parent, "sede_filtro") else None
-        self.movimientos = almacen.listar_movimientos(almacen_ids=almacenes.ids_de_sede(sede))
+        self.sede = sede
         self._filtrar()
 
-    @staticmethod
-    def _fecha(iso):
-        """'2026-10-29 08:15:02' -> fecha corta del idioma activo + hora."""
-        fecha, _, hora = (iso or "").partition(" ")
-        return f"{idiomas.formato_fecha_localizada(fecha)} {hora[:5]}".strip()
-
-    def _textos(self, mv):
-        tipo = mv["tipo"]
-        if tipo == "traslado":
-            movimiento, cantidad, detalle = tt("mov_traslado", "🔀 Traslado"), "", mv.get("motivo") or ""
-        else:
-            movimiento = tt("btn_entrada_stock", "📥 Entrada") if tipo == "entrada" else tt("btn_salida_stock", "📤 Salida")
-            cantidad = f"{'+' if tipo == 'entrada' else '−'}{mv['cantidad']:g}"
-            detalle = traducir_motivo_movimiento(mv.get("motivo") or "")
-        return [self._fecha(mv["fecha"]), mv.get("material_codigo") or "", mv.get("material_nombre") or "",
-                movimiento, cantidad, detalle, mv.get("usuario_nombre") or ""]
-
     def _filtrar(self):
-        tipo = self.combo_tipo.currentData()
-        texto = self.buscar.text().strip().lower()
-        filas = []
-        for mv in self.movimientos:
-            if tipo and mv["tipo"] != tipo:
-                continue
-            celdas = self._textos(mv)
-            if texto and texto not in " ".join(celdas).lower():
-                continue
-            filas.append((mv, celdas))
+        """Lo calcula el núcleo (ficha_stock.historial_almacen), igual que MantPro Web."""
+        from ...nucleo import ficha_stock
+        filas = ficha_stock.historial_almacen(self.sede, self.combo_tipo.currentData(), self.buscar.text())
         self.tabla.setRowCount(len(filas))
         colores = {"entrada": QColor("#27ae60"), "salida": QColor("#d35400")}
-        for i, (mv, celdas) in enumerate(filas):
-            for j, texto in enumerate(celdas):
+        claves = ("fecha", "codigo", "material", "movimiento", "cantidad", "detalle", "usuario")
+        for i, f in enumerate(filas):
+            for j, clave in enumerate(claves):
+                texto = f[clave]
                 item = QTableWidgetItem(texto)
-                item.setData(Qt.ItemDataRole.UserRole, mv["material_id"])
+                item.setData(Qt.ItemDataRole.UserRole, f["material_id"])
                 if texto and j in (2, 5):
                     item.setToolTip(texto)  # nombre o traslado largos, completos al pasar el ratón
-                if j == 4 and mv["tipo"] in colores:
-                    item.setForeground(colores[mv["tipo"]])
+                if j == 4 and f["tipo"] in colores:
+                    item.setForeground(colores[f["tipo"]])
                     item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 self.tabla.setItem(i, j, item)
         self.tabla.resizeColumnsToContents()

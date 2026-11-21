@@ -22,30 +22,20 @@
 
 import os
 import shutil
-import re
-import csv
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer,
-                                Image as PDFImage)
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                              QListWidget, QMessageBox, QTableWidget, QHeaderView, QAbstractItemView,
                              QComboBox, QMenu, QSplitter)
-from PyQt6.QtCore import QDate, Qt, QItemSelection, QItemSelectionModel
+from PyQt6.QtCore import Qt, QItemSelection, QItemSelectionModel
 from PyQt6.QtGui import QColor, QBrush
 
-from ... import idiomas
 from ...idiomas import t, formato_fecha_localizada
 from ..comun import tt
 from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmacen, DialogoEditarMaterial,
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable
-from ...nucleo import usuarios, almacen, almacenes, consumos, compras, ficha_stock
-from ...nucleo.rutas import DATA_DIR
+from ...nucleo import usuarios, almacen, almacenes, consumos, compras, ficha_stock, informe_stock
 
 class PestanaStock:
     """Pestañas «Stock de almacén» y «Stock bajo mínimo».
@@ -498,116 +488,26 @@ class PestanaStock:
         if not dlg.exec(): return
         formato, zona_id, est_id, ambito = dlg.get_data()
 
-        materiales = almacen.listar_materiales(None, zona_id, est_id, almacen_ids=self._ids_stock())
-        if solo_bajo_minimo:
-            con_minimo = dlg.incluir_en_minimo()
-            materiales = [m for m in materiales if self._bajo_minimo(m) or (con_minimo and almacen.esta_en_minimo(m))]
+        # Los datos y el informe los hace el núcleo (nucleo/informe_stock.py), igual que MantPro Web
+        materiales = informe_stock.materiales(self.almacen_stock(), zona_id, est_id, solo_bajo_minimo,
+                                              dlg.incluir_en_minimo() if solo_bajo_minimo else True)
         if not materiales:
             QMessageBox.information(self, tt("aviso", "Aviso"),
                 tt("msg_stock_sin_materiales", "No hay materiales que exportar con ese filtro.")); return
-        for m in materiales:
-            m["ubicacion"] = self._texto_ubicacion(m.get("seccion_id"))
-        # Ordenados por ubicación (como se recorre el almacén); sin ubicación al final
-        materiales.sort(key=lambda m: (not m["ubicacion"], almacen._clave_orden_natural(m["ubicacion"]),
-                                       almacen._clave_orden_natural(m["nombre"])))
-
-        titulo = (tt("titulo_informe_bajo_minimo", "Stock bajo mínimo") if solo_bajo_minimo
-                  else tt("titulo_informe_stock", "Stock de almacén"))
-        if ambito: titulo += f" — {ambito}"
-        sufijo = re.sub(r'[^\w-]+', '_', ambito).strip('_') if ambito else ""
-        base = "Stock_bajo_minimo" if solo_bajo_minimo else "Stock"
-        nombre_defecto = f"{base}{'_' + sufijo if sufijo else ''}_{QDate.currentDate().toString('yyyyMMdd')}.{formato}"
         filtros = {"pdf": "PDF (*.pdf)", "csv": "CSV (*.csv)", "xlsx": "Excel (*.xlsx)"}
         archivo = self.guardar_archivo_dialogo(tt("title_exportar_stock", "Exportar stock de almacén"),
-                                               nombre_defecto, filtros[formato])
+                                               informe_stock.nombre_fichero(solo_bajo_minimo, ambito, formato), filtros[formato])
         if not archivo: return
         if not archivo.lower().endswith("." + formato): archivo += "." + formato
-
-        cabeceras = [tt("hdr_codigo", "CÓDIGO"), tt("hdr_material", "MATERIAL"), tt("hdr_ubicacion", "UBICACIÓN"),
-                     tt("hdr_stock", "STOCK"), tt("hdr_minimo", "MÍNIMO"), tt("hdr_unidad", "UNIDAD")]
-        n_bajo = sum(self._bajo_minimo(m) for m in materiales)
-        resumen = tt("txt_resumen_stock", "{n} materiales · {b} bajo el mínimo").format(n=len(materiales), b=n_bajo)
-        fecha = tt("txt_fecha_informe", "Fecha: {fecha}").format(
-            fecha=idiomas.formato_fecha_localizada(datetime.now().strftime("%Y-%m-%d")))
+        if formato == "xlsx":
+            try: import xlsxwriter  # noqa: F401
+            except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
         try:
-            if formato == "csv":
-                self._stock_a_csv(archivo, cabeceras, materiales)
-            elif formato == "xlsx":
-                try: import xlsxwriter  # noqa: F401
-                except ImportError: QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
-                self._stock_a_excel(archivo, titulo, fecha, resumen, cabeceras, materiales)
-            else:
-                self._stock_a_pdf(archivo, titulo, fecha, resumen, cabeceras, materiales)
+            informe_stock.generar(archivo, formato, informe_stock.titulo(solo_bajo_minimo, ambito), materiales)
             QMessageBox.information(self, t("title_exportado"),
                 tt("msg_stock_exportado", "Stock exportado en:\n{ruta}").format(ruta=archivo))
         except Exception as e:
             QMessageBox.critical(self, t("title_error"), str(e))
-
-    def _stock_a_csv(self, archivo, cabeceras, materiales):
-        with open(archivo, 'w', newline='', encoding='utf-8-sig') as f:
-            w = csv.writer(f, delimiter=';')
-            w.writerow(cabeceras)
-            for m in materiales:
-                w.writerow([m.get("codigo") or "", m["nombre"], m["ubicacion"] or "-",
-                            f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""])
-
-    def _stock_a_excel(self, archivo, titulo, fecha, resumen, cabeceras, materiales):
-        import xlsxwriter
-        wb = xlsxwriter.Workbook(archivo)
-        ws = wb.add_worksheet(re.sub(r'[\[\]:*?/\\]', '', tt("titulo_informe_stock", "Stock de almacén"))[:31])
-        f_tit = wb.add_format({'bold': True, 'font_size': 14})
-        f_cab = wb.add_format({'bold': True, 'bg_color': '#3daee9', 'color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
-        f_txt = wb.add_format({'border': 1, 'valign': 'top'})
-        f_num = wb.add_format({'border': 1, 'num_format': '0.##', 'align': 'right'})
-        f_num_rojo = wb.add_format({'border': 1, 'num_format': '0.##', 'align': 'right', 'bold': True, 'font_color': '#c0392b'})
-        ws.write(0, 0, titulo, f_tit)
-        ws.write(1, 0, fecha); ws.write(2, 0, resumen)
-        fila0 = 4
-        for col, txt in enumerate(cabeceras): ws.write(fila0, col, txt, f_cab)
-        for i, m in enumerate(materiales, start=fila0 + 1):
-            ws.write(i, 0, m.get("codigo") or "", f_txt)
-            ws.write(i, 1, m["nombre"], f_txt)
-            ws.write(i, 2, m["ubicacion"] or "-", f_txt)
-            ws.write_number(i, 3, m["stock_actual"], f_num_rojo if self._bajo_minimo(m) else f_num)
-            ws.write_number(i, 4, m["stock_minimo"], f_num)
-            ws.write(i, 5, m.get("unidad") or "", f_txt)
-        for col, ancho in enumerate((12, 40, 38, 10, 10, 10)): ws.set_column(col, col, ancho)
-        ws.freeze_panes(fila0 + 1, 0)
-        ws.autofilter(fila0, 0, fila0 + len(materiales), len(cabeceras) - 1)
-        wb.close()
-
-    def _stock_a_pdf(self, archivo, titulo, fecha, resumen, cabeceras, materiales):
-        styles = getSampleStyleSheet()
-        doc = SimpleDocTemplate(archivo, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-        celda = ParagraphStyle("CeldaStock", parent=styles["BodyText"], fontSize=9, leading=11)
-        celda_cab = ParagraphStyle("CabStock", parent=celda, textColor=colors.whitesmoke, fontName="Helvetica-Bold", fontSize=8)
-        celda_num = ParagraphStyle("NumStock", parent=celda, alignment=2)
-        celda_rojo = ParagraphStyle("RojoStock", parent=celda_num, textColor=colors.HexColor("#c0392b"), fontName="Helvetica-Bold")
-        esc = lambda s: (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        elementos = []
-        ruta_logo = os.path.join(DATA_DIR, "Logo.jpg")
-        if os.path.exists(ruta_logo):
-            try:
-                logo = PDFImage(ruta_logo, width=4*cm, height=2*cm); logo.hAlign = 'LEFT'; logo.keepAspectRatio = True
-                elementos += [logo, Spacer(1, 8)]
-            except Exception: pass
-        elementos += [Paragraph(esc(titulo), styles["Title"]),
-                      Paragraph(esc(fecha) + " &nbsp;·&nbsp; " + esc(resumen), styles["Normal"]), Spacer(1, 10)]
-        datos = [[Paragraph(esc(c), celda_cab) for c in cabeceras]]
-        for m in materiales:
-            datos.append([Paragraph(esc(m.get("codigo") or ""), celda), Paragraph(esc(m["nombre"]), celda),
-                          Paragraph(esc(m["ubicacion"] or "-"), celda),
-                          Paragraph(f"{m['stock_actual']:g}", celda_rojo if self._bajo_minimo(m) else celda_num),
-                          Paragraph(f"{m['stock_minimo']:g}", celda_num), Paragraph(esc(m.get("unidad") or ""), celda)])
-        tabla = Table(datos, colWidths=[1.9*cm, 5.0*cm, 4.6*cm, 1.7*cm, 2.6*cm, 2.2*cm], repeatRows=1)
-        tabla.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#3daee9")),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f6f9")]),
-        ]))
-        elementos.append(tabla)
-        doc.build(elementos)
 
     def _guardar_foto_material(self, ruta_origen):
         if not ruta_origen: return None
@@ -705,9 +605,10 @@ class PestanaStock:
         dlg = DialogoTraspaso(self, material)
         if dlg.exec():
             destino, cantidad = dlg.get_data()
-            _, err = almacenes.traspasar(material_id, destino, cantidad, usuarios.id_actual(), usuarios.nombre_actual())
-            if err:
-                QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+            try:   # lo hace el núcleo, igual que MantPro Web
+                ficha_stock.traspasar(usuarios.SESION_ACTUAL, material_id, destino, cantidad)
+            except ValueError as e:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(str(e)))
             self.refresh_stock()
             self.refresh_historial_stock()
 

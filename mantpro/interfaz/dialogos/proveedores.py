@@ -29,7 +29,7 @@ from PyQt6.QtCore import Qt
 
 from ...idiomas import t
 from ..comun import tt
-from ...nucleo import proveedores
+from ...nucleo import ficha_proveedores, proveedores, usuarios
 
 
 def texto_error(codigo):
@@ -138,7 +138,7 @@ class DialogoProveedores(QDialog):
         self.refrescar()
 
     def refrescar(self, seleccionar_id=None):
-        lista = proveedores.listar_proveedores()
+        lista = ficha_proveedores.lista()          # lo mismo que la web
         self.tabla.setRowCount(len(lista))
         for fila, p in enumerate(lista):
             for col, valor in enumerate((p["nombre"], p["contacto"], p["telefono"], p["correo"], str(p["articulos"]))):
@@ -166,9 +166,10 @@ class DialogoProveedores(QDialog):
         dlg = DialogoEditarProveedor(self)
         if not dlg.exec():
             return
-        proveedor_id, error = proveedores.crear_proveedor(**dlg.get_data())
-        if error:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(error))
+        try:   # lo hace el núcleo, igual que la web
+            proveedor_id = ficha_proveedores.guardar(usuarios.SESION_ACTUAL, None, dlg.get_data())
+        except ValueError as e:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(str(e)))
             return
         self.refrescar(proveedor_id)
 
@@ -179,9 +180,10 @@ class DialogoProveedores(QDialog):
         dlg = DialogoEditarProveedor(self, proveedores.obtener_proveedor(proveedor_id))
         if not dlg.exec():
             return
-        ok, error = proveedores.editar_proveedor(proveedor_id, **dlg.get_data())
-        if not ok:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(error))
+        try:
+            ficha_proveedores.guardar(usuarios.SESION_ACTUAL, proveedor_id, dlg.get_data())
+        except ValueError as e:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(str(e)))
         self.refrescar(proveedor_id)
 
     def importar_tarifa(self):
@@ -207,9 +209,10 @@ class DialogoProveedores(QDialog):
             texto = tt("prov_msg_confirmar_borrar", "¿Borrar al proveedor «{nombre}»?").format(nombre=p["nombre"])
         if QMessageBox.question(self, tt("aviso", "Aviso"), texto) != QMessageBox.StandardButton.Yes:
             return
-        ok, error = proveedores.borrar_proveedor(proveedor_id)
-        if not ok:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(error))
+        try:
+            ficha_proveedores.borrar(usuarios.SESION_ACTUAL, proveedor_id)
+        except ValueError as e:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(str(e)))
         self.refrescar()
 
 
@@ -332,56 +335,36 @@ class DialogoPreciosProveedor(QDialog):
         from ...nucleo import consumos
         return consumos.formato_importe(valor, self.moneda) if valor is not None else "—"
 
-    @staticmethod
-    def _variacion(precio, anterior):
-        if anterior is None or anterior == 0:
-            return "", None
-        pct = (precio - anterior) / anterior * 100
-        if abs(pct) < 0.05:
-            return "=", None
-        from ... import idiomas
-        texto = f"{abs(pct):.1f}"
-        if idiomas.get_idioma() != "en":
-            texto = texto.replace(".", ",")
-        return (f"▲ {texto} %", "#c0392b") if pct > 0 else (f"▼ {texto} %", "#2e8b57")
-
     def refrescar(self):
+        """Los textos los hace el núcleo (ficha_proveedores.precios), igual que la web."""
         from PyQt6.QtGui import QColor, QFont
-        from ...idiomas import formato_fecha_localizada
-        resumen = proveedores.resumen_precios(self.material["id"])
+        datos = ficha_proveedores.precios(self.material["id"])
+        resumen = datos["resumen"]
         self.tabla_resumen.setRowCount(len(resumen))
         for fila, r in enumerate(resumen):
-            texto_var, color_var = self._variacion(r["precio"], r["anterior"])
-            for col, valor in enumerate((r["proveedor"], self._importe(r["precio"]), formato_fecha_localizada(r["fecha"]),
-                                         r["referencia"], texto_var)):
+            for col, valor in enumerate((r["proveedor"], r["precio_txt"], r["fecha_txt"], r["referencia"], r["variacion"])):
                 item = QTableWidgetItem(valor)
                 if r["mas_barato"]:
-                    item.setForeground(QColor("#2e8b57")); f = QFont(item.font()); f.setBold(True); item.setFont(f)
-                elif col == 4 and color_var:
-                    item.setForeground(QColor(color_var))
+                    item.setForeground(QColor(ficha_proveedores.COLOR_BARATO)); f = QFont(item.font()); f.setBold(True); item.setFont(f)
+                elif col == 4 and r["color_variacion"]:
+                    item.setForeground(QColor(r["color_variacion"]))
                 self.tabla_resumen.setItem(fila, col, item)
         self.tabla_resumen.setVisible(bool(resumen))
         self.lbl_leyenda.setVisible(any(r["mas_barato"] for r in resumen))
 
-        from ...nucleo import tarifas
-        refs = tarifas.proveedores_de_articulo(self.material["id"])
+        refs = datos["referencias"]
         self.tabla_refs.setRowCount(len(refs))
         for fila, r in enumerate(refs):
-            dto = "" if r["descuento"] is None else f"{r['descuento']:g}"
-            for col, valor in enumerate((r["proveedor"], r["referencia"], self._importe(r["precio_lista"]) if r["precio_lista"] is not None else "",
-                                         dto, self._importe(r["precio"]) if r["precio"] is not None else "",
-                                         formato_fecha_localizada(r["fecha"]) if r["fecha"] else "")):
+            for col, valor in enumerate((r["proveedor"], r["referencia"], r["tarifa_txt"], r["dto_txt"], r["neto_txt"], r["fecha_txt"])):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, r["proveedor_id"])
                 self.tabla_refs.setItem(fila, col, item)
 
-        hist = proveedores.historial_precios(self.material["id"])
+        hist = datos["historial"]
         self.tabla.setRowCount(len(hist))
         for fila, h in enumerate(hist):
-            cantidad = "" if h["cantidad"] is None else f"{h['cantidad']:g}"
-            for col, valor in enumerate((formato_fecha_localizada(h["fecha"]), h["proveedor"], self._importe(h["precio"]),
-                                         cantidad, h["referencia"], h["nota"])):
+            for col, valor in enumerate((h["fecha_txt"], h["proveedor"], h["precio_txt"], h["cantidad_txt"], h["referencia"], h["nota"])):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, h["id"])
@@ -407,12 +390,12 @@ class DialogoPreciosProveedor(QDialog):
         dlg = DialogoApuntarPrecio(self, self.material.get("proveedor_id"))
         if not dlg.exec():
             return
-        from ...nucleo import usuarios
         d = dlg.get_data()
-        _id, error = proveedores.registrar_precio(self.material["id"], d["proveedor_id"], d["precio"], None, d["fecha"],
-                                                  d["referencia"], "", usuarios.nombre_actual())
-        if error:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(error))
+        try:
+            ficha_proveedores.apuntar_precio(usuarios.SESION_ACTUAL, self.material["id"], d["proveedor_id"], d["precio"],
+                                             d["fecha"], d["referencia"])
+        except ValueError as e:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(str(e)))
         self.refrescar()
 
     def cambiar_referencia(self):
@@ -446,7 +429,11 @@ class DialogoPreciosProveedor(QDialog):
         form.addRow(botones)
         if not dlg.exec():
             return
-        ok, error = tarifas.fijar_referencia(self.material["id"], combo.currentData(), txt.text())
+        try:
+            ficha_proveedores.fijar_referencia(usuarios.SESION_ACTUAL, self.material["id"], combo.currentData(), txt.text())
+            ok, error = True, None
+        except ValueError as e:
+            ok, error = False, str(e)
         if not ok:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
                 "tar_msg_referencia_repetida", "Otro artículo ya tiene esa referencia de este proveedor.")
@@ -460,7 +447,10 @@ class DialogoPreciosProveedor(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "prov_msg_confirmar_borrar_apunte", "¿Borrar este apunte del historial de precios?")) != QMessageBox.StandardButton.Yes:
             return
-        proveedores.borrar_precio(item.data(Qt.ItemDataRole.UserRole))
+        try:
+            ficha_proveedores.borrar_apunte(usuarios.SESION_ACTUAL, self.material["id"], item.data(Qt.ItemDataRole.UserRole))
+        except ValueError:
+            pass
         self.refrescar()
 
     def usar_precio(self):
@@ -478,6 +468,8 @@ class DialogoPreciosProveedor(QDialog):
                 "¿Poner {precio} como precio del artículo? Cambiará el coste de los trabajos a partir de ahora.").format(
                 precio=self._importe(precio))) != QMessageBox.StandardButton.Yes:
             return
-        from ...nucleo import usuarios
-        proveedores.fijar_precio_articulo(self.material["id"], precio, usuarios.id_actual(), usuarios.nombre_actual())
+        try:
+            ficha_proveedores.usar_precio(usuarios.SESION_ACTUAL, self.material["id"], item.data(Qt.ItemDataRole.UserRole))
+        except ValueError:
+            return
         self.precio_cambiado = True
