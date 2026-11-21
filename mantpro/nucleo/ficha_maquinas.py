@@ -182,3 +182,83 @@ def nueva_zona(nombre):
     if not nombre:
         raise ValueError("nombre_obligatorio")
     return maquinas.agregar_zona(nombre)
+
+
+# ---------------------------------------------------------------- repuestos («🔩 Repuestos de …»)
+
+CANTIDAD_MIN, CANTIDAD_MAX = 0.01, 99999          # los del campo «Cantidad que lleva» del PC
+
+
+def ubicacion(seccion_id):
+    """El texto de la ubicación de un artículo («Estantería A > Balda 2»), como en Stock de almacén."""
+    return almacen.obtener_ubicacion_texto(seccion_id, idiomas.t("txt_balda_num"), idiomas.t("txt_hueco_suelo_corto"))
+
+
+def color_stock(actual, minimo):
+    """«bajo» por debajo del mínimo (rojo), «sobre» por encima (verde) o None si coincide."""
+    if actual < minimo:
+        return "bajo"
+    if actual > minimo:
+        return "sobre"
+    return None
+
+
+def repuestos(maquina_id):
+    """Los repuestos de la máquina para la tabla: los de almacen.repuestos_de_maquina más ubicacion (texto o «-»),
+    color (color_stock) y bajo_minimo (para el informe)."""
+    return [dict(r, ubicacion=ubicacion(r["seccion_id"]) or "-", color=color_stock(r["stock_actual"], r["stock_minimo"]),
+                 bajo_minimo=almacen.esta_bajo_minimo(r))
+            for r in almacen.repuestos_de_maquina(maquina_id)]
+
+
+def elegibles_repuesto(maquina_id):
+    """Los artículos que se pueden añadir como repuesto: los de los almacenes que se ven desde la sede de la máquina
+    (todos, con una sola sede) que aún no lleva. [{id, texto, stock, busqueda}]; con varios almacenes, el texto dice
+    de cuál es."""
+    from . import almacenes
+    almacen_ids = almacenes.ids_de_sede(sedes.sede_de_maquina(maquina_id)) if sedes.hay_varias() else None
+    ya = {r["material_id"] for r in almacen.repuestos_de_maquina(maquina_id)}
+    nombres_alm = almacenes.nombres() if almacenes.hay_varios() else {}
+    lista = []
+    for m in almacen.listar_materiales(almacen_ids=almacen_ids):
+        if m["id"] in ya:
+            continue
+        texto = f"[{m['codigo']}] {m['nombre']}" if m.get("codigo") else m["nombre"]
+        if nombres_alm:
+            texto += f"  · {nombres_alm.get(almacenes.efectivo(m['almacen_id']), '')}"
+        lista.append({"id": m["id"], "texto": texto, "stock": f"{m['stock_actual']:g} {m.get('unidad') or ''}".strip(),
+                      "busqueda": f"{m.get('codigo') or ''} {m['nombre']}".lower()})
+    return lista
+
+
+def _cantidad(cantidad):
+    try:
+        valor = float(str(cantidad).replace(",", "."))
+    except (TypeError, ValueError):
+        raise ValueError("cantidad_no_valida") from None
+    if not CANTIDAD_MIN <= valor <= CANTIDAD_MAX:
+        raise ValueError("cantidad_no_valida")
+    return valor
+
+
+def guardar_repuesto(usuario, maquina_id, material_id, cantidad, notas="", nuevo=True):
+    """Añade un repuesto a la máquina ([nuevo]: tiene que ser uno de elegibles_repuesto) o cambia la cantidad y las
+    notas de uno que ya lleva."""
+    visible(usuario, maquina_id)
+    cantidad = _cantidad(cantidad)
+    if nuevo:
+        if material_id not in {m["id"] for m in elegibles_repuesto(maquina_id)}:
+            raise ValueError("material_no_existe")
+    elif material_id not in {r["material_id"] for r in almacen.repuestos_de_maquina(maquina_id)}:
+        raise ValueError("repuesto_no_existe")
+    almacen.guardar_repuesto(maquina_id, material_id, cantidad, (notas or "").strip()[:200])
+    return True
+
+
+def quitar_repuesto(usuario, maquina_id, material_id):
+    """La máquina deja de llevar el artículo (que sigue en el almacén)."""
+    visible(usuario, maquina_id)
+    if material_id not in {r["material_id"] for r in almacen.repuestos_de_maquina(maquina_id)}:
+        raise ValueError("repuesto_no_existe")
+    almacen.quitar_repuesto(maquina_id, material_id)
+    return True
