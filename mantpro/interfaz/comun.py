@@ -28,7 +28,7 @@ from PyQt6.QtCore import QSettings, QTranslator, QLibraryInfo, QDate
 from .qt_traducciones_extra import COMPLEMENTOS, TRADUCCIONES, TraductorQtExtra
 
 from ..idiomas import t
-from ..nucleo import almacen, maquinas, frecuencias
+from ..nucleo import maquinas, frecuencias
 
 def tt(clave, defecto):
     """t() con texto por defecto: si la clave aún no está en idiomas.py,
@@ -38,23 +38,10 @@ def tt(clave, defecto):
 
 
 def traducir_motivo_movimiento(motivo):
-    """Traduce al idioma activo los motivos de movimiento de stock que genera
-    la propia aplicación (guardados en forma canónica, ver almacen.py). Los
-    que escribe el usuario a mano se devuelven tal cual."""
-    if motivo == almacen.MOTIVO_ALTA_INICIAL:
-        return tt("motivo_alta_inicial", motivo)
-    if motivo == almacen.MOTIVO_AJUSTE_IMPORTACION:
-        return tt("motivo_ajuste_importacion", motivo)
-    if motivo.startswith(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):
-        trabajo = motivo[len(almacen.PREFIJO_MOTIVO_USADO_EN_TRABAJO):]
-        return tt("motivo_usado_en_trabajo", "Usado en trabajo: {trabajo}").format(trabajo=trabajo)
-    from ..nucleo import almacenes
-    if motivo.startswith(almacenes.PREFIJO_TRASPASO_A):
-        return tt("motivo_traspaso_a", "Traspaso a: {almacen}").format(almacen=motivo[len(almacenes.PREFIJO_TRASPASO_A):])
-    if motivo.startswith(almacenes.PREFIJO_TRASPASO_DESDE):
-        return tt("motivo_traspaso_desde", "Traspaso desde: {almacen}").format(
-            almacen=motivo[len(almacenes.PREFIJO_TRASPASO_DESDE):])
-    return motivo
+    """Los motivos de movimiento de stock que pone la propia aplicación, en el idioma activo (lo decide el núcleo,
+    igual que en MantPro Web); los que escribe el usuario, tal cual."""
+    from ..nucleo import ficha_stock
+    return ficha_stock.motivo_visible(motivo)
 
 
 # ==========================================

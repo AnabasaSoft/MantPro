@@ -39,12 +39,12 @@ from PyQt6.QtGui import QColor, QBrush
 
 from ... import idiomas
 from ...idiomas import t, formato_fecha_localizada
-from ..comun import traducir_motivo_movimiento, tt
+from ..comun import tt
 from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmacen, DialogoEditarMaterial,
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
-from ..widgets.ordenables import _ItemTablaOrdenable, _clave_orden_ubicacion
-from ...nucleo import usuarios, almacen, almacenes, maquinas, proveedores, consumos, pedidos, compras
+from ..widgets.ordenables import _ItemTablaOrdenable
+from ...nucleo import usuarios, almacen, almacenes, proveedores, consumos, pedidos, compras, ficha_stock
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -252,8 +252,7 @@ class PestanaStock:
             self.btn_pedido_sugerido.setVisible(usuarios.es_admin())   # pedidos: solo administradores
         # También los que están justo en el mínimo (sin color: ni rojo ni verde)
         # De todos los almacenes que se ven desde la sede elegida
-        materiales = almacen.materiales_bajo_minimo(incluir_en_minimo=True,
-                                                    almacen_ids=almacenes.ids_de_sede(self.sede_filtro()))
+        materiales, n_bajo = ficha_stock.bajo_minimo(self.sede_filtro())     # lo mismo que la web
         header = self.tabla_stock_alertas.horizontalHeader()
         # Al pulsar una cabecera para ordenar, Qt guarda esa columna y sentido en
         # el propio header; los recuperamos para que el orden elegido por el
@@ -262,25 +261,13 @@ class PestanaStock:
         col_orden, orden = header.sortIndicatorSection(), header.sortIndicatorOrder()
         self.tabla_stock_alertas.setSortingEnabled(False)
         self.tabla_stock_alertas.setRowCount(len(materiales))
-        for fila, m in enumerate(materiales):
-            ubicacion = self._texto_ubicacion(m.get("seccion_id"))
-            valores = [m.get("codigo") or "", m["nombre"], ubicacion,
-                       f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
-            claves = {2: _clave_orden_ubicacion(ubicacion, m["nombre"]), 3: m["stock_actual"], 4: m["stock_minimo"]}
-            color = self._color_stock(m["stock_actual"], m["stock_minimo"])
-            for col, val in enumerate(valores):
-                item = _ItemTablaOrdenable(val)
-                if col in claves: item.setData(Qt.ItemDataRole.UserRole + 1, claves[col])
-                if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
-                if col == 3 and color is not None: item.setForeground(QBrush(color))
-                self.tabla_stock_alertas.setItem(fila, col, item)
+        self._pintar_filas_stock(self.tabla_stock_alertas, materiales)
         self.tabla_stock_alertas.setSortingEnabled(True)
         if col_orden >= 0: self.tabla_stock_alertas.sortItems(col_orden, orden)
         if hasattr(self, "tabs") and hasattr(self, "tab_stock_alertas"):
             idx = self.tabs.indexOf(self.tab_stock_alertas)
             if idx >= 0:
                 # El número cuenta solo los que están por debajo (los que son alerta)
-                n_bajo = sum(almacen.esta_bajo_minimo(m) for m in materiales)
                 sufijo = f" ({n_bajo})" if n_bajo else ""
                 self.tabs.setTabText(idx, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo") + sufijo)
 
@@ -312,31 +299,23 @@ class PestanaStock:
         en el historial de precios y, si el precio es distinto al del artículo,
         pregunta si se actualiza (nunca cambia solo: afecta a los costes)."""
         cantidad, motivo = dlg.get_data()
-        ok, error = almacen.registrar_movimiento(material_id, tipo, cantidad, usuarios.id_actual(),
-                                                 usuarios.nombre_actual(), motivo)
-        if not ok or tipo != "entrada":
-            return ok, error
-        proveedor_id, precio = dlg.get_compra()
-        # Lo que llega descuenta lo pendiente de los pedidos; con precio, queda como precio real
-        # de esas líneas y se avisa si el proveedor ha cobrado distinto de lo pedido
-        recepcion = compras.recibir(material_id, cantidad, proveedor_id,
-                                    precio if proveedor_id is not None and usuarios.es_admin() else None)
-        if recepcion["diferencias"]:
-            self._avisar_precio_distinto(recepcion["diferencias"])
-        if proveedor_id is None:
-            return ok, error
-        proveedores.registrar_precio(material_id, proveedor_id, precio, cantidad,
-                                     usuario_nombre=usuarios.nombre_actual())
-        actual = (almacen.obtener_material(material_id) or {}).get("precio")
-        if precio is not None and usuarios.es_admin() and (actual is None or abs(actual - precio) > 1e-9):
+        proveedor_id, precio = dlg.get_compra() if tipo == "entrada" else (None, None)
+        try:   # lo hace el núcleo, igual que MantPro Web
+            r = ficha_stock.movimiento(usuarios.SESION_ACTUAL, material_id, tipo, cantidad, motivo, proveedor_id, precio)
+        except ValueError as e:
+            return False, str(e)
+        if r["diferencias"]:
+            self._avisar_precio_distinto(r["diferencias"])
+        if r["precio_distinto"]:
+            nuevo, actual = r["precio_distinto"]
             moneda = consumos.moneda()
             texto = tt("prov_msg_actualizar_precio",
                        "El precio de esta compra es {nuevo}; el del artículo es {actual}.\n\n¿Actualizar el precio del artículo? Cambiará el coste de los trabajos a partir de ahora.").format(
-                nuevo=consumos.formato_importe(precio, moneda),
+                nuevo=consumos.formato_importe(nuevo, moneda),
                 actual=consumos.formato_importe(actual, moneda) if actual is not None else tt("ph_precio", "sin precio"))
             if QMessageBox.question(self, tt("prov_title_actualizar_precio", "Actualizar precio"), texto) == QMessageBox.StandardButton.Yes:
-                proveedores.fijar_precio_articulo(material_id, precio, usuarios.id_actual(), usuarios.nombre_actual())
-        return ok, error
+                ficha_stock.fijar_precio(usuarios.SESION_ACTUAL, material_id, nuevo)
+        return True, None
 
     def _pintar_avisos_pedidos(self):
         """El botón «Pedidos» cuenta los pedidos que piden atención (sin enviar o con
@@ -409,7 +388,7 @@ class PestanaStock:
         if not hasattr(self, "tabla_stock"): return
         texto = self.stock_buscar.text().strip() if hasattr(self, "stock_buscar") else ""
         zona_id = self.combo_zona_stock.currentData() if hasattr(self, "combo_zona_stock") else None
-        materiales = almacen.listar_materiales(texto or None, zona_id, almacen_ids=self._ids_stock())
+        materiales = ficha_stock.lista(self.almacen_stock(), texto, zona_id)      # lo mismo que la web
         # La selección se guarda por id de material, no por número de fila:
         # al reescribir y reordenar la tabla, la misma fila pasa a ser otro
         # material y la barra de selección saltaba a uno cualquiera.
@@ -420,18 +399,7 @@ class PestanaStock:
         col_orden, orden = header.sortIndicatorSection(), header.sortIndicatorOrder()
         self.tabla_stock.setSortingEnabled(False)
         self.tabla_stock.setRowCount(len(materiales))
-        for fila, m in enumerate(materiales):
-            ubicacion = self._texto_ubicacion(m.get("seccion_id"))
-            valores = [m.get("codigo") or "", m["nombre"], ubicacion,
-                       f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
-            claves = {2: _clave_orden_ubicacion(ubicacion, m["nombre"]), 3: m["stock_actual"], 4: m["stock_minimo"]}
-            color = self._color_stock(m["stock_actual"], m["stock_minimo"])
-            for col, val in enumerate(valores):
-                item = _ItemTablaOrdenable(val)
-                if col in claves: item.setData(Qt.ItemDataRole.UserRole + 1, claves[col])
-                if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
-                if col == 3 and color is not None: item.setForeground(QBrush(color))
-                self.tabla_stock.setItem(fila, col, item)
+        self._pintar_filas_stock(self.tabla_stock, materiales)
         self.tabla_stock.setSortingEnabled(True)
         if col_orden >= 0: self.tabla_stock.sortItems(col_orden, orden)
         self._restaurar_seleccion_stock(id_actual, ids_sel)
@@ -445,6 +413,21 @@ class PestanaStock:
             self._pintar_avisos_pedidos()
         self.refresh_historial_stock()
         self.refresh_stock_alertas()
+
+    def _pintar_filas_stock(self, tabla, materiales):
+        """Las filas de las dos tablas (filas de nucleo/ficha_stock): código, material, ubicación, stock (rojo por
+        debajo del mínimo, verde por encima), mínimo y unidad."""
+        for fila, m in enumerate(materiales):
+            valores = [m.get("codigo") or "", m["nombre"], m["ubicacion"],
+                       f"{m['stock_actual']:g}", f"{m['stock_minimo']:g}", m.get("unidad") or ""]
+            claves = {2: m["orden_ubicacion"], 3: m["stock_actual"], 4: m["stock_minimo"]}
+            color = {"bajo": QColor("#e74c3c"), "sobre": QColor("#27ae60")}.get(m["color"])
+            for col, val in enumerate(valores):
+                item = _ItemTablaOrdenable(val)
+                if col in claves: item.setData(Qt.ItemDataRole.UserRole + 1, claves[col])
+                if col == 0: item.setData(Qt.ItemDataRole.UserRole, m["id"])
+                if col == 3 and color is not None: item.setForeground(QBrush(color))
+                tabla.setItem(fila, col, item)
 
     def _restaurar_seleccion_stock(self, id_actual, ids_sel):
         tabla = self.tabla_stock
@@ -472,31 +455,12 @@ class PestanaStock:
         self.lbl_usado_en_stock.setText(""); self.lbl_usado_en_stock.setVisible(False)
         material_id = self._material_seleccionado()
         if not material_id: return
-        rutas = maquinas.mapa_rutas_completas()
-        usado = [f"{rutas[mid]} ({cant:g})" for mid, cant in almacen.maquinas_de_material(material_id) if mid in rutas]
-        if usado:
-            self.lbl_usado_en_stock.setText("🔩 " + tt("lbl_usado_en", "Se usa en: {maquinas}").format(maquinas=", ".join(sorted(usado, key=str.lower))))
-            self.lbl_usado_en_stock.setVisible(True)
-        # El nombre del artículo, a la vista: sin él, un traslado ("De Estantería
-        # 11 > Balda B a Estantería 12 > Balda C") no dice qué se ha movido.
-        if almacenes.hay_varios():
-            otros = [f"{n}: {st:g}" for n, st, mid in almacenes.stock_por_almacen(material_id) if mid != material_id]
-            if otros:
-                texto = self.lbl_usado_en_stock.text()
-                self.lbl_usado_en_stock.setText((texto + "\n" if texto else "") + "🏬 " +
-                                                tt("lbl_en_otros_almacenes", "En otros almacenes: {lista}").format(lista=", ".join(otros)))
-                self.lbl_usado_en_stock.setVisible(True)
-        material = almacen.obtener_material(material_id) or {}
-        nombre = material.get("nombre") or ""
-        self.lbl_historial_stock.setText(tt("lbl_historial_de", "Historial de movimientos: {nombre}").format(nombre=nombre))
-        for mov in almacen.obtener_movimientos(material_id, limite=20):
-            if mov["tipo"] == "traslado":
-                texto = f"🔀 {mov['fecha']}   {nombre}: {mov.get('motivo') or ''}   —   {mov.get('usuario_nombre') or ''}"
-            else:
-                icono = "📥" if mov["tipo"] == "entrada" else "📤"
-                texto = f"{icono} {mov['fecha']}   {mov['cantidad']:g}   —   {mov.get('usuario_nombre') or ''}"
-                if mov.get("motivo"): texto += f"   ({traducir_motivo_movimiento(mov['motivo'])})"
-            self.lista_historial_stock.addItem(texto)
+        d = ficha_stock.detalle(material_id)      # lo mismo que la web
+        texto = "\n".join(x for x in (("🔩 " + d["usado_en"]) if d["usado_en"] else "", ("🏬 " + d["otros_almacenes"]) if d["otros_almacenes"] else "") if x)
+        self.lbl_usado_en_stock.setText(texto); self.lbl_usado_en_stock.setVisible(bool(texto))
+        self.lbl_historial_stock.setText(d["titulo"])
+        for mov in d["movimientos"]:
+            self.lista_historial_stock.addItem(mov["texto"])
 
     def stock_ver_historial(self):
         DialogoHistorialAlmacen(self, al_elegir_material=self._ir_a_material_stock).exec()
