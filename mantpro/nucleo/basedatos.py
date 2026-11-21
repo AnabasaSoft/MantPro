@@ -527,14 +527,17 @@ GestorBaseDatos.borrar_pendiente = _borrar_pendiente
 _marcar_aviso_original = GestorBaseDatos.marcar_aviso_completado
 
 
-def _marcar_aviso(self, id_aviso, fecha_completada, estado):
+def _marcar_aviso(self, id_aviso, fecha_completada, estado, detalle="", deshacer=False):
+    """[detalle]: lo que se añade en el registro de cambios (el resumen de la lista de comprobación). [deshacer]:
+    se deshace el último completado y la «última vez» vuelve a la anterior (es «descompletar», aunque haya fecha)."""
     antes = _foto_aviso(self, id_aviso)
     ok = _marcar_aviso_original(self, id_aviso, fecha_completada, estado)
     if antes:
-        if estado and fecha_completada and fecha_completada != antes.get("ultima"):
-            usuarios.auditar("avisos", "completar", antes.get("titulo", ""), detalle=f"Completado el {fecha_completada}")
-        elif not estado or fecha_completada != antes.get("ultima"):
-            usuarios.auditar("avisos", "descompletar", antes.get("titulo", ""),
+        if not deshacer and estado and fecha_completada and fecha_completada != antes.get("ultima"):
+            usuarios.auditar("avisos", "completar", antes.get("titulo", ""),
+                             detalle=f"Completado el {fecha_completada}" + (f"\n{detalle}" if detalle else ""))
+        elif deshacer or not estado or fecha_completada != antes.get("ultima"):
+            usuarios.auditar("avisos", "descompletar", antes.get("titulo", ""), detalle=detalle,
                              cambios=usuarios.diferencias({"u": antes.get("ultima")}, {"u": fecha_completada or ""},
                                                           {"u": "Última vez completado"}))
     return ok
@@ -573,6 +576,7 @@ class LectorBD:
     agregar_tarea = GestorBaseDatos.agregar_tarea
     borrar_pendiente = GestorBaseDatos.borrar_pendiente
     agregar_pendiente = GestorBaseDatos.agregar_pendiente           # revertir un trabajo desde la app
+    marcar_aviso_completado = GestorBaseDatos.marcar_aviso_completado   # completar un aviso desde la app
 
 
 # Para el servidor de los móviles: fotografía de cada cosa y nombres de campo

@@ -40,6 +40,7 @@ from ..nucleo import certificado, usuarios, almacen, almacenes, sedes, maquinas,
 from ..nucleo.basedatos import get_db_connection, LectorBD, foto_tarea, foto_pendiente, ETIQ_TAREA, ETIQ_PENDIENTE
 from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 from ..nucleo import fotos as fotos_nucleo
+from ..nucleo import avisos as avisos_nucleo
 from ..nucleo import pendientes as pendientes_nucleo
 from ..nucleo import trabajos as trabajos_nucleo
 
@@ -1150,104 +1151,40 @@ class ServidorSincronizacion(QThread):
         @requiere_sede("avisos_recurrentes")
         @requiere_tecnico
         def api_completar_aviso():
-            print("\n" + "="*40)
-            print(">>> RECIBIDA PETICIÓN: COMPLETAR AVISO")
-
+            # Lo hace el núcleo, igual que el PC y MantPro Web, en modo tolerante (lo que llega de la cola del móvil
+            # no se puede quedar atascado). Anti-duplicados: si el preventivo de ese día ya está en el historial (un
+            # reintento), no se repite ni se vuelven a descontar los repuestos.
             try:
-                # 1. IMPRIMIR QUÉ NOS LLEGA EXACTAMENTE
-                print(f"Datos recibidos (RAW): {request.form}")
-
-                id_aviso_str = request.form.get('id')
-                titulo = request.form.get('titulo') or "Sin Título"
-                fecha_custom = request.form.get('fecha_custom')
-
-                # 2. VALIDACIÓN DE ID
-                if not id_aviso_str:
-                    print("!!! ERROR: No ha llegado el ID")
-                    return jsonify({"status": "error", "message": "Falta ID"}), 400
-
                 try:
-                    id_aviso = int(id_aviso_str)
-                    print(f"ID convertido a entero: {id_aviso}")
+                    id_aviso = int(request.form.get('id') or "")
                 except ValueError:
-                    print(f"!!! ERROR: El ID '{id_aviso_str}' no es un número")
-                    return jsonify({"status": "error", "message": "ID no numérico"}), 400
-
-                # 3. FECHA
-                fecha_final = fecha_custom if fecha_custom else datetime.now().strftime("%Y-%m-%d")
-                print(f"Fecha a guardar: {fecha_final}")
-
-                # 4. CONEXIÓN BASE DE DATOS
-                print("Intentando conectar a BD...")
-                conn = self._conn()
-                c = conn.cursor()
-
-                # 5. ACTUALIZAR AVISO
-                print("Ejecutando UPDATE en avisos_recurrentes...")
-                c.execute('UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?', (fecha_final, id_aviso))
-                if c.rowcount == 0:
-                    print("⚠️ AVISO: No se actualizó ninguna fila. ¿Existe el ID?")
-                else:
-                    print("✅ UPDATE correcto.")
-
-                # 6. INSERTAR HISTORIAL
-                print("Verificando historial para evitar duplicados...")
-                desc_historial = f"Mantenimiento Preventivo: {titulo}"
-                tags_historial = "Preventivo, Aviso Recurrente"
-
-                c.execute("SELECT id FROM tareas WHERE fecha=? AND descripcion=?", (fecha_final, desc_historial))
-                existe = c.fetchone()
-
-                if not existe:
-                    print("Insertando nueva tarea en historial...")
-                    usuario_aviso = g.usuario_mantpro
-                    c.execute('INSERT INTO tareas (fecha, descripcion, tags, usuario_id, usuario_nombre, sede_id) '
-                              'VALUES (?,?,?,?,?,(SELECT sede_id FROM avisos_recurrentes WHERE id=?))',
-                              (fecha_final, desc_historial, tags_historial,
-                               usuario_aviso['id'], usuario_aviso['nombre'], id_aviso))
-                    tarea_id = c.lastrowid
-                    tarea_nueva = True
-                else:
-                    print("La tarea ya existe en el historial. Saltando insert.")
-                    tarea_id = existe[0]
-                    tarea_nueva = False   # reintento: los repuestos ya se descontaron
-
-                # Lista de comprobación rellenada en el móvil (JSON)
+                    return jsonify({"status": "error", "message": "Falta ID"}), 400
+                try:
+                    materiales = json.loads(request.form.get('materiales') or "[]")
+                except (ValueError, TypeError):
+                    materiales = []
+                materiales = materiales if isinstance(materiales, list) else []
+                minutos_txt = (request.form.get('minutos_trabajo') or "").strip()
+                try:
+                    personas = int(request.form.get('personas') or 1)
+                except ValueError:
+                    personas = 1
                 lista = checklists.normalizar_items(request.form.get('checklist', ''))
-                if lista:
-                    checklists.guardar_resultado(tarea_id, lista, request.form.get('checklist_plantilla', ''), con=conn)
-
-                conn.commit()
-                conn.close()
-                print("✅ BD CERRADA Y COMMIT REALIZADO")
-
-                if tarea_nueva:
-                    self._descontar_materiales_trabajo(request, g.usuario_mantpro, f"Mantenimiento Preventivo: {titulo}",
-                                                       tarea_id, fecha_final)
-                    self._tiempo_trabajo(request, tarea_id)
-                    # Preventivo por contador: lectura en el momento de hacerlo
-                    # (desde ella se cuenta el siguiente) y trabajo ligado a la máquina
-                    contadores.registrar_completado(id_aviso, contadores.numero_api(request.form.get('lectura')) if request.form.get('lectura') else None,
-                                                    fecha=request.form.get('lectura_fecha') or fecha_final,
-                                                    usuario=g.usuario_mantpro, origen="movil", tarea_id=tarea_id,
-                                                    uid=request.form.get('lectura_uid') or None)
-                usuarios.auditar("avisos", "completar", titulo, detalle=f"Completado el {fecha_final}" + (
-                    f"\nLista de comprobación: {request.form.get('checklist_plantilla', '')} — "
-                    + ", ".join(f"{v} {k}" for k, v in checklists.recuento(lista).items() if v) if lista else ""))
-
-                # 7. AVISAR INTERFAZ PC
+                lectura = request.form.get('lectura')
+                avisos_nucleo.completar(
+                    self._lector, g.usuario_mantpro, id_aviso, fecha=request.form.get('fecha_custom') or None,
+                    lista=(lista, request.form.get('checklist_plantilla', '')) if lista else None,
+                    valor_lectura=contadores.numero_api(lectura) if lectura else None,
+                    repuestos=materiales,
+                    minutos=mano_obra.leer_duracion(minutos_txt + " min") if minutos_txt else None, personas=personas,
+                    titulo=request.form.get('titulo') or "Sin Título", lectura_fecha=request.form.get('lectura_fecha') or None,
+                    lectura_uid=request.form.get('lectura_uid') or None, origen="movil", estricto=False)
+                if materiales:
+                    self.stock_actualizado.emit()
                 self.pendiente_actualizado.emit()
-
-                print(">>> PROCESO TERMINADO CON ÉXITO")
-                print("="*40 + "\n")
                 return jsonify({"status": "ok"})
-
             except Exception as e:
-                print("\n!!! EXCEPCIÓN CRÍTICA EN EL SERVIDOR !!!")
-                print(f"Error: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                print("="*40 + "\n")
+                print(f"Error completar_aviso: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
 
         @self.app.route('/api/foto/<path:filename>')
@@ -1417,46 +1354,13 @@ class ServidorSincronizacion(QThread):
         @requiere_sede("avisos_recurrentes")
         @requiere_tecnico
         def api_descompletar_aviso():
+            # Lo hace el núcleo, igual que desmarcar la casilla en el PC y en MantPro Web
             try:
-                id_aviso = request.form.get('id')
-
-                conn = self._conn()
-                c = conn.cursor()
-
-                # 1. Obtener datos actuales del aviso
-                c.execute("SELECT titulo, ultima_completada FROM avisos_recurrentes WHERE id=?", (id_aviso,))
-                row = c.fetchone()
-
-                if row:
-                    titulo, ult_fecha = row
-
-                    # 2. Intentar borrar del historial la entrada generada para esa fecha
-                    # La descripción debe coincidir con la que generamos automáticamente
-                    desc = f"Mantenimiento Preventivo: {titulo}"
-                    if ult_fecha:
-                        for (tid_borrar,) in c.execute("SELECT id FROM tareas WHERE descripcion=? AND fecha=?", (desc, ult_fecha)).fetchall():
-                            consumos.olvidar_trabajo(tid_borrar)
-                        c.execute("DELETE FROM checklist_resultados WHERE tarea_id IN "
-                                  "(SELECT id FROM tareas WHERE descripcion=? AND fecha=?)", (desc, ult_fecha))
-                        c.execute("DELETE FROM tareas WHERE descripcion=? AND fecha=?", (desc, ult_fecha))
-
-                    # 3. Buscar cuál es la NUEVA última fecha real (la anterior a la borrada)
-                    # Esto evita que se quede en NULL si ya se había hecho el mes pasado
-                    c.execute("SELECT MAX(fecha) FROM tareas WHERE descripcion=?", (desc,))
-                    resultado = c.fetchone()
-                    prev_fecha = resultado[0] if resultado else None # Puede ser None si nunca se hizo antes
-
-                    # 4. Actualizar el aviso con la fecha histórica correcta
-                    c.execute("UPDATE avisos_recurrentes SET ultima_completada=? WHERE id=?", (prev_fecha, id_aviso))
-                    conn.commit()
-                    contadores.deshacer_completado(id_aviso)
-                    usuarios.auditar("avisos", "descompletar", titulo,
-                                     detalle="Se borra del historial el preventivo apuntado",
-                                     cambios=[{"campo": "Última vez completado", "antes": ult_fecha or "", "despues": prev_fecha or ""}])
-
-                conn.commit()
-                conn.close()
-
+                try:
+                    avisos_nucleo.descompletar(self._lector, g.usuario_mantpro, int(request.form.get('id') or ""),
+                                               estricto=False)
+                except ValueError:
+                    pass                          # ya no existe: no hay nada que deshacer
                 self.pendiente_actualizado.emit()
                 return jsonify({"status": "ok"})
             except Exception as e:

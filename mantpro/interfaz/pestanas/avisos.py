@@ -27,15 +27,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdi
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QColor
 
-from ... import idiomas
 from ...idiomas import t
-from ..comun import tt, avanzar_qdate, combo_frecuencias
+from ..comun import tt, combo_frecuencias
 from ..dialogos.trabajos import AvisoEditDialog
-from ...nucleo import usuarios, checklists, consumos, contadores, sedes, frecuencias
+from ...nucleo import usuarios, checklists, contadores, sedes
 from ...nucleo import avisos as avisos_nucleo
 from ..dialogos.contadores import CamposContadorAviso, pedir_lectura
 from ..dialogos.checklists import llenar_combo_plantillas, rellenar_para
-from ...nucleo.basedatos import get_db_connection
 
 class PestanaAvisos:
     """Pestaña «Avisos»: mantenimientos recurrentes.
@@ -92,17 +90,19 @@ class PestanaAvisos:
     def add_aviso(self):
         if not usuarios.es_admin(): return
         tit = self.in_av_t.text().strip(); i = self.in_av_i.date().toString("yyyy-MM-dd"); f = self.in_av_freq.currentData(); dur = self.in_av_dur.value()
-        uid = self.in_av_asignar.currentData(); nombre = self.in_av_asignar.currentText() if uid is not None else None
+        uid = self.in_av_asignar.currentData()
         especialidad_id = self.in_av_especialidad.currentData()
         error = self.in_av_contador.validar(self)
         if tit and error:
             QMessageBox.warning(self, t("lbl_crear_nuevo_aviso"), error); return
-        nuevo_id = self.db.agregar_aviso(tit, i, f, dur, uid, nombre, especialidad_id,
-                                         contador=self.in_av_contador.config(),
-                                         sede_id=self.sede_para_nuevo()) if tit else None
+        try:
+            # Lo mismo que hace MantPro Web (nucleo/avisos.py)
+            nuevo_id = avisos_nucleo.crear(self.db, usuarios.SESION_ACTUAL, tit, i, f, dur, uid, especialidad_id,
+                                           self.in_av_checklist.currentData(), contador=self.in_av_contador.config(),
+                                           sede=self.sede_filtro()) if tit else None
+        except ValueError:
+            nuevo_id = None
         if nuevo_id:
-            if self.in_av_checklist.currentData():
-                checklists.asignar("aviso", nuevo_id, self.in_av_checklist.currentData())
             self.in_av_t.clear(); self.in_av_contador.setChecked(False)
             self.refresh_avisos(); self.update_calendar_list()
 
@@ -118,195 +118,73 @@ class PestanaAvisos:
                                   contador=contadores.config_aviso(id_aviso),
                                   sede_id=sedes.sede_de("avisos_recurrentes", id_aviso))
             if dlg.exec():
-                new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad = dlg.get_data()
-                self.db.actualizar_aviso(id_aviso, new_t, new_i, new_f, new_d, new_uid, new_nombre, new_especialidad,
-                                         contador=dlg.contador())
-                checklists.asignar("aviso", id_aviso, dlg.checklist_id())
-                if dlg.sede_elegida() is not None:
-                    sedes.poner_sede("avisos_recurrentes", id_aviso, dlg.sede_elegida())
+                new_t, new_i, new_f, new_d, new_uid, _nombre, new_especialidad = dlg.get_data()
+                try:
+                    avisos_nucleo.editar(self.db, usuarios.SESION_ACTUAL, id_aviso, new_t, new_i, new_f, new_d, new_uid,
+                                         new_especialidad, checklist_id=dlg.checklist_id(), contador=dlg.contador(),
+                                         sede_id=dlg.sede_elegida())
+                except ValueError:
+                    return
                 self.refresh_avisos(); self.update_calendar_list()
 
     def _avisos_visibles(self):
-        """Igual que en el móvil: el admin ve todos los avisos; cada
-        trabajador ve los suyos más los que no están asignados a nadie
-        (y, si no están asignados, coinciden con alguna de sus especialidades
-        o no tienen ninguna), pero no los asignados a otro técnico ni los
-        restringidos a una especialidad que no tiene."""
+        """Los avisos de la sede elegida que ve el usuario (el calendario también los usa)."""
         return avisos_nucleo.visibles(self.db.obtener_avisos(sede=self.sede_filtro()), usuarios.SESION_ACTUAL)
 
     def refresh_avisos(self):
+        """La tabla la calcula el núcleo (nucleo/avisos.py), igual que en MantPro Web: el admin ve todos los
+        avisos; cada trabajador, los suyos y los sin asignar de sus especialidades (o sin ninguna)."""
         self.table_avisos.setRowCount(0)
-        avisos = self._avisos_visibles()
-        hoy = QDate.currentDate()
         es_admin = usuarios.es_admin()
         if hasattr(self, 'grupo_crear_aviso'): self.grupo_crear_aviso.setEnabled(es_admin)
         if hasattr(self, 'btn_editar_aviso'): self.btn_editar_aviso.setEnabled(es_admin)
         if hasattr(self, 'btn_borrar_aviso'): self.btn_borrar_aviso.setEnabled(es_admin)
-
-        con_lista = checklists.checklists_de("aviso")
-        a_medias = checklists.resumen_borradores("aviso")
-        plantillas = {p["id"]: p["nombre"] for p in checklists.listar_plantillas()}
         if hasattr(self, 'in_av_checklist'):
             llenar_combo_plantillas(self.in_av_checklist, self.in_av_checklist.currentData())
         if hasattr(self, 'in_av_contador') and not self.in_av_contador.isChecked():
             self.in_av_contador._llenar(None)   # por si hay contadores nuevos
-        por_contador = contadores.estados_avisos()
-
-        filas_calculadas = []
-        for (aid, tit, finicio, freq, dur, ult, asignado_a, asignado_nombre, especialidad_id) in avisos:
-            if not finicio: finicio = f"{hoy.year()}-01-01"
-            if not freq: freq = "Anual"
-            freq = idiomas.normalizar_frecuencia(freq)
-
-            fi = QDate.fromString(finicio, "yyyy-MM-dd")
-
-            # Un aviso "Diario" no necesita ventana: un margen de varios días
-            # daría un "rango" confuso para un recordatorio que es de todos
-            # los días.
-            dur_ventana = 0 if freq == "Diario" else dur
-
-            def _avanzar(fecha, freq=freq):
-                return avanzar_qdate(fecha, freq)
-
-            # La fecha en que toca la próxima vez se cuenta desde la ÚLTIMA VEZ
-            # QUE SE HIZO DE VERDAD (ult), no desde el calendario fijo original.
-            # Así, si te retrasas, el aviso se queda en "Pendiente" (no salta al
-            # ciclo siguiente sin más) hasta que lo completas, y en cuanto lo
-            # haces, el siguiente se cuenta a partir de ese día real.
-            if ult:
-                fecha_ult = QDate.fromString(ult, "yyyy-MM-dd")
-                ocurrencia = _avanzar(fecha_ult) if fecha_ult.isValid() else fi
-            else:
-                ocurrencia = fi
-
-            fin_ocurrencia = ocurrencia.addDays(dur_ventana)
-            s_inicio = ocurrencia.toString("yyyy-MM-dd")
-
-            # Completado "para hoy" solo si se hizo justo hoy: evita que un
-            # aviso quede marcado en verde permanentemente por una fecha
-            # antigua, ya que ahora esa fecha es la que decide cuándo toca el
-            # siguiente, no si el ciclo actual está "hecho".
-            completado = (ult == hoy.toString("yyyy-MM-dd"))
-            es_activo = hoy >= ocurrencia
-            # Distinguimos "toca ahora" (dentro del margen configurado) de
-            # "se ha pasado ese margen sin hacerlo" (atrasado).
-            es_atrasado = hoy > fin_ocurrencia
-
-            if completado:
-                color = QColor("#27ae60") # Verde
-                estado_txt = t("estado_ok")
-                prioridad = 3
-            elif es_atrasado:
-                color = QColor("#cb4335") # Rojo (atrasado)
-                estado_txt = t("estado_atrasado")
-                prioridad = 0  # Atrasado: lo más urgente, va primero
-            elif es_activo:
-                color = QColor("#e67e22") # Naranja (toca ahora, dentro del margen)
-                estado_txt = t("estado_pendiente")
-                prioridad = 1
-            else:
-                color = QColor("#2e86c1") # Azul (futuro)
-                estado_txt = t("estado_futuro")
-                prioridad = 2
-
-            # Preventivo por contador: toca lo que antes llegue (fecha o
-            # contador), o solo el contador si no tiene límite por fecha
-            info = por_contador.get(aid)
-            texto_freq, texto_rango, consejo = frecuencias.texto(freq), None, ""
-            if info:
-                estado_c = info["estado"]
-                if info["solo_contador"]:
-                    estado = estado_c
-                    fecha_orden = QDate.fromString(info["estimada"], "yyyy-MM-dd") if info["estimada"] else hoy.addYears(5)
-                    ocurrencia = fecha_orden if estado_c == "FUTURO" else hoy
-                else:
-                    estado = contadores.peor("ATRASADO" if es_atrasado else ("PENDIENTE" if es_activo else "FUTURO"), estado_c)
-                es_activo = estado in ("PENDIENTE", "ATRASADO")
-                if not completado:
-                    color, estado_txt, prioridad = {
-                        "ATRASADO": (QColor("#cb4335"), t("estado_atrasado"), 0),
-                        "PENDIENTE": (QColor("#e67e22"), t("estado_pendiente"), 1),
-                    }.get(estado, (QColor("#2e86c1"), t("estado_futuro"), 2))
-                texto_cada = contadores.texto_cada(info, tt("lbl_cada_corto", "Cada"))
-                texto_freq = texto_cada if info["solo_contador"] else f"{texto_cada} · {frecuencias.texto(freq)}"
-                texto_c = contadores.texto_proximo(info, tt("lbl_ahora", "ahora"), tt("lbl_sin_lecturas", "sin lecturas"))
-                texto_rango = texto_c if info["solo_contador"] else texto_c + " · {rango}"
-                consejo = f"📟 {info['contador']} — {info['maquina']}"
-                if info["estimada"]:
-                    consejo += "\n" + tt("lbl_estimada", "Al ritmo de uso actual, hacia el {fecha}").format(
-                        fecha=QDate.fromString(info["estimada"], "yyyy-MM-dd").toString(idiomas.formato_fecha_corta_qt()))
-
-            filas_calculadas.append({
-                "texto_freq": texto_freq, "texto_rango": texto_rango, "consejo": consejo,
-                "aid": aid, "tit": tit, "freq": freq, "ocurrencia": ocurrencia,
-                "fin_ocurrencia": fin_ocurrencia, "s_inicio": s_inicio,
-                "es_activo": es_activo, "completado": completado,
-                "color": color, "estado_txt": estado_txt, "prioridad": prioridad,
-                "asignado_nombre": asignado_nombre,
-            })
-
-        # Pendientes/sin hacer primero; dentro de cada grupo, por fecha de ocurrencia
-        filas_calculadas.sort(key=lambda f: (f["prioridad"], f["ocurrencia"]))
-
-        self.table_avisos.setRowCount(len(filas_calculadas))
-        patron_qt = idiomas.formato_fecha_corta_qt()
-        for r, f in enumerate(filas_calculadas):
-            aid, tit, freq = f["aid"], f["tit"], f["freq"]
-            ocurrencia, fin_ocurrencia = f["ocurrencia"], f["fin_ocurrencia"]
-            s_inicio, es_activo, completado = f["s_inicio"], f["es_activo"], f["completado"]
-            color, estado_txt = f["color"], f["estado_txt"]
-            asignado_nombre = f["asignado_nombre"]
-
-            # Configurar celda
+        filas = avisos_nucleo.lista(self.db, usuarios.SESION_ACTUAL, sede=self.sede_filtro())
+        self.table_avisos.setRowCount(len(filas))
+        for r, f in enumerate(filas):
+            aid, tit = f["id"], f["titulo"]
+            clave, color, _ = avisos_nucleo.ESTADOS[f["estado"]]
             cw = QWidget()
             cl = QHBoxLayout(cw); cl.setContentsMargins(0,0,0,0); cl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             chk = QCheckBox()
-            chk.setChecked(completado)
-            # Al marcar manual en PC, seguimos usando el inicio para mantener el orden
+            chk.setChecked(f["completado"])
             chk.toggled.connect(lambda k, x=aid, t=tit: self.tog_aviso(x, k, t))
-            chk.setEnabled(es_activo or completado)
+            chk.setEnabled(f["activo"] or f["completado"])
             cl.addWidget(chk)
             self.table_avisos.setCellWidget(r, 0, cw)
 
-            # Rellenar fila
-            item_t = QTableWidgetItem(("☑️ " if aid in con_lista else "") + tit +
-                                      (f"  📝 {a_medias[aid][0]}/{a_medias[aid][1]}" if aid in con_lista and aid in a_medias else ""))
+            item_t = QTableWidgetItem(avisos_nucleo.titulo_en_tabla(f))
             item_t.setData(Qt.ItemDataRole.UserRole, aid)
-            if aid in con_lista:
-                plantilla = plantillas.get(con_lista[aid])
-                if plantilla: item_t.setToolTip("☑️ " + plantilla)
-
+            if f["lista"]: item_t.setToolTip("☑️ " + f["lista"])
             self.table_avisos.setItem(r, 1, item_t)
-            item_f = QTableWidgetItem(f["texto_freq"])
+            item_f = QTableWidgetItem(f["texto_frecuencia"])
             if f["consejo"]: item_f.setToolTip(f["consejo"])
             self.table_avisos.setItem(r, 2, item_f)
-
-            rango = f"{ocurrencia.toString(patron_qt)} - {fin_ocurrencia.toString(patron_qt)}"
-            if f["texto_rango"]: rango = f["texto_rango"].replace("{rango}", rango)
-            item_r = QTableWidgetItem(rango)
+            item_r = QTableWidgetItem(f["rango"])
             if f["consejo"]: item_r.setToolTip(f["consejo"])
             self.table_avisos.setItem(r, 3, item_r)
-
-            item_estado = QTableWidgetItem(estado_txt)
-            item_estado.setForeground(color)
+            item_estado = QTableWidgetItem(t(clave))
+            item_estado.setForeground(QColor(color))
             self.table_avisos.setItem(r, 4, item_estado)
-
-            texto_asignado = asignado_nombre if asignado_nombre else tt("lbl_sin_asignar", "Sin asignar")
-            self.table_avisos.setItem(r, 5, QTableWidgetItem(texto_asignado))
+            self.table_avisos.setItem(r, 5, QTableWidgetItem(f["asignado_nombre"] or tt("lbl_sin_asignar", "Sin asignar")))
 
     def tog_aviso(self, id_aviso, estado, titulo):
-        desc_historial = f"Mantenimiento Preventivo: {titulo}"
-
+        """La casilla de la tabla: marcarla apunta el preventivo de hoy en el historial (antes, la lista de
+        comprobación y la lectura del contador, si tiene); desmarcarla lo deshace. Lo hace el núcleo
+        (nucleo/avisos.py), igual que MantPro Web y la app MantPro."""
         if estado:
-            # Con lista de comprobación: se rellena antes de completarlo; si
-            # se cancela, el aviso queda como estaba.
+            # Con lista de comprobación: se rellena antes de completarlo; si se cancela, el aviso queda como estaba.
             clave_borrador = checklists.clave_borrador("aviso", id_aviso)
             lista = rellenar_para(self, checklists.checklist_de("aviso", id_aviso), titulo, clave_borrador)
             if lista is None:
                 self.refresh_avisos()
                 return
-            # Por contador: lectura en el momento de hacerlo (de ella se
-            # cuenta el siguiente). Opcional; cancelar deja el aviso como estaba.
+            # Por contador: lectura en el momento de hacerlo (de ella se cuenta el siguiente). Opcional; cancelar
+            # deja el aviso como estaba.
             info = contadores.config_aviso(id_aviso)
             lectura = None
             if info:
@@ -317,47 +195,19 @@ class PestanaAvisos:
                 if not ok:
                     self.refresh_avisos()
                     return
-            # MARCADO -> se completa con la fecha real de HOY (no la fecha que
-            # tocaba): así el siguiente ciclo se cuenta a partir de cuándo se
-            # ha hecho el trabajo de verdad, no de cuándo estaba programado.
-            hoy = QDate.currentDate().toString("yyyy-MM-dd")
-            self.db.marcar_aviso_completado(id_aviso, hoy, True)
-            tags = "Preventivo, Aviso Recurrente"
-            tarea_id = self.db.agregar_tarea(hoy, desc_historial, tags,
-                                             sede_id=sedes.sede_de("avisos_recurrentes", id_aviso))
-            if tarea_id and lista[0]:
-                checklists.guardar_resultado(tarea_id, lista[0], lista[1])
-            if tarea_id:
-                checklists.borrar_borrador(clave_borrador)       # completada: ya no hay lista a medias
-            if info and tarea_id:
-                contadores.registrar_completado(id_aviso, lectura, fecha=hoy, tarea_id=tarea_id)
-            self.statusBar().showMessage(t("msg_guardado_historial").format(titulo=titulo), 3000)
-        else:
-            # DESMARCADO -> averiguamos qué fecha tenía registrada para borrar
-            # justo esa entrada del historial, y restauramos como "última
-            # completada" la vez anterior a esa (si la hay) en vez de dejarlo
-            # siempre en "nunca", igual que ya hace la API para el móvil.
-            avisos = self.db.obtener_avisos()
-            datos = next((a for a in avisos if a[0] == id_aviso), None)
-            fecha_actual = datos[5] if datos else None
+            # Con la fecha real de HOY (no la que tocaba): el siguiente ciclo se cuenta desde cuándo se ha hecho
             try:
-                with get_db_connection(self.db.db_name) as conn:
-                    c = conn.cursor()
-                    if fecha_actual:
-                        for (tid_borrar,) in c.execute("SELECT id FROM tareas WHERE fecha=? AND descripcion=?",
-                                                       (fecha_actual, desc_historial)).fetchall():
-                            consumos.olvidar_trabajo(tid_borrar)
-                        c.execute("DELETE FROM checklist_resultados WHERE tarea_id IN "
-                                  "(SELECT id FROM tareas WHERE fecha=? AND descripcion=?)", (fecha_actual, desc_historial))
-                        c.execute("DELETE FROM tareas WHERE fecha=? AND descripcion=?", (fecha_actual, desc_historial))
-                    c.execute("SELECT MAX(fecha) FROM tareas WHERE descripcion=?", (desc_historial,))
-                    prev_fecha = c.fetchone()[0]
-                    conn.commit()
-                self.db.marcar_aviso_completado(id_aviso, prev_fecha, prev_fecha is not None)
-                contadores.deshacer_completado(id_aviso)
+                avisos_nucleo.completar(self.db, usuarios.SESION_ACTUAL, id_aviso, lista=lista if lista[0] else None,
+                                        valor_lectura=lectura)
+                self.statusBar().showMessage(t("msg_guardado_historial").format(titulo=titulo), 3000)
+            except ValueError as e:
+                print(f"No se ha podido completar el aviso: {e}")
+        else:
+            try:
+                avisos_nucleo.descompletar(self.db, usuarios.SESION_ACTUAL, id_aviso)
                 self.statusBar().showMessage(t("msg_eliminado_historial").format(titulo=titulo), 3000)
-            except Exception as e:
-                print(f"Error borrando historial: {e}")
+            except ValueError as e:
+                print(f"No se ha podido deshacer el aviso: {e}")
 
         self.refresh_avisos()
         self.update_calendar_list()
@@ -419,8 +269,10 @@ class PestanaAvisos:
         msg.exec()
 
         if msg.clickedButton() == btn_si:
-            for id_aviso in ids:
-                self.db.borrar_aviso(id_aviso)
+            try:
+                avisos_nucleo.borrar(self.db, usuarios.SESION_ACTUAL, ids)
+            except ValueError:
+                pass
             self.refresh_avisos()
             self.update_calendar_list()
 
@@ -467,12 +319,11 @@ class PestanaAvisos:
         if not chk_tecnico.isChecked() and not chk_especialidad.isChecked():
             return
 
-        uid = combo.currentData()
-        nombre = combo.currentText() if uid is not None else None
-        especialidad_id = combo_esp.currentData()
-        for id_aviso in ids:
-            if chk_tecnico.isChecked():
-                self.db.asignar_aviso(id_aviso, uid, nombre)
-            if chk_especialidad.isChecked():
-                self.db.asignar_especialidad_aviso(id_aviso, especialidad_id)
+        mantener = avisos_nucleo.MANTENER
+        try:
+            avisos_nucleo.reasignar(self.db, usuarios.SESION_ACTUAL, ids,
+                                    asignado_id=combo.currentData() if chk_tecnico.isChecked() else mantener,
+                                    especialidad_id=combo_esp.currentData() if chk_especialidad.isChecked() else mantener)
+        except ValueError:
+            pass
         self.refresh_avisos()
