@@ -209,3 +209,136 @@ def fijar_precio(usuario, material_id, precio):
         raise ValueError("precio_no_valido")
     proveedores.fijar_precio_articulo(material_id, precio, usuario["id"] if usuario else None, usuario["nombre"] if usuario else None)
     return True
+
+
+# ---------------------------------------------------------------- ➕ Añadir / ✏️ Editar / 🗑️ Eliminar / 📦 Mover a...
+
+def estructura(almacen_id):
+    """Las ubicaciones del almacén para los desplegables (estantería → balda → sección), con los textos del PC:
+    [{id, nombre, baldas: [{id, texto, secciones: [{id, nombre}]}]}] (sin las secciones implícitas)."""
+    t = idiomas.t
+    resultado = []
+    for est in almacen.listar_estructura(almacen_ids=almacenes.efectivo(almacen_id)):
+        baldas = []
+        for b in est["baldas"]:
+            texto = t("txt_hueco_suelo_corto") if b["numero"] == 0 else \
+                t("txt_balda_num").format(n=almacen.texto_balda(b["numero"], est.get("estilo_baldas", "numero")))
+            baldas.append({"id": b["id"], "texto": texto,
+                           "secciones": [{"id": s["id"], "nombre": s["nombre"]} for s in b["secciones"] if not s.get("implicita")]})
+        resultado.append({"id": est["id"], "nombre": est["nombre"], "baldas": baldas})
+    return resultado
+
+
+def seccion_de(almacen_id, balda_id, seccion_id):
+    """La sección donde va un artículo (la elegida, o la implícita de la balda si se deja «Sin sección»), comprobando
+    que es del almacén. Sin balda: sin ubicación (None)."""
+    if balda_id is None:
+        return None
+    balda = next((b for e in estructura(almacen_id) for b in e["baldas"] if b["id"] == balda_id), None)
+    if balda is None:
+        raise ValueError("ubicacion_no_valida")
+    if seccion_id is not None:
+        if seccion_id not in {s["id"] for s in balda["secciones"]}:
+            raise ValueError("ubicacion_no_valida")
+        return seccion_id
+    return almacen.seccion_para_balda(balda_id)
+
+
+def parecidos(codigo, nombre, excluir_id=None):
+    """«[C1] Correa — Estantería A > Balda 2» de los artículos con el mismo código o un nombre muy parecido."""
+    lineas = []
+    for m in almacen.materiales_parecidos((codigo or "").strip(), (nombre or "").strip(), excluir_id)[:10]:
+        texto = f"[{m['codigo']}] {m['nombre']}" if m["codigo"] else m["nombre"]
+        donde = ubicacion(m["seccion_id"]) if m["seccion_id"] else ""
+        lineas.append(f"  • {texto}" + (f" — {donde}" if donde else ""))
+    return lineas
+
+
+def _numero(valor, codigo, minimo=0.0, maximo=CANTIDAD_MAX, vacio=0.0):
+    if valor is None or str(valor).strip() == "":
+        return vacio
+    try:
+        n = float(str(valor).replace(",", "."))
+    except ValueError:
+        raise ValueError(codigo) from None
+    if not minimo <= n <= maximo:
+        raise ValueError(codigo)
+    return n
+
+
+def _maquinas(usuario, repuestos):
+    """{maquina_id: (cantidad, notas)} comprobado: máquinas de las sedes que ve el usuario y cantidades 0,01-99999."""
+    from . import ficha_maquinas
+    limpios = {}
+    for mid, (cantidad, notas) in (repuestos or {}).items():
+        try:
+            ficha_maquinas.visible(usuario, mid)
+        except ValueError:
+            raise ValueError("maquina_no_existe") from None
+        limpios[mid] = (_numero(cantidad, "cantidad_no_valida", 0.01, 99999), (notas or "").strip()[:200])
+    return limpios
+
+
+def guardar_material(usuario, material_id, datos, almacen_id=None, confirmar_parecido=False):
+    """➕ Añadir (material_id None, en [almacen_id]) o ✏️ Editar un artículo (el diálogo del PC). [datos]: codigo,
+    nombre, descripcion, unidad, stock_minimo, stock_inicial (solo al añadir), seccion_id, foto (nombre, None o
+    ausente = no cambia al editar), repuestos {maquina_id: (cantidad, notas)} y, de administradores, precio,
+    proveedor_id, stock_objetivo y multiplo_pedido. Un código igual o un nombre muy parecido a otro artículo:
+    «material_parecido» salvo que se confirme. Devuelve el id."""
+    from . import pedidos
+    admin = usuarios.es_admin(usuario)
+    nombre = (datos.get("nombre") or "").strip()
+    if not nombre:
+        raise ValueError("nombre_obligatorio")
+    codigo = (datos.get("codigo") or "").strip()[:60]
+    actual = material_visible(usuario, material_id) if material_id is not None else None
+    if actual is None:
+        almacen_id = almacen_visible(usuario, almacen_id)
+    minimo = _numero(datos.get("stock_minimo"), "minimo_no_valido")
+    inicial = _numero(datos.get("stock_inicial"), "cantidad_no_valida") if actual is None else 0
+    repuestos = _maquinas(usuario, datos.get("repuestos"))
+    precio = proveedor = None
+    if admin:
+        precio = _numero(datos.get("precio"), "precio_no_valido", 0, 1e9, vacio=None)
+        proveedor = datos.get("proveedor_id")
+        if proveedor is not None and proveedor not in {pr["id"] for pr in proveedores.listar_proveedores()}:
+            raise ValueError("proveedor_no_existe")
+        for clave in ("stock_objetivo", "multiplo_pedido"):
+            _numero(datos.get(clave), f"{clave}_no_valido", 0, CANTIDAD_MAX, vacio=None)
+    cambia = actual is None or codigo != (actual.get("codigo") or "") or nombre != actual["nombre"]
+    if cambia and not confirmar_parecido and almacen.materiales_parecidos(codigo, nombre, material_id):
+        raise ValueError("material_parecido")
+    uid, unombre = (usuario["id"], usuario["nombre"]) if usuario else (None, None)
+    descripcion, unidad = (datos.get("descripcion") or "").strip()[:2000], (datos.get("unidad") or "").strip()[:20]
+    if actual is None:
+        material_id = almacen.crear_material(codigo, nombre, descripcion, unidad, minimo, datos.get("seccion_id"),
+                                             datos.get("foto"), inicial, uid, unombre, precio=precio if admin else None,
+                                             almacen_id=almacen_id)
+        if not material_id:
+            raise ValueError("no_guardado")
+    else:
+        foto = datos["foto"] if "foto" in datos else actual.get("foto")
+        almacen.actualizar_material(material_id, codigo, nombre, descripcion, unidad, minimo, datos.get("seccion_id"), foto,
+                                    uid, unombre, precio=precio, cambiar_precio=admin)
+    almacen.fijar_maquinas_de_material(material_id, repuestos)
+    if admin:
+        proveedores.fijar_proveedor_habitual(material_id, proveedor)
+        pedidos.fijar_parametros(material_id, (datos.get("stock_objetivo") or "").strip(), (datos.get("multiplo_pedido") or "").strip())
+    return material_id
+
+
+def borrar_materiales(usuario, ids):
+    """🗑️ Eliminar (todos o ninguno, si alguno no es de un almacén que se ve). Devuelve cuántos."""
+    for i in ids:
+        material_visible(usuario, i)
+    return sum(1 for i in ids if almacen.borrar_material(i) is not False)
+
+
+def mover_materiales(usuario, ids, seccion_id):
+    """📦 Mover a...: los artículos a otra ubicación de su almacén (None: sin ubicación). Devuelve cuántos."""
+    lista = [material_visible(usuario, i) for i in ids]
+    uid, unombre = (usuario["id"], usuario["nombre"]) if usuario else (None, None)
+    for m in lista:
+        almacen.actualizar_material(m["id"], m.get("codigo") or "", m["nombre"], m.get("descripcion") or "",
+                                    m.get("unidad") or "", m.get("stock_minimo") or 0, seccion_id, m.get("foto"), uid, unombre)
+    return len(lista)

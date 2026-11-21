@@ -985,8 +985,7 @@ def quitar_repuesto(maquina_id, material_id):
 
 
 def fijar_maquinas_de_material(material_id, vinculos):
-    antes = {r["maquina_id"]: r["cantidad"] for r in maquinas_de_material(material_id)} \
-        if "maquinas_de_material" in globals() else {}
+    antes = dict(maquinas_de_material(material_id))       # [(maquina_id, cantidad)]
     resultado = _fijar_maquinas_sin_registro(material_id, vinculos)
     despues = {mid: float(c) for mid, (c, _n) in vinculos.items()}
     cambios = [{"campo": f"Máquina {_nombre_maquina(mid)}",

@@ -44,7 +44,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable
-from ...nucleo import usuarios, almacen, almacenes, proveedores, consumos, pedidos, compras, ficha_stock
+from ...nucleo import usuarios, almacen, almacenes, consumos, compras, ficha_stock
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaStock:
@@ -625,17 +625,18 @@ class PestanaStock:
         if dlg.exec():
             d = dlg.get_data()
             if not d["nombre"]: return
-            foto_guardada = self._guardar_foto_material(d["ruta_foto_seleccionada"])
-            nuevo_id = almacen.crear_material(d["codigo"], d["nombre"], d["descripcion"], d["unidad"], d["stock_minimo"],
-                                               d["seccion_id"], foto_guardada, d["stock_inicial"],
-                                               usuarios.id_actual(), usuarios.nombre_actual(),
-                                               precio=d["precio"] if usuarios.es_admin() else None,
-                                               almacen_id=self.almacen_stock())
-            almacen.fijar_maquinas_de_material(nuevo_id, d["repuestos"])
-            if usuarios.es_admin():   # proveedores y datos de pedido: solo administradores
-                proveedores.fijar_proveedor_habitual(nuevo_id, d["proveedor_id"])
-                pedidos.fijar_parametros(nuevo_id, d["stock_objetivo"], d["multiplo_pedido"])
-            self.refresh_stock()
+            d["foto"] = self._guardar_foto_material(d["ruta_foto_seleccionada"])
+            self._guardar_material(None, d)
+
+    def _guardar_material(self, material_id, d):
+        """Lo hace el núcleo, igual que MantPro Web (el diálogo ya ha preguntado por los artículos parecidos; los
+        datos de compras y pedidos solo cuentan si es administrador)."""
+        try:
+            ficha_stock.guardar_material(usuarios.SESION_ACTUAL, material_id, d, almacen_id=self.almacen_stock(),
+                                         confirmar_parecido=True)
+        except ValueError as e:     # el diálogo ya lo comprueba todo; no debería pasar
+            print(f"No se ha podido guardar el artículo: {e}")
+        self.refresh_stock()
 
     def stock_editar_material(self):
         material_id = self._material_seleccionado()
@@ -652,15 +653,8 @@ class PestanaStock:
                 foto_final = os.path.basename(d["ruta_foto_seleccionada"])
             else:
                 foto_final = self._guardar_foto_material(d["ruta_foto_seleccionada"])
-            almacen.actualizar_material(material_id, d["codigo"], d["nombre"], d["descripcion"], d["unidad"],
-                                         d["stock_minimo"], d["seccion_id"], foto_final,
-                                         usuarios.id_actual(), usuarios.nombre_actual(),
-                                         precio=d["precio"], cambiar_precio=usuarios.es_admin())
-            almacen.fijar_maquinas_de_material(material_id, d["repuestos"])
-            if usuarios.es_admin():
-                proveedores.fijar_proveedor_habitual(material_id, d["proveedor_id"])
-                pedidos.fijar_parametros(material_id, d["stock_objetivo"], d["multiplo_pedido"])
-            self.refresh_stock()
+            d["foto"] = foto_final
+            self._guardar_material(material_id, d)
 
     def stock_borrar_material(self, ids=None):
         ids = ids if ids is not None else self._materiales_seleccionados()
@@ -671,8 +665,10 @@ class PestanaStock:
                    tt("msg_confirmar_borrar_materiales", "¿Eliminar estos {n} materiales del almacén? Se perderá su historial de movimientos.").format(n=len(ids)))
         if QMessageBox.question(self, tt("aviso", "Aviso"), mensaje) != QMessageBox.StandardButton.Yes:
             return
-        for material_id in ids:
-            almacen.borrar_material(material_id)
+        try:
+            ficha_stock.borrar_materiales(usuarios.SESION_ACTUAL, ids)      # igual que la web
+        except ValueError as e:
+            print(f"No se han podido borrar: {e}")
         self.refresh_stock()
 
     def stock_mover_materiales(self, ids=None):
@@ -681,13 +677,10 @@ class PestanaStock:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_sin_material_seleccionado", "Selecciona un material de la lista.")); return
         dlg = DialogoSeleccionarUbicacion(self, almacen_id=self.almacen_stock())
         if not dlg.exec(): return
-        seccion_id = dlg.get_seccion_id()
-        for material_id in ids:
-            m = almacen.obtener_material(material_id)
-            if not m: continue
-            almacen.actualizar_material(material_id, m.get("codigo") or "", m["nombre"], m.get("descripcion") or "",
-                                         m.get("unidad") or "", m.get("stock_minimo") or 0, seccion_id, m.get("foto"),
-                                         usuarios.id_actual(), usuarios.nombre_actual())
+        try:
+            ficha_stock.mover_materiales(usuarios.SESION_ACTUAL, ids, dlg.get_seccion_id())   # igual que la web
+        except ValueError as e:
+            print(f"No se han podido mover: {e}")
         self.refresh_stock()
 
     def stock_registrar_movimiento(self, tipo):
