@@ -33,7 +33,7 @@ from PyQt6.QtGui import QColor, QPixmap
 from ...idiomas import t
 from ..comun import _estilo_zona_arrastre, _poblar_combo_maquinas, tt
 from ..widgets.fotos import DialogoSelectorFoto, VisorFoto
-from ...nucleo import almacen, almacenes, maquinas, consumos, usuarios, proveedores, pedidos
+from ...nucleo import almacen, almacenes, maquinas, consumos, usuarios, proveedores, pedidos, config_almacen
 
 # ==========================================
 # DIÁLOGOS DE STOCK DE ALMACÉN
@@ -103,6 +103,13 @@ class DialogoNuevaEstanteria(QDialog):
         b.accepted.connect(self.accept); b.rejected.connect(self.reject)
         l.addWidget(b); self.setLayout(l)
 
+    def get_datos(self):
+        """Los campos tal como los pide config_almacen.datos_estanteria."""
+        return {"nombre": self.campo_nombre.text(), "num_baldas": self.spin_baldas.value(),
+                "hueco_suelo": self.chk_hueco_suelo.isChecked(), "num_secciones": self.spin_secciones.value(),
+                "estilo_baldas": self.combo_estilo_baldas.currentData(),
+                "estilo_secciones": self.combo_estilo_secciones.currentData()}
+
     def get_data(self):
         return (self.campo_nombre.text().strip(), self.spin_baldas.value(),
                 self.chk_hueco_suelo.isChecked(), self.spin_secciones.value(),
@@ -134,7 +141,8 @@ class DialogoConfigurarAlmacen(QDialog):
         hm = QHBoxLayout()
         hm.addWidget(QLabel(tt("lbl_moneda", "Moneda de los precios") + ":"))
         self.campo_moneda = QLineEdit(consumos.moneda()); self.campo_moneda.setMaximumWidth(80)
-        self.campo_moneda.editingFinished.connect(lambda: consumos.fijar_moneda(self.campo_moneda.text()))
+        self.campo_moneda.editingFinished.connect(
+            lambda: config_almacen.fijar_moneda(usuarios.SESION_ACTUAL, self.campo_moneda.text()))
         hm.addWidget(self.campo_moneda); hm.addStretch()
         l.addLayout(hm)
 
@@ -146,7 +154,8 @@ class DialogoConfigurarAlmacen(QDialog):
         self.spin_factor = QDoubleSpinBox(); self.spin_factor.setRange(0.1, 100); self.spin_factor.setDecimals(1)
         self.spin_factor.setSingleStep(0.5); self.spin_factor.setValue(pedidos.factor_objetivo())
         self.spin_factor.setToolTip(etiqueta_factor.toolTip())
-        self.spin_factor.editingFinished.connect(lambda: pedidos.fijar_factor_objetivo(self.spin_factor.value()))
+        self.spin_factor.editingFinished.connect(
+            lambda: config_almacen.fijar_factor(usuarios.SESION_ACTUAL, self.spin_factor.value()))
         hf.addWidget(self.spin_factor); hf.addStretch()
         l.addLayout(hf)
 
@@ -190,7 +199,7 @@ class DialogoConfigurarAlmacen(QDialog):
         preferir_id) la selección actual, y refresca el árbol para la zona
         que quede seleccionada."""
         zona_previa = preferir_id if preferir_id is not None else self.combo_zona.currentData()
-        self._zonas = almacen.listar_zonas(self.almacen_id)
+        self._zonas = config_almacen.zonas(self.almacen_id)
         self.combo_zona.blockSignals(True)
         self.combo_zona.clear()
         for zona in self._zonas:
@@ -206,7 +215,7 @@ class DialogoConfigurarAlmacen(QDialog):
     def nueva_zona(self):
         nombre, ok = QInputDialog.getText(self, tt("title_nueva_zona_almacen", "Nueva zona"), tt("lbl_nombre_zona_almacen", "Nombre de la zona"))
         if ok and nombre.strip():
-            zona_id = almacen.crear_zona(nombre.strip(), self.almacen_id)
+            zona_id = config_almacen.crear_zona(usuarios.SESION_ACTUAL, self.almacen_id, nombre)
             self._cargar_zonas(preferir_id=zona_id)
 
     def renombrar_zona(self):
@@ -216,7 +225,7 @@ class DialogoConfigurarAlmacen(QDialog):
         nombre, ok = QInputDialog.getText(self, tt("title_renombrar_zona", "Renombrar zona"),
                                            tt("lbl_nombre_zona_almacen", "Nombre de la zona"), text=self.combo_zona.currentText())
         if ok and nombre.strip():
-            almacen.renombrar_zona(zona_id, nombre.strip())
+            config_almacen.renombrar_zona(usuarios.SESION_ACTUAL, self.almacen_id, zona_id, nombre)
             self._cargar_zonas(preferir_id=zona_id)
 
     def eliminar_zona(self):
@@ -227,18 +236,25 @@ class DialogoConfigurarAlmacen(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "msg_confirmar_eliminar_zona", "¿Eliminar la zona «{nombre}»?").format(nombre=nombre_zona)) != QMessageBox.StandardButton.Yes:
             return
-        ok, error = almacen.eliminar_zona(zona_id)
-        if not ok and error == "contiene_estanterias":
-            n = len(almacen.zona_estanterias(zona_id))
+        ok = self._eliminar_zona(zona_id, False)
+        if ok == "contiene_estanterias":
+            n = config_almacen.estanterias_de_zona(zona_id)
             if QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
                     "msg_zona_contiene_estanterias",
                     "Esta zona contiene {n} estantería(s). Si continúas, se eliminarán también esas estanterías y toda su estructura. ¿Continuar?").format(n=n),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
                 return
-            ok, error = almacen.eliminar_zona(zona_id, forzar=True)
-        if not ok:
+            ok = self._eliminar_zona(zona_id, True)
+        if ok is not True:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
         self._cargar_zonas()
+
+    def _eliminar_zona(self, zona_id, forzar):
+        try:
+            config_almacen.eliminar_zona(usuarios.SESION_ACTUAL, self.almacen_id, zona_id, forzar=forzar)
+            return True
+        except ValueError as e:
+            return str(e)
 
     def refrescar(self):
         self.arbol.clear()
@@ -290,7 +306,7 @@ class DialogoConfigurarAlmacen(QDialog):
             nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones = dlg.get_data()
             if not nombre:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_obligatorio", "El nombre es obligatorio.")); return
-            almacen.crear_estanteria(nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones, zona_id=zona_id)
+            config_almacen.crear_estanteria(usuarios.SESION_ACTUAL, self.almacen_id, zona_id, dlg.get_datos())
             self.refrescar()
 
     def eliminar_estanteria(self):
@@ -299,8 +315,7 @@ class DialogoConfigurarAlmacen(QDialog):
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_estanteria_requerida", "Selecciona una estantería.")); return
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_eliminar_estanteria", "¿Eliminar esta estantería y toda su estructura?")) != QMessageBox.StandardButton.Yes:
             return
-        ok, error = almacen.eliminar_estanteria(id_)
-        if not ok:
+        if config_almacen.eliminar_estanterias(usuarios.SESION_ACTUAL, self.almacen_id, [id_]):
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
         self.refrescar()
 
@@ -314,7 +329,7 @@ class DialogoConfigurarAlmacen(QDialog):
             estanteria_id = item.parent().data(0, Qt.ItemDataRole.UserRole)[1]
         else:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_estanteria_requerida", "Selecciona una estantería.")); return
-        almacen.anadir_balda(estanteria_id)
+        config_almacen.anadir_baldas(usuarios.SESION_ACTUAL, self.almacen_id, [estanteria_id])
         self.refrescar()
 
     def eliminar_balda(self):
@@ -323,8 +338,7 @@ class DialogoConfigurarAlmacen(QDialog):
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_balda_requerida", "Selecciona una balda.")); return
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_eliminar_balda", "¿Eliminar esta balda y sus secciones?")) != QMessageBox.StandardButton.Yes:
             return
-        ok, error = almacen.eliminar_balda(id_)
-        if not ok:
+        if config_almacen.eliminar_baldas(usuarios.SESION_ACTUAL, self.almacen_id, [id_]):
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
         self.refrescar()
 
@@ -334,7 +348,7 @@ class DialogoConfigurarAlmacen(QDialog):
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_balda_requerida", "Selecciona una balda.")); return
         nombre, ok = QInputDialog.getText(self, tt("title_nueva_seccion", "Nueva sección"), tt("lbl_nombre_seccion", "Nombre de la sección"))
         if ok and nombre.strip():
-            almacen.crear_seccion(id_, nombre.strip())
+            config_almacen.crear_seccion(usuarios.SESION_ACTUAL, self.almacen_id, id_, nombre)
             self.refrescar()
 
     def eliminar_seccion(self):
@@ -343,8 +357,9 @@ class DialogoConfigurarAlmacen(QDialog):
             QMessageBox.information(self, tt("aviso", "Aviso"), tt("msg_seleccion_seccion_requerida", "Selecciona una sección.")); return
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt("msg_confirmar_eliminar_seccion", "¿Eliminar esta sección?")) != QMessageBox.StandardButton.Yes:
             return
-        ok, error = almacen.eliminar_seccion(id_)
-        if not ok:
+        try:
+            config_almacen.eliminar_seccion(usuarios.SESION_ACTUAL, self.almacen_id, id_)
+        except ValueError:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_elemento_no_vacio", "No se puede eliminar: todavía contiene material ubicado."))
         self.refrescar()
 
@@ -414,8 +429,8 @@ class DialogoConfigurarAlmacen(QDialog):
             nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones = dlg.get_data()
             if not nombre:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt("msg_nombre_obligatorio", "El nombre es obligatorio.")); return
-            no_borradas = almacen.editar_estanteria(
-                estanteria_id, nombre, num_baldas, hueco_suelo, num_secciones, estilo_baldas, estilo_secciones)
+            no_borradas = config_almacen.editar_estanteria(usuarios.SESION_ACTUAL, self.almacen_id, estanteria_id,
+                                                           dlg.get_datos())
             if no_borradas:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
                     "msg_baldas_no_borradas", "No se han podido quitar {n} balda(s): todavía contienen material ubicado.").format(n=no_borradas))
@@ -425,7 +440,7 @@ class DialogoConfigurarAlmacen(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "msg_confirmar_eliminar_estanterias", "¿Eliminar {n} estantería(s) y toda su estructura?").format(n=len(ids))) != QMessageBox.StandardButton.Yes:
             return
-        fallidas = sum(1 for id_ in ids if not almacen.eliminar_estanteria(id_)[0])
+        fallidas = config_almacen.eliminar_estanterias(usuarios.SESION_ACTUAL, self.almacen_id, ids)
         if fallidas:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
                 "msg_algunas_no_vacias", "{n} elemento(s) no se han podido borrar porque todavía contienen material ubicado.").format(n=fallidas))
@@ -435,25 +450,22 @@ class DialogoConfigurarAlmacen(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "msg_confirmar_eliminar_baldas", "¿Eliminar {n} elemento(s) seleccionado(s) y sus secciones?").format(n=len(ids))) != QMessageBox.StandardButton.Yes:
             return
-        fallidas = sum(1 for id_ in ids if not almacen.eliminar_balda(id_)[0])
+        fallidas = config_almacen.eliminar_baldas(usuarios.SESION_ACTUAL, self.almacen_id, ids)
         if fallidas:
             QMessageBox.warning(self, tt("aviso", "Aviso"), tt(
                 "msg_algunas_no_vacias", "{n} elemento(s) no se han podido borrar porque todavía contienen material ubicado.").format(n=fallidas))
         self.refrescar()
 
     def _cambiar_estilo_multiple(self, estanteria_ids, estilo):
-        for id_ in estanteria_ids:
-            almacen.cambiar_estilo_baldas(id_, estilo)
+        config_almacen.cambiar_estilo(usuarios.SESION_ACTUAL, self.almacen_id, estanteria_ids, estilo)
         self.refrescar()
 
     def _anadir_baldas_multiple(self, estanteria_ids):
-        for id_ in estanteria_ids:
-            almacen.anadir_balda(id_)
+        config_almacen.anadir_baldas(usuarios.SESION_ACTUAL, self.almacen_id, estanteria_ids)
         self.refrescar()
 
     def _anadir_huecos_suelo_multiple(self, estanteria_ids):
-        creados = sum(1 for id_ in estanteria_ids if almacen.anadir_hueco_suelo(id_))
-        ya_existian = len(estanteria_ids) - creados
+        ya_existian = config_almacen.anadir_huecos_suelo(usuarios.SESION_ACTUAL, self.almacen_id, estanteria_ids)
         if ya_existian:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt(
                 "msg_huecos_suelo_ya_existian", "{n} estantería(s) ya tenían hueco de suelo y no se han modificado.").format(n=ya_existian))

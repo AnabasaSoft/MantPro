@@ -261,9 +261,13 @@ def aplicar(cons, cambios, origen_propio, res=None):
             # «silenciado» se activa y se desactiva DENTRO de la transacción: si se deshace, vuelve solo
             con.execute("UPDATE sync_estado SET silenciado = 1 WHERE id = 1")
         n = 0
-        for nombre, base, tabla, espec in orden:
+        # Altas y cambios de padres a hijos (la zona antes que su estantería); los borrados, después y de hijos a
+        # padres: borrar una zona antes que sus estanterías choca con la clave foránea y el borrado se perdería
+        pasadas = [(nombre, base, tabla, espec, "u") for nombre, base, tabla, espec in orden] + \
+                  [(nombre, base, tabla, espec, "d") for nombre, base, tabla, espec in reversed(orden)]
+        for nombre, base, tabla, espec, op in pasadas:
             con = cons[base]
-            for c in por_tabla[nombre]:
+            for c in (x for x in por_tabla[nombre] if x["op"] == op):
                 if (tabla, c["uuid"]) in pendientes[base]:
                     res["conflictos"] += 1       # tiene un cambio local sin subir: gana el local
                     continue
