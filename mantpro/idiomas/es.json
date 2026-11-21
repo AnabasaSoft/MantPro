@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Otro artículo ya tiene esa referencia de este proveedor.",
   "cal_festivo_oficial": "Festivo Oficial",
   "cal_aviso_linea": "⚠️ AVISO: {titulo} [{estado}]",
-  "cal_tiene_foto": "Tiene foto adjunta"
+  "cal_tiene_foto": "Tiene foto adjunta",
+  "usr_err_no_existe": "Ese usuario ya no existe.",
+  "usr_err_obligatorios": "El usuario y el nombre son obligatorios.",
+  "usr_err_clave_corta": "La contraseña debe tener al menos 4 caracteres.",
+  "usr_err_login_repetido": "Ya existe un usuario con ese nombre de usuario.",
+  "usr_err_ultimo_admin": "Debe quedar al menos un administrador activo.",
+  "usr_err_propio": "No puedes borrar tu propio usuario.",
+  "usr_err_sede_no_existe": "Esa sede ya no existe.",
+  "esp_err_obligatorio": "El nombre de la especialidad es obligatorio.",
+  "esp_err_repetida": "Ya existe una especialidad con ese nombre.",
+  "usr_msg_clave_restablecida": "Contraseña restablecida. Tendrá que cambiarla la próxima vez que entre."
 }

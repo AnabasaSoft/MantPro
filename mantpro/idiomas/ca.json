@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Un altre article ja té aquesta referència d'aquest proveïdor.",
   "cal_festivo_oficial": "Festiu oficial",
   "cal_aviso_linea": "⚠️ AVÍS: {titulo} [{estado}]",
-  "cal_tiene_foto": "Té una foto adjunta"
+  "cal_tiene_foto": "Té una foto adjunta",
+  "usr_err_no_existe": "Aquest usuari ja no existeix.",
+  "usr_err_obligatorios": "L'usuari i el nom són obligatoris.",
+  "usr_err_clave_corta": "La contrasenya ha de tenir almenys 4 caràcters.",
+  "usr_err_login_repetido": "Ja existeix un usuari amb aquest nom d'usuari.",
+  "usr_err_ultimo_admin": "Ha de quedar almenys un administrador actiu.",
+  "usr_err_propio": "No pots esborrar el teu propi usuari.",
+  "usr_err_sede_no_existe": "Aquesta seu ja no existeix.",
+  "esp_err_obligatorio": "El nom de l'especialitat és obligatori.",
+  "esp_err_repetida": "Ja existeix una especialitat amb aquest nom.",
+  "usr_msg_clave_restablecida": "Contrasenya restablerta. L'haurà de canviar la propera vegada que entri."
 }

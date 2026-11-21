@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Beste artikulu batek badu dagoeneko hornitzaile honen erreferentzia hori.",
   "cal_festivo_oficial": "Jaiegun ofiziala",
   "cal_aviso_linea": "⚠️ ABISUA: {titulo} [{estado}]",
-  "cal_tiene_foto": "Argazki bat du erantsita"
+  "cal_tiene_foto": "Argazki bat du erantsita",
+  "usr_err_no_existe": "Erabiltzaile hori jada ez dago.",
+  "usr_err_obligatorios": "Erabiltzailea eta izena derrigorrezkoak dira.",
+  "usr_err_clave_corta": "Pasahitzak gutxienez 4 karaktere izan behar ditu.",
+  "usr_err_login_repetido": "Badago izen hori duen erabiltzaile bat.",
+  "usr_err_ultimo_admin": "Gutxienez administratzaile aktibo batek geratu behar du.",
+  "usr_err_propio": "Ezin duzu zure erabiltzailea ezabatu.",
+  "usr_err_sede_no_existe": "Egoitza hori jada ez dago.",
+  "esp_err_obligatorio": "Espezialitatearen izena derrigorrezkoa da.",
+  "esp_err_repetida": "Badago izen hori duen espezialitate bat.",
+  "usr_msg_clave_restablecida": "Pasahitza berrezarri da. Hurrengo aldiz sartzean aldatu beharko du."
 }

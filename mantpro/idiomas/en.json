@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Another item already has that reference from this supplier.",
   "cal_festivo_oficial": "Public Holiday",
   "cal_aviso_linea": "⚠️ ALERT: {titulo} [{estado}]",
-  "cal_tiene_foto": "Has a photo attached"
+  "cal_tiene_foto": "Has a photo attached",
+  "usr_err_no_existe": "That user no longer exists.",
+  "usr_err_obligatorios": "The username and the name are required.",
+  "usr_err_clave_corta": "The password must be at least 4 characters long.",
+  "usr_err_login_repetido": "A user with that username already exists.",
+  "usr_err_ultimo_admin": "At least one active administrator must remain.",
+  "usr_err_propio": "You cannot delete your own user.",
+  "usr_err_sede_no_existe": "That site no longer exists.",
+  "esp_err_obligatorio": "The specialty name is required.",
+  "esp_err_repetida": "A specialty with that name already exists.",
+  "usr_msg_clave_restablecida": "Password reset. They will have to change it the next time they log in."
 }

@@ -35,7 +35,7 @@ from PyQt6.QtGui import QPixmap
 
 import os
 from datetime import datetime
-from ...nucleo import sedes, seguridad, usuarios
+from ...nucleo import ficha_usuarios, sedes, seguridad, usuarios
 
 try:
     from ...idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
@@ -232,6 +232,15 @@ class DialogoCambioPassword(QDialog):
 
 # --------------------------------------------------------- gestión (solo admin)
 
+def _hacer(padre, funcion, *args):
+    """Llama a ficha_usuarios con el usuario del PC; un error se avisa (traducido). Devuelve (ok, resultado)."""
+    try:
+        return True, funcion(usuarios.SESION_ACTUAL, *args)
+    except ValueError as e:
+        QMessageBox.warning(padre, t("aviso", "Aviso"), ficha_usuarios.texto_error(str(e)))
+        return False, None
+
+
 class DialogoEspecialidades(QDialog):
     """CRUD del catálogo de especialidades (p.ej. Electricista, Mecánico...)."""
 
@@ -293,12 +302,9 @@ class DialogoEspecialidades(QDialog):
         return int(self.tabla.item(fila, 1).text())
 
     def _anadir(self):
-        ok, mensaje = usuarios.crear_especialidad(self.nueva_especialidad.text())
-        if ok:
+        if _hacer(self, ficha_usuarios.crear_especialidad, self.nueva_especialidad.text())[0]:
             self.nueva_especialidad.clear()
             self.refrescar()
-        else:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
 
     def _renombrar(self):
         eid = self._seleccionada()
@@ -317,9 +323,7 @@ class DialogoEspecialidades(QDialog):
         lay.addWidget(caja)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
-        ok, mensaje = usuarios.renombrar_especialidad(eid, campo.text())
-        if not ok:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        _hacer(self, ficha_usuarios.renombrar_especialidad, eid, campo.text())
         self.refrescar()
 
     def _borrar(self):
@@ -333,7 +337,7 @@ class DialogoEspecialidades(QDialog):
               "tuvieran asignada quedarán sin especialidad."))
         if respuesta != QMessageBox.StandardButton.Yes:
             return
-        usuarios.borrar_especialidad(eid)
+        _hacer(self, ficha_usuarios.borrar_especialidad, eid)
         self.refrescar()
 
 
@@ -532,25 +536,11 @@ class DialogoGestionUsuarios(QDialog):
         self._actualizar_boton_especialidades_alta()
 
     def refrescar(self):
-        datos = usuarios.listar_usuarios()
-        nombres_sedes = sedes.nombres()
+        datos = ficha_usuarios.filas()
         self.tabla.setRowCount(len(datos))
         for fila, u in enumerate(datos):
-            suyas = sedes.de_usuario(u["id"])
-            if usuarios.es_admin(u) or not suyas:   # sin ninguna marcada, o administrador: todas
-                texto_sedes = t("sede_todas", "Todas las sedes")
-            else:
-                texto_sedes = ", ".join(nombres_sedes.get(i, str(i)) for i in suyas)
-            valores = [
-                u["login"],
-                u["nombre"],
-                self._texto_roles(u.get("roles")),
-                ", ".join(u.get("especialidad_nombres") or []) or "—",
-                t("activo", "Activo") if u["activo"] else t("inactivo", "Inactivo"),
-                u.get("ultimo_acceso") or "—",
-                str(u["id"]),
-                texto_sedes,
-            ]
+            valores = [u["login"], u["nombre"], u["roles_txt"], u["especialidades_txt"], u["estado_txt"],
+                       u["acceso_txt"], str(u["id"]), u["sedes_txt"]]
             for col, valor in enumerate(valores):
                 item = QTableWidgetItem(valor)
                 if not u["activo"]:
@@ -570,14 +560,8 @@ class DialogoGestionUsuarios(QDialog):
 
     def _anadir(self):
         roles = self._roles_marcados(self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin)
-        ok, mensaje = usuarios.crear_usuario(
-            self.nuevo_login.text(),
-            self.nuevo_nombre.text(),
-            self.nueva_password.text(),
-            roles,
-            self.chk_cambiar.isChecked(),
-            self._especialidades_alta_ids,
-        )
+        ok, _ = _hacer(self, ficha_usuarios.crear, self.nuevo_login.text(), self.nuevo_nombre.text(),
+                       self.nueva_password.text(), roles, self.chk_cambiar.isChecked(), self._especialidades_alta_ids)
         if ok:
             self.nuevo_login.clear(); self.nuevo_nombre.clear(); self.nueva_password.clear()
             self.chk_rol_tecnico.setChecked(True)
@@ -586,8 +570,6 @@ class DialogoGestionUsuarios(QDialog):
             self._especialidades_alta_ids = []
             self._actualizar_boton_especialidades_alta()
             self.refrescar()
-        else:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
 
     def _cambiar_especialidad(self):
         uid = self._seleccionado()
@@ -599,9 +581,7 @@ class DialogoGestionUsuarios(QDialog):
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
-        ok, mensaje = usuarios.actualizar_usuario(uid, especialidad_ids=dlg.seleccion())
-        if not ok:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        _hacer(self, ficha_usuarios.cambiar_especialidades, uid, dlg.seleccion())
         self.refrescar()
 
     def _cambiar_sedes(self):
@@ -617,7 +597,7 @@ class DialogoGestionUsuarios(QDialog):
         dlg = DialogoSeleccionSedes(self, sedes.de_usuario(uid))
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
-        sedes.fijar_de_usuario(uid, dlg.seleccion())
+        _hacer(self, ficha_usuarios.cambiar_sedes, uid, dlg.seleccion())
         self.refrescar()
 
     def _gestionar_especialidades(self):
@@ -643,8 +623,8 @@ class DialogoGestionUsuarios(QDialog):
         lay.addWidget(caja)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
-        ok, mensaje = usuarios.cambiar_password(uid, campo.text(), forzar=True)
-        QMessageBox.information(self, t("aviso", "Aviso"), mensaje)
+        if _hacer(self, ficha_usuarios.restablecer_clave, uid, campo.text())[0]:
+            QMessageBox.information(self, t("aviso", "Aviso"), t("usr_msg_clave_restablecida"))
         self.refrescar()
 
     def _cambiar_rol(self):
@@ -668,19 +648,14 @@ class DialogoGestionUsuarios(QDialog):
             return
 
         roles = self._roles_marcados(chk_tecnico, chk_almacen, chk_admin)
-        ok, mensaje = usuarios.actualizar_usuario(uid, roles=roles)
-        if not ok:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        _hacer(self, ficha_usuarios.cambiar_roles, uid, roles)
         self.refrescar()
 
     def _alternar_estado(self):
         uid = self._seleccionado()
         if uid is None:
             return
-        actual = next((u for u in usuarios.listar_usuarios() if u["id"] == uid), None)
-        ok, mensaje = usuarios.actualizar_usuario(uid, activo=not actual["activo"])
-        if not ok:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        _hacer(self, ficha_usuarios.alternar_estado, uid)
         self.refrescar()
 
     def _borrar_usuario(self):
@@ -695,9 +670,7 @@ class DialogoGestionUsuarios(QDialog):
             t("usuarios_confirmar_borrar", "¿Borrar al usuario «{nombre}»?").format(nombre=actual["nombre"]))
         if respuesta != QMessageBox.StandardButton.Yes:
             return
-        ok, mensaje = usuarios.borrar_usuario(uid)
-        if not ok:
-            QMessageBox.warning(self, t("aviso", "Aviso"), mensaje)
+        _hacer(self, ficha_usuarios.borrar, uid)
         self.refrescar()
 
 

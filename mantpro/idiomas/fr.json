@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Un autre article a déjà cette référence chez ce fournisseur.",
   "cal_festivo_oficial": "Jour férié officiel",
   "cal_aviso_linea": "⚠️ RAPPEL : {titulo} [{estado}]",
-  "cal_tiene_foto": "Une photo est jointe"
+  "cal_tiene_foto": "Une photo est jointe",
+  "usr_err_no_existe": "Cet utilisateur n'existe plus.",
+  "usr_err_obligatorios": "L'identifiant et le nom sont obligatoires.",
+  "usr_err_clave_corta": "Le mot de passe doit comporter au moins 4 caractères.",
+  "usr_err_login_repetido": "Un utilisateur avec cet identifiant existe déjà.",
+  "usr_err_ultimo_admin": "Il doit rester au moins un administrateur actif.",
+  "usr_err_propio": "Vous ne pouvez pas supprimer votre propre utilisateur.",
+  "usr_err_sede_no_existe": "Ce site n'existe plus.",
+  "esp_err_obligatorio": "Le nom de la spécialité est obligatoire.",
+  "esp_err_repetida": "Une spécialité portant ce nom existe déjà.",
+  "usr_msg_clave_restablecida": "Mot de passe réinitialisé. Il devra le changer à sa prochaine connexion."
 }

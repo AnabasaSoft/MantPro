@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Ein anderer Artikel hat bereits diese Artikelnummer dieses Lieferanten.",
   "cal_festivo_oficial": "Gesetzlicher Feiertag",
   "cal_aviso_linea": "⚠️ ERINNERUNG: {titulo} [{estado}]",
-  "cal_tiene_foto": "Mit angehängtem Foto"
+  "cal_tiene_foto": "Mit angehängtem Foto",
+  "usr_err_no_existe": "Dieser Benutzer existiert nicht mehr.",
+  "usr_err_obligatorios": "Benutzername und Name sind Pflichtfelder.",
+  "usr_err_clave_corta": "Das Passwort muss mindestens 4 Zeichen lang sein.",
+  "usr_err_login_repetido": "Es gibt bereits einen Benutzer mit diesem Benutzernamen.",
+  "usr_err_ultimo_admin": "Es muss mindestens ein aktiver Administrator bleiben.",
+  "usr_err_propio": "Sie können Ihren eigenen Benutzer nicht löschen.",
+  "usr_err_sede_no_existe": "Dieser Standort existiert nicht mehr.",
+  "esp_err_obligatorio": "Der Name des Fachbereichs ist ein Pflichtfeld.",
+  "esp_err_repetida": "Es gibt bereits einen Fachbereich mit diesem Namen.",
+  "usr_msg_clave_restablecida": "Passwort zurückgesetzt. Es muss bei der nächsten Anmeldung geändert werden."
 }

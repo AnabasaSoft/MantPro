@@ -1711,5 +1711,15 @@
   "tar_msg_referencia_repetida": "Outro artigo xa ten esa referencia deste provedor.",
   "cal_festivo_oficial": "Festivo oficial",
   "cal_aviso_linea": "⚠️ AVISO: {titulo} [{estado}]",
-  "cal_tiene_foto": "Ten unha foto adxunta"
+  "cal_tiene_foto": "Ten unha foto adxunta",
+  "usr_err_no_existe": "Ese usuario xa non existe.",
+  "usr_err_obligatorios": "O usuario e o nome son obrigatorios.",
+  "usr_err_clave_corta": "O contrasinal debe ter polo menos 4 caracteres.",
+  "usr_err_login_repetido": "Xa existe un usuario con ese nome de usuario.",
+  "usr_err_ultimo_admin": "Debe quedar polo menos un administrador activo.",
+  "usr_err_propio": "Non podes borrar o teu propio usuario.",
+  "usr_err_sede_no_existe": "Esa sede xa non existe.",
+  "esp_err_obligatorio": "O nome da especialidade é obrigatorio.",
+  "esp_err_repetida": "Xa existe unha especialidade con ese nome.",
+  "usr_msg_clave_restablecida": "Contrasinal restablecido. Terá que cambialo a próxima vez que entre."
 }
