@@ -137,3 +137,95 @@ def circular(pares, ancho, alto):
         d.add(String(x + 12, y + 1, _recortar(f"{etiqueta} ({valor})", ancho - x - 16, 8), fontSize=8,
                      fillColor=colors.HexColor(TEXTO)))
     return d
+
+
+# ---------------------------------------------------------------- evolución de una lectura (📈 Lecturas)
+
+COLORES_SERIES = ("#3daee9", "#e67e22", "#8e44ad")          # los de GraficoEvolucion del PC (L1, L2, L3)
+COLOR_FUERA = "#e74c3c"
+
+
+def datos_evolucion(lecturas, series=None):
+    """Las lecturas que se dibujan, cada una con «valores» (uno por serie), como GraficoEvolucion.establecer_datos."""
+    if series:
+        return [dict(d, valores=list(d.get("valores") or [])) for d in lecturas
+                if d.get("fecha") and any(v is not None for v in (d.get("valores") or []))]
+    return [dict(d, valores=[d.get("valor")]) for d in lecturas if d.get("valor") is not None and d.get("fecha")]
+
+
+def escala_evolucion(datos, minimo, maximo):
+    """(bajo, alto, días de la primera y la última, etiquetas del eje Y) para dibujar [datos] con su rango."""
+    from datetime import date
+    valores = [v for d in datos for v in d["valores"] if v is not None]
+    limites = [v for v in (minimo, maximo) if v is not None]
+    bajo, alto = min(valores + limites), max(valores + limites)
+    if alto == bajo:
+        bajo, alto = bajo - 1, alto + 1
+    margen = (alto - bajo) * 0.08
+    etiquetas = sorted({round(v, 6) for v in [bajo, alto] + limites})
+    dias = []
+    for d in datos:
+        try:
+            dias.append(date.fromisoformat(d["fecha"][:10]).toordinal())
+        except ValueError:
+            dias.append(0)
+    return bajo - margen, alto + margen, dias, etiquetas
+
+
+def fuera_de_rango(v, minimo, maximo):
+    return (minimo is not None and v < minimo) or (maximo is not None and v > maximo)
+
+
+def evolucion(lecturas, minimo, maximo, series, ancho, alto, formato_fecha=lambda f: f):
+    """El gráfico de GraficoEvolucion para el PDF: la banda del rango correcto en verde, una línea por serie y los
+    puntos fuera de rango en rojo; las fechas a su distancia real."""
+    from reportlab.graphics.shapes import Circle, Line, PolyLine, Rect, String
+    from reportlab.lib import colors
+    d = _lienzo(ancho, alto)
+    datos = datos_evolucion(lecturas, series)
+    if not datos:
+        return _vacio(d, ancho, alto, _tt("lbl_sin_datos_grafico", "Sin datos"))
+    bajo, tope, dias, etiquetas = escala_evolucion(datos, minimo, maximo)
+    d0, d1 = min(dias), max(dias)
+    izq, der, arriba, abajo = 40, 10, 10, 18                  # (en el PDF, y crece hacia arriba)
+    w, h = ancho - izq - der, alto - arriba - abajo
+
+    def x_de(dia):
+        return izq + (w / 2 if d1 == d0 else (dia - d0) / (d1 - d0) * w)
+
+    def y_de(v):
+        return abajo + (v - bajo) / (tope - bajo) * h
+
+    negro = colors.HexColor(TEXTO)
+    if minimo is not None or maximo is not None:
+        y_inf = y_de(minimo) if minimo is not None else abajo
+        y_sup = y_de(maximo) if maximo is not None else abajo + h
+        d.add(Rect(izq, y_inf, w, y_sup - y_inf, fillColor=colors.Color(0.18, 0.8, 0.44, alpha=0.18), strokeColor=None))
+        for v in (minimo, maximo):
+            if v is not None:
+                d.add(Line(izq, y_de(v), izq + w, y_de(v), strokeColor=colors.HexColor("#27ae60"), strokeDashArray=[3, 2]))
+    d.add(Line(izq, abajo, izq, abajo + h, strokeColor=negro))
+    d.add(Line(izq, abajo, izq + w, abajo, strokeColor=negro))
+    for v in etiquetas:
+        d.add(String(izq - 4, y_de(v) - 3, f"{v:g}", fontSize=7, textAnchor="end", fillColor=negro))
+    d.add(String(izq, 4, formato_fecha(datos[0]["fecha"]), fontSize=7, fillColor=negro))
+    if datos[-1]["fecha"] != datos[0]["fecha"]:
+        d.add(String(izq + w, 4, formato_fecha(datos[-1]["fecha"]), fontSize=7, textAnchor="end", fillColor=negro))
+    n = len(series) if series else 1
+    for k in range(n):
+        color = colors.HexColor(COLORES_SERIES[k % len(COLORES_SERIES)])
+        puntos = [(x_de(dias[i]), y_de(dd["valores"][k]),
+                   fuera_de_rango(dd["valores"][k], minimo, maximo) if series else dd.get("fuera"))
+                  for i, dd in enumerate(datos) if k < len(dd["valores"]) and dd["valores"][k] is not None]
+        if len(puntos) > 1:
+            d.add(PolyLine([c for x, y, _ in puntos for c in (x, y)], strokeColor=color, strokeWidth=1.5))
+        for x, y, es_fuera in puntos:
+            c = colors.HexColor(COLOR_FUERA) if es_fuera else color
+            d.add(Circle(x, y, 2.5, fillColor=c, strokeColor=c))
+    if series:
+        x = izq + w
+        for k in reversed(range(n)):
+            x -= 26
+            d.add(Line(x, abajo + h - 3, x + 8, abajo + h - 3, strokeColor=colors.HexColor(COLORES_SERIES[k]), strokeWidth=2.5))
+            d.add(String(x + 10, abajo + h - 5, series[k], fontSize=7, fillColor=negro))
+    return d
