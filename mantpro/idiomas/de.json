@@ -1708,5 +1708,8 @@
   "tar_ph_referencia": "Leer: Artikelnummer entfernen",
   "tar_lbl_proveedor": "Lieferant:",
   "tar_lbl_referencia": "Artikelnummer:",
-  "tar_msg_referencia_repetida": "Ein anderer Artikel hat bereits diese Artikelnummer dieses Lieferanten."
+  "tar_msg_referencia_repetida": "Ein anderer Artikel hat bereits diese Artikelnummer dieses Lieferanten.",
+  "cal_festivo_oficial": "Gesetzlicher Feiertag",
+  "cal_aviso_linea": "⚠️ ERINNERUNG: {titulo} [{estado}]",
+  "cal_tiene_foto": "Mit angehängtem Foto"
 }

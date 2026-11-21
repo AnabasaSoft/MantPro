@@ -26,6 +26,7 @@ import os
 from datetime import datetime
 from PyQt6.QtCore import QDate
 
+from ..nucleo import festivos as _festivos
 from ..nucleo.rutas import DATA_DIR
 from ..nucleo.seguridad import escribir_atomico
 
@@ -126,37 +127,17 @@ class GestorFestivos:
         return f"https://date.nager.at/api/v3/publicholidays/{self.year}/{pais}"
 
     def obtener_festivos(self):
-        datos = self.cargar_cache()
-        if not datos: datos = self.descargar_festivos()
-
-        l = []
-        iso_prov, iso_com = self.obtener_config_region()
-
-        if datos:
-            for i in datos:
-                counties = i.get('counties')
-                # Si no hay provincia/región configurada (país sin desglose), solo festivos nacionales (counties=None)
-                if counties is None or (iso_com and iso_com in counties) or (iso_prov and iso_prov in counties):
-                    l.append(QDate.fromString(i.get('date'),"yyyy-MM-dd"))
-        return l
+        """Los festivos de este año para el país y la región configurados (lo hace nucleo/festivos.py, igual que
+        MantPro Web)."""
+        provincia, comunidad = self.obtener_config_region()
+        datos = self.cargar_cache() or self.descargar_festivos()
+        return [QDate.fromString(f, "yyyy-MM-dd") for f in sorted(_festivos.de_la_region(datos, provincia, comunidad))]
 
     def descargar_festivos(self):
-        try:
-            r = requests.get(self._url_api())
-            if r.status_code == 200:
-                escribir_atomico(self._archivo_cache(), json.dumps(r.json()))
-                return r.json()
-        except: return []
-        return []
+        return _festivos.descargar(self.obtener_config_pais(), self.year)
 
     def cargar_cache(self):
-        archivo = self._archivo_cache()
-        if os.path.exists(archivo):
-            try:
-                with open(archivo, 'r') as f: return json.load(f)
-            except: return None
-
-        return None
+        return _festivos.cargar_cache(self.obtener_config_pais(), self.year)
 
     def obtener_paises_disponibles(self):
         """Devuelve una lista de tuplas (nombre, codigo_iso) de los países soportados por la API, cacheada en disco."""

@@ -1708,5 +1708,8 @@
   "tar_ph_referencia": "Baleiro: quitar a referencia",
   "tar_lbl_proveedor": "Provedor:",
   "tar_lbl_referencia": "Referencia:",
-  "tar_msg_referencia_repetida": "Outro artigo xa ten esa referencia deste provedor."
+  "tar_msg_referencia_repetida": "Outro artigo xa ten esa referencia deste provedor.",
+  "cal_festivo_oficial": "Festivo oficial",
+  "cal_aviso_linea": "⚠️ AVISO: {titulo} [{estado}]",
+  "cal_tiene_foto": "Ten unha foto adxunta"
 }

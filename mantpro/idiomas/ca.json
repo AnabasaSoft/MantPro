@@ -1708,5 +1708,8 @@
   "tar_ph_referencia": "Buit: treure la referència",
   "tar_lbl_proveedor": "Proveïdor:",
   "tar_lbl_referencia": "Referència:",
-  "tar_msg_referencia_repetida": "Un altre article ja té aquesta referència d'aquest proveïdor."
+  "tar_msg_referencia_repetida": "Un altre article ja té aquesta referència d'aquest proveïdor.",
+  "cal_festivo_oficial": "Festiu oficial",
+  "cal_aviso_linea": "⚠️ AVÍS: {titulo} [{estado}]",
+  "cal_tiene_foto": "Té una foto adjunta"
 }

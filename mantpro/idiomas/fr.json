@@ -1708,5 +1708,8 @@
   "tar_ph_referencia": "Vide : supprimer la référence",
   "tar_lbl_proveedor": "Fournisseur :",
   "tar_lbl_referencia": "Référence :",
-  "tar_msg_referencia_repetida": "Un autre article a déjà cette référence chez ce fournisseur."
+  "tar_msg_referencia_repetida": "Un autre article a déjà cette référence chez ce fournisseur.",
+  "cal_festivo_oficial": "Jour férié officiel",
+  "cal_aviso_linea": "⚠️ RAPPEL : {titulo} [{estado}]",
+  "cal_tiene_foto": "Une photo est jointe"
 }

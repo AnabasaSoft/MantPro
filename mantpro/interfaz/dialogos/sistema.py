@@ -31,6 +31,7 @@ from PyQt6.QtGui import QPixmap, QImage
 from ...idiomas import t
 from ..comun import tt
 from ..festivos import PROVINCIAS_ESPAÑA
+from ...nucleo import calendario, usuarios
 from ..servidor import PUERTO_POR_DEFECTO, primer_puerto_libre, puerto_libre
 
 class DialogoQR(QDialog):
@@ -79,7 +80,8 @@ class DialogoDiasEspeciales(QDialog):
 
         h_top.addWidget(QLabel(t("lbl_tipo")))
         self.combo_tipo = QComboBox()
-        self.combo_tipo.addItems([t("tipo_vacaciones"), t("tipo_puente"), t("tipo_dia_libre"), t("tipo_festivo_manual")])
+        for canonico, texto in calendario.opciones_tipo():    # se guarda la forma canónica (en español)
+            self.combo_tipo.addItem(texto, canonico)
         h_top.addWidget(self.combo_tipo)
 
         btn_add = QPushButton(t("btn_anadir"))
@@ -112,26 +114,27 @@ class DialogoDiasEspeciales(QDialog):
 
     def refresh_lista(self):
         self.lista.clear()
-        dias = self.db.obtener_dias_especiales()
-        # Ordenamos por fecha descendente
-        for fecha in sorted(dias.keys(), reverse=True):
-            tipo = dias[fecha]
-            item = QListWidgetItem(f"📅 {fecha}  ➔  {tipo}")
-            item.setData(Qt.ItemDataRole.UserRole, fecha)
+        for dia in calendario.lista_dias(self.db):          # de la más reciente a la más antigua
+            item = QListWidgetItem(f"📅 {dia['fecha']}  ➔  {dia['texto']}")
+            item.setData(Qt.ItemDataRole.UserRole, dia["fecha"])
             self.lista.addItem(item)
 
     def add_dia(self):
-        f = self.date_edit.date().toString("yyyy-MM-dd")
-        t = self.combo_tipo.currentText()
-        if self.db.marcar_dia_especial(f, t):
-            self.refresh_lista()
+        try:
+            calendario.marcar_dia(self.db, usuarios.SESION_ACTUAL, self.date_edit.date().toString("yyyy-MM-dd"),
+                                  self.combo_tipo.currentData())
+        except ValueError:
+            return
+        self.refresh_lista()
 
     def del_dia(self):
         row = self.lista.currentRow()
         if row >= 0:
-            f = self.lista.item(row).data(Qt.ItemDataRole.UserRole)
-            if self.db.borrar_dia_especial(f):
-                self.refresh_lista()
+            try:
+                calendario.borrar_dia(self.db, usuarios.SESION_ACTUAL, self.lista.item(row).data(Qt.ItemDataRole.UserRole))
+            except ValueError:
+                return
+            self.refresh_lista()
 
 
 # ==========================================

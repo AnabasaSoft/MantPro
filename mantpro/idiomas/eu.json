@@ -1708,5 +1708,8 @@
   "tar_ph_referencia": "Hutsik: erreferentzia kendu",
   "tar_lbl_proveedor": "Hornitzailea:",
   "tar_lbl_referencia": "Erreferentzia:",
-  "tar_msg_referencia_repetida": "Beste artikulu batek badu dagoeneko hornitzaile honen erreferentzia hori."
+  "tar_msg_referencia_repetida": "Beste artikulu batek badu dagoeneko hornitzaile honen erreferentzia hori.",
+  "cal_festivo_oficial": "Jaiegun ofiziala",
+  "cal_aviso_linea": "⚠️ ABISUA: {titulo} [{estado}]",
+  "cal_tiene_foto": "Argazki bat du erantsita"
 }

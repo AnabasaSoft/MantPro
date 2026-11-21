@@ -36,7 +36,7 @@ from ..dialogos.maquinas import DialogoEditarMaquina, DialogoRepuestoMaquina
 from ..widgets.fotos import VisorFoto
 from ..widgets.graficos import GraficoCircularTrabajos
 from ..widgets.ordenables import _ItemArbolOrdenable, _ItemTablaOrdenable
-from ...nucleo import almacen, etiquetas, maquinas, sedes, usuarios
+from ...nucleo import almacen, etiquetas, ficha_maquinas, maquinas, sedes, usuarios
 from ...nucleo.rutas import DATA_DIR
 
 class PestanaMaquinas:
@@ -372,30 +372,14 @@ class PestanaMaquinas:
         if os.path.exists(ruta): VisorFoto(ruta, self).exec()
 
     def _actualizar_indicadores_maquina(self, id_maquina):
-        """Muestra MTBF/MTTR de la máquina seleccionada (y sus submáquinas)."""
+        """Muestra MTBF/MTTR de la máquina seleccionada (y sus submáquinas); lo calcula el núcleo, igual que la web."""
         if not hasattr(self, 'lbl_indicadores_maquina'):
             return
         if id_maquina is None:
             self.lbl_indicadores_maquina.setText("")
             return
-        ind = maquinas.indicadores_fiabilidad(id_maquina)
-        if ind["num_averias"] == 0 or ind["mtbf_dias"] is None:
-            self.lbl_indicadores_maquina.setText(
-                f"<b>{tt('lbl_indicadores_fiabilidad', 'Indicadores de fiabilidad')}</b><br>"
-                f"{tt('lbl_num_averias', 'Averías registradas')}: {ind['num_averias']}<br>"
-                f"<i>{tt('msg_sin_datos_fiabilidad', 'Aún no hay averías suficientes para calcular indicadores.')}</i>"
-            )
-            return
-        mtbf_txt = tt("fmt_dias", "{n:.1f} días").format(n=ind["mtbf_dias"])
-        partes = [
-            f"<b>{tt('lbl_indicadores_fiabilidad', 'Indicadores de fiabilidad')}</b>",
-            f"{tt('lbl_num_averias', 'Averías registradas')}: {ind['num_averias']}",
-            f"{tt('lbl_mtbf', 'MTBF (tiempo medio entre averías)')}: {mtbf_txt}",
-        ]
-        if ind["mttr_horas"] is not None:
-            mttr_txt = tt("fmt_horas", "{n:.1f} horas").format(n=ind["mttr_horas"])
-            partes.append(f"{tt('lbl_mttr', 'MTTR (tiempo medio de reparación)')}: {mttr_txt}")
-        self.lbl_indicadores_maquina.setText("<br>".join(partes))
+        titulo, lineas, nota = ficha_maquinas.indicadores(id_maquina)
+        self.lbl_indicadores_maquina.setText("<br>".join([f"<b>{titulo}</b>"] + lineas + ([f"<i>{nota}</i>"] if nota else [])))
 
     def refrescar_arbol_maquinas(self):
         if hasattr(self, "btn_costes_maquina"):
@@ -404,14 +388,8 @@ class PestanaMaquinas:
         id_seleccionado = item_actual.data(0, Qt.ItemDataRole.UserRole)["id"] if item_actual else None
         self.arbol_maquinas.setSortingEnabled(False)
         self.arbol_maquinas.clear()
-        todas = maquinas.listar_maquinas()
-        por_padre = {}
-        for m in todas:
-            por_padre.setdefault(m["padre_id"], []).append(m)
-        sede = self.sede_filtro()     # solo las máquinas de la sede elegida (las submáquinas van con su raíz)
-        for m in por_padre.get(None, []):
-            if not sedes.de_la_sede(m.get("sede_id"), sede):
-                continue
+        # Solo las máquinas de la sede elegida (las submáquinas van con su raíz); lo decide el núcleo, igual que la web
+        for m in ficha_maquinas.raiz(self.sede_filtro()):
             item = self._crear_nodo_maquina(m)
             self.arbol_maquinas.addTopLevelItem(item)
             if id_seleccionado == m["id"]:
@@ -431,8 +409,9 @@ class PestanaMaquinas:
         return col_maquina, col_anio, col_zona
 
     def _crear_nodo_maquina(self, maquina):
-        total = maquinas.contar_trabajos(maquina["id"])
-        item = _ItemArbolOrdenable([maquina["nombre"], str(total), "", maquina.get("zona_nombre") or ""])
+        """[maquina]: un nodo de ficha_maquinas (id, nombre, trabajos, zona)."""
+        total = maquina["trabajos"]
+        item = _ItemArbolOrdenable([maquina["nombre"], str(total), "", maquina["zona"]])
         item.setData(1, Qt.ItemDataRole.UserRole + 1, total)
         item.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "maquina", "id": maquina["id"], "cargado": False})
         col_maquina, _, col_zona = self._colores_arbol_maquinas()
@@ -448,13 +427,11 @@ class PestanaMaquinas:
         item.takeChildren()
         tipo = datos["tipo"]
         if tipo == "maquina":
-            por_padre = {}
-            for m in maquinas.listar_maquinas():
-                por_padre.setdefault(m["padre_id"], []).append(m)
-            for sub in por_padre.get(datos["id"], []):
+            colgado = ficha_maquinas.hijos(datos["id"])
+            for sub in colgado["submaquinas"]:
                 item.addChild(self._crear_nodo_maquina(sub))
             _, col_anio, _ = self._colores_arbol_maquinas()
-            for anio, cnt in maquinas.anios_de_maquina(datos["id"]):
+            for anio, cnt in colgado["anios"]:
                 nodo = _ItemArbolOrdenable([anio, str(cnt), ""])
                 nodo.setData(1, Qt.ItemDataRole.UserRole + 1, cnt)
                 nodo.setData(0, Qt.ItemDataRole.UserRole, {"tipo": "anio", "id": datos["id"], "anio": anio, "cargado": False})
@@ -462,8 +439,8 @@ class PestanaMaquinas:
                 nodo.addChild(_ItemArbolOrdenable([""]))
                 item.addChild(nodo)
         elif tipo == "anio":
-            for trabajo in maquinas.trabajos_de_maquina_anio(datos["id"], datos["anio"]):
-                resumen = trabajo["descripcion"].splitlines()[0] if trabajo["descripcion"] else ""
+            for trabajo in ficha_maquinas.trabajos_anio(datos["id"], datos["anio"]):
+                resumen = trabajo["resumen"]
                 fecha_fmt = self._formatear_fecha_corta(trabajo["fecha"])
                 nodo = _ItemArbolOrdenable([resumen, "", fecha_fmt])
                 nodo.setData(2, Qt.ItemDataRole.UserRole + 1, trabajo["fecha"])
@@ -501,22 +478,7 @@ class PestanaMaquinas:
         en los desplegables, sumando en cada máquina de nivel superior los trabajos de sus submáquinas."""
         anio = self.combo_anio_grafico.currentData()
         zona_id = self.combo_zona_grafico.currentData()
-        sede = self.sede_filtro()
-        top_level = [m for m in maquinas.listar_maquinas()
-                     if m["padre_id"] is None and sedes.de_la_sede(m.get("sede_id"), sede)]
-        if zona_id is not None:
-            top_level = [m for m in top_level if m["zona_id"] == zona_id]
-
-        def total_trabajos(id_maquina):
-            ids = maquinas.descendientes_ids(id_maquina)
-            if anio is None:
-                return sum(maquinas.contar_trabajos(i) for i in ids)
-            return sum(maquinas.contar_trabajos_anio(i, anio) for i in ids)
-
-        datos_grafico = sorted(
-            ((m["nombre"], total_trabajos(m["id"])) for m in top_level),
-            key=lambda par: par[1], reverse=True,
-        )
+        datos_grafico = ficha_maquinas.grafico(self.sede_filtro(), anio, zona_id)
         self.grafico_trabajos_maquina.establecer_datos(datos_grafico)
 
     def _formatear_fecha_corta(self, fecha_iso):
@@ -561,10 +523,17 @@ class PestanaMaquinas:
         dlg = DialogoEditarMaquina(self, sede_sugerida=self.sede_para_nuevo())
         if dlg.exec():
             datos = dlg.get_data()
-            foto = self._resolver_foto_maquina(datos)
-            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"],
-                                     sede_id=datos["sede_id"])
-            self.refrescar_arbol_maquinas()
+            self._crear_maquina(datos)
+
+    def _crear_maquina(self, datos):
+        """Lo hace el núcleo, igual que MantPro Web (el diálogo ya ha preguntado por los nombres parecidos)."""
+        foto = self._resolver_foto_maquina(datos)
+        try:
+            ficha_maquinas.crear(usuarios.SESION_ACTUAL, datos["nombre"], datos["padre_id"], datos["notas"], foto,
+                                 datos["zona_id"], sede_id=datos["sede_id"], confirmar_parecido=True)
+        except ValueError as e:
+            print(f"No se ha podido crear la máquina: {e}")
+        self.refrescar_arbol_maquinas()
 
     def _maquina_nueva_sub(self):
         item = self.arbol_maquinas.currentItem()
@@ -574,11 +543,7 @@ class PestanaMaquinas:
             return
         dlg = DialogoEditarMaquina(self, padre_sugerido=datos_item["id"])
         if dlg.exec():
-            datos = dlg.get_data()
-            foto = self._resolver_foto_maquina(datos)
-            maquinas.agregar_maquina(datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"],
-                                     sede_id=datos["sede_id"])
-            self.refrescar_arbol_maquinas()
+            self._crear_maquina(dlg.get_data())
 
     def _maquina_editar(self):
         item = self.arbol_maquinas.currentItem()
@@ -592,10 +557,13 @@ class PestanaMaquinas:
         if dlg.exec():
             datos = dlg.get_data()
             foto = self._resolver_foto_maquina(datos)
-            maquinas.actualizar_maquina(datos_item["id"], datos["nombre"], datos["padre_id"], datos["notas"], foto, datos["zona_id"])
-            # Una máquina raíz puede cambiar de sede (con sus submáquinas y sus trabajos)
-            if datos["padre_id"] is None and datos["sede_id"] != sedes.efectiva(maquina.get("sede_id")):
-                sedes.asignar_maquina(datos_item["id"], datos["sede_id"])
+            # Lo hace el núcleo, igual que MantPro Web; una máquina raíz puede cambiar de sede (con sus submáquinas
+            # y sus trabajos)
+            try:
+                ficha_maquinas.editar(usuarios.SESION_ACTUAL, datos_item["id"], datos["nombre"], datos["padre_id"],
+                                      datos["notas"], foto, datos["zona_id"], sede_id=datos["sede_id"], confirmar_parecido=True)
+            except ValueError as e:
+                print(f"No se ha podido guardar la máquina: {e}")
             self.refrescar_arbol_maquinas()
             self._maquina_mostrar_foto_seleccionada()
 
@@ -678,7 +646,8 @@ class PestanaMaquinas:
         if QMessageBox.question(self, t("aviso"),
                 tt("msg_confirmar_eliminar_maquina", "¿Eliminar esta máquina y sus submáquinas?\nLos trabajos ya registrados no se borrarán, quedarán sin máquina asignada.")
                 ) == QMessageBox.StandardButton.Yes:
-            ids = maquinas.descendientes_ids(datos_item["id"])
-            maquinas.borrar_maquina(datos_item["id"])
-            almacen.borrar_repuestos_de_maquinas(ids)
+            try:
+                ficha_maquinas.borrar(usuarios.SESION_ACTUAL, datos_item["id"])   # con sus submáquinas y repuestos
+            except ValueError as e:
+                print(f"No se ha podido borrar la máquina: {e}")
             self.refrescar_arbol_maquinas()

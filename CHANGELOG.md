@@ -30,6 +30,8 @@ Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pr
 - **🗓️ Borrar un preventivo con foto deja el aviso sin completar.** Al borrar del historial un trabajo que venía de completar un aviso recurrente y llevaba foto, el aviso volvía a no aparecer como pendiente para ese día; ahora sí vuelve a estar sin completar, como pasaba con los trabajos sin foto.
 - **🌐 «Trabajo:» traducido al completar un pendiente.** En el diálogo de completar, la cabecera «Trabajo:» salía siempre en español; ahora sale en el idioma elegido.
 - **📝 Desmarcar un aviso queda bien en el registro de cambios.** Al desmarcar en el PC un aviso recurrente que ya se había hecho otras veces, el registro de cambios lo apuntaba como «completar» con la fecha anterior; ahora lo apunta como «descompletar», con la «última vez» de antes y de después.
+- **🗓️ Los días especiales se reconocen en cualquier idioma.** Un día marcado como vacaciones, puente, día libre o festivo con el PC en otro idioma (p. ej. «Holiday (Manual)» en inglés) salía en el calendario sin su color y con el nombre en ese idioma. Ahora se guardan de una forma fija y se enseñan en el idioma de cada uno; los que ya estaban guardados en otro idioma también se reconocen.
+- **🌐 Calendario del todo traducido.** «Festivo Oficial», «⚠️ AVISO:» y «Tiene foto adjunta» salían siempre en español; ahora están en los 8 idiomas. El botón «Gestión Días» de la pestaña solo funciona para administradores, como la opción del menú.
 
 ## 3.10.11 — 2026-11-19
 
