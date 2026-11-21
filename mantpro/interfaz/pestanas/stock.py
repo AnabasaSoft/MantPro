@@ -35,7 +35,7 @@ from ..dialogos.almacen import (DialogoHistorialAlmacen, DialogoConfigurarAlmace
                                 DialogoExportarStock, DialogoMovimientoStock,
                                 DialogoSeleccionarUbicacion)
 from ..widgets.ordenables import _ItemTablaOrdenable
-from ...nucleo import usuarios, almacen, almacenes, consumos, compras, ficha_stock, informe_stock
+from ...nucleo import usuarios, almacen, almacenes, consumos, ficha_stock, informe_stock
 
 class PestanaStock:
     """Pestañas «Stock de almacén» y «Stock bajo mínimo».
@@ -310,26 +310,10 @@ class PestanaStock:
     def _pintar_avisos_pedidos(self):
         """El botón «Pedidos» cuenta los pedidos que piden atención (sin enviar o con
         retraso) de los almacenes de la sede elegida. Solo administradores."""
-        texto = tt("cmp_btn_pedidos", "🛒 Pedidos")
-        if not usuarios.es_admin():
-            self.btn_pedidos.setText(texto); self.btn_pedidos.setToolTip(""); self.btn_pedidos.setStyleSheet("")
-            return
-        try:
-            avisos = compras.avisos_pedidos(almacenes.ids_de_sede(self.sede_filtro()))
-        except Exception:                      # un fallo al leer los pedidos no puede tumbar la pestaña
-            avisos = {"sin_enviar": [], "retrasados": []}
-        n_sin, n_tarde = len(avisos["sin_enviar"]), len(avisos["retrasados"])
-        partes = []
-        if n_sin:
-            partes.append(tt("cmp_aviso_sin_enviar", "{n} sin enviar").format(n=n_sin))
-        if n_tarde:
-            partes.append(tt("cmp_aviso_retrasados", "{n} con retraso").format(n=n_tarde))
-        if partes:
-            self.btn_pedidos.setText(f"{texto} (⚠️ {n_sin + n_tarde})")
-            self.btn_pedidos.setToolTip(tt("cmp_aviso_tooltip", "Pedidos que necesitan atención") + ": " + " · ".join(partes))
-            self.btn_pedidos.setStyleSheet("color: #d35400; font-weight: bold;")
-        else:
-            self.btn_pedidos.setText(texto); self.btn_pedidos.setToolTip(""); self.btn_pedidos.setStyleSheet("")
+        from ...nucleo import ficha_pedidos
+        a = ficha_pedidos.avisos(usuarios.SESION_ACTUAL, almacenes.ids_de_sede(self.sede_filtro()))
+        self.btn_pedidos.setText(a["texto"]); self.btn_pedidos.setToolTip(a["detalle"])
+        self.btn_pedidos.setStyleSheet("color: #d35400; font-weight: bold;" if a["n"] else "")
 
     def _avisar_precio_distinto(self, diferencias):
         """Avisa de que una entrada llega a un precio distinto del que se puso en su pedido."""

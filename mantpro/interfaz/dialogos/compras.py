@@ -23,7 +23,6 @@ pedidos guardados, con su envío por correo, WhatsApp, teléfono o impreso y la
 marca de recibido. Solo para administradores."""
 
 import os
-import re
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
                              QHeaderView, QAbstractItemView, QDialogButtonBox, QMessageBox, QComboBox, QDoubleSpinBox,
@@ -31,21 +30,23 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
 from PyQt6.QtGui import QColor, QDesktopServices
 
-from ... import idiomas
-from ...idiomas import t, formato_fecha_localizada
+from ...idiomas import t
 from ..comun import tt
-from ...nucleo import almacen, almacenes, compras, consumos, proveedores, usuarios
+from ...nucleo import almacenes, compras, consumos, ficha_pedidos, proveedores, usuarios
 from ...nucleo.rutas import DATA_DIR
 
 
 def nombres_estado():
-    return {compras.ESTADO_PEDIDO: tt("cmp_est_pedido", "Pedido"), compras.ESTADO_PARCIAL: tt("cmp_est_parcial", "Parcial"),
-            compras.ESTADO_RECIBIDO: tt("cmp_est_recibido", "Recibido"), compras.ESTADO_CANCELADO: tt("cmp_est_cancelado", "Cancelado")}
+    return {e: ficha_pedidos.nombre_estado(e) for e in (compras.ESTADO_PEDIDO, compras.ESTADO_PARCIAL,
+                                                       compras.ESTADO_RECIBIDO, compras.ESTADO_CANCELADO)}
 
 
 def nombres_canal():
-    return {"correo": tt("cmp_canal_correo", "Correo"), "whatsapp": tt("cmp_canal_whatsapp", "WhatsApp"),
-            "telefono": tt("cmp_canal_telefono", "Teléfono"), "impreso": tt("cmp_canal_impreso", "Impreso")}
+    return {c: ficha_pedidos.nombre_canal(c) for c in compras.CANALES}
+
+
+COLORES = {"recibido": "#2e8b57", "cancelado": "#888888", "sin_enviar": "#d98a00", "retraso": "#c0392b",
+           "sube": "#c0392b", "baja": "#2e8b57"}
 
 
 def _abrir_url(url):
@@ -161,7 +162,7 @@ class DialogoPedidoSugerido(QDialog):
         """Calcula las líneas del almacén elegido (o de todos los visibles)."""
         elegido = self.combo_almacen.currentData()
         ids = [elegido] if elegido is not None else [a["id"] for a in self._almacenes]
-        self._lineas, sin_calculo = compras.lineas_sugeridas(almacen_ids=ids)
+        self._lineas, sin_calculo = ficha_pedidos.sugerido(usuarios.SESION_ACTUAL, ids)
         self.lbl_sin_calculo.setText(tt("cmp_sug_sin_calculo", "{n} artículos por debajo del mínimo no se pueden calcular: no tienen stock mínimo ni objetivo.").format(n=sin_calculo))
         self.lbl_sin_calculo.setVisible(bool(sin_calculo))
         self.chk_agrupar.setEnabled(len({ln["almacen_id"] for ln in self._lineas}) > 1)
@@ -205,8 +206,7 @@ class DialogoPedidoSugerido(QDialog):
         """Al cambiar de proveedor, el precio estimado es el de ese proveedor."""
         ln = self._lineas[fila]
         prov = self.tabla.cellWidget(fila, 6).currentData()
-        material = almacen.obtener_material(ln["material_id"])
-        ln["precio"], ln["referencia"] = compras._ultimo_precio_y_referencia(material, prov)
+        ln["precio"], ln["referencia"] = ficha_pedidos.precio_estimado(ln["material_id"], prov)
         self._actualizar_total()
 
     def _fila_marcada(self, fila):
@@ -265,7 +265,7 @@ class DialogoPedidoSugerido(QDialog):
         elif elegida == a4: self._marcar_todo(False)
 
     def _actualizar_total(self, *_):
-        total, sin_precio = 0.0, False
+        marcados = []
         for fila, ln in enumerate(self._lineas):
             cantidad = self.tabla.cellWidget(fila, 5).value()
             precio = ln["precio"]
@@ -273,13 +273,8 @@ class DialogoPedidoSugerido(QDialog):
             importe = cantidad * precio if precio is not None else None
             self.tabla.item(fila, 8).setText(consumos.formato_importe(importe, self.moneda) if importe is not None else "—")
             if self._fila_marcada(fila):
-                if importe is None:
-                    sin_precio = True
-                else:
-                    total += importe
-        texto = tt("cmp_sug_total", "Total estimado: {importe}").format(importe=consumos.formato_importe(total, self.moneda))
-        if sin_precio:
-            texto += " " + tt("lbl_sin_precio_algunos", "(hay artículos sin precio)")
+                marcados.append(importe)
+        texto = ficha_pedidos.texto_total(marcados)
         self.lbl_total.setText("<b>" + texto + "</b>" if self._lineas else "")
 
     def crear(self):
@@ -288,22 +283,17 @@ class DialogoPedidoSugerido(QDialog):
             if not self._fila_marcada(fila):
                 continue
             cantidad = self.tabla.cellWidget(fila, 5).value()
-            if cantidad <= 0:
-                continue
             elegidas.append({"material_id": ln["material_id"], "cantidad": cantidad, "proveedor_id": self.tabla.cellWidget(fila, 6).currentData(),
                              "precio": ln["precio"], "referencia": ln["referencia"]})
-        if not elegidas:
-            QMessageBox.information(self, tt("aviso", "Aviso"), tt("cmp_msg_nada_marcado", "No hay ninguna línea marcada para pedir."))
-            return
-        if any(e["proveedor_id"] is None for e in elegidas):
-            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("cmp_msg_sin_proveedor", "Hay artículos marcados sin proveedor: elige uno para cada uno o desmárcalos."))
-            return
-        ids, errores = compras.crear_pedidos(elegidas, usuarios.nombre_actual(),
-                                             agrupar=not self.chk_agrupar.isHidden() and self.chk_agrupar.isEnabled()
-                                             and self.chk_agrupar.isChecked())
-        self.pedidos_creados = ids
-        if errores and not ids:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), tt("cmp_msg_no_creado", "No se ha podido crear el pedido."))
+        try:
+            self.pedidos_creados = ficha_pedidos.crear(usuarios.SESION_ACTUAL, elegidas,
+                                                       agrupar=not self.chk_agrupar.isHidden() and self.chk_agrupar.isEnabled()
+                                                       and self.chk_agrupar.isChecked())
+        except ValueError as e:
+            if str(e) == "nada_marcado":
+                QMessageBox.information(self, tt("aviso", "Aviso"), tt("cmp_msg_nada_marcado", "No hay ninguna línea marcada para pedir."))
+            else:
+                QMessageBox.warning(self, tt("aviso", "Aviso"), t(f"cmp_msg_{e}"))
             return
         self.accept()
 
@@ -417,33 +407,19 @@ class DialogoPedidos(QDialog):
     def refrescar(self, seleccionar_id=None):
         previo = seleccionar_id if seleccionar_id is not None else self._pedido_id()
         ids = [a["id"] for a in self._almacenes] if self._almacenes is not None else None
-        self._pedidos = compras.listar_pedidos(solo_abiertos=bool(self.combo_filtro.currentData()), almacen_ids=ids)
-        estados, canales = nombres_estado(), nombres_canal()
+        self._pedidos = ficha_pedidos.filas(usuarios.SESION_ACTUAL, solo_abiertos=bool(self.combo_filtro.currentData()),
+                                            almacen_ids=ids)
         self.tabla.blockSignals(True)
         self.tabla.setRowCount(len(self._pedidos))
         for fila, p in enumerate(self._pedidos):
-            if p["canal"]:
-                enviado = canales.get(p["canal"], p["canal"]) + " · " + formato_fecha_localizada(p["enviado"][:10])
-            else:
-                enviado = tt("cmp_sin_enviar", "Sin enviar")
-            if p.get("dias_retraso"):
-                enviado += " · " + (tt("cmp_retraso_un_dia", "1 día de retraso") if p["dias_retraso"] == 1 else
-                                    tt("cmp_retraso_dias", "{n} días de retraso").format(n=p["dias_retraso"]))
-            importe = consumos.formato_importe(p["importe_estimado"], self.moneda) + (" *" if p["sin_precio"] else "")
-            for col, valor in enumerate((str(p["id"]), formato_fecha_localizada(p["fecha"]), p["proveedor_nombre"], str(len(p["lineas"])),
-                                         estados.get(p["estado"], p["estado"]), enviado, importe,
-                                         p["almacen_nombre"])):
+            for col, valor in enumerate((str(p["id"]), p["fecha"], p["proveedor"], str(p["lineas"]), p["estado_txt"], p["enviado"],
+                                         p["importe"], p["almacen"])):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, p["id"])
-                if col == 5 and not p["canal"] and p["estado"] in compras.ESTADOS_ABIERTOS:
-                    item.setForeground(QColor("#d98a00"))
-                if col == 5 and p.get("dias_retraso"):
-                    item.setForeground(QColor("#c0392b"))
-                if col == 4 and p["estado"] == compras.ESTADO_RECIBIDO:
-                    item.setForeground(QColor("#2e8b57"))
-                if col == 4 and p["estado"] == compras.ESTADO_CANCELADO:
-                    item.setForeground(QColor("#888888"))
+                clase = p["clase_estado"] if col == 4 else p["clase_enviado"] if col == 5 else None
+                if clase:
+                    item.setForeground(QColor(COLORES[clase]))
                 self.tabla.setItem(fila, col, item)
             if p["id"] == previo:
                 self.tabla.selectRow(fila)
@@ -467,28 +443,18 @@ class DialogoPedidos(QDialog):
     def _pintar_lineas(self):
         pid = self._pedido_id()
         p = compras.obtener_pedido(pid) if pid is not None else None
-        lineas = p["lineas"] if p else []
+        lineas = ficha_pedidos.lineas(p) if p else []
         self.tabla_lineas.setRowCount(len(lineas))
-        importe = lambda v: consumos.formato_importe(v, self.moneda) if v is not None else ""
         for fila, ln in enumerate(lineas):
-            unidad = f" {ln['unidad']}" if ln["unidad"] else ""
-            real = ln.get("precio_real")
-            for col, valor in enumerate((ln["codigo"], ln["nombre"], f"{ln['cantidad']:g}{unidad}", f"{ln['recibido']:g}{unidad}",
-                                         ln["referencia"], importe(ln["precio"]), importe(real), ln["almacen_nombre"])):
+            for col, valor in enumerate((ln["codigo"], ln["nombre"], ln["cantidad"], ln["recibido"], ln["referencia"],
+                                         ln["precio"], ln["precio_real"], ln["almacen"])):
                 item = QTableWidgetItem(valor)
-                if col == 3 and ln["recibido"] >= ln["cantidad"] - 1e-9:
-                    item.setForeground(QColor("#2e8b57"))
-                if col == 6 and real is not None and ln["precio"] is not None \
-                        and abs(real - ln["precio"]) >= compras.TOLERANCIA_PRECIO:
-                    item.setForeground(QColor("#c0392b" if real > ln["precio"] else "#2e8b57"))
+                if col == 3 and ln["completo"]:
+                    item.setForeground(QColor(COLORES["recibido"]))
+                if col == 6 and ln["clase_real"]:
+                    item.setForeground(QColor(COLORES[ln["clase_real"]]))
                 self.tabla_lineas.setItem(fila, col, item)
-        texto = ""
-        if p and p.get("con_precio_real"):
-            texto = tt("cmp_lbl_importe_real", "Recibido a precio real: {real}").format(real=importe(p["importe_real"]))
-            if abs(p["diferencia_precio"]) >= compras.TOLERANCIA_PRECIO:
-                signo = "+" if p["diferencia_precio"] > 0 else "−"
-                texto += " · " + tt("cmp_lbl_diferencia", "diferencia con lo estimado: {dif}").format(
-                    dif=signo + importe(abs(p["diferencia_precio"])))
+        texto = ficha_pedidos.texto_precio_real(p)
         self.lbl_precio_real.setText(texto)
         self.lbl_precio_real.setVisible(bool(texto))
 
@@ -505,11 +471,10 @@ class DialogoPedidos(QDialog):
     def _ruta_pdf(self, pedido):
         carpeta = os.path.join(DATA_DIR, "pedidos")
         os.makedirs(carpeta, exist_ok=True)
-        nombre = re.sub(r"[^A-Za-z0-9_-]+", "_", pedido["proveedor_nombre"]).strip("_") or "proveedor"
-        return os.path.join(carpeta, f"pedido_{pedido['id']}_{nombre}.pdf")
+        return os.path.join(carpeta, ficha_pedidos.nombre_pdf(pedido))
 
     def _marcar(self, pedido, canal):
-        compras.marcar_enviado(pedido["id"], canal)
+        ficha_pedidos.marcar_enviado(usuarios.SESION_ACTUAL, pedido["id"], canal)
         self.refrescar(pedido["id"])
 
     def enviar_correo(self):
@@ -564,7 +529,10 @@ class DialogoPedidos(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "cmp_msg_confirmar_recibido", "¿Marcar todo el pedido como recibido? No cambia el stock: las entradas se registran con «📥 Entrada».")) != QMessageBox.StandardButton.Yes:
             return
-        compras.marcar_recibido(p["id"])
+        try:
+            ficha_pedidos.marcar_recibido(usuarios.SESION_ACTUAL, p["id"])
+        except ValueError:
+            pass
         self.refrescar(p["id"])
 
     def cancelar(self):
@@ -574,7 +542,7 @@ class DialogoPedidos(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "cmp_msg_confirmar_cancelar", "¿Cancelar este pedido? Lo que faltaba por llegar dejará de contar como pendiente.")) != QMessageBox.StandardButton.Yes:
             return
-        compras.cancelar_pedido(p["id"])
+        ficha_pedidos.cancelar(usuarios.SESION_ACTUAL, p["id"])
         self.refrescar(p["id"])
 
     def borrar(self):
@@ -584,5 +552,5 @@ class DialogoPedidos(QDialog):
         if QMessageBox.question(self, tt("aviso", "Aviso"), tt(
                 "cmp_msg_confirmar_borrar", "¿Borrar este pedido? Desaparece de la lista y deja de contar como pendiente.")) != QMessageBox.StandardButton.Yes:
             return
-        compras.borrar_pedido(p["id"])
+        ficha_pedidos.borrar(usuarios.SESION_ACTUAL, p["id"])
         self.refrescar()
