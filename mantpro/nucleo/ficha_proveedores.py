@@ -173,3 +173,37 @@ def fijar_referencia(usuario, material_id, proveedor_id, referencia):
     _solo_admin(usuario)
     _material(material_id)
     return _resultado(tarifas.fijar_referencia(material_id, proveedor_id, referencia))
+
+
+# ---------------------------------------------------------------- 📥 Importar tarifa (el análisis está en tarifas.py)
+
+def preparar_tarifa(usuario, proveedor_id, cabeceras, mapeo, fila_cabecera, descuento):
+    """«Siguiente ▶» del asistente: comprueba las columnas (faltan_columnas, columna_repetida) y guarda en el proveedor
+    el descuento general (descuento_no_valido) y las columnas elegidas, que el análisis usa."""
+    _solo_admin(usuario)
+    if proveedores.obtener_proveedor(proveedor_id) is None:
+        raise ValueError("no_existe")
+    if tarifas.faltan_columnas(mapeo):
+        raise ValueError("faltan_columnas")
+    if tarifas.columna_repetida(mapeo):
+        raise ValueError("columna_repetida")
+    try:
+        descuento = tarifas.descuento_general(descuento)
+    except (TypeError, ValueError):
+        raise ValueError("descuento_no_valido") from None
+    _resultado(tarifas.guardar_ajustes(proveedor_id, descuento,
+                                       tarifas.mapeo_a_guardar(cabeceras, mapeo, fila_cabecera)))
+
+
+def aplicar_tarifa(usuario, proveedor_id, filas, mapeo, cambiar=None, enlaces=None, crear=(), fichero=""):
+    """«✅ Aplicar tarifa»: [cambiar] {material_id: bool} lo que el usuario marcó o desmarcó (lo demás, de serie);
+    [crear] referencias de «sin enlazar» que se crean; [enlaces] {referencia: material_id} a mano. Error «nada» si
+    ningún artículo está en el almacén ni se crea ninguno. Devuelve lo de tarifas.aplicar."""
+    _solo_admin(usuario)
+    analisis = tarifas.analizar(proveedor_id, filas, mapeo, enlaces)
+    lista_crear = tarifas.a_crear(analisis, crear)
+    if not analisis["enlazados"] and not lista_crear:
+        raise ValueError("nada")
+    return tarifas.aplicar(proveedor_id, filas, mapeo, cambiar_precio=tarifas.a_cambiar(analisis, cambiar or {}),
+                           enlaces=enlaces, crear=lista_crear, fichero=fichero, usuario_id=usuario.get("id"),
+                           usuario_nombre=usuario.get("nombre") or "")

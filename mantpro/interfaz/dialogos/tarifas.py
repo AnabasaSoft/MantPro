@@ -31,31 +31,14 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdi
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
-from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
 from ...nucleo import tarifas, proveedores, importar, consumos, usuarios
 
-FILAS_VISTA = 500          # filas de «sin enlazar» que se enseñan a la vez (el buscador filtra)
+FILAS_VISTA = tarifas.FILAS_VISTA
 COLOR_SUBE, COLOR_BAJA = "#c0392b", "#2e8b57"
-
-
-def _pct(valor):
-    if valor is None:
-        return ""
-    texto = f"{valor:.1f}"
-    return texto if idiomas.get_idioma() == "en" else texto.replace(".", ",")
-
-
-def texto_aviso(aviso):
-    textos = {
-        "sin_referencia": tt("tar_aviso_sin_referencia", "Fila sin referencia"),
-        "referencia_repetida": tt("tar_aviso_referencia_repetida", "Referencia repetida en la tarifa (se usa la primera)"),
-        "precio_no_valido": tt("tar_aviso_precio_no_valido", "Precio vacío o que no es un número"),
-        "descuento_no_valido": tt("tar_aviso_descuento_no_valido", "Descuento que no se entiende o fuera de 0–100 %"),
-        "articulo_repetido": tt("tar_aviso_articulo_repetido", "Ese artículo ya está enlazado a otra referencia: {otra}"),
-    }
-    return textos.get(aviso["codigo"], aviso["codigo"]).format(otra=aviso.get("otra", ""))
+_pct = tarifas.texto_pct
+texto_aviso = tarifas.texto_aviso
 
 
 class DialogoElegirArticulo(QDialog):
@@ -207,19 +190,13 @@ class DialogoImportarTarifa(QDialog):
         proveedor o la que más columnas reconoce); si no, la del recuadro."""
         if not self.ruta:
             return False
-        guardado = tarifas.ajustes(self.proveedor["id"])["mapeo"]
         fila = None if auto else self.spin_cabecera.value()
         hoja = self.combo_hoja.currentText() or None
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             try:
-                self.cabeceras, self.filas, self.fila_cab = tarifas.leer(self.ruta, hoja, fila)
-                if auto and guardado.get("fila_cabecera"):
-                    # La fila guardada solo si sus cabeceras encajan con las guardadas
-                    cab2, filas2, fc2 = tarifas.leer(self.ruta, hoja, guardado["fila_cabecera"])
-                    if set(importar.normalizar(c) for c in (guardado.get("columnas") or {}).values()) <= \
-                            {importar.normalizar(c) for c in cab2}:
-                        self.cabeceras, self.filas, self.fila_cab = cab2, filas2, fc2
+                self.cabeceras, self.filas, self.fila_cab, mapeo = tarifas.leer_para(self.proveedor["id"], self.ruta,
+                                                                                     hoja, fila)
             except importar.ErrorLectura as e:
                 QMessageBox.warning(self, tt("aviso", "Aviso"), str(e))
                 return False
@@ -228,7 +205,6 @@ class DialogoImportarTarifa(QDialog):
         self.spin_cabecera.blockSignals(True)
         self.spin_cabecera.setValue(self.fila_cab)
         self.spin_cabecera.blockSignals(False)
-        mapeo = tarifas.mapeo_guardado(self.cabeceras, guardado)
         for campo, c in self.combos.items():
             c.clear()
             c.addItem(tt("tar_ninguna", "— ninguna —"), None)
@@ -253,12 +229,12 @@ class DialogoImportarTarifa(QDialog):
 
     def _analizar(self):
         mapeo = self.mapeo()
-        faltan = [tt(f"tar_campo_{c}", c) for c, oblig in tarifas.CAMPOS if oblig and c not in mapeo]
+        faltan = [tt(f"tar_campo_{c}", c) for c in tarifas.faltan_columnas(mapeo)]
         if faltan:
             QMessageBox.warning(self, tt("aviso", "Aviso"),
                                 tt("tar_msg_faltan_columnas", "Falta elegir la columna de: {campos}.").format(campos=", ".join(faltan)))
             return
-        if len(set(mapeo.values())) < len(mapeo):
+        if tarifas.columna_repetida(mapeo):
             QMessageBox.warning(self, tt("aviso", "Aviso"),
                                 tt("tar_msg_columna_repetida", "Una misma columna está elegida para dos datos distintos."))
             return
@@ -349,8 +325,6 @@ class DialogoImportarTarifa(QDialog):
         finally:
             QApplication.restoreOverrideCursor()
         a = self.analisis
-        textos_enlace = {"referencia": tt("tar_enlace_referencia", "Referencia"), "codigo": tt("tar_enlace_codigo", "Código"),
-                         "manual": tt("tar_enlace_manual", "A mano")}
         tb = self.tabla_enl
         tb.blockSignals(True)
         tb.setRowCount(len(a["enlazados"]))
@@ -362,14 +336,14 @@ class DialogoImportarTarifa(QDialog):
             caja.setData(Qt.ItemDataRole.UserRole, x["material_id"])
             tb.setItem(i, 0, caja)
             var = x["variacion"]
-            texto_var = "" if var is None else ("=" if abs(var) < 0.05 else ("▲ " if var > 0 else "▼ ") + _pct(abs(var)) + " %")
+            texto_var, sentido = tarifas.texto_variacion(var)
             nombre = f"{x['codigo']} · {x['nombre']}" if x["codigo"] else x["nombre"]
             valores = (x["referencia"], nombre, self._importe(x["precio_actual"]), self._importe(x["precio_lista"]),
-                       _pct(x["descuento"]), self._importe(x["precio"]), texto_var, textos_enlace.get(x["como"], ""))
+                       _pct(x["descuento"]), self._importe(x["precio"]), texto_var, tarifas.texto_enlace(x["como"]))
             for j, v in enumerate(valores, start=1):
                 item = QTableWidgetItem(v)
-                if j == 7 and var is not None and abs(var) >= 0.05:
-                    item.setForeground(QColor(COLOR_SUBE if var > 0 else COLOR_BAJA))
+                if j == 7 and sentido:
+                    item.setForeground(QColor(COLOR_SUBE if sentido == "sube" else COLOR_BAJA))
                 tb.setItem(i, j, item)
         tb.blockSignals(False)
         self._pintar_sin_enlazar()
@@ -384,20 +358,15 @@ class DialogoImportarTarifa(QDialog):
 
     def _actualizar_resumen(self):
         a = self.analisis
-        n_cambiar = sum(1 for x in a["enlazados"] if self.cambiar.get(x["material_id"], x["cambiar"]))
-        n_crear = sum(1 for x in a["sin_enlazar"] if tarifas._ref(x["referencia"]) in self.crear)
+        n = tarifas.cuentas(a, self.cambiar, self.crear)
         self.lbl_resumen.setText(tt("tar_resumen", "{enl} artículos de la tarifa están en el almacén ({cambiar} con el precio "
                                                    "marcado para cambiar), {sin} no están ({crear} marcados para crear) y {avisos} "
-                                                   "filas tienen avisos.").format(
-            enl=len(a["enlazados"]), cambiar=n_cambiar, sin=len(a["sin_enlazar"]), crear=n_crear, avisos=len(a["avisos"])))
+                                                   "filas tienen avisos.").format(**n))
 
     def _pintar_sin_enlazar(self):
         if self.analisis is None:
             return
-        palabras = importar.normalizar(self.txt_buscar.text()).split()
-        coinciden = [x for x in self.analisis["sin_enlazar"]
-                     if all(w in importar.normalizar(f"{x['referencia']} {x['descripcion']}") for w in palabras)]
-        vista = coinciden[:FILAS_VISTA]
+        vista, total = tarifas.buscar_sin_enlazar(self.analisis, self.txt_buscar.text())
         tb = self.tabla_sin
         tb.blockSignals(True)
         tb.setRowCount(len(vista))
@@ -411,9 +380,9 @@ class DialogoImportarTarifa(QDialog):
             for j, v in enumerate((x["referencia"], x["descripcion"], self._importe(x["precio"])), start=1):
                 tb.setItem(i, j, QTableWidgetItem(v))
         tb.blockSignals(False)
-        if len(coinciden) > len(vista):
+        if total > len(vista):
             self.lbl_sin.setText(tt("tar_mostrando", "Se ven {n} de {total}: usa el buscador para encontrar el resto.").format(
-                n=len(vista), total=len(coinciden)))
+                n=len(vista), total=total))
         else:
             self.lbl_sin.setText(tt("tar_nota_sin_enlazar", "Marca «Crear» para dar de alta el artículo en el almacén principal "
                                                             "(sin stock, con este proveedor como habitual), o enlázalo con uno que ya tengáis."))
@@ -455,8 +424,7 @@ class DialogoImportarTarifa(QDialog):
     # ------------------------------------------------------------ aplicar
     def aplicar(self, confirmar=True):
         a = self.analisis
-        cambiar = [x["material_id"] for x in a["enlazados"] if self.cambiar.get(x["material_id"], x["cambiar"])]
-        crear = [x["referencia"] for x in a["sin_enlazar"] if tarifas._ref(x["referencia"]) in self.crear]
+        cambiar, crear = tarifas.a_cambiar(a, self.cambiar), tarifas.a_crear(a, self.crear)
         if not a["enlazados"] and not crear:
             QMessageBox.information(self, tt("aviso", "Aviso"), tt(
                 "tar_msg_nada", "Ningún artículo de la tarifa está en el almacén ni se ha marcado para crear: no hay nada que aplicar."))

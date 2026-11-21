@@ -44,6 +44,7 @@ import json
 import re
 from datetime import date
 
+from .. import idiomas
 from . import almacen
 from . import importar
 from . import usuarios as _usuarios
@@ -235,7 +236,7 @@ def ajustes(proveedor_id):
 
 def guardar_ajustes(proveedor_id, descuento, mapeo_guardado):
     """Guarda el descuento general y las columnas de la tarifa del proveedor."""
-    descuento = _descuento(descuento)
+    descuento = descuento_general(descuento)
     con = almacen._conn()
     try:
         antes = con.execute("SELECT nombre, descuento FROM proveedores WHERE id = ?", (proveedor_id,)).fetchone()
@@ -386,6 +387,17 @@ def _descuento(v):
         return None
     if not con_signo and 0 < n < 1:
         n *= 100
+    if n < 0 or n > 100:
+        raise ValueError
+    return round(n, 4)
+
+
+def descuento_general(v):
+    """Descuento general del proveedor en % (0–100) o None (vacío o 0). A diferencia de una celda
+    de la tarifa (_descuento), 0,5 es un 0,5 %, no un 50 %. ValueError si no vale."""
+    n = _limpiar_numero(v)
+    if n is None or n == 0:
+        return None
     if n < 0 or n > 100:
         raise ValueError
     return round(n, 4)
@@ -610,3 +622,92 @@ def articulos_para_enlazar(texto="", limite=200):
             if len(resultado) >= limite:
                 break
     return resultado
+
+
+# ------------------------------------------------------------------ el asistente «📥 Importar tarifa…»
+# Lo comparten el diálogo del PC (interfaz/dialogos/tarifas.py) y MantPro Web.
+
+FILAS_VISTA = 500          # filas de «sin enlazar» que se enseñan a la vez (el buscador filtra)
+
+
+def leer_para(proveedor_id, ruta, hoja=None, fila_cabecera=None):
+    """Lee la tarifa para el paso «fichero y columnas»: (cabeceras, filas, fila_cabecera, mapeo).
+    Sin [fila_cabecera] la busca MantPro: la guardada del proveedor si sus cabeceras encajan con
+    las guardadas o, si no, la que más columnas reconoce. [mapeo]: {campo: índice} sugerido (lo
+    guardado del proveedor y, lo demás, por el nombre). importar.ErrorLectura si no se puede leer."""
+    guardado = ajustes(proveedor_id)["mapeo"]
+    cabeceras, filas, fila = leer(ruta, hoja, fila_cabecera)
+    if not fila_cabecera and guardado.get("fila_cabecera"):
+        cab2, filas2, fila2 = leer(ruta, hoja, guardado["fila_cabecera"])
+        if {importar.normalizar(c) for c in (guardado.get("columnas") or {}).values()} <= \
+                {importar.normalizar(c) for c in cab2}:
+            cabeceras, filas, fila = cab2, filas2, fila2
+    return cabeceras, filas, fila, mapeo_guardado(cabeceras, guardado)
+
+
+def faltan_columnas(mapeo):
+    """Campos obligatorios sin columna elegida (en el orden de CAMPOS)."""
+    return [c for c, obligatorio in CAMPOS if obligatorio and mapeo.get(c) is None]
+
+
+def columna_repetida(mapeo):
+    """True si una misma columna está elegida para dos campos."""
+    elegidas = [j for j in mapeo.values() if j is not None]
+    return len(set(elegidas)) < len(elegidas)
+
+
+def a_cambiar(analisis, cambiar):
+    """material_id de los enlazados cuyo precio se cambia: lo que marcó el usuario
+    ([cambiar]: {material_id: bool}) o, si no lo tocó, lo de serie."""
+    return [x["material_id"] for x in analisis["enlazados"] if cambiar.get(x["material_id"], x["cambiar"])]
+
+
+def a_crear(analisis, crear):
+    """Referencias de «sin enlazar» marcadas para crear ([crear]: referencias en cualquier forma)."""
+    crear = {_ref(r) for r in crear}
+    return [x["referencia"] for x in analisis["sin_enlazar"] if _ref(x["referencia"]) in crear]
+
+
+def cuentas(analisis, cambiar, crear):
+    """Los números del resumen: enl, cambiar, sin, crear y avisos."""
+    return {"enl": len(analisis["enlazados"]), "cambiar": len(a_cambiar(analisis, cambiar)),
+            "sin": len(analisis["sin_enlazar"]), "crear": len(a_crear(analisis, crear)),
+            "avisos": len(analisis["avisos"])}
+
+
+def buscar_sin_enlazar(analisis, texto="", limite=FILAS_VISTA):
+    """(líneas que se ven, cuántas coinciden) de «sin enlazar» con todas las palabras de [texto]
+    en la referencia o la descripción."""
+    palabras = importar.normalizar(texto).split()
+    coinciden = [x for x in analisis["sin_enlazar"]
+                 if all(w in importar.normalizar(f"{x['referencia']} {x['descripcion']}") for w in palabras)]
+    return coinciden[:limite], len(coinciden)
+
+
+def texto_pct(valor):
+    """«12,5» (con punto en inglés) o «» si no hay valor."""
+    if valor is None:
+        return ""
+    texto = f"{valor:.1f}"
+    return texto if idiomas.get_idioma() == "en" else texto.replace(".", ",")
+
+
+def texto_variacion(variacion):
+    """(«▲ 12,5 %» / «▼ 3,0 %» / «=» / «», «sube» / «baja» / None) frente al precio del artículo."""
+    if variacion is None:
+        return "", None
+    if abs(variacion) < 0.05:
+        return "=", None
+    return ("▲ " if variacion > 0 else "▼ ") + texto_pct(abs(variacion)) + " %", "sube" if variacion > 0 else "baja"
+
+
+def texto_aviso(aviso):
+    """El texto de un aviso del análisis, en el idioma actual."""
+    clave = f"tar_aviso_{aviso['codigo']}"
+    texto = idiomas.t(clave)
+    return (aviso["codigo"] if texto == clave else texto).format(otra=aviso.get("otra", ""))
+
+
+def texto_enlace(como):
+    """Cómo se enlazó una línea: «Referencia», «Código» o «A mano»."""
+    return idiomas.t(f"tar_enlace_{como}") if como in ("referencia", "codigo", "manual") else ""
