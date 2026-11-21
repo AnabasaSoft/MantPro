@@ -22,14 +22,13 @@
 máquina (con sus submáquinas), en mano de obra (horas × coste de la hora) y en
 repuestos (qué artículos y cuántos), por año."""
 
-from datetime import datetime
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QTableWidget, QLineEdit,
                              QTableWidgetItem, QHeaderView, QAbstractItemView, QSplitter, QFileDialog, QMessageBox)
 from PyQt6.QtCore import Qt
 
 from ...idiomas import t
 from ..comun import tt
-from ...nucleo import consumos, maquinas, mano_obra, usuarios
+from ...nucleo import consumos, costes, maquinas, mano_obra, usuarios
 
 
 class _ItemNumero(QTableWidgetItem):
@@ -119,130 +118,53 @@ class DialogoCosteRepuestos(QDialog):
     def _importe(self, valor, sin_precio):
         return consumos.formato_importe(valor, self.moneda) + (" *" if sin_precio else "")
 
-    def _datos(self):
-        """{maquina_id: datos} sumando a cada máquina lo de sus submáquinas."""
-        anio = self.combo_anio.currentData()
-        con = self.db.conectar()
-        sql = "SELECT id, fecha, maquina_id FROM tareas WHERE maquina_id IS NOT NULL AND " + self._sedes.condicion(self.sede)
-        filas = con.execute(sql + (" AND substr(fecha,1,4)=?" if anio else ""), (anio,) if anio else ()).fetchall()
-        con.close()
-        propios = consumos.consumo_por_tareas(filas)
-        tiempos = mano_obra.tiempos_de([f[0] for f in filas])
-        mano = {}
-        for tid, _fecha, mid in filas:
-            tm = tiempos.get(tid)
-            if not tm:
-                continue
-            m = mano.setdefault(mid, {"horas": 0.0, "importe": 0.0, "sin_precio": False, "trabajos": set()})
-            m["horas"] += tm["horas"]; m["trabajos"].add(tid)
-            if tm["importe"] is None:
-                m["sin_precio"] = True
-            else:
-                m["importe"] += tm["importe"]
-        con_materiales = consumos.materiales_de_trabajos([f[0] for f in filas])
-        trabajos_con_coste = {}
-        for tid, _fecha, mid in filas:
-            if tid in tiempos or tid in con_materiales:
-                trabajos_con_coste.setdefault(mid, set()).add(tid)
-        totales = {}
-        for maq in {m["id"] for m in maquinas.listar_maquinas() if self._sedes.de_la_sede(m.get("sede_id"), self.sede)}:
-            acum = {"importe": 0.0, "sin_precio": False, "trabajos": 0, "articulos": {},
-                    "horas": 0.0, "mano_obra": 0.0, "mano_sin_precio": False}
-            ids_trab = set()
-            for sub in maquinas.descendientes_ids(maq):
-                p = propios.get(sub)
-                if p:
-                    acum["importe"] += p["importe"]; acum["sin_precio"] |= p["sin_precio"]
-                    for clave, a in p["articulos"].items():
-                        d = acum["articulos"].setdefault(clave, {"cantidad": 0.0, "importe": 0.0, "sin_precio": False})
-                        d["cantidad"] += a["cantidad"]; d["importe"] += a["importe"]; d["sin_precio"] |= a["sin_precio"]
-                mo = mano.get(sub)
-                if mo:
-                    acum["horas"] += mo["horas"]; acum["mano_obra"] += mo["importe"]; acum["mano_sin_precio"] |= mo["sin_precio"]
-                ids_trab |= trabajos_con_coste.get(sub, set())
-            acum["trabajos"] = len(ids_trab)
-            if acum["trabajos"]:
-                totales[maq] = acum
-        return totales, propios, mano
-
     def recargar(self):
-        self._totales, propios, mano = self._datos()
-        rutas = maquinas.mapa_rutas_completas()
-        self._orden = sorted(self._totales, key=lambda m: -(self._totales[m]["importe"] + self._totales[m]["mano_obra"]))
+        """Los costes los calcula el núcleo (costes.por_maquina), igual que en MantPro Web."""
+        self._resultado = costes.por_maquina(self.db, self.sede, self.combo_anio.currentData())
+        self._por_id = {d["id"]: d for d in self._resultado["filas"]}
         self.tabla_maq.setSortingEnabled(False)
-        self.tabla_maq.setRowCount(len(self._orden))
-        for fila, mid in enumerate(self._orden):
-            d = self._totales[mid]
-            item = QTableWidgetItem(rutas.get(mid, str(mid))); item.setData(Qt.ItemDataRole.UserRole, mid)
+        self.tabla_maq.setRowCount(len(self._resultado["filas"]))
+        for fila, d in enumerate(self._resultado["filas"]):
+            item = QTableWidgetItem(d["ruta"]); item.setData(Qt.ItemDataRole.UserRole, d["id"])
             self.tabla_maq.setItem(fila, 0, item)
             self.tabla_maq.setItem(fila, 1, _ItemNumero(str(d["trabajos"]), d["trabajos"]))
             self.tabla_maq.setItem(fila, 2, _ItemNumero(f"{d['horas']:.1f}".replace(".", ",") if d["horas"] else "", d["horas"]))
             self.tabla_maq.setItem(fila, 3, _ItemNumero(self._importe(d["mano_obra"], d["mano_sin_precio"]) if d["horas"] else "", d["mano_obra"]))
-            self.tabla_maq.setItem(fila, 4, _ItemNumero(self._importe(d["importe"], d["sin_precio"]) if d["articulos"] else "", d["importe"]))
-            total = d["importe"] + d["mano_obra"]
-            self.tabla_maq.setItem(fila, 5, _ItemNumero(self._importe(total, d["sin_precio"] or d["mano_sin_precio"]), total))
+            self.tabla_maq.setItem(fila, 4, _ItemNumero(self._importe(d["repuestos"], d["sin_precio"]) if d["articulos"] else "", d["repuestos"]))
+            self.tabla_maq.setItem(fila, 5, _ItemNumero(self._importe(d["total"], d["sin_precio"] or d["mano_sin_precio"]), d["total"]))
         self.tabla_maq.setSortingEnabled(True)
         self.tabla_maq.sortItems(5, Qt.SortOrder.DescendingOrder)   # las que más cuestan, arriba
-        total = sum(p["importe"] for p in propios.values()) + sum(m["importe"] for m in mano.values())
-        self.lbl_total.setText(tt("lbl_total_periodo", "Total del periodo") + f": <b>{consumos.formato_importe(total, self.moneda)}</b>")
+        self.lbl_total.setText(tt("lbl_total_periodo", "Total del periodo") + f": <b>{consumos.formato_importe(self._resultado['total'], self.moneda)}</b>")
         fila = next((f for f in range(self.tabla_maq.rowCount())
                      if self.tabla_maq.item(f, 0).data(Qt.ItemDataRole.UserRole) == self._maquina_inicial), 0)
-        if self._orden:
+        if self._resultado["filas"]:
             self.tabla_maq.selectRow(fila)
         self._mostrar_detalle()
 
     def _mostrar_detalle(self):
         item = self.tabla_maq.item(self.tabla_maq.currentRow(), 0) if self.tabla_maq.currentRow() >= 0 else None
-        d = self._totales.get(item.data(Qt.ItemDataRole.UserRole)) if item else None
-        articulos = sorted((d or {}).get("articulos", {}).items(), key=lambda x: -x[1]["importe"])
+        d = self._por_id.get(item.data(Qt.ItemDataRole.UserRole)) if item else None
+        articulos = (d or {}).get("articulos", [])
         self.tabla_art.setSortingEnabled(False)
         self.tabla_art.setRowCount(len(articulos))
-        for fila, ((codigo, nombre, unidad), a) in enumerate(articulos):
-            self.tabla_art.setItem(fila, 0, QTableWidgetItem(nombre))
-            self.tabla_art.setItem(fila, 1, _ItemNumero(f"{a['cantidad']:g} {unidad or ''}".strip(), a["cantidad"]))
+        for fila, a in enumerate(articulos):
+            self.tabla_art.setItem(fila, 0, QTableWidgetItem(a["nombre"]))
+            self.tabla_art.setItem(fila, 1, _ItemNumero(f"{a['cantidad']:g} {a['unidad'] or ''}".strip(), a["cantidad"]))
             self.tabla_art.setItem(fila, 2, _ItemNumero(self._importe(a["importe"], a["sin_precio"]), a["importe"]))
-            self.tabla_art.setItem(fila, 3, QTableWidgetItem(codigo or ""))
+            self.tabla_art.setItem(fila, 3, QTableWidgetItem(a["codigo"] or ""))
         self.tabla_art.setSortingEnabled(True)
         self.tabla_art.sortItems(2, Qt.SortOrder.DescendingOrder)
 
     def _exportar(self):
         try:
-            import xlsxwriter
+            import xlsxwriter  # noqa: F401
         except ImportError:
             QMessageBox.warning(self, t("title_falta_libreria"), t("msg_instalar_xlsxwriter")); return
-        anio = self.combo_anio.currentData() or tt("filtro_todos", "Todos")
-        ruta, _ = QFileDialog.getSaveFileName(self, self.windowTitle(),
-                                              f"{tt('fichero_coste_repuestos', 'Coste_repuestos')}_{anio}.xlsx", "Excel (*.xlsx)")
+        anio = self.combo_anio.currentData()
+        ruta, _ = QFileDialog.getSaveFileName(self, self.windowTitle(), costes.nombre_fichero_maquinas(anio), "Excel (*.xlsx)")
         if not ruta:
             return
         if not ruta.lower().endswith(".xlsx"):
             ruta += ".xlsx"
-        rutas = maquinas.mapa_rutas_completas()
-        libro = xlsxwriter.Workbook(ruta)
-        negrita = libro.add_format({"bold": True, "bg_color": "#2c3e50", "font_color": "white"})
-        dinero = libro.add_format({"num_format": "#,##0.00"})
-        h1 = libro.add_worksheet(tt("hoja_coste_maquinas", "Por máquina")[:31])
-        cab = [tt("hdr_maquina", "Máquina"), tt("hdr_trabajos", "Trabajos"), tt("lbl_horas", "Horas"),
-               f"{tt('lbl_mano_obra', 'Mano de obra')} ({self.moneda})", f"{tt('lbl_repuestos_corto', 'Repuestos')} ({self.moneda})",
-               f"{tt('lbl_total', 'Total')} ({self.moneda})"]
-        for c, txt in enumerate(cab): h1.write(0, c, txt, negrita)
-        for f, mid in enumerate(self._orden, start=1):
-            d = self._totales[mid]
-            h1.write(f, 0, rutas.get(mid, str(mid))); h1.write(f, 1, d["trabajos"]); h1.write(f, 2, round(d["horas"], 2))
-            h1.write(f, 3, d["mano_obra"], dinero); h1.write(f, 4, d["importe"], dinero)
-            h1.write(f, 5, d["mano_obra"] + d["importe"], dinero)
-        h1.set_column(0, 0, 45); h1.set_column(1, 5, 16)
-        h2 = libro.add_worksheet(tt("hoja_coste_articulos", "Por artículo")[:31])
-        cab2 = [tt("hdr_maquina", "Máquina"), tt("aud_f_codigo", "Código"), tt("lbl_material", "Artículo"),
-                tt("lbl_cantidad", "Cantidad"), tt("lbl_unidad", "Unidad"), f"{tt('lbl_importe', 'Importe')} ({self.moneda})"]
-        for c, txt in enumerate(cab2): h2.write(0, c, txt, negrita)
-        f = 1
-        for mid in self._orden:
-            for (codigo, nombre, unidad), a in self._totales[mid]["articulos"].items():
-                for c, v in enumerate((rutas.get(mid, str(mid)), codigo or "", nombre, a["cantidad"], unidad or "")):
-                    h2.write(f, c, v)
-                h2.write(f, 5, a["importe"], dinero); f += 1
-        h2.set_column(0, 0, 40); h2.set_column(1, 1, 14); h2.set_column(2, 2, 40); h2.set_column(3, 5, 14)
-        h1.write(len(self._orden) + 2, 0, f"{tt('lbl_anio', 'Año')}: {anio} · {datetime.now().strftime('%Y-%m-%d')}")
-        libro.close()
+        costes.excel_por_maquina(ruta, self._resultado, anio)       # el mismo Excel que descarga MantPro Web
         QMessageBox.information(self, t("title_exportado"), tt("msg_coste_exportado", "Exportado en:\n{ruta}").format(ruta=ruta))

@@ -262,3 +262,148 @@ def quitar_repuesto(usuario, maquina_id, material_id):
         raise ValueError("repuesto_no_existe")
     almacen.quitar_repuesto(maquina_id, material_id)
     return True
+
+
+# ---------------------------------------------------------------- etiquetas QR
+
+MODOS_ETIQUETAS = ("una", "rama", "todas")
+
+
+def ids_etiquetas(usuario, modo, maquina_id=None):
+    """De qué máquinas se hacen las etiquetas QR (lo que pregunta «🏷️ Etiquetas QR»): «una» (la elegida), «rama» (la
+    elegida y sus submáquinas) o «todas»; de las sedes que ve el usuario, ordenadas por su ruta completa."""
+    if modo not in MODOS_ETIQUETAS:
+        raise ValueError("modo_no_valido")
+    rutas = maquinas.mapa_rutas_completas()
+    permitidas = sedes.permitidas(usuario)
+    if modo == "todas":
+        vistas = [m["id"] for m in maquinas.listar_maquinas() if sedes.de_la_sede(m.get("sede_id"), permitidas)]
+        return sorted(vistas, key=lambda i: rutas.get(i, "").lower())
+    visible(usuario, maquina_id)
+    if modo == "una":
+        return [maquina_id]
+    subs = [i for i in maquinas.descendientes_ids(maquina_id) if i != maquina_id]
+    return [maquina_id] + sorted(subs, key=lambda i: rutas.get(i, "").lower())
+
+
+# ---------------------------------------------------------------- contadores («📟 Contadores de …»)
+
+def fecha_hora(iso):
+    """AAAA-MM-DDTHH:MM:SS → la fecha corta del idioma y la hora («21/11/2026 10:30»)."""
+    from datetime import datetime
+    if not iso:
+        return ""
+    try:
+        d = datetime.fromisoformat(iso)
+    except ValueError:
+        return iso
+    return d.strftime(idiomas.formato_fecha_corta_py()) + d.strftime(" %H:%M")
+
+
+def contadores_de(maquina_id):
+    """Los contadores de la máquina para la tabla del diálogo: los de contadores.listar_contadores más los textos de
+    Lectura, Última lectura y Uso medio/día («—» si no hay)."""
+    from . import contadores
+    lista = []
+    for c in contadores.listar_contadores(maquina_id):
+        ritmo = contadores.ritmo_diario(c["id"])
+        lista.append(dict(c, lectura_txt=contadores.con_unidad(c["actual"], c["unidad"]) if c["actual"] is not None else "—",
+                          fecha_txt=fecha_hora(c["fecha_actual"]),
+                          ritmo_txt=contadores.con_unidad(round(ritmo, 1), c["unidad"]) if ritmo else "—"))
+    return lista
+
+
+def contador_visible(usuario, contador_id):
+    """El contador si es de una máquina que ve el usuario; si no, ValueError("no_encontrado")."""
+    from . import contadores
+    c = contadores.obtener_contador(contador_id) if contador_id is not None else None
+    if not c:
+        raise ValueError("no_encontrado")
+    visible(usuario, c["maquina_id"])
+    return c
+
+
+def _solo_admin(usuario):
+    from . import usuarios
+    if not usuarios.es_admin(usuario):
+        raise ValueError("solo_admin")
+
+
+def _lectura(valor):
+    from . import avisos
+    return avisos.lectura(valor)
+
+
+def crear_contador(usuario, maquina_id, nombre, unidad="", inicial=None):
+    """«➕ Nuevo contador» (administradores): nombre obligatorio y, si se escribe, la lectura actual."""
+    from . import contadores
+    _solo_admin(usuario)
+    visible(usuario, maquina_id)
+    nombre = (nombre or "").strip()
+    if not nombre:
+        raise ValueError("nombre_obligatorio")
+    nuevo = contadores.crear_contador(maquina_id, nombre[:100], (unidad or "").strip()[:20], _lectura(inicial), usuario=usuario)
+    if not nuevo:
+        raise ValueError("no_guardado")
+    return nuevo
+
+
+def editar_contador(usuario, contador_id, nombre, unidad=""):
+    from . import contadores
+    _solo_admin(usuario)
+    contador_visible(usuario, contador_id)
+    nombre = (nombre or "").strip()
+    if not nombre:
+        raise ValueError("nombre_obligatorio")
+    contadores.editar_contador(contador_id, nombre[:100], (unidad or "").strip()[:20])
+    return True
+
+
+def borrar_contador(usuario, contador_id):
+    """Borra el contador y sus lecturas; no si lo usa algún preventivo («contador_en_uso»)."""
+    from . import contadores
+    _solo_admin(usuario)
+    c = contador_visible(usuario, contador_id)
+    if c["n_avisos"]:
+        raise ValueError("contador_en_uso")
+    if not contadores.borrar_contador(contador_id):
+        raise ValueError("no_guardado")
+    return True
+
+
+def apuntar_lectura(usuario, contador_id, valor, confirmar_menor=False):
+    """«📟 Apuntar lectura» (quien puede hacer trabajos): un número no negativo; si es menor que la última, se avisa
+    («lectura_menor») salvo que se confirme (el contador se ha cambiado o puesto a cero)."""
+    from . import contadores, usuarios
+    if not usuarios.puede_hacer_trabajos(usuario):
+        raise ValueError("solo_tecnicos")
+    c = contador_visible(usuario, contador_id)
+    valor = _lectura(valor)
+    if valor is None:
+        raise ValueError("lectura_no_valida")
+    if not confirmar_menor and c["actual"] is not None and valor < c["actual"]:
+        raise ValueError("lectura_menor")
+    if not contadores.registrar_lectura(contador_id, valor, usuario=usuario, origen="pc"):
+        raise ValueError("no_guardado")
+    return True
+
+
+def lecturas_de(contador_id):
+    """El historial de lecturas del contador (más recientes primero) con los textos de la tabla del PC."""
+    from . import contadores
+    c = contadores.obtener_contador(contador_id) or {"unidad": ""}
+    origenes = {"pc": idiomas.t("origen_pc"), "movil": idiomas.t("origen_movil")}
+    return [dict(l, fecha_txt=fecha_hora(l["fecha"]), valor_txt=contadores.con_unidad(l["valor"], c["unidad"]),
+                 origen_txt=origenes.get(l["origen"], l["origen"] or ""))
+            for l in contadores.lecturas(contador_id)]
+
+
+def borrar_lectura(usuario, contador_id, lectura_id):
+    """Borra una lectura mal puesta (administradores)."""
+    from . import contadores
+    _solo_admin(usuario)
+    contador_visible(usuario, contador_id)
+    if lectura_id not in {l["id"] for l in contadores.lecturas(contador_id)}:
+        raise ValueError("no_encontrado")
+    contadores.borrar_lectura(lectura_id)
+    return True

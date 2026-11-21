@@ -30,7 +30,7 @@ from PyQt6.QtCore import Qt
 
 from ... import idiomas
 from ..comun import tt
-from ...nucleo import contadores, usuarios
+from ...nucleo import contadores, ficha_maquinas, usuarios
 
 
 def _fecha_hora(iso):
@@ -217,7 +217,10 @@ class DialogoLecturas(QDialog):
         if QMessageBox.question(self, self.windowTitle(), tt("msg_borrar_lectura", "¿Borrar la lectura {valor} del {fecha}?").format(
                 valor=self.tabla.item(fila, 1).text(), fecha=self.tabla.item(fila, 0).text())) != QMessageBox.StandardButton.Yes:
             return
-        contadores.borrar_lectura(lectura_id)
+        try:
+            ficha_maquinas.borrar_lectura(usuarios.SESION_ACTUAL, self.contador_id, lectura_id)   # igual que la web
+        except ValueError as e:
+            print(f"No se ha podido borrar la lectura: {e}")
         self._cargar()
 
 
@@ -293,8 +296,15 @@ class DialogoContadores(QDialog):
         dlg = DialogoEditarContador(self)
         if dlg.exec():
             nombre, unidad, inicial = dlg.datos()
-            contadores.crear_contador(self.maquina_id, nombre, unidad, inicial)
-            self.cambiado = True; self._cargar()
+            self._hacer(ficha_maquinas.crear_contador, self.maquina_id, nombre, unidad, inicial)
+
+    def _hacer(self, funcion, *args, **kwargs):
+        """Lo hace el núcleo (ficha_maquinas), igual que MantPro Web."""
+        try:
+            funcion(usuarios.SESION_ACTUAL, *args, **kwargs)
+        except ValueError as e:
+            print(f"Contadores: {e}")
+        self.cambiado = True; self._cargar()
 
     def _editar(self):
         c = self._seleccionado()
@@ -302,8 +312,7 @@ class DialogoContadores(QDialog):
         dlg = DialogoEditarContador(self, c["nombre"], c["unidad"], nuevo=False)
         if dlg.exec():
             nombre, unidad, _ = dlg.datos()
-            contadores.editar_contador(c["id"], nombre, unidad)
-            self.cambiado = True; self._cargar()
+            self._hacer(ficha_maquinas.editar_contador, c["id"], nombre, unidad)
 
     def _borrar(self):
         c = self._seleccionado()
@@ -317,16 +326,14 @@ class DialogoContadores(QDialog):
                 "msg_borrar_contador", "¿Borrar el contador «{contador}» y todas sus lecturas?").format(contador=c["nombre"])) \
                 != QMessageBox.StandardButton.Yes:
             return
-        contadores.borrar_contador(c["id"])
-        self.cambiado = True; self._cargar()
+        self._hacer(ficha_maquinas.borrar_contador, c["id"])
 
     def _lectura(self):
         c = self._seleccionado()
         if not c or not usuarios.puede_hacer_trabajos(): return
         ok, valor = pedir_lectura(self, c)
-        if ok and valor is not None:
-            contadores.registrar_lectura(c["id"], valor, origen="pc")
-            self.cambiado = True; self._cargar()
+        if ok and valor is not None:   # el diálogo ya ha preguntado si es menor que la última
+            self._hacer(ficha_maquinas.apuntar_lectura, c["id"], valor, confirmar_menor=True)
 
     def _historial(self):
         c = self._seleccionado()

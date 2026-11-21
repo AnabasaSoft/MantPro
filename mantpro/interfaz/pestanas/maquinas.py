@@ -551,14 +551,17 @@ class PestanaMaquinas:
         msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
         msg.exec()
         pulsado = msg.clickedButton()
-        rutas = maquinas.mapa_rutas_completas()
         if pulsado is b_una and b_una is not None:
-            ids = [seleccionada]
+            modo = "una"
         elif pulsado is b_rama and b_rama is not None:
-            ids = [seleccionada] + sorted(maquinas.descendientes_ids(seleccionada), key=lambda i: rutas.get(i, "").lower())
+            modo = "rama"
         elif pulsado is b_todas:
-            ids = sorted(rutas, key=lambda i: rutas[i].lower())
+            modo = "todas"
         else:
+            return
+        try:   # de qué máquinas: lo decide el núcleo, igual que MantPro Web (las de las sedes que ve el usuario)
+            ids = ficha_maquinas.ids_etiquetas(usuarios.SESION_ACTUAL, modo, seleccionada)
+        except ValueError:
             return
         if not ids:
             return
