@@ -396,7 +396,7 @@ def activar(sede_id, activa):
 
 def borrar(sede_id):
     """Borra una sede sin datos. Devuelve None o el código de error:
-    'es_principal' o 'en_uso' (entonces se puede desactivar)."""
+    'es_principal', 'en_uso' (entonces se puede desactivar) o 'con_almacenes'."""
     s = obtener(sede_id)
     if not s:
         return None
@@ -404,6 +404,10 @@ def borrar(sede_id):
         return "es_principal"
     if any(en_uso(sede_id).values()):
         return "en_uso"
+    # Sus almacenes (en la base del almacén) se quedarían sin sede: primero hay que moverlos o borrarlos
+    from . import almacenes
+    if any(a.get("sede_id") == sede_id and not a.get("comun") for a in almacenes.listar(incluir_inactivos=True)):
+        return "con_almacenes"
     con = _conn()
     con.execute("DELETE FROM usuario_sedes WHERE sede_id = ?", (sede_id,))
     con.execute("DELETE FROM sedes WHERE id = ?", (sede_id,))

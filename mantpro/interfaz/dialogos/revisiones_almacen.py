@@ -22,73 +22,26 @@
 revisión de los artículos que propone MantPro Stock (los 5 al azar), si los
 revisó todos, y qué cantidad contó frente a la que decía el sistema."""
 
-import csv
 import os
-from datetime import date
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton,
                              QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView, QSplitter,
                              QFileDialog, QMessageBox, QWidget, QCheckBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
-from ...idiomas import t, formato_fecha_localizada
+from ...idiomas import t
 from ..comun import tt
+from ...nucleo import informe_revisiones as inf, registro_cambios, usuarios
 from ...nucleo import revisiones_almacen as rev
 
 
-VENTANA_AVISO_DIAS = 7       # días hacia atrás que mira el aviso de «sin revisión»
-VENTANA_MOVILES_DIAS = 30    # días hacia atrás de la lista de móviles que revisan
-
-
-def texto_dias_sin_revision(festivos=()):
-    """Aviso de los días laborables sin ninguna revisión del almacén, o ""
-    si no falta ninguno."""
-    faltan = rev.dias_sin_revision(VENTANA_AVISO_DIAS, festivos=festivos)
-    if not faltan:
-        return ""
-    return tt("rev_aviso_dias", "Sin revisión del almacén en los últimos {n} días (laborables): {dias}.").format(
-        n=VENTANA_AVISO_DIAS, dias=", ".join(formato_fecha_localizada(d) for d in faltan))
-
-
-def texto_avisos(sede=None, festivos_de=None, almacen_id=None):
-    """Avisos de los almacenes que se ven desde [sede] (o solo [almacen_id]) con
-    periodos de su ciclo sin revisar, o "" si no falta ninguno."""
-    from .almacenes import texto_ciclo
-
-    def periodo(inicio, fin):
-        if inicio == fin:
-            return formato_fecha_localizada(inicio)
-        return f"{formato_fecha_localizada(inicio)} – {formato_fecha_localizada(fin)}"
-
-    lineas = []
-    for aviso in rev.avisos(sede, festivos_de=festivos_de):
-        a = aviso["almacen"]
-        if almacen_id is not None and a["id"] != almacen_id:
-            continue
-        lineas.append(tt("rev_aviso_almacen", "⚠️ {almacen} ({ciclo}) sin revisar: {periodos}.").format(
-            almacen=a["nombre"], ciclo=texto_ciclo(a).lower(), periodos=", ".join(periodo(i, f) for i, f in aviso["faltan"])))
-    return "\n".join(lineas)
-
-
-def texto_moviles():
-    """Móviles que han hecho revisiones, con quién las hizo y cuándo fue la
-    última, o "" si ninguno ha revisado en el periodo."""
-    moviles = rev.moviles_que_revisan(VENTANA_MOVILES_DIAS)
-    if not moviles:
-        return ""
-    lineas = [tt("rev_moviles_linea", "{movil} ({usuario}) · última: {fecha} · {n} revisiones").format(
-        movil=m["dispositivo"], usuario=m["usuario_nombre"] or "—",
-        fecha=formato_fecha_localizada(m["ultima_fecha"]), n=m["revisiones"]) for m in moviles]
-    return tt("rev_moviles_titulo", "📱 Móviles que han revisado en los últimos {n} días:").format(
-        n=VENTANA_MOVILES_DIAS) + "\n" + "\n".join(lineas)
-
-
-def nombres_estado():
-    return {
-        rev.ESTADO_COMPLETA: tt("rev_estado_completa", "✅ Completa"),
-        rev.ESTADO_PARCIAL: tt("rev_estado_parcial", "⚠️ Incompleta"),
-        rev.ESTADO_SIN_EMPEZAR: tt("rev_estado_sin_empezar", "❌ Sin revisar"),
-    }
+# Los textos, las filas y la exportación están en el núcleo (los comparte con MantPro Web)
+VENTANA_AVISO_DIAS = inf.VENTANA_AVISO_DIAS
+VENTANA_MOVILES_DIAS = inf.VENTANA_MOVILES_DIAS
+texto_dias_sin_revision = inf.texto_dias_sin_revision
+texto_avisos = inf.texto_avisos
+texto_moviles = inf.texto_moviles
+nombres_estado = inf.nombres_estado
 
 
 COLORES_ESTADO = {
@@ -96,24 +49,6 @@ COLORES_ESTADO = {
     rev.ESTADO_PARCIAL: QColor("#d98a00"),
     rev.ESTADO_SIN_EMPEZAR: QColor("#c0392b"),
 }
-
-
-def _numero(valor):
-    if valor is None:
-        return "—"
-    return f"{valor:g}"
-
-
-def _diferencia(valor):
-    if valor is None:
-        return "—"
-    return f"{valor:+g}" if valor else "0"
-
-
-def _actividad(texto):
-    """«2026-11-04 08:15:02» → fecha del idioma + hora."""
-    fecha, _, hora = (texto or "").partition(" ")
-    return f"{formato_fecha_localizada(fecha)} {hora[:5]}".strip()
 
 
 class DialogoRevisionesAlmacen(QDialog):
@@ -135,14 +70,12 @@ class DialogoRevisionesAlmacen(QDialog):
         for uid, nombre in rev.usuarios_con_revisiones():
             self.combo_usu.addItem(nombre, uid)
         self.combo_periodo = QComboBox()
-        for texto, dias in ((tt("aud_periodo_7", "Últimos 7 días"), 7), (tt("aud_periodo_30", "Últimos 30 días"), 30),
-                            (tt("aud_periodo_365", "Último año"), 365), (tt("aud_periodo_todo", "Todo"), None)):
+        for dias, texto in registro_cambios.textos_periodo():
             self.combo_periodo.addItem(texto, dias)
         self.combo_periodo.setCurrentIndex(1)
         self.combo_estado = QComboBox(); self.combo_estado.addItem(tt("filtro_todas", "Todas"), None)
-        self.combo_estado.addItem(tt("rev_filtro_completas", "Completas"), [rev.ESTADO_COMPLETA])
-        self.combo_estado.addItem(tt("rev_filtro_incompletas", "Incompletas o sin revisar"),
-                                  [rev.ESTADO_PARCIAL, rev.ESTADO_SIN_EMPEZAR])
+        for clave, (_estados, texto) in inf.FILTROS_ESTADO.items():
+            self.combo_estado.addItem(tt(texto, texto), clave)
         for etiqueta, widget in ((tt("aud_usuario", "Usuario"), self.combo_usu), (tt("aud_periodo", "Periodo"), self.combo_periodo),
                                  (tt("rev_col_estado", "Estado"), self.combo_estado)):
             f.addWidget(QLabel(etiqueta + ":")); f.addWidget(widget)
@@ -271,39 +204,11 @@ class DialogoRevisionesAlmacen(QDialog):
         self.recargar()
 
     def _cambiar_revision_sede(self, activa):
-        from ...nucleo import sedes
-        sedes.fijar_revision(self.combo_sede.currentData(), activa)
+        try:
+            inf.fijar_revision_sede(usuarios.SESION_ACTUAL, self.combo_sede.currentData(), activa)
+        except ValueError:
+            QMessageBox.warning(self, t("title_error"), t("msg_solo_admin"))
         self.recargar()
-
-    def _almacen(self, almacen_id):
-        """Datos del almacén (con caché: se piden muchas veces al pintar)."""
-        from ...nucleo import almacenes
-        if not hasattr(self, "_cache_almacenes"):
-            self._cache_almacenes = {a["id"]: a for a in almacenes.listar(incluir_inactivos=True)}
-        return self._cache_almacenes.get(almacen_id)
-
-    def _nombre_almacen(self, almacen_id):
-        a = self._almacen(almacen_id)
-        return a["nombre"] if a else "—"
-
-    def _sede_de_almacen(self, almacen_id):
-        """Sede del almacén («Común (todas las sedes)» si es común)."""
-        from ...nucleo import sedes
-        from .almacenes import _nombre_sede
-        a = self._almacen(almacen_id)
-        if not a:
-            return "—"
-        if not hasattr(self, "_nombres_sedes"):
-            self._nombres_sedes = sedes.nombres()
-        return _nombre_sede(a, self._nombres_sedes) or "—"
-
-    def _almacen_ids(self):
-        from ...nucleo import almacenes
-        elegido = self.combo_almacen.currentData()
-        if elegido is not None:
-            return [elegido]
-        sede = self._sede()
-        return None if sede is None else [a["id"] for a in almacenes.listar(sede)]
 
     def _pintar_aviso(self):
         texto = texto_avisos(self._sede(), self._festivos_de, self.combo_almacen.currentData())
@@ -311,32 +216,26 @@ class DialogoRevisionesAlmacen(QDialog):
         self.lbl_aviso.setVisible(bool(texto))
 
     def _filtros(self):
-        return dict(dias=self.combo_periodo.currentData(), usuario_id=self.combo_usu.currentData(),
-                    estado=self.combo_estado.currentData(), almacen_ids=self._almacen_ids())
+        return inf.filtros(self.combo_periodo.currentData(), self.combo_usu.currentData(),
+                           self.combo_estado.currentData(), self._sede(), self.combo_almacen.currentData())
 
     def recargar(self):
-        self._revisiones = rev.listar_revisiones(limite=5000, **self._filtros())
+        self._revisiones, self._cuentas = inf.filas(self._filtros())
         self._pintar_aviso()
         self._pintar()
 
     def _pintar(self):
-        estados = nombres_estado()
         self.tabla.setRowCount(len(self._revisiones))
-        cuentas = {rev.ESTADO_COMPLETA: 0, rev.ESTADO_PARCIAL: 0, rev.ESTADO_SIN_EMPEZAR: 0}
         for fila, r in enumerate(self._revisiones):
-            cuentas[r["estado"]] += 1
-            celdas = [formato_fecha_localizada(r["fecha"]), r["usuario_nombre"] or "—", r["dispositivo"] or "—",
-                      f"{r['revisados']}/{r['total']}  {estados[r['estado']]}",
-                      str(r["ajustados"]) if r["revisados"] else "—", _actividad(r["actualizada"]), r["almacen_nombre"],
-                      self._sede_de_almacen(r["almacen_id"])]
+            celdas = [r["fecha"], r["usuario"], r["movil"], r["revisados"], r["ajustados"], r["actividad"],
+                      r["almacen"], r["sede"]]
             for col, texto in enumerate(celdas):
                 item = QTableWidgetItem(texto)
                 if col == 3:
                     item.setForeground(COLORES_ESTADO[r["estado"]])
                 self.tabla.setItem(fila, col, item)
         self.lbl_total.setText(tt("rev_total", "{n} revisiones").format(n=len(self._revisiones)))
-        self.lbl_resumen.setText(tt("rev_resumen", "Completas: {c} · Incompletas: {i} · Sin revisar: {s}").format(
-            c=cuentas[rev.ESTADO_COMPLETA], i=cuentas[rev.ESTADO_PARCIAL], s=cuentas[rev.ESTADO_SIN_EMPEZAR]))
+        self.lbl_resumen.setText(inf.texto_resumen(self._cuentas))
         if self._revisiones:
             self.tabla.selectRow(0)
         self._mostrar_detalle()
@@ -350,82 +249,37 @@ class DialogoRevisionesAlmacen(QDialog):
             self.tabla_lineas.setVisible(False)
             return
         self.tabla_lineas.setVisible(True)
-        self.lbl_detalle.setText(f"<b>{formato_fecha_localizada(r['fecha'])}</b> · {r['usuario_nombre'] or '—'}"
-                                 f" · {r['dispositivo'] or '—'} · {r['revisados']}/{r['total']}")
-        lineas = rev.lineas_de_revision(r["id"])
+        self.lbl_detalle.setText(f"<b>{r['fecha']}</b> · {r['usuario']} · {r['movil']} · {r['revisados_n']}")
+        lineas = inf.lineas(r["id"])
         self.tabla_lineas.setRowCount(len(lineas))
         for i, ln in enumerate(lineas):
-            articulo = f"{ln['codigo']} · {ln['nombre']}" if ln["codigo"] else ln["nombre"]
-            unidad = f" {ln['unidad']}" if ln["unidad"] else ""
-            estado = tt("rev_linea_revisada", "✅ Revisado") + (f" {ln['fecha_revision'][11:16]}" if ln["fecha_revision"] else "") \
-                if ln["revisado"] else tt("rev_linea_pendiente", "❌ Sin revisar")
-            celdas = [articulo, ln["ubicacion"] or "—", _numero(ln["cantidad_sistema"]) + unidad,
-                      (_numero(ln["cantidad_contada"]) + unidad) if ln["revisado"] else "—",
-                      _diferencia(ln["diferencia"]), estado, self._nombre_almacen(ln["almacen_id"]),
-                      self._sede_de_almacen(ln["almacen_id"])]
+            celdas = [ln["articulo"], ln["ubicacion"], ln["sistema"], ln["contado"], ln["diferencia"], ln["estado"],
+                      ln["almacen"], ln["sede"]]
             for col, texto in enumerate(celdas):
                 item = QTableWidgetItem(texto)
-                if col == 4 and ln["diferencia"]:
+                if col == 4 and ln["con_diferencia"]:
                     item.setForeground(QColor("#c0392b"))
                 if col == 5:
                     item.setForeground(COLORES_ESTADO[rev.ESTADO_COMPLETA if ln["revisado"] else rev.ESTADO_SIN_EMPEZAR])
                 self.tabla_lineas.setItem(i, col, item)
 
     # ----------------------------------------------------------- exportar
-    def _cabecera_export(self):
-        return [tt("lbl_fecha", "Fecha"), tt("aud_usuario", "Usuario"), tt("rev_col_movil", "Móvil"),
-                tt("rev_col_estado", "Estado"), tt("rev_col_revisados", "Revisados"), tt("rev_col_articulo", "Artículo"),
-                tt("lbl_ubicacion", "Ubicación"), tt("rev_col_sistema", "En el sistema"), tt("rev_col_contado", "Contado"),
-                tt("rev_col_diferencia", "Diferencia"), tt("rev_linea_estado", "Revisado"), tt("lbl_almacen", "Almacén"),
-                tt("alm_lbl_sede", "Sede")]
+    _cabecera_export = staticmethod(inf.cabecera_exportar)
 
     def _filas_export(self):
-        """Una fila por artículo propuesto."""
-        estados = nombres_estado()
-        si, no = tt("rev_si", "Sí"), tt("rev_no", "No")
-        for r in rev.listar_revisiones(limite=100000, **self._filtros()):
-            for ln in rev.lineas_de_revision(r["id"]):
-                articulo = f"{ln['codigo']} · {ln['nombre']}" if ln["codigo"] else ln["nombre"]
-                yield [formato_fecha_localizada(r["fecha"]), r["usuario_nombre"], r["dispositivo"],
-                       estados[r["estado"]], f"{r['revisados']}/{r['total']}", articulo, ln["ubicacion"],
-                       ln["cantidad_sistema"] if ln["cantidad_sistema"] is not None else "",
-                       ln["cantidad_contada"] if ln["revisado"] and ln["cantidad_contada"] is not None else "",
-                       ln["diferencia"] if ln["diferencia"] is not None else "", si if ln["revisado"] else no,
-                       self._nombre_almacen(ln["almacen_id"]), self._sede_de_almacen(ln["almacen_id"])]
+        return inf.filas_exportar(self._filtros())
 
     def _exportar(self):
-        cab = self._cabecera_export()
-        nombre = f"{tt('rev_fichero', 'Revisiones_del_almacen')}_{date.today().strftime('%Y%m%d')}.xlsx"
-        ruta, filtro = QFileDialog.getSaveFileName(self, tt("aud_exportar", "📤 Exportar (Excel o CSV)"), nombre,
-                                                   "Excel (*.xlsx);;CSV (*.csv)")
+        ruta, filtro = QFileDialog.getSaveFileName(self, tt("aud_exportar", "📤 Exportar (Excel o CSV)"),
+                                                   inf.nombre_fichero("xlsx"), "Excel (*.xlsx);;CSV (*.csv)")
         if not ruta:
             return
-        filas = list(self._filas_export())
         try:
-            if ruta.lower().endswith(".csv") or "CSV" in filtro:
-                if not ruta.lower().endswith(".csv"):
-                    ruta = os.path.splitext(ruta)[0] + ".csv"
-                with open(ruta, "w", newline="", encoding="utf-8-sig") as fh:
-                    w = csv.writer(fh, delimiter=";")
-                    w.writerow(cab); w.writerows(filas)
-            else:
-                import xlsxwriter
-                if not ruta.lower().endswith(".xlsx"):
-                    ruta += ".xlsx"
-                libro = xlsxwriter.Workbook(ruta)
-                hoja = libro.add_worksheet(tt("rev_hoja", "Revisiones del almacén")[:31])
-                negrita = libro.add_format({"bold": True, "bg_color": "#2c3e50", "font_color": "white"})
-                for col, texto in enumerate(cab):
-                    hoja.write(0, col, texto, negrita)
-                for i, fila in enumerate(filas, start=1):
-                    for col, valor in enumerate(fila):
-                        hoja.write(i, col, valor)
-                for col, ancho in enumerate((12, 18, 20, 16, 11, 36, 24, 14, 12, 12, 11)):
-                    hoja.set_column(col, col, ancho)
-                hoja.freeze_panes(1, 0)
-                hoja.autofilter(0, 0, max(len(filas), 1), len(cab) - 1)
-                libro.close()
+            formato = "csv" if ruta.lower().endswith(".csv") or "CSV" in filtro else "xlsx"
+            if not ruta.lower().endswith("." + formato):
+                ruta = (os.path.splitext(ruta)[0] if formato == "csv" else ruta) + "." + formato
+            n = inf.exportar(ruta, formato, self._filtros())
             QMessageBox.information(self, self.windowTitle(),
-                                    tt("aud_exportado", "Exportados {n} registros a:\n{ruta}").format(n=len(filas), ruta=ruta))
+                                    tt("aud_exportado", "Exportados {n} registros a:\n{ruta}").format(n=n, ruta=ruta))
         except Exception as e:
             QMessageBox.critical(self, t("title_error"), str(e))

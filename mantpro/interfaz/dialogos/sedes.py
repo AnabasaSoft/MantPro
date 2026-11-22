@@ -28,23 +28,21 @@ from PyQt6.QtCore import Qt
 
 from ...idiomas import t
 from ..comun import tt
-from ...nucleo import sedes
+from ...nucleo import ficha_sedes, sedes, usuarios
 
 
-def texto_error(codigo):
-    """Mensaje traducido de un código de error del núcleo de sedes."""
-    return {
-        "sin_nombre": tt("sede_msg_sin_nombre", "El nombre de la sede es obligatorio."),
-        "nombre_repetido": tt("sede_msg_repetido", "Ya existe una sede con ese nombre."),
-        "es_principal": tt("sede_msg_principal", "La sede principal no se puede borrar ni desactivar."),
-        "en_uso": tt("sede_msg_en_uso", "La sede tiene máquinas, trabajos, pendientes o avisos: no se puede "
-                                        "borrar, pero puedes desactivarla."),
-    }.get(codigo, codigo)
+# Los textos y lo que se hace con las sedes están en el núcleo (los comparte con MantPro Web)
+texto_error = ficha_sedes.texto_error
+nombre_tipo = ficha_sedes.nombre_tipo
 
 
-def nombre_tipo(tipo):
-    return (tt("sede_tipo_cliente", "Empresa cliente") if tipo == sedes.TIPO_CLIENTE
-            else tt("sede_tipo_propia", "Planta propia"))
+def _hacer(ventana, funcion, *args):
+    """Llama al núcleo como el administrador de la sesión; si da error, lo enseña y devuelve None."""
+    try:
+        return funcion(usuarios.SESION_ACTUAL, *args)
+    except ValueError as e:
+        QMessageBox.warning(ventana, tt("aviso", "Aviso"), texto_error(str(e)))
+        return None
 
 
 class _ConfigSede:
@@ -157,14 +155,11 @@ class DialogoSedes(QDialog):
         self.refrescar()
 
     def refrescar(self, seleccionar_id=None):
-        lista = sedes.listar(incluir_inactivas=True)
+        lista = ficha_sedes.filas()
         self.tabla.setRowCount(len(lista))
         for fila, s in enumerate(lista):
-            nombre = s["nombre"] + ("  ⭐" if s["principal"] else "")
-            estado = tt("sede_activa", "Activa") if s["activa"] else tt("sede_inactiva", "Desactivada")
-            festivos = (" / ".join(x for x in (s.get("pais_iso"), s.get("region_iso")) if x)
-                        if s.get("pais_iso") else tt("sede_festivos_generales", "Los generales"))
-            for col, valor in enumerate((nombre, nombre_tipo(s["tipo"]), s["cif"] or "", s["contacto"] or "", festivos, estado)):
+            for col, valor in enumerate((s["nombre_txt"], s["tipo_txt"], s["cif"], s["contacto"], s["festivos_txt"],
+                                         s["estado_txt"])):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, s["id"])
@@ -191,9 +186,8 @@ class DialogoSedes(QDialog):
     def nueva(self):
         d = DialogoEditarSede(self)
         if d.exec():
-            nuevo, err = sedes.crear(d.get_data())
-            if err:
-                QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+            nuevo = _hacer(self, ficha_sedes.crear, d.get_data())
+            if nuevo is None:
                 return
             self.cambiado = True
             self.refrescar(nuevo)
@@ -204,9 +198,8 @@ class DialogoSedes(QDialog):
             return
         d = DialogoEditarSede(self, s)
         if d.exec():
-            err = sedes.actualizar(s["id"], d.get_data())
-            if err:
-                QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+            if _hacer(self, lambda admin, sid, datos: ficha_sedes.editar(admin, sid, datos) or True,
+                      s["id"], d.get_data()) is None:
                 return
             self.cambiado = True
             self.refrescar(s["id"])
@@ -225,7 +218,7 @@ class DialogoSedes(QDialog):
         if r == QMessageBox.StandardButton.Cancel:
             return
         if r == QMessageBox.StandardButton.No:
-            sedes.fijar_festivos(s["id"], None)
+            _hacer(self, ficha_sedes.fijar_festivos, s["id"], None)
         else:
             from .sistema import DialogoSeleccionPais, DialogoSeleccionRegion
             config = _ConfigSede(ventana.db, s)
@@ -233,13 +226,13 @@ class DialogoSedes(QDialog):
             if not dlg.exec():
                 return
             _nombre, pais = dlg.get_selection()
-            region = parent = None
+            region = None
             if pais == "ES":
                 dlg_r = DialogoSeleccionRegion(config, self)
                 if not dlg_r.exec():
                     return
-                _n, region, parent = dlg_r.get_selection()
-            sedes.fijar_festivos(s["id"], pais, region, parent)
+                _n, region, _comunidad = dlg_r.get_selection()
+            _hacer(self, ficha_sedes.fijar_festivos, s["id"], pais, region)
         self.cambiado = True
         self.refrescar(s["id"])
 
@@ -247,9 +240,7 @@ class DialogoSedes(QDialog):
         s = self._seleccionada()
         if not s:
             return
-        err = sedes.activar(s["id"], not s["activa"])
-        if err:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+        if _hacer(self, ficha_sedes.alternar, s["id"]) is None:
             return
         self.cambiado = True
         self.refrescar(s["id"])
@@ -262,9 +253,7 @@ class DialogoSedes(QDialog):
                                  tt("sede_confirmar_borrar", "¿Borrar la sede «{nombre}»?").format(nombre=s["nombre"]))
         if r != QMessageBox.StandardButton.Yes:
             return
-        err = sedes.borrar(s["id"])
-        if err:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+        if _hacer(self, lambda admin, sid: ficha_sedes.borrar(admin, sid) or True, s["id"]) is None:
             return
         self.cambiado = True
         self.refrescar()

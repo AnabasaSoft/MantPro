@@ -28,43 +28,14 @@ from PyQt6.QtCore import Qt
 
 from ...idiomas import t
 from ..comun import tt
-from ...nucleo import almacenes, sedes
+from ...nucleo import almacenes, ficha_almacenes, sedes, usuarios
 
 
-def texto_error(codigo):
-    """Mensaje traducido de un código de error del núcleo de almacenes."""
-    return {
-        "sin_nombre": tt("alm_msg_sin_nombre", "El nombre del almacén es obligatorio."),
-        "nombre_repetido": tt("alm_msg_repetido", "Ya existe un almacén con ese nombre."),
-        "es_principal": tt("alm_msg_principal", "El almacén principal no se puede borrar ni desactivar."),
-        "en_uso": tt("alm_msg_en_uso", "El almacén tiene artículos o zonas: no se puede borrar, pero puedes desactivarlo."),
-        "mismo_almacen": tt("alm_msg_mismo", "Elige un almacén distinto del de origen."),
-        "cantidad_no_valida": tt("alm_msg_cantidad", "La cantidad tiene que ser mayor que cero."),
-        "stock_insuficiente": tt("msg_stock_insuficiente", "No hay stock suficiente para esta salida."),
-        "material_no_existe": tt("alm_msg_no_existe", "El artículo ya no existe."),
-    }.get(codigo, codigo)
-
-
-def _nombre_sede(a, nombres_sedes):
-    if a["comun"]:
-        return tt("alm_comun", "Común (todas las sedes)")
-    return nombres_sedes.get(sedes.efectiva(a["sede_id"]), "")
-
-
-def nombres_dias_semana():
-    """Lunes … domingo en el idioma activo (0 = lunes)."""
-    por_defecto = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
-    return [tt(f"dia_semana_{i}", por_defecto[i]) for i in range(7)]
-
-
-def texto_ciclo(a):
-    """Ciclo de revisión de un almacén en palabras: «Diaria», «Semanal (lunes)», «Mensual (día 15)»."""
-    ciclo, dia, _n = almacenes.revision(a)
-    if ciclo == almacenes.CICLO_SEMANAL:
-        return tt("alm_ciclo_semanal_dia", "Semanal ({dia})").format(dia=nombres_dias_semana()[dia].lower())
-    if ciclo == almacenes.CICLO_MENSUAL:
-        return tt("alm_ciclo_mensual_dia", "Mensual (día {dia})").format(dia=dia)
-    return tt("alm_ciclo_diario", "Diaria")
+# Los textos y lo que se hace con los almacenes están en el núcleo (los comparte con MantPro Web)
+texto_error = ficha_almacenes.texto_error
+nombres_dias_semana = ficha_almacenes.nombres_dias_semana
+texto_ciclo = ficha_almacenes.texto_ciclo
+_nombre_sede = ficha_almacenes.nombre_sede
 
 
 class DialogoEditarAlmacen(QDialog):
@@ -95,10 +66,8 @@ class DialogoEditarAlmacen(QDialog):
         # Revisión del almacén (MantPro Stock): cada cuánto y cuántos artículos
         ciclo, dia, articulos = almacenes.revision(alm)
         self.combo_ciclo = QComboBox()
-        for valor, clave, texto in ((almacenes.CICLO_DIARIO, "alm_ciclo_diario", "Diaria"),
-                                    (almacenes.CICLO_SEMANAL, "alm_ciclo_semanal", "Semanal"),
-                                    (almacenes.CICLO_MENSUAL, "alm_ciclo_mensual", "Mensual")):
-            self.combo_ciclo.addItem(tt(clave, texto), valor)
+        for valor, texto in ficha_almacenes.nombres_ciclo():
+            self.combo_ciclo.addItem(texto, valor)
         self.combo_ciclo.setCurrentIndex(max(0, self.combo_ciclo.findData(ciclo)))
         self.combo_dia_semana = QComboBox()
         for i, nombre in enumerate(nombres_dias_semana()):
@@ -195,16 +164,10 @@ class DialogoAlmacenes(QDialog):
         self.refrescar()
 
     def refrescar(self, seleccionar_id=None):
-        lista = almacenes.listar(incluir_inactivos=True)
-        nombres_sedes = sedes.nombres()
+        lista = ficha_almacenes.filas()
         self.tabla.setRowCount(len(lista))
         for fila, a in enumerate(lista):
-            estado = tt("sede_activa", "Activa") if a["activo"] else tt("sede_inactiva", "Desactivada")
-            nombre = a["nombre"] + ("  ⭐" if a["principal"] else "")
-            revision = texto_ciclo(a)
-            if not sedes.revision_activa(a["sede_id"]):
-                revision = tt("alm_revision_desactivada", "Desactivada en la sede")
-            for col, valor in enumerate((nombre, _nombre_sede(a, nombres_sedes), estado, revision)):
+            for col, valor in enumerate((a["nombre_txt"], a["sede_txt"], a["estado_txt"], a["revision_txt"])):
                 item = QTableWidgetItem(valor)
                 if col == 0:
                     item.setData(Qt.ItemDataRole.UserRole, a["id"])
@@ -227,30 +190,32 @@ class DialogoAlmacenes(QDialog):
         self.btn_activar.setText(tt("sede_btn_activar", "✔️ Activar") if a and not a["activo"]
                                  else tt("sede_btn_desactivar", "🚫 Desactivar"))
 
-    def _hecho(self, err, seleccionar_id=None):
-        if err:
-            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(err))
+    def _hecho(self, funcion, *args, seleccionar=None):
+        """Llama al núcleo como el administrador de la sesión; si da error, lo enseña. Devuelve lo que devuelva."""
+        try:
+            resultado = funcion(usuarios.SESION_ACTUAL, *args)
+        except ValueError as e:
+            QMessageBox.warning(self, tt("aviso", "Aviso"), texto_error(str(e)))
             return
         self.cambiado = True
-        self.refrescar(seleccionar_id)
+        self.refrescar(resultado if seleccionar is None else seleccionar)
 
     def nuevo(self):
         d = DialogoEditarAlmacen(self)
         if d.exec():
-            nuevo, err = almacenes.crear(d.get_data())
-            self._hecho(err, nuevo)
+            self._hecho(ficha_almacenes.crear, d.get_data())
 
     def editar(self):
         a = self._seleccionado()
         if a:
             d = DialogoEditarAlmacen(self, a)
             if d.exec():
-                self._hecho(almacenes.actualizar(a["id"], d.get_data()), a["id"])
+                self._hecho(ficha_almacenes.editar, a["id"], d.get_data(), seleccionar=a["id"])
 
     def activar(self):
         a = self._seleccionado()
         if a:
-            self._hecho(almacenes.activar(a["id"], not a["activo"]), a["id"])
+            self._hecho(ficha_almacenes.alternar, a["id"], seleccionar=a["id"])
 
     def borrar(self):
         a = self._seleccionado()
@@ -259,7 +224,7 @@ class DialogoAlmacenes(QDialog):
         r = QMessageBox.question(self, tt("alm_title", "Almacenes"),
                                  tt("alm_confirmar_borrar", "¿Borrar el almacén «{nombre}»?").format(nombre=a["nombre"]))
         if r == QMessageBox.StandardButton.Yes:
-            self._hecho(almacenes.borrar(a["id"]))
+            self._hecho(ficha_almacenes.borrar, a["id"])
 
 
 class DialogoTraspaso(QDialog):

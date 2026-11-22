@@ -20,73 +20,18 @@
 
 """Festivos por país y región."""
 
-import requests
-import json
 import os
 from datetime import datetime
 from PyQt6.QtCore import QDate
 
 from ..nucleo import festivos as _festivos
 from ..nucleo.rutas import DATA_DIR
-from ..nucleo.seguridad import escribir_atomico
 
 # ==========================================
 # DATOS GLOBALES: PROVINCIAS
 # ==========================================
-PROVINCIAS_ESPAÑA = {
-    "A Coruña": {"iso": "ES-C", "parent": "ES-GA"},
-    "Álava/Araba": {"iso": "ES-VI", "parent": "ES-PV"},
-    "Albacete": {"iso": "ES-AB", "parent": "ES-CM"},
-    "Alicante": {"iso": "ES-A", "parent": "ES-VC"},
-    "Almería": {"iso": "ES-AL", "parent": "ES-AN"},
-    "Asturias": {"iso": "ES-O", "parent": "ES-AS"},
-    "Ávila": {"iso": "ES-AV", "parent": "ES-CL"},
-    "Badajoz": {"iso": "ES-BA", "parent": "ES-EX"},
-    "Baleares": {"iso": "ES-PM", "parent": "ES-IB"},
-    "Barcelona": {"iso": "ES-B", "parent": "ES-CT"},
-    "Bizkaia": {"iso": "ES-BI", "parent": "ES-PV"},
-    "Burgos": {"iso": "ES-BU", "parent": "ES-CL"},
-    "Cáceres": {"iso": "ES-CC", "parent": "ES-EX"},
-    "Cádiz": {"iso": "ES-CA", "parent": "ES-AN"},
-    "Cantabria": {"iso": "ES-S", "parent": "ES-CB"},
-    "Castellón": {"iso": "ES-CS", "parent": "ES-VC"},
-    "Ceuta": {"iso": "ES-CE", "parent": "ES-CE"},
-    "Ciudad Real": {"iso": "ES-CR", "parent": "ES-CM"},
-    "Córdoba": {"iso": "ES-CO", "parent": "ES-AN"},
-    "Cuenca": {"iso": "ES-CU", "parent": "ES-CM"},
-    "Gipuzkoa": {"iso": "ES-SS", "parent": "ES-PV"},
-    "Girona": {"iso": "ES-GI", "parent": "ES-CT"},
-    "Granada": {"iso": "ES-GR", "parent": "ES-AN"},
-    "Guadalajara": {"iso": "ES-GU", "parent": "ES-CM"},
-    "Huelva": {"iso": "ES-H", "parent": "ES-AN"},
-    "Huesca": {"iso": "ES-HU", "parent": "ES-AR"},
-    "Jaén": {"iso": "ES-J", "parent": "ES-AN"},
-    "La Rioja": {"iso": "ES-LO", "parent": "ES-RI"},
-    "Las Palmas": {"iso": "ES-GC", "parent": "ES-CN"},
-    "León": {"iso": "ES-LE", "parent": "ES-CL"},
-    "Lleida": {"iso": "ES-L", "parent": "ES-CT"},
-    "Lugo": {"iso": "ES-LU", "parent": "ES-GA"},
-    "Madrid": {"iso": "ES-M", "parent": "ES-MD"},
-    "Málaga": {"iso": "ES-MA", "parent": "ES-AN"},
-    "Melilla": {"iso": "ES-ML", "parent": "ES-ML"},
-    "Murcia": {"iso": "ES-MU", "parent": "ES-MC"},
-    "Navarra": {"iso": "ES-NA", "parent": "ES-NC"},
-    "Ourense": {"iso": "ES-OR", "parent": "ES-GA"},
-    "Palencia": {"iso": "ES-P", "parent": "ES-CL"},
-    "Pontevedra": {"iso": "ES-PO", "parent": "ES-GA"},
-    "Salamanca": {"iso": "ES-SA", "parent": "ES-CL"},
-    "Santa Cruz de Tenerife": {"iso": "ES-TF", "parent": "ES-CN"},
-    "Segovia": {"iso": "ES-SG", "parent": "ES-CL"},
-    "Sevilla": {"iso": "ES-SE", "parent": "ES-AN"},
-    "Soria": {"iso": "ES-SO", "parent": "ES-CL"},
-    "Tarragona": {"iso": "ES-T", "parent": "ES-CT"},
-    "Teruel": {"iso": "ES-TE", "parent": "ES-AR"},
-    "Toledo": {"iso": "ES-TO", "parent": "ES-CM"},
-    "Valencia": {"iso": "ES-V", "parent": "ES-VC"},
-    "Valladolid": {"iso": "ES-VA", "parent": "ES-CL"},
-    "Zamora": {"iso": "ES-ZA", "parent": "ES-CL"},
-    "Zaragoza": {"iso": "ES-Z", "parent": "ES-AR"}
-}
+# La lista está en el núcleo (la comparte con MantPro Web)
+PROVINCIAS_ESPAÑA = _festivos.PROVINCIAS
 
 
 class GestorFestivos:
@@ -140,25 +85,8 @@ class GestorFestivos:
         return _festivos.cargar_cache(self.obtener_config_pais(), self.year)
 
     def obtener_paises_disponibles(self):
-        """Devuelve una lista de tuplas (nombre, codigo_iso) de los países soportados por la API, cacheada en disco."""
-        archivo = os.path.join(DATA_DIR, "paises_cache.json")
-        datos = None
-        if os.path.exists(archivo):
-            try:
-                with open(archivo, 'r') as f: datos = json.load(f)
-            except: datos = None
-        if not datos:
-            try:
-                r = requests.get("https://date.nager.at/api/v3/AvailableCountries")
-                if r.status_code == 200:
-                    datos = r.json()
-                    escribir_atomico(archivo, json.dumps(datos))
-            except:
-                datos = None
-        if not datos:
-            # Fallback mínimo por si no hay conexión y tampoco hay caché todavía
-            datos = [{"countryCode": "ES", "name": "Spain"}]
-        return sorted([(d["name"], d["countryCode"]) for d in datos], key=lambda x: x[0])
+        """Lista de tuplas (nombre, código ISO) de los países con festivos (nucleo/festivos.py, igual que la web)."""
+        return _festivos.paises()
 
     def limpiar_cache(self):
         archivo = self._archivo_cache()
