@@ -36,7 +36,7 @@ from PyQt6.QtGui import QDesktopServices, QColor
 from ... import idiomas
 from ...idiomas import t
 from ..comun import tt
-from ...nucleo import checklists
+from ...nucleo import checklists, ficha_checklists, usuarios
 # Los textos de las listas en exportaciones e informes están en el núcleo (también los usa MantPro Web)
 from ...nucleo.informe_historial import (resumen_texto, estado_plano, linea_export, texto_desequilibrio,  # noqa: F401
                                           texto_deseq_max, texto_export, texto_repuestos_export, texto_tiempo_export)
@@ -483,7 +483,7 @@ class DialogoPlantillasChecklist(QDialog):
         self.lista.blockSignals(True)
         self.lista.clear()
         for p in checklists.listar_plantillas():
-            item = QListWidgetItem(f"☑️ {p['nombre']}  ({len(p['puntos'])})")
+            item = QListWidgetItem(ficha_checklists.texto_lista(p))
             item.setData(Qt.ItemDataRole.UserRole, p["id"])
             self.lista.addItem(item)
             if p["id"] == elegir:
@@ -523,7 +523,7 @@ class DialogoPlantillasChecklist(QDialog):
         self._modificada = False
 
     def _fila_punto(self, p=None):
-        p = p or {"texto": "", "tipo": "estado", "unidad": "", "minimo": None, "maximo": None}
+        p = p or ficha_checklists.punto_vacio()
         fila = self.tabla.rowCount()
         self.tabla.insertRow(fila)
         celda_texto = QTableWidgetItem(p["texto"])
@@ -531,14 +531,12 @@ class DialogoPlantillasChecklist(QDialog):
         celda_texto.setData(Qt.ItemDataRole.UserRole, p.get("punto_uid"))
         self.tabla.setItem(fila, self.COL_TEXTO, celda_texto)
         combo = QComboBox()
-        combo.addItem(tt("chk_tipo_estado", "Bien / Mal"), "estado")
-        combo.addItem(tt("chk_tipo_lectura", "Lectura"), "lectura")
-        combo.addItem(tt("chk_tipo_trifasica", "Motor trifásico (L1, L2, L3)"), "trifasica")
-        combo.addItem(tt("chk_tipo_seccion", "── Separador (zona / máquina)"), "seccion")
+        for tipo, texto in ficha_checklists.nombres_tipo():
+            combo.addItem(texto, tipo)
         combo.setCurrentIndex(max(0, combo.findData(p["tipo"])))
         combo.currentIndexChanged.connect(lambda _i, c=combo: self._tipo_cambiado(c))
         self.tabla.setCellWidget(fila, self.COL_TIPO, combo)
-        fmt = lambda n: "" if n is None else f"{n:g}"
+        fmt = ficha_checklists.numero
         for col, valor in ((self.COL_UNIDAD, p.get("unidad") or ""), (self.COL_MIN, fmt(p.get("minimo"))),
                            (self.COL_MAX, fmt(p.get("maximo"))), (self.COL_DESEQ, fmt(p.get("desequilibrio_max")))):
             self.tabla.setItem(fila, col, QTableWidgetItem(valor))
@@ -618,15 +616,11 @@ class DialogoPlantillasChecklist(QDialog):
         self._tocada()
 
     def _guardar(self):
-        nombre = self.nombre.text().strip()
-        if not nombre:
-            QMessageBox.warning(self, self.windowTitle(), tt("msg_chk_falta_nombre", "Ponle un nombre a la lista."))
+        try:
+            self._actual = ficha_checklists.guardar(usuarios.SESION_ACTUAL, self._actual, self.nombre.text(), self._puntos())
+        except ValueError as e:
+            QMessageBox.warning(self, self.windowTitle(), ficha_checklists.texto_error(str(e)))
             return False
-        puntos = self._puntos()
-        if not puntos:
-            QMessageBox.warning(self, self.windowTitle(), tt("msg_chk_sin_puntos", "Añade al menos un punto a la lista."))
-            return False
-        self._actual = checklists.guardar_plantilla(self._actual, nombre, puntos)
         self._modificada = False
         self.lista.blockSignals(True)
         self._recargar(elegir=self._actual)
@@ -645,24 +639,25 @@ class DialogoPlantillasChecklist(QDialog):
     def _duplicar(self):
         if self._actual is None or not self._preguntar_guardar():
             return
-        p = checklists.obtener_plantilla(self._actual)
-        # La copia es otra lista: sus puntos estrenan identidad (no mezclan lecturas con la original)
-        nuevo = checklists.guardar_plantilla(None, f"{p['nombre']} ({tt('chk_copia', 'copia')})",
-                                             [dict(x, punto_uid=None) for x in p["puntos"]])
+        try:
+            nuevo = ficha_checklists.duplicar(usuarios.SESION_ACTUAL, self._actual)
+        except ValueError as e:
+            QMessageBox.warning(self, self.windowTitle(), ficha_checklists.texto_error(str(e)))
+            return
         self._recargar(elegir=nuevo)
         self._cargar(checklists.obtener_plantilla(nuevo))
 
     def _borrar(self):
         if self._actual is None:
             return
-        avisos, pendientes = checklists.usos_de_plantilla(self._actual)
-        texto = tt("msg_chk_borrar", "¿Borrar la lista «{nombre}»?").format(nombre=self.nombre.text())
-        if avisos or pendientes:
-            texto += "\n\n" + tt("msg_chk_borrar_usos",
-                "La usan {a} avisos y {p} pendientes, que se quedarán sin lista. Lo ya rellenado en el historial se conserva.").format(a=avisos, p=pendientes)
-        if QMessageBox.question(self, self.windowTitle(), texto) != QMessageBox.StandardButton.Yes:
+        try:
+            if QMessageBox.question(self, self.windowTitle(), ficha_checklists.pregunta_borrar(self._actual)) \
+                    != QMessageBox.StandardButton.Yes:
+                return
+            ficha_checklists.borrar(usuarios.SESION_ACTUAL, self._actual)
+        except ValueError as e:
+            QMessageBox.warning(self, self.windowTitle(), ficha_checklists.texto_error(str(e)))
             return
-        checklists.borrar_plantilla(self._actual)
         self._modificada = False
         self._recargar()
         if self.lista.count():

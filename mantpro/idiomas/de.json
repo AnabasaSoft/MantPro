@@ -936,6 +936,7 @@
   "msg_chk_guardar_cambios": "Änderungen an der Liste „{nombre}“ speichern?",
   "msg_chk_sin_marcar": "{n} Punkte sind noch nicht geprüft. Sie werden als „nicht geprüft“ gespeichert.\n\nTrotzdem erledigen?",
   "msg_chk_sin_puntos": "Fügen Sie der Liste mindestens einen Punkt hinzu.",
+  "msg_chk_no_existe": "Diese Checkliste existiert nicht mehr.",
   "ph_chk_nombre": "z. B. Monatliche Prüfung Kompressor",
   "title_checklist": "Checkliste",
   "title_plantillas_checklist": "Checklisten",

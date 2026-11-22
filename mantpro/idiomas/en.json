@@ -936,6 +936,7 @@
   "msg_chk_guardar_cambios": "Save the changes to the checklist «{nombre}»?",
   "msg_chk_sin_marcar": "{n} items are not checked. They will be saved as «not checked».\n\nComplete anyway?",
   "msg_chk_sin_puntos": "Add at least one item to the checklist.",
+  "msg_chk_no_existe": "That checklist no longer exists.",
   "ph_chk_nombre": "e.g. Monthly compressor inspection",
   "title_checklist": "Checklist",
   "title_plantillas_checklist": "Checklists",

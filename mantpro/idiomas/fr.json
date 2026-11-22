@@ -936,6 +936,7 @@
   "msg_chk_guardar_cambios": "Enregistrer les modifications de la liste « {nombre} » ?",
   "msg_chk_sin_marcar": "{n} points ne sont pas vérifiés. Ils seront enregistrés comme « non vérifié ».\n\nTerminer quand même ?",
   "msg_chk_sin_puntos": "Ajoutez au moins un point à la liste.",
+  "msg_chk_no_existe": "Cette liste de contrôle n'existe plus.",
   "ph_chk_nombre": "p. ex. Contrôle mensuel du compresseur",
   "title_checklist": "Liste de contrôle",
   "title_plantillas_checklist": "Listes de contrôle",

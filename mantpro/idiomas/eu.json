@@ -936,6 +936,7 @@
   "msg_chk_guardar_cambios": "«{nombre}» zerrendaren aldaketak gorde?",
   "msg_chk_sin_marcar": "{n} puntu berrikusi gabe daude. «Berrikusi gabe» gisa gordeko dira.\n\nOsatu hala ere?",
   "msg_chk_sin_puntos": "Gehitu gutxienez puntu bat zerrendari.",
+  "msg_chk_no_existe": "Egiaztapen-zerrenda hori ez dago jada.",
   "ph_chk_nombre": "adib. Konpresorearen hileko berrikuspena",
   "title_checklist": "Egiaztapen-zerrenda",
   "title_plantillas_checklist": "Egiaztapen-zerrendak",

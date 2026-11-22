@@ -936,6 +936,7 @@
   "msg_chk_guardar_cambios": "Vols desar els canvis de la llista «{nombre}»?",
   "msg_chk_sin_marcar": "Queden {n} punts sense revisar. Es desaran com a «sense revisar».\n\nVols completar-ho igualment?",
   "msg_chk_sin_puntos": "Afegeix com a mínim un punt a la llista.",
+  "msg_chk_no_existe": "Aquesta llista de comprovació ja no existeix.",
   "ph_chk_nombre": "p. ex. Revisió mensual del compressor",
   "title_checklist": "Llista de comprovació",
   "title_plantillas_checklist": "Llistes de comprovació",

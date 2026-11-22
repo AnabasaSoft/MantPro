@@ -936,6 +936,7 @@
   "msg_chk_guardar_cambios": "Gardar os cambios da lista «{nombre}»?",
   "msg_chk_sin_marcar": "Quedan {n} puntos sen revisar. Gardaranse como «sen revisar».\n\nCompletar igualmente?",
   "msg_chk_sin_puntos": "Engade polo menos un punto á lista.",
+  "msg_chk_no_existe": "Esa lista de comprobación xa non existe.",
   "ph_chk_nombre": "p. ex. Revisión mensual do compresor",
   "title_checklist": "Lista de comprobación",
   "title_plantillas_checklist": "Listas de comprobación",
