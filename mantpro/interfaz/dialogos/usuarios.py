@@ -35,7 +35,7 @@ from PyQt6.QtGui import QPixmap
 
 import os
 from datetime import datetime
-from ...nucleo import ficha_usuarios, sedes, seguridad, usuarios
+from ...nucleo import ficha_sesiones, ficha_usuarios, sedes, seguridad, usuarios
 
 try:
     from ...idiomas import t as _t  # t(clave) del proyecto: devuelve la clave si falta
@@ -779,37 +779,23 @@ class DialogoSesiones(QDialog):
 
     COL_CONEXION, COL_ULTIMO_CONTACTO, COL_CIFRADO, COL_ADJUDICADO, COL_TOKEN = 5, 6, 7, 8, 9
 
-    @staticmethod
-    def _texto_cifrado(s):
-        if s.get("cifrada") is True:
-            return t("sesiones_cifrada", "🔒 Cifrada")
-        if s.get("cifrada") is False:
-            return t("sesiones_sin_cifrar", "⚠️ Sin cifrar (app antigua)")
-        return "—"
-
-    @staticmethod
-    def _texto_conexion(s):
-        if s.get("en_linea"):
-            return t("sesiones_en_linea", "🟢 En línea")
-        return t("sesiones_sin_conexion", "⚫ Sin conexión")
-
     def _pintar_conexion(self, fila, s):
         item = self.tabla.item(fila, self.COL_CONEXION)
-        item.setText(self._texto_conexion(s))
-        if s.get("en_linea"):
+        item.setText(s["conexion_txt"])
+        if s["en_linea"]:
             item.setForeground(Qt.GlobalColor.darkGreen)
         elif s["activa"]:
             item.setForeground(self.tabla.palette().text())
         contacto = self.tabla.item(fila, self.COL_ULTIMO_CONTACTO)
-        contacto.setText(_formatear_fecha(s.get("ultimo_contacto")))
-        contacto._iso = s.get("ultimo_contacto") or ""
+        contacto.setText(s["contacto"])
+        contacto._iso = s["contacto_iso"]
         cifrado = self.tabla.item(fila, self.COL_CIFRADO)
-        cifrado.setText(self._texto_cifrado(s))
-        if s["activa"] and s.get("cifrada") is False:
+        cifrado.setText(s["cifrado_txt"])
+        if s["sin_cifrar"]:
             cifrado.setForeground(Qt.GlobalColor.darkYellow)
 
     def _actualizar_conexion(self):
-        por_token = {s["token"]: s for s in usuarios.listar_sesiones()}
+        por_token = {s["ref"]: s for s in ficha_sesiones.filas()}
         # Si ha entrado o salido alguna sesión (p. ej. el móvil ha vuelto a
         # iniciar sesión y su fila antigua ya no existe), se recarga la tabla
         # entera para que las acciones no trabajen con filas obsoletas.
@@ -827,22 +813,22 @@ class DialogoSesiones(QDialog):
         self._pintar_http()
 
     def refrescar(self):
-        datos = usuarios.listar_sesiones()
+        # La columna oculta guarda la «ref» de la sesión (núcleo), no el token
+        datos = ficha_sesiones.filas()
         self.tabla.setSortingEnabled(False)
         self.tabla.setRowCount(len(datos))
         for fila, s in enumerate(datos):
-            usuario_txt = f"{s['nombre']} ({s['login']})" if s.get("nombre") else s["login"]
             columnas = [
-                QTableWidgetItem(usuario_txt),
-                QTableWidgetItem(s.get("dispositivo") or "—"),
-                _ItemFecha(s.get("creado")),
-                _ItemFecha(s.get("expira")),
-                QTableWidgetItem(t("sesiones_activa", "Activa") if s["activa"] else t("sesiones_expirada", "Expirada")),
-                QTableWidgetItem(self._texto_conexion(s)),
-                _ItemFecha(s.get("ultimo_contacto")),
-                QTableWidgetItem(self._texto_cifrado(s)),
-                QTableWidgetItem(s.get("adjudicado_nombre") or "—"),
-                QTableWidgetItem(s["token"]),
+                QTableWidgetItem(s["usuario_txt"]),
+                QTableWidgetItem(s["dispositivo"]),
+                _ItemFecha(s["iniciada_iso"] or None),
+                _ItemFecha(s["expira_iso"] or None),
+                QTableWidgetItem(s["estado_txt"]),
+                QTableWidgetItem(s["conexion_txt"]),
+                _ItemFecha(s["contacto_iso"] or None),
+                QTableWidgetItem(s["cifrado_txt"]),
+                QTableWidgetItem(s["adjudicado_txt"]),
+                QTableWidgetItem(s["ref"]),
             ]
             for col, item in enumerate(columnas):
                 if not s["activa"]:
@@ -853,7 +839,10 @@ class DialogoSesiones(QDialog):
         self._pintar_http()
 
     def _cambiar_dias(self, _i):
-        usuarios.fijar_dias_sesion(self.combo_dias.currentData())
+        try:
+            ficha_sesiones.fijar_dias(usuarios.SESION_ACTUAL, self.combo_dias.currentData())
+        except ValueError as e:
+            QMessageBox.warning(self, t("title_error"), ficha_sesiones.texto_error(str(e)))
         self.refrescar()
 
     def _pintar_http(self):
@@ -918,22 +907,17 @@ class DialogoSesiones(QDialog):
             QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
                                     t("msg_adjudicar_elige", "Selecciona primero una sesión del móvil."))
             return
-        token = self.tabla.item(filas[0], self.COL_TOKEN).text()
-        s = next((x for x in usuarios.listar_sesiones() if x["token"] == token), None)
-        if s is None:
-            # La sesión ya no existe (el móvil ha iniciado otra): se recarga
-            # la tabla y se avisa, en vez de no hacer nada.
-            self.refrescar()
-            QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
-                                    t("msg_adjudicar_elige", "Selecciona primero una sesión del móvil."))
-            return
-        if not s.get("dispositivo_id"):
-            QMessageBox.information(self, t("sesiones_titulo", "Sesiones de dispositivos"),
-                                    t("msg_adjudicar_sin_id",
-                                      "Este móvil aún no manda su identificador: actualiza la app y que vuelva a iniciar sesión."))
+        titulo = t("sesiones_titulo", "Sesiones de dispositivos")
+        try:
+            s, tecnicos = ficha_sesiones.para_adjudicar(usuarios.SESION_ACTUAL,
+                                                        self.tabla.item(filas[0], self.COL_TOKEN).text())
+        except ValueError as e:
+            # La sesión ya no existe (el móvil ha iniciado otra): se recarga la tabla y se avisa
+            if str(e) == "elige_movil":
+                self.refrescar()
+            QMessageBox.information(self, titulo, ficha_sesiones.texto_error(str(e)))
             return
         nadie = t("adjudicar_nadie", "— Nadie (móvil libre) —")
-        tecnicos = usuarios.listar_usuarios(incluir_inactivos=False)
         opciones = [nadie] + [f"{u['nombre']} ({u['login']})" for u in tecnicos]
         actual = 0
         for i, u in enumerate(tecnicos, 1):
@@ -941,22 +925,23 @@ class DialogoSesiones(QDialog):
                 actual = i
         elegido, ok = QInputDialog.getItem(
             self, t("sesiones_adjudicar_titulo", "Adjudicar móvil"),
-            t("sesiones_adjudicar_texto", "Técnico al que se adjudica «{movil}»:").format(movil=s.get("dispositivo") or "—"),
+            t("sesiones_adjudicar_texto", "Técnico al que se adjudica «{movil}»:").format(movil=s["dispositivo"]),
             opciones, actual, False)
         if not ok:
             return
         indice = opciones.index(elegido)
-        usuarios.adjudicar_movil(s["dispositivo_id"], tecnicos[indice - 1]["id"] if indice else None)
+        try:
+            ficha_sesiones.adjudicar(usuarios.SESION_ACTUAL, s["ref"], tecnicos[indice - 1]["id"] if indice else None)
+        except ValueError as e:
+            QMessageBox.information(self, titulo, ficha_sesiones.texto_error(str(e)))
         self.refrescar()
 
     def _revocar(self):
         tokens = self._tokens_seleccionados()
         if not tokens:
             return
-        por_token = {s["token"]: s for s in usuarios.listar_sesiones()}
-        for token in tokens:
-            s = por_token.get(token, {})
-            usuarios.revocar_token(token)
-            usuarios.auditar("seguridad", "revocar", f"{s.get('nombre') or s.get('login', '')} — {s.get('dispositivo') or '?'}",
-                             detalle="Sesión del móvil revocada: tendrá que volver a iniciar sesión")
+        try:
+            ficha_sesiones.revocar(usuarios.SESION_ACTUAL, tokens)
+        except ValueError as e:
+            QMessageBox.information(self, t("aviso", "Aviso"), ficha_sesiones.texto_error(str(e)))
         self.refrescar()

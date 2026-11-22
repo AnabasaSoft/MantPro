@@ -863,6 +863,7 @@
   "tt_sesiones_adjudicar": "El mòbil només deixa iniciar sessió al seu tècnic (també a MantPro Stock) i l'app li emplena l'usuari. Els administradors poden entrar sempre.",
   "msg_adjudicar_elige": "Selecciona primer una sessió del mòbil.",
   "msg_adjudicar_sin_id": "Aquest mòbil encara no envia el seu identificador: actualitza l'app i torna a iniciar sessió.",
+  "msg_adjudicar_web": "Aquesta sessió és de MantPro Web (un navegador), no d'un mòbil: no s'adjudica a cap tècnic.",
   "adjudicar_nadie": "— Ningú (mòbil lliure) —",
   "sesiones_adjudicar_titulo": "Adjudicar mòbil",
   "sesiones_adjudicar_texto": "Tècnic al qual s'adjudica «{movil}»:",

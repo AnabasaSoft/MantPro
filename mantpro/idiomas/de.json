@@ -863,6 +863,7 @@
   "tt_sesiones_adjudicar": "Auf dem Handy kann sich nur sein Techniker anmelden (auch in MantPro Stock), und die App trägt seinen Benutzer ein. Administratoren können sich immer anmelden.",
   "msg_adjudicar_elige": "Wählen Sie zuerst eine Sitzung des Handys.",
   "msg_adjudicar_sin_id": "Dieses Handy sendet noch keine Kennung: Aktualisieren Sie die App und melden Sie sich erneut an.",
+  "msg_adjudicar_web": "Diese Sitzung gehört zu MantPro Web (ein Browser), nicht zu einem Handy: Sie kann keinem Techniker zugewiesen werden.",
   "adjudicar_nadie": "— Niemand (Handy frei) —",
   "sesiones_adjudicar_titulo": "Handy zuordnen",
   "sesiones_adjudicar_texto": "Techniker, dem „{movil}“ zugeordnet wird:",

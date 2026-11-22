@@ -863,6 +863,7 @@
   "tt_sesiones_adjudicar": "Mugikorrak bere teknikariari soilik uzten dio saioa hasten (MantPro Stock-en ere) eta aplikazioak erabiltzailea betetzen dio. Administratzaileak beti sar daitezke.",
   "msg_adjudicar_elige": "Hautatu lehenik mugikorraren saio bat.",
   "msg_adjudicar_sin_id": "Mugikor honek ez du oraindik bere identifikatzailea bidaltzen: eguneratu aplikazioa eta hasi saioa berriro.",
+  "msg_adjudicar_web": "Saio hau MantPro Web-ekoa da (nabigatzaile bat), ez mugikor batena: ez zaio inongo teknikariri esleitzen.",
   "adjudicar_nadie": "— Inor ez (mugikor librea) —",
   "sesiones_adjudicar_titulo": "Mugikorra esleitu",
   "sesiones_adjudicar_texto": "«{movil}» esleituko zaion teknikaria:",

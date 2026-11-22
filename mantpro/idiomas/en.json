@@ -863,6 +863,7 @@
   "tt_sesiones_adjudicar": "The phone only lets its technician sign in (also in MantPro Stock) and the app fills in their username. Administrators can always sign in.",
   "msg_adjudicar_elige": "First select one of the phone's sessions.",
   "msg_adjudicar_sin_id": "This phone doesn't send its identifier yet: update the app and sign in again.",
+  "msg_adjudicar_web": "This is a MantPro Web session (a browser), not a phone: it can't be assigned to a technician.",
   "adjudicar_nadie": "— Nobody (free phone) —",
   "sesiones_adjudicar_titulo": "Assign phone",
   "sesiones_adjudicar_texto": "Technician to assign “{movil}” to:",

@@ -863,6 +863,7 @@
   "tt_sesiones_adjudicar": "Le téléphone ne laisse ouvrir une session qu'à son technicien (aussi dans MantPro Stock) et l'application remplit son identifiant. Les administrateurs peuvent toujours se connecter.",
   "msg_adjudicar_elige": "Sélectionnez d'abord une session du téléphone.",
   "msg_adjudicar_sin_id": "Ce téléphone n'envoie pas encore son identifiant : mettez l'application à jour et reconnectez-vous.",
+  "msg_adjudicar_web": "Cette session est une session MantPro Web (un navigateur), pas un téléphone : elle ne s'attribue à aucun technicien.",
   "adjudicar_nadie": "— Personne (téléphone libre) —",
   "sesiones_adjudicar_titulo": "Attribuer le téléphone",
   "sesiones_adjudicar_texto": "Technicien auquel attribuer « {movil} » :",
