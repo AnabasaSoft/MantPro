@@ -544,6 +544,19 @@ def resumen(resultados):
     return cuenta
 
 
+def texto_resumen(titulos, resultados):
+    """Resumen de una o varias hojas: con varias, el total y una línea por hoja (el PC y MantPro Web)."""
+    def una(res):
+        c = resumen(res)
+        return t("imp_resumen").format(crear=c["crear"], actualizar=c["actualizar"], saltar=c["saltar"],
+                                       error=c["error"], avisos=c["avisos"])
+    if len(resultados) == 1:
+        return una(resultados[0])
+    lineas = [t("imp_resumen_total").format(resumen=una([r for res in resultados for r in res]))]
+    lineas += [t("imp_resumen_hoja").format(hoja=tit, resumen=una(res)) for tit, res in zip(titulos, resultados)]
+    return "\n".join(lineas)
+
+
 # -------------------------------------------------------------------- proceso
 
 # Orden en que se importan las hojas de un libro, sea cual sea el de las

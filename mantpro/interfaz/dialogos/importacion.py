@@ -273,18 +273,7 @@ class DialogoImportar(QDialog):
         self.paginas.setCurrentIndex(max(0, self.paginas.currentIndex() - 1))
         self._actualizar_botones()
 
-    @staticmethod
-    def texto_resumen(titulos, resultados):
-        """Resumen de una o varias hojas: con varias, el total y una línea por hoja."""
-        def una(res):
-            c = importar.resumen(res)
-            return t("imp_resumen").format(crear=c["crear"], actualizar=c["actualizar"], saltar=c["saltar"],
-                                           error=c["error"], avisos=c["avisos"])
-        if len(resultados) == 1:
-            return una(resultados[0])
-        lineas = [t("imp_resumen_total").format(resumen=una([r for res in resultados for r in res]))]
-        lineas += [t("imp_resumen_hoja").format(hoja=tit, resumen=una(res)) for tit, res in zip(titulos, resultados)]
-        return "\n".join(lineas)
+    texto_resumen = staticmethod(importar.texto_resumen)     # en el núcleo (lo comparte con MantPro Web)
 
     def _llenar_vista_previa(self, hojas):
         self.lbl_resumen.setText(self.texto_resumen([h[0] for h in hojas], self.resultados))
