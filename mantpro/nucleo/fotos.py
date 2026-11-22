@@ -100,3 +100,31 @@ def guardar_recibida(fichero, carpeta, nombre, solo_imagen=False):
             pass
         return None
     return nombre
+
+
+def en_uso(db):
+    """Nombres de fichero de foto que usa cualquier dato (trabajos, pendientes, fotos de máquinas y de artículos del
+    almacén, que comparten la carpeta aunque vivan en almacen.db). Para saber qué foto es basura y cuál hay que
+    restaurar de una copia; sin filtrar nombres, para no borrar nunca una foto que se usa."""
+    from . import almacen
+    usadas = set()
+    conn = db.conectar()
+    try:
+        c = conn.cursor()
+        for sentencia in ("SELECT descripcion FROM tareas", "SELECT detalles FROM pendientes"):
+            for (texto,) in c.execute(sentencia).fetchall():
+                texto = texto or ""
+                for patron in (r"\[FOTO:\s*(.*?)\]", r"\[FOTO_DESPUES:\s*(.*?)\]"):
+                    m = re.search(patron, texto)
+                    if m:
+                        usadas.add(m.group(1).strip())
+                usadas.update(fotos_galeria(texto))
+        for (foto,) in c.execute("SELECT foto FROM maquinas WHERE foto IS NOT NULL").fetchall():
+            if foto:
+                usadas.add(foto.strip())
+    finally:
+        conn.close()
+    for material in almacen.listar_materiales():
+        if material.get("foto"):
+            usadas.add(material["foto"].strip())
+    return usadas

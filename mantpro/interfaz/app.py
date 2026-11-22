@@ -542,33 +542,26 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.recargar_interfaz_completa()
 
     def cambiar_pais_region(self):
-        # PASO 1: Elegir país
+        """Herramientas → País y región: el país (y en España, la provincia) de los festivos. Lo guarda el núcleo
+        (nucleo/ficha_ajustes.py), igual que MantPro Web."""
+        from ..nucleo import ficha_ajustes
         dlg_pais = DialogoSeleccionPais(self.gestor_festivos, self.db, self)
         if not dlg_pais.exec():
             return  # Cancelado
-
-        nombre_pais, iso_pais = dlg_pais.get_selection()
-        self.db.set_config("country_iso", iso_pais)
-
+        _nombre_pais, iso_pais = dlg_pais.get_selection()
+        provincia = None
         if iso_pais == "ES":
-            # PASO 2 (solo España): Elegir provincia, igual que antes
             dlg = DialogoSeleccionRegion(self.db, self)
-            if dlg.exec():
-                nombre, iso_prov, iso_parent = dlg.get_selection()
-                self.db.set_config("region_iso", iso_prov)
-                self.db.set_config("parent_iso", iso_parent)
-                self.gestor_festivos.limpiar_cache()
-                QMessageBox.information(self, t("title_region_cambiada"), t("msg_region_cambiada").format(zona=nombre, parent=iso_parent, prov=iso_prov))
-            else:
-                # Canceló la provincia, pero el país ya quedó guardado como España
-                self.gestor_festivos.limpiar_cache()
-        else:
-            # Otro país: sin desglose regional, solo festivos nacionales
-            self.db.set_config("region_iso", "")
-            self.db.set_config("parent_iso", "")
-            self.gestor_festivos.limpiar_cache()
-            QMessageBox.information(self, t("title_pais_cambiado"), t("msg_pais_cambiado").format(pais=nombre_pais))
-
+            if not dlg.exec():
+                return
+            _nombre, provincia, _comunidad = dlg.get_selection()
+        try:
+            clave, valores = ficha_ajustes.fijar_pais_region(usuarios.SESION_ACTUAL, self.db, iso_pais, provincia)
+        except ValueError as e:
+            QMessageBox.warning(self, t("title_error"), ficha_ajustes.texto_error(str(e)))
+            return
+        titulo = t("title_region_cambiada") if clave == "msg_region_cambiada" else t("title_pais_cambiado")
+        QMessageBox.information(self, titulo, t(clave).format(**valores))
         # Repintar el calendario
         self.pintar_calendario()
         self.update_calendar_list()

@@ -21,7 +21,6 @@
 """Copias de seguridad, restauración, limpieza de fotos y borrado de trabajos antiguos."""
 
 import os
-import re
 import zipfile
 from datetime import datetime
 from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QMessageBox, QDialog, QFileDialog, QProgressBar,
@@ -35,8 +34,7 @@ from ..dialogos.trabajos import DialogoTiempoGuardado
 from ..dialogos.sistema import DialogoContrasenaCopias, DialogoCifradoBD, DialogoClaveRecuperacion
 from ..hilos import BackupThread, BackupManualThread, RestoreManualThread, RecifrarCopiasThread
 from ..dialogos.copias import DialogoCopiasAutomaticas, textos_problemas, fecha_hora
-from ...nucleo import usuarios, almacen
-from ...nucleo.fotos import fotos_galeria
+from ...nucleo import usuarios
 from ...nucleo.seguridad import anadir_bd_a_zip
 from ...nucleo import cifrado_copias, conexion_bd, copias, sincro_fotos
 
@@ -315,34 +313,11 @@ class AccionesCopias:
         dlg.exec()
 
     def _fotos_en_uso(self):
-        """Nombres de fichero de foto referenciados desde cualquier sitio de la
-        BD (trabajos, pendientes, fotos de máquinas y fotos de materiales del
-        almacén, que comparten la misma carpeta aunque vivan en almacen.db).
-        Se usa tanto para saber qué es basura como para saber qué hace falta
-        restaurar de un backup."""
-        fotos_en_uso = set(); conn = self.db.conectar(); c = conn.cursor()
-        c.execute("SELECT descripcion FROM tareas")
-        for row in c.fetchall():
-            m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
-            if m: fotos_en_uso.add(m.group(1).strip())
-            m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
-            if m_d: fotos_en_uso.add(m_d.group(1).strip())
-            fotos_en_uso.update(fotos_galeria(row[0]))
-        c.execute("SELECT detalles FROM pendientes")
-        for row in c.fetchall():
-            m = re.search(r"\[FOTO:\s*(.*?)\]", row[0])
-            if m: fotos_en_uso.add(m.group(1).strip())
-            m_d = re.search(r"\[FOTO_DESPUES:\s*(.*?)\]", row[0])
-            if m_d: fotos_en_uso.add(m_d.group(1).strip())
-            fotos_en_uso.update(fotos_galeria(row[0]))
-        c.execute("SELECT foto FROM maquinas WHERE foto IS NOT NULL")
-        for row in c.fetchall():
-            if row[0]: fotos_en_uso.add(row[0].strip())
-        conn.close()
-        for material in almacen.listar_materiales():
-            foto = material.get('foto')
-            if foto: fotos_en_uso.add(foto.strip())
-        return fotos_en_uso
+        """Nombres de fichero de foto referenciados desde cualquier sitio de la BD (nucleo/fotos.en_uso, el mismo
+        que usa MantPro Web). Se usa tanto para saber qué es basura como para saber qué hace falta restaurar de un
+        backup."""
+        from ...nucleo import fotos
+        return fotos.en_uso(self.db)
 
     def _copia_previa_bases(self, prefijo):
         """Copia de las dos bases de datos antes de una operación masiva
@@ -366,25 +341,21 @@ class AccionesCopias:
         dlg = DialogoTiempoGuardado(self)
         if not dlg.exec(): return
         corte = dlg.fecha_corte().toString("yyyy-MM-dd")
-
-        conn = self.db.conectar(); c = conn.cursor()
-        c.execute("SELECT id, fecha, descripcion FROM tareas WHERE fecha < ? ORDER BY fecha", (corte,))
-        filas = c.fetchall(); conn.close()
-        if not filas:
+        from ...nucleo import ficha_ajustes
+        resumen = ficha_ajustes.resumen_borrado(self.db, corte)
+        if resumen is None:
             QMessageBox.information(self, tt("title_tiempo_guardado", "Tiempo máximo de guardado de trabajos"),
                 tt("msg_sin_trabajos_antiguos", "No hay trabajos anteriores al {fecha}. No se borrará nada.").format(
                     fecha=idiomas.formato_fecha_localizada(corte)))
             return
 
-        desde = idiomas.formato_fecha_localizada(filas[0][1])
-        hasta = idiomas.formato_fecha_localizada(filas[-1][1])
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle(tt("title_confirmar_borrado_antiguos", "Confirmar borrado de trabajos antiguos"))
         msg.setText(tt("msg_confirmar_borrado_antiguos",
             "Se van a borrar {n} trabajos del historial, del {desde} al {hasta}, junto con sus fotos.\n\n"
             "Antes se guardará una copia de seguridad de la base de datos.\n\n¿Continuar?").format(
-                n=len(filas), desde=desde, hasta=hasta))
+                **resumen))
         btn_si = msg.addButton(tt("btn_borrar_trabajos", "Borrar trabajos"), QMessageBox.ButtonRole.DestructiveRole)
         msg.addButton(t("btn_cancelar"), QMessageBox.ButtonRole.RejectRole)
         msg.exec()
@@ -392,28 +363,8 @@ class AccionesCopias:
 
         try:
             ruta_copia = self._copia_previa_bases("antes_borrado_trabajos")
-
-            fotos_candidatas = set()
-            for _, _, desc in filas:
-                for m in re.findall(r"\[FOTO(?:_DESPUES)?:\s*(.*?)\]", desc or ""):
-                    fotos_candidatas.add(m.split("]")[0].strip())
-                fotos_candidatas.update(fotos_galeria(desc))
-
-            conn = self.db.conectar(); c = conn.cursor()
-            c.execute("DELETE FROM tareas WHERE fecha < ?", (corte,))
-            borrados = c.rowcount
-            conn.commit(); conn.close()
-            usuarios.registrar_auditoria(usuarios.id_actual(), None, "borrar",
-                f"Borrado por tiempo máximo de guardado: {borrados} registros del {filas[0][1]} al {filas[-1][1]}")
-
-            # Solo se borran del disco las fotos que ya no usa ningún otro registro
-            en_uso = self._fotos_en_uso()
-            fotos_borradas = 0
-            for nombre in fotos_candidatas - en_uso:
-                ruta = os.path.join(self.carpeta_fotos, nombre)
-                if nombre and os.path.isfile(ruta):
-                    try: os.remove(ruta); fotos_borradas += 1
-                    except OSError: pass
+            borrados, fotos_borradas = ficha_ajustes.borrar_anteriores(usuarios.SESION_ACTUAL, self.db, corte,
+                                                                        self.carpeta_fotos)
 
             self.refresh_all()
             if hasattr(self, 'servidor') and self.servidor:
