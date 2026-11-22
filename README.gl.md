@@ -877,10 +877,9 @@ MantPro é e seguirá sendo **gratuíto e de código aberto**: todo o que se exp
 - **Copias de seguranza automáticas fóra da planta**, ademais das que fai o teu PC.
 - **Proba gratuíta de 30 días.**
 - **Licenza e espazo á vista**: en `Ferramentas` > `☁️ MantPro Cloud…` ves o espazo usado do teu plan e tes botóns para pagar a licenza e comprar máis espazo; MantPro avisa os administradores se a licenza caduca ou se queda pouco espazo.
+- **MantPro Web, sen instalar nada:** entra desde o navegador do PC da oficina ou dunha tableta en [app.mantpro-cloud.com](https://app.mantpro-cloud.com) co nome da túa empresa e o teu usuario e contrasinal de MantPro (os mesmos do PC), cos mesmos permisos e sedes. Ten as mesmas lapelas, menús e botóns que o PC, e o que se faga nela chega aos PC e aos móbiles, e ao revés; a pantalla actualízase soa cando alguén cambia algo.
 
 Os teus datos seguen sendo teus: se deixas de pagar, o PC segue funcionando con todo o que ten en local; só deixa de sincronizar.
-
-🚧 **En desenvolvemento: MantPro Cloud App.** Usar MantPro desde o navegador, sen instalar nada, cos mesmos usuarios, permisos e sedes da túa empresa. O que se faga nela chegará aos PC e aos móbiles, e ao revés.
 
 > 🎁 **Prezo especial para os primeiros clientes:** co código **PRIMEROS30** tes un **30 % de desconto durante os primeiros 6 meses**.
 

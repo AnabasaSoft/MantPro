@@ -886,10 +886,9 @@ MantPro ist und bleibt **kostenlos und Open Source**: Alles, was in diesem READM
 - **Automatische Sicherungen außerhalb des Betriebs**, zusätzlich zu denen Ihres PCs.
 - **30 Tage kostenlos testen.**
 - **Lizenz und Speicherplatz im Blick**: unter `Werkzeuge` > `☁️ MantPro Cloud…` sehen Sie den belegten Speicherplatz Ihres Tarifs und haben Schaltflächen, um die Lizenz zu bezahlen und mehr Speicherplatz zu kaufen; MantPro warnt die Administratoren, wenn die Lizenz abläuft oder der Speicherplatz knapp wird.
+- **MantPro Web, ohne Installation:** Melden Sie sich im Browser des Büro-PCs oder eines Tablets unter [app.mantpro-cloud.com](https://app.mantpro-cloud.com) mit dem Namen Ihres Unternehmens und Ihrem MantPro-Benutzer und -Passwort an (dieselben wie am PC), mit denselben Rechten und Standorten. Sie hat dieselben Reiter, Menüs und Schaltflächen wie der PC, und was dort getan wird, landet auf den PCs und Smartphones – und umgekehrt; die Ansicht aktualisiert sich von selbst, wenn jemand etwas ändert.
 
 Ihre Daten bleiben Ihre Daten: Wenn Sie nicht mehr zahlen, arbeitet der PC mit allem weiter, was er lokal hat; er synchronisiert nur nicht mehr.
-
-🚧 **In Entwicklung: MantPro Cloud App.** MantPro im Browser nutzen, ohne etwas zu installieren, mit denselben Benutzern, Rechten und Standorten Ihres Unternehmens. Was dort getan wird, landet auf den PCs und Smartphones – und umgekehrt.
 
 > 🎁 **Sonderpreis für die ersten Kunden:** Mit dem Code **PRIMEROS30** erhalten Sie **30 % Rabatt in den ersten 6 Monaten**.
 

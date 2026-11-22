@@ -885,10 +885,9 @@ O **MantPro Cloud** é um serviço **opcional e pago** para quem precisa de mais
 - **Cópias de segurança automáticas fora da planta**, além das que o seu PC já faz.
 - **Teste grátis de 30 dias.**
 - **Licença e espaço à vista**: em `Ferramentas` > `☁️ MantPro Cloud…` você vê o espaço usado pelo seu plano e tem botões para pagar a licença e comprar mais espaço; o MantPro avisa os administradores se a licença expirar ou se restar pouco espaço.
+- **MantPro Web, sem instalar nada:** entre pelo navegador do PC do escritório ou de um tablet em [app.mantpro-cloud.com](https://app.mantpro-cloud.com) com o nome da sua empresa e o seu usuário e senha do MantPro (os mesmos do PC), com as mesmas permissões e unidades. Tem as mesmas abas, menus e botões que o PC, e o que for feito nela chega aos PCs e aos celulares, e vice-versa; a tela se atualiza sozinha quando alguém muda algo.
 
 Seus dados continuam sendo seus: se você deixar de pagar, o PC continua funcionando com tudo o que tem localmente; apenas deixa de sincronizar.
-
-🚧 **Em desenvolvimento: MantPro Cloud App.** Usar o MantPro no navegador, sem instalar nada, com os mesmos usuários, permissões e unidades da sua empresa. O que for feito nele chegará aos PCs e aos celulares, e vice-versa.
 
 > 🎁 **Preço especial para os primeiros clientes:** com o código **PRIMEROS30** você tem **30% de desconto nos primeiros 6 meses**.
 
