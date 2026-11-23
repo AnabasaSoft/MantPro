@@ -884,6 +884,7 @@ MantPro és i continuarà sent **gratuït i de codi obert**: tot el que s'explic
 - **Prova gratuïta de 30 dies.**
 - **Llicència i espai a la vista**: a `Eines` > `☁️ MantPro Cloud…` veus l'espai que fa servir el teu pla i tens botons per pagar la llicència i comprar més espai; MantPro avisa els administradors si la llicència caduca o si queda poc espai.
 - **MantPro Web, sense instal·lar res:** entra des del navegador del PC de l'oficina o d'una tauleta a [app.mantpro-cloud.com](https://app.mantpro-cloud.com) amb el nom de la teva empresa i el teu usuari i contrasenya de MantPro (els mateixos del PC), amb els mateixos permisos i seus. Té les mateixes pestanyes, menús i botons que el PC, i el que s'hi faci arriba als PC i als mòbils, i a l'inrevés; la pantalla s'actualitza sola quan algú canvia alguna cosa.
+- **Prova-la sense registrar-te:** a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) reps una còpia privada d'una empresa d'exemple (usuaris demo, ana, jon i marta, contrasenya `demo`). Crea, edita i esborra el que vulguis: no es desa res i la còpia s'esborra sola al cap de 2 hores.
 
 Les teves dades continuen sent teves: si deixes de pagar, el PC continua funcionant amb tot el que té en local; només deixa de sincronitzar.
 

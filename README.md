@@ -872,6 +872,7 @@ MantPro is and will remain **free and open source**: everything in this README w
 - **30-day free trial.**
 - **Licence and storage at a glance**: in `Tools` > `☁️ MantPro Cloud…` you see the storage used by your plan and have buttons to pay for the licence and buy more storage; MantPro warns administrators if the licence expires or storage runs low.
 - **MantPro Web, nothing to install:** sign in from the browser of your office PC or a tablet at [app.mantpro-cloud.com](https://app.mantpro-cloud.com) with your company name and your MantPro user and password (the same as on the PC), with the same permissions and sites. It has the same tabs, menus and buttons as the PC, and what you do there reaches your PCs and phones, and vice versa; the screen updates by itself when someone changes something.
+- **Try it without signing up:** at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you get a private copy of a sample company (users demo, ana, jon and marta, password `demo`). Create, edit and delete whatever you like: nothing is saved and the copy deletes itself after 2 hours.
 
 Your data is still yours: if you stop paying, the PC keeps working with everything it has locally; it just stops syncing.
 

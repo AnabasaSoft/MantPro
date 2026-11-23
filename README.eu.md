@@ -898,6 +898,7 @@ MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azal
 - **30 eguneko doako proba.**
 - **Lizentzia eta lekua begi-bistan**: `Tresnak` > `☁️ MantPro Cloud…` atalean zure planak erabilitako lekua ikusten duzu, eta lizentzia ordaintzeko eta leku gehiago erosteko botoiak dituzu; MantPro-k administratzaileei abisatzen die lizentzia iraungitzen bada edo leku gutxi geratzen bada.
 - **MantPro Web, ezer instalatu gabe:** sartu bulegoko PCaren edo tableta baten nabigatzailetik [app.mantpro-cloud.com](https://app.mantpro-cloud.com) helbidean, zure enpresaren izenarekin eta MantProko erabiltzaile eta pasahitzarekin (PCko berberak), baimen eta egoitza berberekin. PCaren fitxa, menu eta botoi berberak ditu, eta bertan egiten dena PCetara eta mugikorretara iristen da, eta alderantziz; pantaila bere kabuz eguneratzen da norbaitek zerbait aldatzen duenean.
+- **Probatu erregistratu gabe:** [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean adibideko enpresa baten kopia pribatu bat jasotzen duzu (demo, ana, jon eta marta erabiltzaileak, `demo` pasahitza). Sortu, editatu eta ezabatu nahi duzuna: ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan.
 
 Zure datuak zureak dira: ordaintzeari uzten badiozu, PCak lokalean duen guztiarekin funtzionatzen jarraitzen du; sinkronizatzeari uzten dio, besterik ez.
 
