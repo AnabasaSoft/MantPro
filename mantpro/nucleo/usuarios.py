@@ -58,6 +58,11 @@ OPCIONES_DIAS_SESION = (30, 60, 90, 180, 365)
 # Sesiones de MantPro Web (el navegador, en MantPro Cloud): su «dispositivo» empieza por este prefijo, NO cuentan
 # como móviles (ni para el tope del plan ni para adjudicar) y caducan tras unas horas SIN USO en vez de días.
 PREFIJO_WEB = "🌐 Web"
+# El «admin / admin» que se crea en una base sin usuarios. En la nube (MantPro Web y móviles por la nube) esa
+# contraseña de serie NO abre nada: cualquiera que supiera el nombre de la empresa podría entrar el primero. Allí el
+# primer administrador entra con la cuenta de MantPro Cloud (reclamar_admin_de_serie). Lo activa el trabajador.
+CLAVE_DE_SERIE = "admin"
+CLAVE_DE_SERIE_BLOQUEADA = False
 HORAS_SESION_WEB = 8
 
 
@@ -360,6 +365,9 @@ def autenticar(login, password):
     if not verificar_password(password, fila["password_hash"]):
         con.close()
         return None
+    if CLAVE_DE_SERIE_BLOQUEADA and password == CLAVE_DE_SERIE:
+        con.close()
+        return None
 
     ahora = datetime.now().isoformat(timespec="seconds")
     con.execute("UPDATE usuarios SET ultimo_acceso = ? WHERE id = ?", (ahora, fila["id"]))
@@ -367,6 +375,51 @@ def autenticar(login, password):
     usuario = _a_dict(fila, con)
     con.close()
     return usuario
+
+
+def admin_de_serie():
+    """Id del «admin» de serie si sigue activo y con la contraseña de serie (nadie lo ha reclamado), o None."""
+    con = _conn()
+    try:
+        fila = con.execute("SELECT id, password_hash FROM usuarios WHERE login = 'admin' COLLATE NOCASE AND activo = 1"
+                           ).fetchone()
+    finally:
+        con.close()
+    return fila["id"] if fila and verificar_password(CLAVE_DE_SERIE, fila["password_hash"]) else None
+
+
+def reclamar_admin_de_serie(login, nombre, password):
+    """En la nube: el dueño de la cuenta de MantPro Cloud (ya comprobada) se convierte en el primer administrador.
+    Si la empresa tiene el «admin» de serie sin reclamar (llegó de un PC donde nadie cambió «admin»), pasa a ser suyo
+    con login = [login] (su correo), su [nombre] y su [password]; si la empresa no tiene NINGÚN usuario (usa la nube
+    sin PC), se crea así. Devuelve el usuario (dict) o None si ya hay usuarios y ningún admin de serie que reclamar,
+    o si el login ya lo tiene otro usuario."""
+    login, nombre = (login or "").strip(), (nombre or "").strip() or "Administrador"
+    if not login or len(password or "") < 4:
+        return None
+    uid = admin_de_serie()
+    con = _conn()
+    try:
+        if con.execute("SELECT 1 FROM usuarios WHERE login = ? COLLATE NOCASE AND id IS NOT ?", (login, uid)).fetchone():
+            return None
+        if uid is None:
+            if con.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]:
+                return None
+        else:
+            con.execute("UPDATE usuarios SET login = ?, nombre = ?, password_hash = ?, debe_cambiar = 0 WHERE id = ?",
+                        (login, nombre, hash_password(password), uid))
+            con.commit()
+    finally:
+        con.close()
+    if uid is None:
+        ok, _ = crear_usuario(login, nombre, password, roles=("admin",), debe_cambiar=False)
+        if not ok:
+            return None
+    u = autenticar(login, password)
+    if u:
+        registrar_auditoria(u["id"], None, "editar", f"Primer administrador con la cuenta de MantPro Cloud: «{login}»",
+                            "seguridad", objeto=f"Usuario «{login}»", origen=PREFIJO_WEB)
+    return u
 
 
 def obtener_roles(con, usuario_id):
