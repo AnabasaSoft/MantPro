@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>Free and open source CMMS to manage preventive and corrective maintenance for your plant, workshop or fleet, from PC and Android.</strong>
+  <strong>Free and open source CMMS to manage preventive and corrective maintenance for your plant, workshop or fleet, from PC, Android or the browser.</strong>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@ different places (or none at all).
 their phone, on the spot, with before and after photos if needed, and
 everything is organised on the PC by machine, by date and by person, ready
 to be looked up or turned into a PDF report.
+
+Rather not install anything on the office computers? With **[MantPro Web](https://app.mantpro-cloud.com)** (included in MantPro Cloud) you use MantPro **straight from the browser**, without the PC application: the same data, users and permissions, and what you do on the web reaches the phones and any PC, and vice versa. You can [try it without signing up](https://app.mantpro-cloud.com/demo).
 
 ## 🎯 Who is it for?
 
@@ -206,6 +208,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 ### 📱 Mobile Application (Android)
 
 - **🔐 User Sign-in**: Each technician signs in once and the session is kept on the device (the token is kept in the Android Keystore, not in plain text)
+- **🧑‍🏭 Operator mode**: a user with the **Operator** role only sees «Pending jobs you have reported» and the **Report** button (no tabs, QR or management), also offline
 - **📝 Quick Logging**: Capture jobs in the field, automatically signed with the user's name
 - **📷 Built-in Camera**: Take photos and annotate them
 - **🖼️ Photo Collection**: besides the before and after photos, add as many photos as you want to a job or pending job (camera or gallery); tapping any photo opens it full screen, swiping from one to the next and pinching to zoom. The collection also accepts **🎬 videos** (up to 30 s and 100 MB; recorded on the spot or picked from the gallery), played inside the app, even offline, and on the PC with its video player; the before and after photos are always photos
@@ -254,8 +257,11 @@ from your phone without needing the jobs app.
 
 MantPro from the browser, nothing to install, at [app.mantpro-cloud.com](https://app.mantpro-cloud.com). It is one more client of your company's data in MantPro Cloud: what you do on the web reaches the PCs and phones, and vice versa.
 
+**No PC application needed:** a browser (Chrome, Firefox, Edge, Safari…) on the office computer, a laptop or a tablet is enough; nothing to install or update. You can work only on the web, only with the PC application or with both at once on the same data. To pair the phones, for now you need to scan the QR code of a PC with MantPro once.
+
 - **🧪 Demo without signing up**: at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you step into a sample company with one click (users `demo`, `ana`, `jon`, `marta` and `operario`, password `demo`). Each visitor gets their own private copy: create, edit and delete whatever you like; nothing is saved and the copy deletes itself after 2 hours
 - **🔐 Same users as the PC**: sign in with the company name and your MantPro user and password, with the same roles, permissions and sites
+- **🧑‍🏭 Operators**: a user with the **Operator** role only sees the form to report breakdowns and pending jobs and the ones they reported; nothing else
 - **🖥️ Just like the PC**: the same tabs (Dashboard, Calendar, Alerts, New Entry, History, Search, Pending, Machines, Warehouse stock and Low stock), the same menus and the same right-click menu
 - **📸 Photos and videos**: uploaded from the browser and visible straight away on PCs and phones
 - **📄 Exports**: PDF, Excel and CSV with the same dialogs as the PC

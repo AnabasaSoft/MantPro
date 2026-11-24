@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>Kostenlose Open-Source-Instandhaltungssoftware (CMMS) für die vorbeugende und korrektive Wartung Ihres Werks, Ihrer Werkstatt oder Ihres Fuhrparks, auf PC und Android.</strong>
+  <strong>Kostenlose Open-Source-Instandhaltungssoftware (CMMS) für die vorbeugende und korrektive Wartung Ihres Werks, Ihrer Werkstatt oder Ihres Fuhrparks, auf PC, Android oder im Browser.</strong>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@ verschiedene Orte verteilt ist (oder an keinem steht).
 Handy, mit Fotos vorher und nachher, wenn nötig, und auf dem PC ist alles nach
 Maschine, Datum und Person geordnet, bereit zum Nachschlagen oder für einen
 PDF-Bericht.
+
+Sie möchten auf den Bürorechnern nichts installieren? Mit **[MantPro Web](https://app.mantpro-cloud.com)** (in MantPro Cloud enthalten) nutzen Sie MantPro **direkt im Browser**, ohne die PC-Anwendung: dieselben Daten, Benutzer und Rechte, und was im Web geschieht, erreicht die Smartphones und jeden PC und umgekehrt. Sie können es [ohne Registrierung ausprobieren](https://app.mantpro-cloud.com/demo).
 
 ## 🎯 Für wen ist es?
 
@@ -209,6 +211,7 @@ Hinweise auf stabile Versionen. Die Änderungen jeder Version stehen in
 ### 📱 Handy-App (Android)
 
 - **🔐 Anmeldung mit Benutzer**: Jeder Techniker meldet sich einmal an, und die Sitzung bleibt auf dem Gerät gespeichert (das Token liegt im Android Keystore, nicht im Klartext)
+- **🧑‍🏭 Bedienermodus**: Ein Benutzer mit der Rolle **Bediener** sieht nur «Von Ihnen gemeldete offene Arbeiten» und den Button **Melden** (ohne Reiter, QR und Verwaltung), auch offline
 - **📝 Schnelle Erfassung**: Erfassung von Einsätzen vor Ort, automatisch mit dem Benutzer gekennzeichnet
 - **📷 Integrierte Kamera**: Fotos aufnehmen und mit Anmerkungen bearbeiten
 - **🖼️ Fotosammlung**: Neben den Fotos vorher und nachher können Sie einer Arbeit oder offenen Arbeit beliebig viele Fotos hinzufügen (Kamera oder Galerie); ein Tippen auf ein Foto zeigt es im Vollbild, mit Wischen von einem zum nächsten und Zoomen mit zwei Fingern. Die Sammlung nimmt auch **🎬 Videos** auf (bis 30 s und 100 MB; direkt aufgenommen oder aus der Galerie gewählt), die in der App abgespielt werden, ohne Verbindung, und auf dem PC mit dessen Videoplayer; die Fotos vorher und nachher sind immer Fotos
@@ -257,8 +260,11 @@ des Lagerbestands auf dem Handy, ohne die App für Arbeiten zu brauchen.
 
 MantPro im Browser, ohne Installation, unter [app.mantpro-cloud.com](https://app.mantpro-cloud.com). Es ist ein weiterer Client der Daten Ihres Unternehmens in MantPro Cloud: Was im Web geschieht, erreicht die PCs und Smartphones und umgekehrt.
 
+**Ohne PC-Anwendung:** Ein Browser (Chrome, Firefox, Edge, Safari…) auf dem Bürorechner, einem Laptop oder einem Tablet genügt; nichts zu installieren oder zu aktualisieren. Sie können nur im Web, nur mit der PC-Anwendung oder mit beiden gleichzeitig auf denselben Daten arbeiten. Um die Smartphones zu koppeln, muss vorerst einmal der QR-Code eines PCs mit MantPro gescannt werden.
+
 - **🧪 Demo ohne Registrierung**: Unter [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) betreten Sie mit einem Klick ein Beispielunternehmen (Benutzer `demo`, `ana`, `jon`, `marta` und `operario`, Passwort `demo`). Jeder Besucher erhält seine eigene private Kopie: Erstellen, bearbeiten und löschen Sie, was Sie möchten; nichts wird gespeichert, und die Kopie löscht sich nach 2 Stunden von selbst
 - **🔐 Dieselben Benutzer wie am PC**: Anmeldung mit dem Unternehmensnamen und dem MantPro-Benutzer und -Passwort, mit denselben Rollen, Rechten und Standorten
+- **🧑‍🏭 Bediener**: Ein Benutzer mit der Rolle **Bediener** sieht nur das Formular zum Melden von Störungen und offenen Arbeiten und die von ihm gemeldeten; sonst nichts
 - **🖥️ Wie am PC**: dieselben Reiter (Dashboard, Kalender, Wartungsplan, Erfassen, Verlauf, Suche, Offene Arbeiten, Maschinen, Lagerbestand und Bestand unter Minimum), dieselben Menüs und dasselbe Rechtsklickmenü
 - **📸 Fotos und Videos**: werden im Browser hochgeladen und sind sofort auf PCs und Smartphones sichtbar
 - **📄 Exporte**: PDF, Excel und CSV mit denselben Dialogen wie am PC

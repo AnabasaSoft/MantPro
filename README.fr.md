@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>GMAO/CMMS libre et gratuite pour gérer la maintenance préventive et corrective de votre usine, atelier ou flotte, depuis le PC et Android.</strong>
+  <strong>GMAO/CMMS libre et gratuite pour gérer la maintenance préventive et corrective de votre usine, atelier ou flotte, depuis le PC, Android ou le navigateur.</strong>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@ information est éparpillée à trois endroits différents (ou nulle part).
 intervention depuis son mobile, sur le moment, avec des photos avant/après si
 besoin, et tout est classé sur le PC par machine, par date et par personne,
 prêt à être consulté ou exporté en rapport PDF.
+
+Vous préférez ne rien installer sur les ordinateurs du bureau ? Avec **[MantPro Web](https://app.mantpro-cloud.com)** (inclus dans MantPro Cloud), on utilise MantPro **directement depuis le navigateur**, sans l'application PC : les mêmes données, utilisateurs et droits, et ce qui est fait sur le web arrive sur les téléphones et sur n'importe quel PC, et inversement. Vous pouvez [l'essayer sans vous inscrire](https://app.mantpro-cloud.com/demo).
 
 ## 🎯 Pour qui ?
 
@@ -209,6 +211,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 ### 📱 Application mobile (Android)
 
 - **🔐 Connexion par utilisateur** : chaque technicien se connecte une fois et la session reste enregistrée sur l'appareil (le jeton est conservé dans le Keystore d'Android, pas en clair)
+- **🧑‍🏭 Mode Opérateur** : un utilisateur avec le rôle **Opérateur** ne voit que « Tâches en attente que vous avez signalées » et le bouton **Signaler** (sans onglets, QR ni gestion), même hors ligne
 - **📝 Saisie rapide** : enregistrement des interventions sur le terrain, signées automatiquement avec votre utilisateur
 - **📷 Appareil photo intégré** : prenez des photos et annotez-les
 - **🖼️ Collection de photos** : en plus des photos avant et après, ajoutez à une intervention ou à une tâche en attente autant de photos que vous voulez (appareil photo ou galerie) ; en touchant une photo, elle s'affiche en plein écran, en passant de l'une à l'autre et en zoomant à deux doigts. La collection accepte aussi des **🎬 vidéos** (jusqu'à 30 s et 100 Mo ; filmées sur le moment ou choisies dans la galerie), lues dans l'application, même sans connexion, et sur le PC avec son lecteur ; les photos avant et après restent toujours des photos
@@ -258,8 +261,11 @@ l'application des interventions.
 
 MantPro depuis le navigateur, sans rien installer, sur [app.mantpro-cloud.com](https://app.mantpro-cloud.com). C'est un client de plus des données de votre entreprise dans MantPro Cloud : ce qui est fait sur le web arrive sur les PC et les téléphones, et inversement.
 
+**Sans l'application PC :** un navigateur (Chrome, Firefox, Edge, Safari…) sur l'ordinateur du bureau, un portable ou une tablette suffit ; rien à installer ni à mettre à jour. On peut travailler uniquement sur le web, uniquement avec l'application PC ou avec les deux à la fois sur les mêmes données. Pour associer les téléphones, il faut pour l'instant scanner une fois le QR code d'un PC avec MantPro.
+
 - **🧪 Démo sans inscription** : sur [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo), vous entrez en un clic dans une entreprise d'exemple (utilisateurs `demo`, `ana`, `jon`, `marta` et `operario`, mot de passe `demo`). Chaque visiteur reçoit sa propre copie privée : créez, modifiez et supprimez ce que vous voulez ; rien n'est enregistré et la copie s'efface d'elle-même au bout de 2 heures
 - **🔐 Les mêmes utilisateurs que sur le PC** : on se connecte avec le nom de l'entreprise et l'utilisateur et le mot de passe MantPro, avec les mêmes rôles, droits et sites
+- **🧑‍🏭 Opérateurs** : un utilisateur avec le rôle **Opérateur** ne voit que le formulaire pour signaler des pannes et des tâches en attente et celles qu'il a signalées ; rien d'autre
 - **🖥️ Comme sur le PC** : les mêmes onglets (Tableau de bord, Calendrier, Rappels, Enregistrer, Historique, Recherche, En attente, Machines, Stock du magasin et Stock sous le minimum), les mêmes menus et le même menu du clic droit
 - **📸 Photos et vidéos** : envoyées depuis le navigateur et visibles aussitôt sur les PC et téléphones
 - **📄 Exports** : PDF, Excel et CSV avec les mêmes boîtes de dialogue que le PC

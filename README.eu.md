@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>GMAO/CMMS doakoa eta kode irekikoa, zure lantegiko, tailerreko edo flotako mantentze prebentiboa eta zuzentzailea kudeatzeko, PCtik eta Androidetik.</strong>
+  <strong>GMAO/CMMS doakoa eta kode irekikoa, zure lantegiko, tailerreko edo flotako mantentze prebentiboa eta zuzentzailea kudeatzeko, PCtik, Androidetik edo nabigatzailetik.</strong>
 </p>
 
 <p align="center">
@@ -72,6 +72,8 @@ mugikorretik erregistratzen du, une berean, behar izanez gero aurreko eta
 ondorengo argazkiekin, eta dena PCan antolatuta geratzen da makinaren,
 dataren eta pertsonaren arabera, kontsultatzeko edo PDF txosten bat
 ateratzeko prest.
+
+Nahiago duzu bulegoko ordenagailuetan ezer ez instalatu? **[MantPro Web](https://app.mantpro-cloud.com)**-ekin (MantPro Cloud-en barne) MantPro **zuzenean nabigatzailetik** erabiltzen da, PCko aplikaziorik gabe: datu, erabiltzaile eta baimen berberak, eta weban egiten dena mugikorretara eta edozein PCtara iristen da, eta alderantziz. [Erregistratu gabe probatu](https://app.mantpro-cloud.com/demo) daiteke.
 
 ## 🎯 Norentzat da?
 
@@ -211,6 +213,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 ### 📱 Mugikorreko aplikazioa (Android)
 
 - **🔐 Erabiltzailearekin sarbidea**: Teknikari bakoitzak behin hasten du saioa eta saioa gailuan gordeta geratzen da (tokena Androiden Keystorean gordetzen da, ez testu argian)
+- **🧑‍🏭 Operadore modua**: **Operadorea** rola duen erabiltzaileak «Zuk abisatutako egitekoak» eta **Abisatu** botoia baino ez ditu ikusten (fitxarik, QRrik eta kudeaketarik gabe), konexiorik gabe ere bai
 - **📝 Erregistro azkarra**: Lanak tokian bertan erregistratzea, erabiltzailearekin automatikoki sinatuta
 - **📷 Kamera integratua**: Argazkiak atera eta oharrekin editatu
 - **🖼️ Argazki bilduma**: aurreko eta ondorengo argazkiez gain, gehitu lan edo egiteke dagoen lan bati nahi adina argazki (kamera edo galeria); edozein argazki sakatuz pantaila osoan ikusten da, batetik bestera pasatuz eta bi hatzekin handituz. Bildumak **🎬 bideoak** ere onartzen ditu (gehienez 30 s eta 100 MB; unean bertan grabatuak edo galeriatik aukeratuak), aplikazioaren barruan ikusten direnak, konexiorik gabe ere, eta PCan bere erreproduzitzailearekin; aurreko eta ondorengo argazkiak beti dira argazkiak
@@ -259,8 +262,11 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
 MantPro nabigatzailetik, ezer instalatu gabe, [app.mantpro-cloud.com](https://app.mantpro-cloud.com) helbidean. Zure enpresak MantPro Cloud-en dituen datuen beste bezero bat da: weban egiten dena PCetara eta mugikorretara iristen da, eta alderantziz.
 
+**PCko aplikaziorik gabe:** nahikoa da nabigatzaile bat (Chrome, Firefox, Edge, Safari…) bulegoko ordenagailuan, eramangarri batean edo tableta batean; ez dago ezer instalatu edo eguneratu beharrik. Weba bakarrik, PCko aplikazioa bakarrik edo biak batera erabil daitezke datu berberen gainean. Mugikorrak lotzeko, oraingoz, MantPro duen PC baten QRa behin eskaneatu behar da.
+
 - **🧪 Demoa erregistratu gabe**: [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean klik batekin sartzen zara adibideko enpresa batean (`demo`, `ana`, `jon`, `marta` eta `operario` erabiltzaileak, `demo` pasahitza). Bisitari bakoitzak bere kopia pribatua jasotzen du: sortu, editatu eta ezabatu nahi duzuna; ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan
 - **🔐 PCko erabiltzaile berberak**: enpresaren izenarekin eta MantProko erabiltzaile eta pasahitzarekin sartzen da, rol, baimen eta egoitza berberekin
+- **🧑‍🏭 Operadoreak**: **Operadorea** rola duen erabiltzaileak matxurak eta egiteko lanak abisatzeko formularioa eta berak abisatutakoak baino ez ditu ikusten; besterik ez
 - **🖥️ PCa bezalakoa**: fitxa berberak (Aginte-mahaia, Egutegia, Abisuak, Erregistratu, Historia, Bilatzailea, Egiteke, Makinak, Biltegiko stocka eta Gutxienekotik behera), menu berberak eta eskuineko botoiaren menu berbera
 - **📸 Argazkiak eta bideoak**: nabigatzailetik igotzen dira eta berehala ikusten dira PCetan eta mugikorretan
 - **📄 Esportazioak**: PDF, Excel eta CSV, PCko elkarrizketa-koadro berberekin

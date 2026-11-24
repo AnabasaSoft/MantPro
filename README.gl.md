@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>GMAO/CMMS gratuíto e de código aberto para xestionar o mantemento preventivo e correctivo da túa planta, obradoiro ou frota, dende o PC e Android.</strong>
+  <strong>GMAO/CMMS gratuíto e de código aberto para xestionar o mantemento preventivo e correctivo da túa planta, obradoiro ou frota, dende o PC, Android ou o navegador.</strong>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@ con que material, e esa información está repartida entre tres sitios distintos
 móbil, no momento, con fotos de antes e despois se fai falta, e todo queda
 ordenado no PC por máquina, por data e por persoa, listo para consultalo ou
 sacar un informe en PDF.
+
+Prefires non instalar nada nos ordenadores da oficina? Con **[MantPro Web](https://app.mantpro-cloud.com)** (incluída en MantPro Cloud) úsase MantPro **directamente dende o navegador**, sen a aplicación de PC: os mesmos datos, usuarios e permisos, e o que se fai na web chega aos móbiles e a calquera PC, e ao revés. Pódese [probar sen rexistrarse](https://app.mantpro-cloud.com/demo).
 
 ## 🎯 Para quen é?
 
@@ -208,6 +210,7 @@ Os cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 ### 📱 Aplicación móbil (Android)
 
 - **🔐 Acceso con usuario**: cada técnico inicia sesión unha vez e a sesión queda gardada no dispositivo (o token gárdase no Keystore de Android, non en claro)
+- **🧑‍🏭 Modo Operario**: un usuario co rol **Operario** só ve «Pendentes que avisaches» e o botón **Avisar** (sen pestanas, QR nin xestión), tamén sen conexión
 - **📝 Rexistro rápido**: captura de intervencións sobre o terreo, asinadas automaticamente co seu usuario
 - **📷 Cámara integrada**: toma de fotos e edición con anotacións
 - **🖼️ Colección de fotos**: ademais das fotos de antes e despois, engade a un traballo ou pendente todas as fotos que queiras (cámara ou galería); ao tocar calquera foto vese a pantalla completa, pasando dunha a outra e ampliando con dous dedos. A colección admite tamén **🎬 vídeos** (ata 30 s e 100 MB; gravados no momento ou escollidos da galería), que se ven dentro da app, sen conexión, e no PC co seu reprodutor; as fotos de antes e despois son sempre fotos
@@ -256,8 +259,11 @@ o stock do almacén dende o móbil sen necesidade da aplicación de traballos.
 
 MantPro dende o navegador, sen instalar nada, en [app.mantpro-cloud.com](https://app.mantpro-cloud.com). É un cliente máis dos datos da túa empresa en MantPro Cloud: o que se fai na web chega aos PC e aos móbiles, e ao revés.
 
+**Sen a aplicación de PC:** abonda cun navegador (Chrome, Firefox, Edge, Safari…) no ordenador da oficina, nun portátil ou nunha tableta; non hai que instalar nin actualizar nada. Pódese traballar só coa web, só coa aplicación de PC ou coas dúas á vez sobre os mesmos datos. Para vincular os móbiles, polo de agora cómpre escanear unha vez o QR dun PC con MantPro.
+
 - **🧪 Demo sen rexistrarse**: en [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entras cun clic nunha empresa de exemplo (usuarios `demo`, `ana`, `jon`, `marta` e `operario`, contrasinal `demo`). Cada visitante recibe a súa propia copia privada: crea, edita e borra o que queiras; non se garda nada e a copia bórrase soa ás 2 horas
 - **🔐 Os mesmos usuarios que no PC**: éntrase co nome da empresa e o usuario e contrasinal de MantPro, cos mesmos roles, permisos e sedes
+- **🧑‍🏭 Operarios**: un usuario co rol **Operario** só ve o formulario para avisar de avarías e traballos pendentes e os que avisou el; nada máis
 - **🖥️ Igual que o PC**: as mesmas pestanas (Dashboard, Calendario, Avisos, Rexistrar, Historial, Buscador, Pendentes, Máquinas, Stock de almacén e Stock por baixo do mínimo), os mesmos menús e o mesmo menú do botón dereito
 - **📸 Fotos e vídeos**: súbense dende o navegador e vense ao momento nos PC e móbiles
 - **📄 Exportacións**: PDF, Excel e CSV cos mesmos diálogos que o PC

@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>GMAO/CMMS gratuito e de código aberto para gerenciar a manutenção preventiva e corretiva da sua planta, oficina ou frota, pelo PC e pelo Android.</strong>
+  <strong>GMAO/CMMS gratuito e de código aberto para gerenciar a manutenção preventiva e corretiva da sua planta, oficina ou frota, pelo PC, pelo Android ou pelo navegador.</strong>
 </p>
 
 <p align="center">
@@ -71,6 +71,8 @@ lugares diferentes (ou em nenhum).
 celular, na hora, com fotos de antes e depois se necessário, e tudo fica
 organizado no PC por máquina, por data e por pessoa, pronto para consultar ou
 gerar um relatório em PDF.
+
+Prefere não instalar nada nos computadores do escritório? Com o **[MantPro Web](https://app.mantpro-cloud.com)** (incluído no MantPro Cloud) o MantPro é usado **direto pelo navegador**, sem o aplicativo de PC: os mesmos dados, usuários e permissões, e o que se faz na web chega aos celulares e a qualquer PC, e vice-versa. Dá para [experimentar sem se cadastrar](https://app.mantpro-cloud.com/demo).
 
 ## 🎯 Para quem é?
 
@@ -208,6 +210,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 ### 📱 Aplicativo para celular (Android)
 
 - **🔐 Acesso com usuário**: cada técnico entra uma vez e a sessão fica salva no dispositivo (o token fica guardado no Keystore do Android, não em texto puro)
+- **🧑‍🏭 Modo Operador**: um usuário com a função **Operador** só vê «Pendentes que você avisou» e o botão **Avisar** (sem abas, QR nem gestão), também sem conexão
 - **📝 Registro rápido**: registro de intervenções em campo, assinadas automaticamente com o seu usuário
 - **📷 Câmera integrada**: tire fotos e edite-as com anotações
 - **🖼️ Coleção de fotos**: além das fotos de antes e depois, adicione a um serviço ou pendente quantas fotos quiser (câmera ou galeria); ao tocar em qualquer foto, ela é exibida em tela cheia, passando de uma para outra e ampliando com dois dedos. A coleção também aceita **🎬 vídeos** (até 30 s e 100 MB; gravados na hora ou escolhidos da galeria), que são exibidos dentro do app, mesmo sem conexão, e no PC com o seu reprodutor; as fotos de antes e depois são sempre fotos
@@ -257,8 +260,11 @@ serviços.
 
 O MantPro pelo navegador, sem instalar nada, em [app.mantpro-cloud.com](https://app.mantpro-cloud.com). É mais um cliente dos dados da sua empresa no MantPro Cloud: o que se faz na web chega aos PCs e aos celulares, e vice-versa.
 
+**Sem o aplicativo de PC:** basta um navegador (Chrome, Firefox, Edge, Safari…) no computador do escritório, em um notebook ou em um tablet; não é preciso instalar nem atualizar nada. Dá para trabalhar só com a web, só com o aplicativo de PC ou com os dois ao mesmo tempo sobre os mesmos dados. Para vincular os celulares, por enquanto é preciso escanear uma vez o QR de um PC com o MantPro.
+
 - **🧪 Demo sem cadastro**: em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você entra com um clique em uma empresa de exemplo (usuários `demo`, `ana`, `jon`, `marta` e `operario`, senha `demo`). Cada visitante recebe sua própria cópia privada: crie, edite e apague o que quiser; nada é salvo e a cópia se apaga sozinha depois de 2 horas
 - **🔐 Os mesmos usuários do PC**: entra-se com o nome da empresa e o usuário e senha do MantPro, com as mesmas funções, permissões e unidades
+- **🧑‍🏭 Operadores**: um usuário com a função **Operador** só vê o formulário para avisar de avarias e trabalhos pendentes e os que avisou; nada mais
 - **🖥️ Igual ao PC**: as mesmas abas (Painel, Calendário, Avisos, Registrar, Histórico, Busca, Pendentes, Máquinas, Estoque do almoxarifado e Estoque abaixo do mínimo), os mesmos menus e o mesmo menu do botão direito
 - **📸 Fotos e vídeos**: enviados pelo navegador e vistos na hora nos PCs e celulares
 - **📄 Exportações**: PDF, Excel e CSV com as mesmas caixas de diálogo do PC
