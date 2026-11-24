@@ -127,6 +127,9 @@ class AuthService {
 
   static bool get autenticado => token != null && token!.isNotEmpty;
   static bool get esAdmin => roles.contains('admin');
+  /// Solo operario: avisa de trabajos pendientes y ve los que ha avisado él (nada más). Con otro rol, cuenta el otro.
+  static bool get esOperario =>
+      roles.contains('operario') && !roles.any((r) => r == 'admin' || r == 'tecnico' || r == 'almacen');
 
   // El token de sesión va en el almacenamiento seguro del sistema (Keystore
   // de Android), no en SharedPreferences en claro, para que no se pueda leer
@@ -1688,6 +1691,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
+    // Un operario solo tiene la pestaña de pendientes (avisar y ver los suyos): sin barra de pestañas ni QR
+    final operario = AuthService.esOperario;
+    if (operario) _indiceActual = 2;
     return ValueListenableBuilder<String>(
       valueListenable: idiomaNotifier,
       builder: (context, idiomaActual, _) {
@@ -1699,7 +1705,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           t("titulo_historial"),
         ][_indiceActual];
         return PopScope(
-          canPop: _indiceActual == 0,
+          canPop: _indiceActual == 0 || operario,
           onPopInvoked: (didPop) { if (!didPop) _irAPestana(0); },
           child: Scaffold(
             // Título solo en su línea y los iconos en una fila debajo (no caben al lado en el móvil)
@@ -1709,7 +1715,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 scrollDirection: Axis.horizontal,
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
               const BotonSede(),   // solo con más de una sede
-              IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: tt('tooltip_escanear_maquina', 'Escanear el QR de una máquina'), onPressed: _escanearMaquina),
+              if (!operario) IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: tt('tooltip_escanear_maquina', 'Escanear el QR de una máquina'), onPressed: _escanearMaquina),
               IconButton(icon: const Icon(Icons.language), onPressed: _mostrarSelectorIdioma),
               IconButton(icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode), onPressed: _toggleTheme),
               PopupMenuButton<String>(
@@ -1769,7 +1775,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               ),
               Expanded(child: _pantallas[_indiceActual]),
             ]),
-            bottomNavigationBar: BottomNavigationBar(
+            bottomNavigationBar: operario ? null : BottomNavigationBar(
               currentIndex: _indiceActual,
               type: BottomNavigationBarType.fixed,
               onTap: (index) => setState(() => _indiceActual = index),
@@ -2536,6 +2542,13 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
       builder: (context, idiomaActual, _) => Scaffold(
       body: Column(
         children: [
+          if (AuthService.esOperario)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: Text(tt('lbl_pendientes_avisados', 'Pendientes que has avisado'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            )
+          else
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(children: [
@@ -2564,7 +2577,9 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                 Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.assignment_turned_in, size: 60, color: Colors.grey),
                   const SizedBox(height: 10),
-                  Text(_soloMios
+                  Text(AuthService.esOperario
+                      ? tt("msg_sin_pendientes_avisados", "Todavía no has avisado de ningún trabajo pendiente, o ya están todos hechos.")
+                      : _soloMios
                       ? tt("msg_no_hay_pendientes_mios", "No tienes trabajos asignados")
                       : t("msg_no_hay_pendientes")),
                   if (off) TextButton.icon(icon: const Icon(Icons.qr_code), label: Text(t("btn_vincular_pc")), onPressed: _escanearQR)
@@ -2661,8 +2676,11 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
                             ),
                         ],
                       ),
-                      onTap: () => _abrirGestionar(item),
-                      trailing: ed ? const Icon(Icons.cloud_upload, color: Colors.orange) : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id))
+                      // Un operario no gestiona pendientes: solo ve los suyos (con la nube si aún no ha llegado)
+                      onTap: AuthService.esOperario ? null : () => _abrirGestionar(item),
+                      trailing: AuthService.esOperario
+                          ? (item.id < 0 ? const Icon(Icons.cloud_upload, color: Colors.orange) : null)
+                          : ed ? const Icon(Icons.cloud_upload, color: Colors.orange) : IconButton(icon: const Icon(Icons.delete, color: Colors.grey), onPressed: () => _borrar(item.id))
                     )
                   );
                 },
@@ -2686,7 +2704,7 @@ class _TabPendientesPCState extends State<TabPendientesPC> {
           backgroundColor: Theme.of(context).colorScheme.secondary,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task),
-          label: Text(t("lbl_anadir")),
+          label: Text(AuthService.esOperario ? tt("btn_avisar_pendiente", "Avisar") : t("lbl_anadir")),
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FormScreen(esCrearPendiente: true, onSave: (r) async {
             final especialidadUuid = await uuidDeEspecialidad(r.especialidadId);   // de la lista de la que se eligió
             if (!mounted) return;
@@ -3879,7 +3897,7 @@ class _FormScreenState extends State<FormScreen> {
           ],
           const SizedBox(height: 15),
         ],
-        DropdownButtonFormField<int?>(
+        if (!AuthService.esOperario) DropdownButtonFormField<int?>(
           value: _arbolMaquinas.any((e) => e.value == _maquinaId) ? _maquinaId : null,
           decoration: InputDecoration(labelText: t("lbl_maquina")),
           isExpanded: true,
@@ -3890,6 +3908,7 @@ class _FormScreenState extends State<FormScreen> {
           const SizedBox(height: 10),
           CampoTiempoTrabajo(controlador: _tiempoCtrl, personas: _personas, alCambiarPersonas: (v) => setState(() => _personas = v)),
         ],
+        if (!AuthService.esOperario) ...[
         const SizedBox(height: 15), const Divider(),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(t("lbl_materiales_usados"), style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -3904,6 +3923,7 @@ class _FormScreenState extends State<FormScreen> {
           subtitle: Text('${e.value['cantidad']} ${e.value['unidad'] ?? ''}'.trim()),
           trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => _materiales.removeAt(e.key))),
         )).toList()),
+        ],
         const SizedBox(height: 15), const Divider(),
         Row(
           children: [

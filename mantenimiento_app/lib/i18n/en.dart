@@ -279,4 +279,7 @@ const Map<String, String> traduccionesEn = {
     "lbl_lect_ver_lecturas": "See the {n} readings",
     "msg_lect_sin_lecturas_movil": "There are no readings for this machine on the phone. They come from the “Reading” points of the checklists when its jobs are completed.",
     "lbl_lect_datos_sincro": "Data from the last sync with the PC (the latest 30 readings of each measurement).",
+    "lbl_pendientes_avisados": "Pending jobs you have reported",
+    "msg_sin_pendientes_avisados": "You have not reported any pending job yet, or they have all been done.",
+    "btn_avisar_pendiente": "Report",
 };

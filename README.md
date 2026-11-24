@@ -138,7 +138,7 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
   - Portable AppImage
   - `.deb` (Debian, Ubuntu…) and `.rpm` (Fedora, openSUSE…) packages, signed with GPG
   - Also available on the **AUR** (Arch User Repository)
-  - Also available on [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) for openSUSE Tumbleweed and Slowroll
+  - Also available on [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) for openSUSE Tumbleweed and Slowroll and for Fedora 43
 - **Android**: `.apk` files for direct installation
   - `MantPro.apk`: maintenance jobs app
   - `MantProStock.apk`: warehouse stock app
@@ -201,7 +201,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **🏷️ QR Labels per Machine**: PDF of labels to stick on the machines; scanning them with the MantPro app opens the machine's page
 - **🔍 Duplicate Warning**: when creating or renaming a machine, or creating or editing an item, it warns if there is already another one with the same code or the same or a very similar name (e.g. “Fines extractor” / “Fines extraction”), without warning when only the number changes (“Lora 1” / “Lora 2”)
 - **📲 Install the Apps with a QR Code**: `Tools > 📱 Install MantPro on phone` and `📦 Install MantPro Stock on phone` show a QR code that, when scanned with the phone's camera, downloads the latest stable version of the app
-- **🔔 Update Notifications**: `Help > 🔄 Check for Updates` notifies you of new versions; the version installed from OBS (openSUSE) says it is updated with `zypper`
+- **🔔 Update Notifications**: `Help > 🔄 Check for Updates` notifies you of new versions; the version installed from OBS says it is updated with `zypper` (openSUSE) or `dnf` (Fedora)
 
 ### 📱 Mobile Application (Android)
 
@@ -254,7 +254,7 @@ from your phone without needing the jobs app.
 
 MantPro from the browser, nothing to install, at [app.mantpro-cloud.com](https://app.mantpro-cloud.com). It is one more client of your company's data in MantPro Cloud: what you do on the web reaches the PCs and phones, and vice versa.
 
-- **🧪 Demo without signing up**: at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you step into a sample company with one click (users `demo`, `ana`, `jon` and `marta`, password `demo`). Each visitor gets their own private copy: create, edit and delete whatever you like; nothing is saved and the copy deletes itself after 2 hours
+- **🧪 Demo without signing up**: at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you step into a sample company with one click (users `demo`, `ana`, `jon`, `marta` and `operario`, password `demo`). Each visitor gets their own private copy: create, edit and delete whatever you like; nothing is saved and the copy deletes itself after 2 hours
 - **🔐 Same users as the PC**: sign in with the company name and your MantPro user and password, with the same roles, permissions and sites
 - **🖥️ Just like the PC**: the same tabs (Dashboard, Calendar, Alerts, New Entry, History, Search, Pending, Machines, Warehouse stock and Low stock), the same menus and the same right-click menu
 - **📸 Photos and videos**: uploaded from the browser and visible straight away on PCs and phones
@@ -322,6 +322,11 @@ Download the version for your system from [GitHub Releases](https://github.com/A
     sudo zypper in mantpro
     ```
     (for Slowroll, replace `openSUSE_Tumbleweed` with `openSUSE_Slowroll` in the URL)
+  - **Fedora 43** (from version 3.10.12): also from [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), updated with `dnf`:
+    ```bash
+    sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:danitxu79/Fedora_43/home:danitxu79.repo
+    sudo dnf install mantpro
+    ```
 
 #### 🔏 Verifying the package signature (Linux)
 
@@ -504,6 +509,9 @@ technician and warehouse). Available roles:
 | **Administrator** | Everything a technician and warehouse user can do, plus adding and deactivating users, changing roles, resetting passwords, editing or deleting **any** history record, reassigning the author of one or several records at once, and viewing the change audit log |
 | **Technician** | Log jobs, complete pending tasks and alerts, edit or delete **only their own** history records, and change their own password |
 | **Warehouse** | Add or edit materials and log stock in/out from the **MantPro Stock** mobile app |
+| **Operator** | Only **reports breakdowns and pending jobs** (title, details, priority, specialty and photos) from the PC, MantPro Web or the MantPro app, also offline, and sees the ones they reported while they are still open. Sees nothing else (no other tabs, history, machines or stock) and does not assign a technician. It goes alone: with another role, the other one counts |
+
+A **warehouse-only** user cannot create pending jobs: they only use the warehouse.
 
 There must always be **at least one active administrator**: the application
 prevents removing the role from, or deactivating, the last one left.
@@ -888,7 +896,7 @@ MantPro is and will remain **free and open source**: everything in this README w
 - **30-day free trial.**
 - **Licence and storage at a glance**: in `Tools` > `☁️ MantPro Cloud…` you see the storage used by your plan and have buttons to pay for the licence and buy more storage; MantPro warns administrators if the licence expires or storage runs low.
 - **MantPro Web, nothing to install:** sign in from the browser of your office PC or a tablet at [app.mantpro-cloud.com](https://app.mantpro-cloud.com) with your company name and your MantPro user and password (the same as on the PC), with the same permissions and sites. It has the same tabs, menus and buttons as the PC, and what you do there reaches your PCs and phones, and vice versa; the screen updates by itself when someone changes something.
-- **Try it without signing up:** at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you get a private copy of a sample company (users demo, ana, jon and marta, password `demo`). Create, edit and delete whatever you like: nothing is saved and the copy deletes itself after 2 hours.
+- **Try it without signing up:** at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you get a private copy of a sample company (users demo, ana, jon, marta and operario, password `demo`). Create, edit and delete whatever you like: nothing is saved and the copy deletes itself after 2 hours.
 
 Your data is still yours: if you stop paying, the PC keeps working with everything it has locally; it just stops syncing.
 

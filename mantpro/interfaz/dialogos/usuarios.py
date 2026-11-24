@@ -415,8 +415,7 @@ class DialogoGestionUsuarios(QDialog):
         self.nueva_password = QLineEdit()
         self.nueva_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.nueva_password.setPlaceholderText(t("login_password", "Contraseña"))
-        self.selector_roles, self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin = \
-            self._crear_selector_roles()
+        self.selector_roles, self.casillas_roles = self._crear_selector_roles()
         self._especialidades_alta_ids = []
         self.boton_especialidad_alta = QPushButton()
         self.boton_especialidad_alta.clicked.connect(self._elegir_especialidades_alta)
@@ -471,48 +470,41 @@ class DialogoGestionUsuarios(QDialog):
             "admin": t("rol_admin", "Administrador"),
             "almacen": t("rol_almacen", "Almacén"),
             "tecnico": t("rol_tecnico", "Técnico"),
+            "operario": t("rol_operario", "Operario"),
         }
         return ", ".join(etiquetas.get(r, r) for r in (roles or ["tecnico"]))
 
     def _crear_selector_roles(self, roles_iniciales=("tecnico",)):
-        """Casillas para elegir uno o varios roles (técnico y/o almacén).
-        Administrador es exclusivo: al marcarlo se desmarcan y bloquean los otros."""
-        chk_tecnico = QCheckBox(t("rol_tecnico", "Técnico"))
-        chk_almacen = QCheckBox(t("rol_almacen", "Almacén"))
-        chk_admin = QCheckBox(t("rol_admin", "Administrador"))
-        chk_tecnico.setChecked("tecnico" in roles_iniciales)
-        chk_almacen.setChecked("almacen" in roles_iniciales)
-        chk_admin.setChecked("admin" in roles_iniciales)
+        """Casillas para elegir uno o varios roles (técnico y/o almacén). Administrador y operario (solo avisa
+        de pendientes) van solos: al marcar uno se desmarcan los demás. Devuelve el contenedor y
+        {rol: casilla}."""
+        casillas = {rol: QCheckBox(t(f"rol_{rol}", rol)) for rol in ("tecnico", "almacen", "operario", "admin")}
+        for rol, chk in casillas.items():
+            chk.setChecked(rol in roles_iniciales)
 
-        def _al_marcar_admin(marcado):
-            if marcado:
-                chk_tecnico.setChecked(False)
-                chk_almacen.setChecked(False)
-            chk_tecnico.setEnabled(not marcado)
-            chk_almacen.setEnabled(not marcado)
+        def _al_marcar(rol_marcado, marcado):
+            if not marcado:
+                return
+            for rol, chk in casillas.items():
+                if rol == rol_marcado:
+                    continue
+                # Administrador y operario van solos; técnico y almacén se pueden juntar
+                if rol_marcado in ("admin", "operario") or rol in ("admin", "operario"):
+                    chk.setChecked(False)
 
-        def _al_marcar_otro(_marcado):
-            if chk_tecnico.isChecked() or chk_almacen.isChecked():
-                chk_admin.setChecked(False)
-
-        chk_admin.toggled.connect(_al_marcar_admin)
-        chk_tecnico.toggled.connect(_al_marcar_otro)
-        chk_almacen.toggled.connect(_al_marcar_otro)
-        _al_marcar_admin(chk_admin.isChecked())
+        for rol, chk in casillas.items():
+            chk.toggled.connect(lambda marcado, r=rol: _al_marcar(r, marcado))
 
         contenedor = QWidget()
         lay = QHBoxLayout(contenedor)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(chk_tecnico)
-        lay.addWidget(chk_almacen)
-        lay.addWidget(chk_admin)
-        return contenedor, chk_tecnico, chk_almacen, chk_admin
+        for chk in casillas.values():
+            lay.addWidget(chk)
+        return contenedor, casillas
 
     @staticmethod
-    def _roles_marcados(chk_tecnico, chk_almacen, chk_admin):
-        return [r for chk, r in (
-            (chk_tecnico, "tecnico"), (chk_almacen, "almacen"), (chk_admin, "admin")
-        ) if chk.isChecked()]
+    def _roles_marcados(casillas):
+        return [r for r, chk in casillas.items() if chk.isChecked()]
 
     @staticmethod
     def _llenar_combo_especialidades(combo, incluir_ninguna=True):
@@ -559,14 +551,13 @@ class DialogoGestionUsuarios(QDialog):
     # -------------------------------------------------- acciones
 
     def _anadir(self):
-        roles = self._roles_marcados(self.chk_rol_tecnico, self.chk_rol_almacen, self.chk_rol_admin)
+        roles = self._roles_marcados(self.casillas_roles)
         ok, _ = _hacer(self, ficha_usuarios.crear, self.nuevo_login.text(), self.nuevo_nombre.text(),
                        self.nueva_password.text(), roles, self.chk_cambiar.isChecked(), self._especialidades_alta_ids)
         if ok:
             self.nuevo_login.clear(); self.nuevo_nombre.clear(); self.nueva_password.clear()
-            self.chk_rol_tecnico.setChecked(True)
-            self.chk_rol_almacen.setChecked(False)
-            self.chk_rol_admin.setChecked(False)
+            for rol, chk in self.casillas_roles.items():
+                chk.setChecked(rol == "tecnico")
             self._especialidades_alta_ids = []
             self._actualizar_boton_especialidades_alta()
             self.refrescar()
@@ -638,7 +629,7 @@ class DialogoGestionUsuarios(QDialog):
         dlg.setWindowTitle(t("usuarios_cambiar_rol", "🎚 Cambiar rol"))
         lay = QVBoxLayout(dlg)
         lay.addWidget(QLabel(t("usuarios_col_rol", "Rol") + ":"))
-        selector, chk_tecnico, chk_almacen, chk_admin = self._crear_selector_roles(roles_actuales)
+        selector, casillas = self._crear_selector_roles(roles_actuales)
         lay.addWidget(selector)
         caja = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -647,7 +638,7 @@ class DialogoGestionUsuarios(QDialog):
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
-        roles = self._roles_marcados(chk_tecnico, chk_almacen, chk_admin)
+        roles = self._roles_marcados(casillas)
         _hacer(self, ficha_usuarios.cambiar_roles, uid, roles)
         self.refrescar()
 

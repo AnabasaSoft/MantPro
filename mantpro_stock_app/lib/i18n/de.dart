@@ -158,4 +158,5 @@ const Map<String, String> traduccionesDe = {
   "lbl_revision_progreso": "{n} von {total} geprüft",
   "msg_revision_completa": "✅ Prüfung abgeschlossen: Sie haben alle {total} Artikel geprüft.",
   "lbl_revision_stock": "Lagerprüfung",
+  "login_operario_sin_stock": "Ihr Benutzer ist Bediener: Er kann nur offene Arbeiten über die App MantPro melden.",
 };

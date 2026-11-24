@@ -277,4 +277,7 @@ const Map<String, String> traduccionesEu = {
     "lbl_lect_ver_lecturas": "Ikusi {n} irakurketak",
     "msg_lect_sin_lecturas_movil": "Mugikorrean ez dago makina honen irakurketarik. Egiaztapen-zerrendetako «Irakurketa» motako puntuetatik datoz, makinaren lanak osatzean.",
     "lbl_lect_datos_sincro": "PCarekin egindako azken sinkronizazioko datuak (neurketa bakoitzaren azken 30 irakurketak).",
+    "lbl_pendientes_avisados": "Zuk abisatutako egitekoak",
+    "msg_sin_pendientes_avisados": "Oraindik ez duzu egiteko lanik abisatu, edo guztiak eginda daude jada.",
+    "btn_avisar_pendiente": "Abisatu",
 };

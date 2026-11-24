@@ -142,7 +142,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
   - AppImage eramangarria
   - `.deb` (Debian, Ubuntu…) eta `.rpm` (Fedora, openSUSE…) paketeak, GPGrekin sinatuta
   - **AUR**en ere eskuragarri (Arch User Repository)
-  - [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro)-n ere eskuragarri (openSUSE Build Service), openSUSE Tumbleweed eta Slowroll-erako
+  - [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro)-n ere eskuragarri (openSUSE Build Service), openSUSE Tumbleweed eta Slowroll-erako eta Fedora 43rako
 - **Android**: `.apk` fitxategiak zuzenean instalatzeko
   - `MantPro.apk`: mantentze-lanen aplikazioa
   - `MantProStock.apk`: biltegiko stockaren aplikazioa
@@ -206,7 +206,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **🏷️ Makina bakoitzeko QR etiketak**: makinetan itsasteko etiketen PDFa; MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen da
 - **🔍 Bikoiztuen abisua**: makina bat sortzean edo izena aldatzean, edo artikulu bat sortzean edo editatzean, kode bera edo izen bera edo oso antzekoa duen beste bat badagoen abisatzen du (adib. «Finoen erauzgailua» / «Finoen erauzketa»), zenbakia bakarrik aldatzen denean abisatu gabe («Lora 1» / «Lora 2»)
 - **📲 Aplikazioak QR batekin instalatu**: `Tresnak > 📱 Instalatu MantPro mugikorrean` eta `📦 Instalatu MantPro Stock mugikorrean` aukerek QR bat erakusten dute; mugikorraren kamerarekin eskaneatzean aplikazioaren azken bertsio egonkorra deskargatzen da
-- **🔔 Eguneraketa-abisuak**: `Laguntza > 🔄 Bilatu Eguneraketak` aukerak bertsio berriak jakinarazten ditu; OBSetik (openSUSE) instalatutakoak `zypper` bidez eguneratzen dela adierazten du
+- **🔔 Eguneraketa-abisuak**: `Laguntza > 🔄 Bilatu Eguneraketak` aukerak bertsio berriak jakinarazten ditu; OBSetik instalatutakoak `zypper` (openSUSE) edo `dnf` (Fedora) bidez eguneratzen dela adierazten du
 
 ### 📱 Mugikorreko aplikazioa (Android)
 
@@ -259,7 +259,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
 MantPro nabigatzailetik, ezer instalatu gabe, [app.mantpro-cloud.com](https://app.mantpro-cloud.com) helbidean. Zure enpresak MantPro Cloud-en dituen datuen beste bezero bat da: weban egiten dena PCetara eta mugikorretara iristen da, eta alderantziz.
 
-- **🧪 Demoa erregistratu gabe**: [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean klik batekin sartzen zara adibideko enpresa batean (`demo`, `ana`, `jon` eta `marta` erabiltzaileak, `demo` pasahitza). Bisitari bakoitzak bere kopia pribatua jasotzen du: sortu, editatu eta ezabatu nahi duzuna; ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan
+- **🧪 Demoa erregistratu gabe**: [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean klik batekin sartzen zara adibideko enpresa batean (`demo`, `ana`, `jon`, `marta` eta `operario` erabiltzaileak, `demo` pasahitza). Bisitari bakoitzak bere kopia pribatua jasotzen du: sortu, editatu eta ezabatu nahi duzuna; ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan
 - **🔐 PCko erabiltzaile berberak**: enpresaren izenarekin eta MantProko erabiltzaile eta pasahitzarekin sartzen da, rol, baimen eta egoitza berberekin
 - **🖥️ PCa bezalakoa**: fitxa berberak (Aginte-mahaia, Egutegia, Abisuak, Erregistratu, Historia, Bilatzailea, Egiteke, Makinak, Biltegiko stocka eta Gutxienekotik behera), menu berberak eta eskuineko botoiaren menu berbera
 - **📸 Argazkiak eta bideoak**: nabigatzailetik igotzen dira eta berehala ikusten dira PCetan eta mugikorretan
@@ -327,6 +327,11 @@ Deskargatu zure sistemari dagokion bertsioa [GitHub Releases](https://github.com
     sudo zypper in mantpro
     ```
     (Slowroll-en, aldatu `openSUSE_Tumbleweed` `openSUSE_Slowroll`-gatik URLan)
+  - **Fedora 43** (3.10.12 bertsiotik aurrera): [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro) bidez ere bai, `dnf`-rekin eguneratuta:
+    ```bash
+    sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:danitxu79/Fedora_43/home:danitxu79.repo
+    sudo dnf install mantpro
+    ```
 
 #### 🔏 Paketeen sinadura egiaztatu (Linux)
 
@@ -510,6 +515,9 @@ teknikaria eta biltegia). Rol erabilgarriak:
 | **Administratzailea** | Teknikariak eta biltegiak egin dezaketen guztia, gehi erabiltzaileei alta eta baja ematea, rolak aldatzea, pasahitzak berrezartzea, historiako **edozein** erregistro editatzea edo ezabatzea, erregistro baten edo batzuen egilea aldi berean berresleitzea, eta aldaketen auditoria-erregistroa kontsultatzea |
 | **Teknikaria** | Lanak erregistratzea, egitekoak eta abisuak osatzea, historiako **bere** erregistroak **soilik** editatzea edo ezabatzea, eta bere pasahitza aldatzea |
 | **Biltegia** | Materialei alta ematea edo editatzea eta stockaren sarrerak/irteerak erregistratzea **MantPro Stock** mugikorreko aplikaziotik |
+| **Operadorea** | **Matxurak eta egiteko lanak abisatu** baino ez (izenburua, xehetasunak, lehentasuna, espezialitatea eta argazkiak) PCtik, MantPro Webetik edo MantPro aplikaziotik, konexiorik gabe ere bai, eta berak abisatutakoak ikusi oraindik egiteke dauden bitartean. Ez du beste ezer ikusten (ez beste fitxarik, ez historiarik, ez makinarik, ez stockik) eta ez du teknikaririk esleitzen. Bakarrik doa: beste rol batekin, bestea da kontuan hartzen dena |
+
+**Biltegiko soilik** den erabiltzaile batek ezin du egitekorik sortu: biltegia baino ez du erabiltzen.
 
 Beti egon behar du **gutxienez administratzaile aktibo batek**: aplikazioak
 eragotzi egiten du geratzen den azkenari rola kentzea edo hura desaktibatzea.
@@ -914,7 +922,7 @@ MantPro **doakoa eta kode irekikoa** da, eta hala izango da: README honetan azal
 - **30 eguneko doako proba.**
 - **Lizentzia eta lekua begi-bistan**: `Tresnak` > `☁️ MantPro Cloud…` atalean zure planak erabilitako lekua ikusten duzu, eta lizentzia ordaintzeko eta leku gehiago erosteko botoiak dituzu; MantPro-k administratzaileei abisatzen die lizentzia iraungitzen bada edo leku gutxi geratzen bada.
 - **MantPro Web, ezer instalatu gabe:** sartu bulegoko PCaren edo tableta baten nabigatzailetik [app.mantpro-cloud.com](https://app.mantpro-cloud.com) helbidean, zure enpresaren izenarekin eta MantProko erabiltzaile eta pasahitzarekin (PCko berberak), baimen eta egoitza berberekin. PCaren fitxa, menu eta botoi berberak ditu, eta bertan egiten dena PCetara eta mugikorretara iristen da, eta alderantziz; pantaila bere kabuz eguneratzen da norbaitek zerbait aldatzen duenean.
-- **Probatu erregistratu gabe:** [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean adibideko enpresa baten kopia pribatu bat jasotzen duzu (demo, ana, jon eta marta erabiltzaileak, `demo` pasahitza). Sortu, editatu eta ezabatu nahi duzuna: ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan.
+- **Probatu erregistratu gabe:** [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean adibideko enpresa baten kopia pribatu bat jasotzen duzu (demo, ana, jon, marta eta operario erabiltzaileak, `demo` pasahitza). Sortu, editatu eta ezabatu nahi duzuna: ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan.
 
 Zure datuak zureak dira: ordaintzeari uzten badiozu, PCak lokalean duen guztiarekin funtzionatzen jarraitzen du; sinkronizatzeari uzten dio, besterik ez.
 

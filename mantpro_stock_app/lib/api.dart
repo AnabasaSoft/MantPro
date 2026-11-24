@@ -290,6 +290,17 @@ class AuthService {
 
       final datos = json.decode(res.body) as Map<String, dynamic>;
       if (res.statusCode == 200 && datos['status'] == 'ok') {
+        // Un operario (solo avisa de pendientes, desde MantPro) no usa el almacén: se cierra esa sesión y se avisa
+        final rolesRecibidos = (datos['usuario']['roles'] as List?)?.map((r) => r.toString()).toList() ?? [];
+        if (rolesRecibidos.contains('operario') &&
+            !rolesRecibidos.any((r) => r == 'admin' || r == 'tecnico' || r == 'almacen')) {
+          try {
+            await http.post(Uri.parse('$esquemaPC://$ip/api/logout'),
+                headers: {'Authorization': 'Bearer ${datos['token']}'}).timeout(const Duration(seconds: 5));
+          } catch (_) {}
+          return tt('login_operario_sin_stock',
+              'Tu usuario es de operario: solo puede avisar de trabajos pendientes desde la app MantPro.');
+        }
         final prefs = await SharedPreferences.getInstance();
         token = datos['token'];
         nombre = datos['usuario']['nombre'];

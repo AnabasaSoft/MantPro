@@ -159,4 +159,5 @@ const Map<String, String> traduccionesFr = {
     "lbl_revision_progreso": "{n} sur {total} vérifiés",
     "msg_revision_completa": "✅ Vérification complète : vous avez contrôlé les {total} articles.",
     "lbl_revision_stock": "Vérification du magasin",
+    "login_operario_sin_stock": "Votre utilisateur est opérateur : il peut seulement signaler des tâches en attente depuis l'application MantPro.",
 };

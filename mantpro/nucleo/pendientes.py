@@ -84,6 +84,22 @@ def lista(db, sede=None, asignado=TODOS, carpeta_fotos=None):
     return resultado
 
 
+def avisados_por(db, usuario):
+    """Los pendientes que ha avisado [usuario] y siguen sin hacer (lo único que ve un operario), los más nuevos
+    primero: dicts con id, titulo, detalles (sin marcas), prioridad y especialidad (nombre o "")."""
+    if not usuario:
+        return []
+    especialidades = {e["id"]: e["nombre"] for e in usuarios.listar_especialidades()}
+    con = db.conectar()
+    try:
+        filas = con.execute("SELECT id, titulo, detalles, COALESCE(prioridad, 'Media'), especialidad_id FROM pendientes "
+                            "WHERE creado_por = ? ORDER BY id DESC", (usuario["id"],)).fetchall()
+    finally:
+        con.close()
+    return [{"id": f[0], "titulo": f[1] or "", "detalles": detalles_visibles(f[2]), "prioridad": f[3],
+             "especialidad": especialidades.get(f[4], "")} for f in filas]
+
+
 def texto(fila):
     """El texto de un pendiente en la lista del PC (varias líneas), en el idioma activo."""
     t = idiomas.t
@@ -146,10 +162,16 @@ def _accesibles(db, usuario, ids):
 def crear(db, usuario, titulo, detalles, asignado_id=None, prioridad="Media", especialidad_id=None,
           checklist_id=None, sede=None, fotos=()):
     """Da de alta un pendiente y devuelve su id. [sede]: la elegida en el selector (id, lista o None); el
-    pendiente va a esa sede o, con varias, a la principal si el usuario la ve (como en el PC)."""
+    pendiente va a esa sede o, con varias, a la principal si el usuario la ve (como en el PC). Se apunta quién
+    lo avisa. Un operario solo avisa: no asigna técnico ni lista de comprobación (los pone después un admin). Un
+    usuario solo de almacén no puede crear pendientes (ValueError «sin_permiso»)."""
     titulo = (titulo or "").strip()
     if not titulo:
         raise ValueError("titulo_obligatorio")
+    if usuario and not usuarios.puede_avisar_pendientes(usuario):
+        raise ValueError("sin_permiso")            # p. ej. un usuario solo de almacén: solo usa el almacén
+    if usuarios.es_operario(usuario):
+        asignado_id, checklist_id = None, None
     asignado_id, asignado_nombre = _usuario_asignable(asignado_id)
     prioridad, especialidad_id = _prioridad(prioridad), _especialidad(especialidad_id)
     checklist_id = _lista(checklist_id)
@@ -160,7 +182,8 @@ def crear(db, usuario, titulo, detalles, asignado_id=None, prioridad="Media", es
     if fotos:                                              # la colección de fotos
         detalles = _fotos.con_fotos_galeria(detalles, list(fotos))
     nuevo = db.agregar_pendiente(titulo, detalles, asignado_id, asignado_nombre, prioridad,
-                                 especialidad_id, sede_id=sedes.para_nuevo(sede if sede is not None else permitidas, usuario))
+                                 especialidad_id, sede_id=sedes.para_nuevo(sede if sede is not None else permitidas, usuario),
+                                 creado_por=usuario["id"] if usuario else None)
     if not nuevo:
         raise ValueError("no_guardado")
     if checklist_id:

@@ -178,6 +178,15 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.tab_maquinas = QWidget(); self.init_maquinas_tab(); self.tabs.addTab(self.tab_maquinas, tt("tab_maquinas", "🏭 Máquinas"))
         self.tab_stock = QWidget(); self.init_stock_tab(); self.tabs.addTab(self.tab_stock, tt("tab_stock", "📦 Stock de almacén"))
         self.tab_stock_alertas = QWidget(); self.init_stock_alertas_tab(); self.tabs.addTab(self.tab_stock_alertas, tt("tab_stock_alertas", "⚠️ Stock bajo mínimo"))
+        # Un operario solo avisa de pendientes: las demás pestañas se crean (el resto del programa las usa), pero no
+        # se enseñan. Se guardan para borrarlas al reconstruir.
+        self._modo_operario = usuarios.es_operario()
+        self._pestanas_ocultas = []
+        if self._modo_operario:
+            for i in reversed(range(self.tabs.count())):
+                if self.tabs.widget(i) is not self.tab_todo:
+                    self._pestanas_ocultas.append(self.tabs.widget(i))
+                    self.tabs.removeTab(i)
 
     def recargar_interfaz_completa(self):
         """Reconstruye el menú y todas las pestañas en caliente (p.ej. tras un
@@ -195,6 +204,8 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         while self.tabs.count():
             viejo = self.tabs.widget(0)
             self.tabs.removeTab(0)
+            viejo.deleteLater()
+        for viejo in getattr(self, "_pestanas_ocultas", ()):
             viejo.deleteLater()
         self._poblar_tabs()
         if 0 <= indice_actual < self.tabs.count():
@@ -345,11 +356,12 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         msg.exec()
 
     def comprobar_actualizaciones(self, manual=False):
-        # Instalado con el gestor de paquetes de la distribución (OBS/zypper):
+        # Instalado con el gestor de paquetes de la distribución (OBS: zypper o dnf):
         # se actualiza con él, así que no se busca nada en GitHub.
         if GESTOR_PAQUETES:
             if manual:
-                comandos = {"zypper": "sudo zypper refresh && sudo zypper update mantpro"}
+                comandos = {"zypper": "sudo zypper refresh && sudo zypper update mantpro",
+                            "dnf": "sudo dnf upgrade --refresh mantpro"}
                 QMessageBox.information(self, t("title_actualizado"),
                     tt("msg_actualizaciones_gestor_paquetes",
                        "MantPro se ha instalado con el gestor de paquetes del sistema ({gestor}) y se actualiza con él:\n\n{comando}").format(
@@ -408,6 +420,13 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         sm.addSeparator()
         sm.addAction(QAction(t("menu_salir"), self, triggered=self.close))
         # ------------------------------------------
+        if usuarios.es_operario():
+            # Un operario solo avisa de pendientes: ni archivo, ni exportar, ni herramientas (salvo su contraseña)
+            tm = mb.addMenu(t("menu_herramientas"))
+            tm.addAction(QAction(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"), self,
+                                 triggered=self.cambiar_mi_password))
+            self._menus_comunes(mb, tm)
+            return
 
         fm = mb.addMenu(t("menu_archivo"))
         if usuarios.es_admin():
@@ -479,6 +498,10 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             for texto, accion in visibles:
                 tm.addAction(QAction(texto, self, triggered=accion))
 
+        self._menus_comunes(mb, tm)
+
+    def _menus_comunes(self, mb, tm):
+        """Idioma (en Herramientas [tm]), Apariencia y Ayuda: para todos los usuarios."""
         # --- SUBMENÚ DE IDIOMA ---
         tm.addSeparator()
         menu_idioma = tm.addMenu(t("menu_idioma"))

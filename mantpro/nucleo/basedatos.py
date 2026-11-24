@@ -321,11 +321,13 @@ class GestorBaseDatos:
     def obtener_dias_especiales(self):
         try: conn=self.conectar(); c=conn.cursor(); c.execute('SELECT fecha,tipo FROM dias_especiales'); return {r[0]:r[1] for r in c.fetchall()}
         except: return {}
-    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media", especialidad_id=None, sede_id=None):
+    def agregar_pendiente(self, t, d, asignado_a=None, asignado_nombre=None, prioridad="Media", especialidad_id=None, sede_id=None,
+                          creado_por=None):
+        """[creado_por]: el id del usuario que lo avisa (un operario ve los que ha avisado él)."""
         try:
             conn = self.conectar(); c = conn.cursor()
-            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad,especialidad_id,sede_id) VALUES (?,?,?,?,?,?,?)',
-                      (t, d, asignado_a, asignado_nombre, prioridad, especialidad_id, _sedes.guardable(sede_id)))
+            c.execute('INSERT INTO pendientes (titulo,detalles,asignado_a,asignado_nombre,prioridad,especialidad_id,sede_id,creado_por) VALUES (?,?,?,?,?,?,?,?)',
+                      (t, d, asignado_a, asignado_nombre, prioridad, especialidad_id, _sedes.guardable(sede_id), creado_por))
             nuevo_id = c.lastrowid
             conn.commit(); conn.close(); return nuevo_id
         except Exception as e:

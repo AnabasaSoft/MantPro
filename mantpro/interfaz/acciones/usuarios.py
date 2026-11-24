@@ -151,4 +151,7 @@ class AccionesUsuarios:
         if usuarios.SESION_ACTUAL:
             titulo_base += f"  —  👤 {usuarios.SESION_ACTUAL['nombre']}"
         self.setWindowTitle(titulo_base)
+        if getattr(self, "_modo_operario", False) != usuarios.es_operario():
+            self.recargar_interfaz_completa()       # de operario a otro rol o al revés: otras pestañas
+            return
         self.refresh_all()

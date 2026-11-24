@@ -140,6 +140,7 @@ _SINONIMOS_ROLES = {
     "tecnico": ["tecnico", "technician", "teknikaria", "tecnic", "technicien", "tech"],
     "almacen": ["almacen", "warehouse", "store", "storekeeper", "biltegia", "magatzem", "almacen",
                 "almoxarifado", "magasin"],
+    "operario": ["operario", "operator", "operadorea", "operari", "operador", "operateur", "bediener"],
 }
 
 _PALABRAS_SUELO = ["suelo", "hueco de suelo", "floor", "floor space", "ground", "zorua", "zoru hutsunea",

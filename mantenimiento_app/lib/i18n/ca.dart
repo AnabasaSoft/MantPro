@@ -278,4 +278,7 @@ const Map<String, String> traduccionesCa = {
     "lbl_lect_ver_lecturas": "Veure les {n} lectures",
     "msg_lect_sin_lecturas_movil": "No hi ha lectures d'aquesta màquina al mòbil. Surten dels punts de tipus «Lectura» de les llistes de comprovació en completar-ne els treballs.",
     "lbl_lect_datos_sincro": "Dades de la darrera sincronització amb el PC (les darreres 30 lectures de cada mesura).",
+    "lbl_pendientes_avisados": "Pendents que has avisat",
+    "msg_sin_pendientes_avisados": "Encara no has avisat de cap treball pendent, o ja estan tots fets.",
+    "btn_avisar_pendiente": "Avisar",
 };

@@ -173,4 +173,5 @@ const Map<String, String> traduccionesEu = {
     "lbl_revision_progreso": "{total} artikuluetatik {n} berrikusi dira",
     "msg_revision_completa": "✅ Berrikuspena osatu da: artikulu guztiak ({total}) egiaztatu dituzu.",
     "lbl_revision_stock": "Biltegiaren berrikuspena",
+    "login_operario_sin_stock": "Zure erabiltzailea operadorea da: egiteko lanak MantPro aplikaziotik abisatu ditzake soilik.",
 };

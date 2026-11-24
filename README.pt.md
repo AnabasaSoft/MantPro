@@ -140,7 +140,7 @@ Você pode baixar as versões pré-compiladas em [GitHub Releases](https://githu
   - AppImage portátil
   - Pacotes `.deb` (Debian, Ubuntu…) e `.rpm` (Fedora, openSUSE…), assinados com GPG
   - Também disponível no **AUR** (Arch User Repository)
-  - Também disponível no [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) para openSUSE Tumbleweed e Slowroll
+  - Também disponível no [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) para openSUSE Tumbleweed e Slowroll e para o Fedora 43
 - **Android**: arquivos `.apk` para instalação direta
   - `MantPro.apk`: aplicativo de serviços de manutenção
   - `MantProStock.apk`: aplicativo de estoque do almoxarifado
@@ -203,7 +203,7 @@ As mudanças de cada versão estão em [CHANGELOG.md](CHANGELOG.md).
 - **🏷️ Etiquetas QR por máquina**: PDF de etiquetas para colar nas máquinas; ao escaneá-las com o aplicativo MantPro abre-se a ficha da máquina
 - **🔍 Aviso de duplicados**: ao criar ou renomear uma máquina, ou ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome igual ou muito parecido (por exemplo «Extrator de finos» / «Extração de finos»), sem avisar quando só muda o número («Lora 1» / «Lora 2»)
 - **📲 Instalar os aplicativos com um QR**: `Ferramentas > 📱 Instalar MantPro no celular` e `📦 Instalar MantPro Stock no celular` mostram um QR que, ao ser escaneado com a câmera do celular, baixa a última versão estável do aplicativo
-- **🔔 Avisos de atualização**: `Ajuda > 🔄 Procurar Atualizações` avisa das novas versões; a instalada pelo OBS (openSUSE) indica que é atualizada com `zypper`
+- **🔔 Avisos de atualização**: `Ajuda > 🔄 Procurar Atualizações` avisa das novas versões; a instalada pelo OBS indica que é atualizada com `zypper` (openSUSE) ou `dnf` (Fedora)
 
 ### 📱 Aplicativo para celular (Android)
 
@@ -257,7 +257,7 @@ serviços.
 
 O MantPro pelo navegador, sem instalar nada, em [app.mantpro-cloud.com](https://app.mantpro-cloud.com). É mais um cliente dos dados da sua empresa no MantPro Cloud: o que se faz na web chega aos PCs e aos celulares, e vice-versa.
 
-- **🧪 Demo sem cadastro**: em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você entra com um clique em uma empresa de exemplo (usuários `demo`, `ana`, `jon` e `marta`, senha `demo`). Cada visitante recebe sua própria cópia privada: crie, edite e apague o que quiser; nada é salvo e a cópia se apaga sozinha depois de 2 horas
+- **🧪 Demo sem cadastro**: em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você entra com um clique em uma empresa de exemplo (usuários `demo`, `ana`, `jon`, `marta` e `operario`, senha `demo`). Cada visitante recebe sua própria cópia privada: crie, edite e apague o que quiser; nada é salvo e a cópia se apaga sozinha depois de 2 horas
 - **🔐 Os mesmos usuários do PC**: entra-se com o nome da empresa e o usuário e senha do MantPro, com as mesmas funções, permissões e unidades
 - **🖥️ Igual ao PC**: as mesmas abas (Painel, Calendário, Avisos, Registrar, Histórico, Busca, Pendentes, Máquinas, Estoque do almoxarifado e Estoque abaixo do mínimo), os mesmos menus e o mesmo menu do botão direito
 - **📸 Fotos e vídeos**: enviados pelo navegador e vistos na hora nos PCs e celulares
@@ -325,6 +325,11 @@ Baixe a versão correspondente ao seu sistema em [GitHub Releases](https://githu
     sudo zypper in mantpro
     ```
     (no Slowroll, troque `openSUSE_Tumbleweed` por `openSUSE_Slowroll` na URL)
+  - **Fedora 43** (a partir da versão 3.10.12): também pelo [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), atualizado com o `dnf`:
+    ```bash
+    sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:danitxu79/Fedora_43/home:danitxu79.repo
+    sudo dnf install mantpro
+    ```
 
 #### 🔏 Verificar a assinatura dos pacotes (Linux)
 
@@ -507,6 +512,9 @@ exemplo, técnico e almoxarifado). Funções disponíveis:
 | **Administrador** | Tudo o que o técnico e o almoxarifado fazem, além de cadastrar e desativar usuários, alterar funções, redefinir senhas, editar ou excluir **qualquer** registro do histórico, reatribuir o autor de um ou vários registros de uma vez e consultar o registro de auditoria de alterações |
 | **Técnico** | Registrar serviços, concluir pendentes e avisos, editar ou excluir **apenas os próprios** registros do histórico e alterar a própria senha |
 | **Almoxarifado** | Cadastrar ou editar materiais e registrar entradas/saídas de estoque pelo aplicativo **MantPro Stock** |
+| **Operador** | Só **avisar de avarias e trabalhos pendentes** (título, detalhes, prioridade, especialidade e fotos) pelo PC, pelo MantPro Web ou pelo aplicativo MantPro, também sem conexão, e ver os que avisou enquanto continuam por fazer. Não vê mais nada (nem outras abas, nem histórico, nem máquinas, nem estoque) e não atribui técnico. Vai sozinho: com outra função, vale a outra |
+
+Um usuário **só de almoxarifado** não pode criar pendentes: só usa o almoxarifado.
 
 Sempre deve existir **pelo menos um administrador ativo**: o aplicativo impede
 remover a função ou desativar o último que restar.
@@ -902,7 +910,7 @@ O **MantPro Cloud** é um serviço **opcional e pago** para quem precisa de mais
 - **Teste grátis de 30 dias.**
 - **Licença e espaço à vista**: em `Ferramentas` > `☁️ MantPro Cloud…` você vê o espaço usado pelo seu plano e tem botões para pagar a licença e comprar mais espaço; o MantPro avisa os administradores se a licença expirar ou se restar pouco espaço.
 - **MantPro Web, sem instalar nada:** entre pelo navegador do PC do escritório ou de um tablet em [app.mantpro-cloud.com](https://app.mantpro-cloud.com) com o nome da sua empresa e o seu usuário e senha do MantPro (os mesmos do PC), com as mesmas permissões e unidades. Tem as mesmas abas, menus e botões que o PC, e o que for feito nela chega aos PCs e aos celulares, e vice-versa; a tela se atualiza sozinha quando alguém muda algo.
-- **Experimente sem se cadastrar:** em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você recebe uma cópia privada de uma empresa de exemplo (usuários demo, ana, jon e marta, senha `demo`). Crie, edite e apague o que quiser: nada é salvo e a cópia se apaga sozinha depois de 2 horas.
+- **Experimente sem se cadastrar:** em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você recebe uma cópia privada de uma empresa de exemplo (usuários demo, ana, jon, marta e operario, senha `demo`). Crie, edite e apague o que quiser: nada é salvo e a cópia se apaga sozinha depois de 2 horas.
 
 Seus dados continuam sendo seus: se você deixar de pagar, o PC continua funcionando com tudo o que tem localmente; apenas deixa de sincronizar.
 

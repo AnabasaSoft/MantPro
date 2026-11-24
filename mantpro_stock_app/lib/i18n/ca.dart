@@ -175,4 +175,5 @@ const Map<String, String> traduccionesCa = {
     "lbl_revision_progreso": "{n} de {total} revisats",
     "msg_revision_completa": "✅ Revisió completa: has comprovat els {total} articles.",
     "lbl_revision_stock": "Revisió del magatzem",
+    "login_operario_sin_stock": "El teu usuari és d'operari: només pot avisar de treballs pendents des de l'app MantPro.",
 };

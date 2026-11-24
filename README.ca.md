@@ -141,7 +141,7 @@ Pots descarregar les versions precompilades des de [GitHub Releases](https://git
   - AppImage portable
   - Paquets `.deb` (Debian, Ubuntu…) i `.rpm` (Fedora, openSUSE…), signats amb GPG
   - També disponible a **AUR** (Arch User Repository)
-  - També disponible a [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) per a openSUSE Tumbleweed i Slowroll
+  - També disponible a [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) per a openSUSE Tumbleweed i Slowroll i per a Fedora 43
 - **Android**: fitxers `.apk` per a instal·lació directa
   - `MantPro.apk`: aplicació de treballs de manteniment
   - `MantProStock.apk`: aplicació d'estoc del magatzem
@@ -204,7 +204,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **🏷️ Etiquetes QR per màquina**: PDF d'etiquetes per enganxar a les màquines; en escanejar-les amb l'app MantPro s'obre la fitxa de la màquina
 - **🔍 Avís de repetits**: en crear o reanomenar una màquina, o en crear o editar un article, avisa si ja n'hi ha un altre amb el mateix codi o un nom igual o molt semblant (per exemple «Extractor de fins» / «Extracció de fins»), sense avisar quan només canvia el número («Lora 1» / «Lora 2»)
 - **📲 Instal·lar les apps amb un QR**: `Eines > 📱 Instal·lar MantPro al mòbil` i `📦 Instal·lar MantPro Stock al mòbil` mostren un QR que, en escanejar-lo amb la càmera del mòbil, baixa l'última versió estable de l'app
-- **🔔 Avisos d'actualització**: `Ajuda > 🔄 Cercar Actualitzacions` avisa de les versions noves; la instal·lada des d'OBS (openSUSE) indica que s'actualitza amb `zypper`
+- **🔔 Avisos d'actualització**: `Ajuda > 🔄 Cercar Actualitzacions` avisa de les versions noves; la instal·lada des d'OBS indica que s'actualitza amb `zypper` (openSUSE) o `dnf` (Fedora)
 
 ### 📱 Aplicació mòbil (Android)
 
@@ -258,7 +258,7 @@ treballs.
 
 MantPro des del navegador, sense instal·lar res, a [app.mantpro-cloud.com](https://app.mantpro-cloud.com). És un client més de les dades de la teva empresa a MantPro Cloud: el que es fa a la web arriba als PC i als mòbils, i a l'inrevés.
 
-- **🧪 Demo sense registrar-se**: a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entres amb un clic en una empresa d'exemple (usuaris `demo`, `ana`, `jon` i `marta`, contrasenya `demo`). Cada visitant rep la seva pròpia còpia privada: crea, edita i esborra el que vulguis; no es desa res i la còpia s'esborra sola al cap de 2 hores
+- **🧪 Demo sense registrar-se**: a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entres amb un clic en una empresa d'exemple (usuaris `demo`, `ana`, `jon`, `marta` i `operario`, contrasenya `demo`). Cada visitant rep la seva pròpia còpia privada: crea, edita i esborra el que vulguis; no es desa res i la còpia s'esborra sola al cap de 2 hores
 - **🔐 Els mateixos usuaris que al PC**: s'hi entra amb el nom de l'empresa i l'usuari i la contrasenya de MantPro, amb els mateixos rols, permisos i seus
 - **🖥️ Igual que el PC**: les mateixes pestanyes (Dashboard, Calendari, Avisos, Registrar, Historial, Cercador, Pendents, Màquines, Estoc de magatzem i Estoc per sota del mínim), els mateixos menús i el mateix menú del botó dret
 - **📸 Fotos i vídeos**: es pugen des del navegador i es veuen al moment als PC i mòbils
@@ -326,6 +326,11 @@ Descarrega la versió corresponent al teu sistema des de [GitHub Releases](https
     sudo zypper in mantpro
     ```
     (a Slowroll, canvia `openSUSE_Tumbleweed` per `openSUSE_Slowroll` a la URL)
+  - **Fedora 43** (a partir de la versió 3.10.12): també des d'[OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), actualitzat amb `dnf`:
+    ```bash
+    sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:danitxu79/Fedora_43/home:danitxu79.repo
+    sudo dnf install mantpro
+    ```
 
 #### 🔏 Verificar la signatura dels paquets (Linux)
 
@@ -508,6 +513,9 @@ i magatzem). Rols disponibles:
 | **Administrador** | Tot el que fan el tècnic i el de magatzem, a més de donar d'alta i de baixa usuaris, canviar rols, restablir contrasenyes, editar o esborrar **qualsevol** registre de l'historial, reassignar l'autor d'un o diversos registres alhora, i consultar el registre d'auditoria de canvis |
 | **Tècnic** | Registrar treballs, completar pendents i avisos, editar o esborrar **només els seus propis** registres de l'historial, i canviar la seva pròpia contrasenya |
 | **Magatzem** | Donar d'alta o editar materials i registrar entrades/sortides d'estoc des de l'aplicació mòbil **MantPro Stock** |
+| **Operari** | Només **avisar d'avaries i treballs pendents** (títol, detalls, prioritat, especialitat i fotos) des del PC, MantPro Web o l'app MantPro, també sense connexió, i veure els que ha avisat ell mentre continuen sense fer. No veu res més (ni altres pestanyes, ni historial, ni màquines, ni estoc) i no assigna tècnic. Va sol: amb un altre rol, compta l'altre |
+
+Un usuari **només de magatzem** no pot crear pendents: només fa servir el magatzem.
 
 Sempre ha de quedar **almenys un administrador actiu**: l'aplicació impedeix
 treure el rol o desactivar l'últim que queda.
@@ -900,7 +908,7 @@ MantPro és i continuarà sent **gratuït i de codi obert**: tot el que s'explic
 - **Prova gratuïta de 30 dies.**
 - **Llicència i espai a la vista**: a `Eines` > `☁️ MantPro Cloud…` veus l'espai que fa servir el teu pla i tens botons per pagar la llicència i comprar més espai; MantPro avisa els administradors si la llicència caduca o si queda poc espai.
 - **MantPro Web, sense instal·lar res:** entra des del navegador del PC de l'oficina o d'una tauleta a [app.mantpro-cloud.com](https://app.mantpro-cloud.com) amb el nom de la teva empresa i el teu usuari i contrasenya de MantPro (els mateixos del PC), amb els mateixos permisos i seus. Té les mateixes pestanyes, menús i botons que el PC, i el que s'hi faci arriba als PC i als mòbils, i a l'inrevés; la pantalla s'actualitza sola quan algú canvia alguna cosa.
-- **Prova-la sense registrar-te:** a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) reps una còpia privada d'una empresa d'exemple (usuaris demo, ana, jon i marta, contrasenya `demo`). Crea, edita i esborra el que vulguis: no es desa res i la còpia s'esborra sola al cap de 2 hores.
+- **Prova-la sense registrar-te:** a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) reps una còpia privada d'una empresa d'exemple (usuaris demo, ana, jon, marta i operario, contrasenya `demo`). Crea, edita i esborra el que vulguis: no es desa res i la còpia s'esborra sola al cap de 2 hores.
 
 Les teves dades continuen sent teves: si deixes de pagar, el PC continua funcionant amb tot el que té en local; només deixa de sincronitzar.
 

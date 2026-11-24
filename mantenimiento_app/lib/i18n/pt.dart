@@ -294,4 +294,7 @@ const Map<String, String> traduccionesPt = {
     "lbl_lect_ver_lecturas": "Ver as {n} leituras",
     "msg_lect_sin_lecturas_movil": "Não há leituras desta máquina no celular. Elas vêm dos pontos do tipo “Leitura” das listas de verificação ao concluir os trabalhos dela.",
     "lbl_lect_datos_sincro": "Dados da última sincronização com o PC (as últimas 30 leituras de cada medição).",
+    "lbl_pendientes_avisados": "Pendentes que você avisou",
+    "msg_sin_pendientes_avisados": "Você ainda não avisou de nenhum trabalho pendente, ou todos já foram feitos.",
+    "btn_avisar_pendiente": "Avisar",
 };

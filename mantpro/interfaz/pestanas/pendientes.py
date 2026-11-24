@@ -45,7 +45,9 @@ class PestanaPendientes:
     principal (self.db, self.tabs...) como si estuvieran en la propia clase."""
 
     def init_todo_tab(self):
-        l = QHBoxLayout(); ll = QVBoxLayout(); ll.addWidget(QLabel(t("lbl_lista_pendientes")))
+        operario = usuarios.es_operario()
+        l = QHBoxLayout(); ll = QVBoxLayout()
+        ll.addWidget(QLabel(t("lbl_pendientes_avisados") if operario else t("lbl_lista_pendientes")))
         fila_filtro = QHBoxLayout()
         fila_filtro.addWidget(QLabel(tt("lbl_ver_de", "Ver los de") + ":"))
         self.combo_filtro_todos = QComboBox()
@@ -88,6 +90,7 @@ class PestanaPendientes:
         self.galeria_todo = GaleriaFotosWidget(self.carpeta_fotos, self)
         f.addWidget(self.galeria_todo)
         f.addWidget(QPushButton(t("btn_anadir"), clicked=self.add_todo)); g.setLayout(f); rl.addWidget(g)
+        self.grupo_nuevo_todo = g          # sin él para un usuario solo de almacén (no crea pendientes)
         ga = QGroupBox(t("lbl_acciones")); fa = QVBoxLayout()
         b_ok = QPushButton(t("btn_completar"), clicked=self.complete_todo); b_ok.setStyleSheet("background-color:#27ae60; color: white;"); fa.addWidget(b_ok)
         b_edit = QPushButton(t("btn_editar"), clicked=self.edit_todo); b_edit.setStyleSheet("background-color:#2980b9; color: white;"); fa.addWidget(b_edit)
@@ -95,6 +98,17 @@ class PestanaPendientes:
         self.b_asig_todo = QPushButton(tt("btn_reasignar", "👤 Reasignar"), clicked=self.reasignar_todo)
         self.b_asig_todo.setStyleSheet("background-color:#8e44ad; color: white;"); fa.addWidget(self.b_asig_todo)
         ga.setLayout(fa); rl.addWidget(ga); l.addLayout(rl, 40); self.tab_todo.setLayout(l)
+        if operario:
+            # Un operario solo avisa: sin filtro, sin asignar técnico ni lista, y sin acciones sobre la lista
+            # (ve los que ha avisado él; los gestiona un técnico o un administrador)
+            for fila in (fila_filtro, fila_asig, fila_checklist_todo):
+                for i in range(fila.count()):
+                    if fila.itemAt(i).widget():
+                        fila.itemAt(i).widget().hide()
+            ga.hide()
+            g.setTitle(t("lbl_avisar_pendiente"))
+            self.todo_list.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+            self.todo_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
     def add_todo(self):
         tit, d = self.in_todo_t.text().strip(), self.in_todo_d.toPlainText().strip()
@@ -116,6 +130,8 @@ class PestanaPendientes:
         """Cambia el técnico asignado y/o la especialidad del pendiente seleccionado.
         Solo un admin puede modificar la asignación/especialidad de un trabajo ya
         existente; un técnico solo puede fijarlas al crear el trabajo."""
+        if usuarios.es_operario():
+            return
         if not usuarios.es_admin():
             return
         row = self.todo_list.currentRow()
@@ -157,6 +173,8 @@ class PestanaPendientes:
     def _menu_contextual_todos(self, pos):
         """Menú con clic derecho sobre la lista de trabajos: eliminar o asignar
         técnico/especialidad a varios trabajos a la vez."""
+        if usuarios.es_operario():
+            return
         if not self.todo_list.selectedItems():
             item = self.todo_list.itemAt(pos)
             if item is not None:
@@ -264,6 +282,21 @@ class PestanaPendientes:
 
     def refresh_todos(self, *_):
         self.todo_list.clear()
+        if hasattr(self, 'grupo_nuevo_todo'):
+            self.grupo_nuevo_todo.setVisible(usuarios.puede_avisar_pendientes())
+        if usuarios.es_operario():
+            # Lo único que ve un operario: los pendientes que ha avisado él y siguen sin hacer
+            filas = pendientes_nucleo.avisados_por(self.db, usuarios.SESION_ACTUAL)
+            if not filas:
+                self.todo_list.addItem(t("msg_sin_pendientes_avisados"))
+            for fila in filas:
+                texto = f"{pendientes_nucleo.ICONOS.get(fila['prioridad'], '⬜')} {fila['titulo']}"
+                if fila["detalles"]:
+                    texto += f"\n   ↳ {fila['detalles']}"
+                if fila["especialidad"]:
+                    texto += f"\n   🔧 {fila['especialidad']}"
+                self.todo_list.addItem(QListWidgetItem(texto))
+            return
         if hasattr(self, 'b_asig_todo'):
             self.b_asig_todo.setEnabled(usuarios.es_admin())
         # Lo que se lista, su orden y su texto salen del núcleo (lo mismo que enseña MantPro Web)
@@ -287,6 +320,8 @@ class PestanaPendientes:
             self.todo_list.addItem(it)
 
     def del_todo(self):
+        if usuarios.es_operario():
+            return
         r = self.todo_list.currentRow()
         if r >= 0:
             i = self.todo_list.item(r).data(Qt.ItemDataRole.UserRole)
@@ -311,6 +346,8 @@ class PestanaPendientes:
                     self.refresh_todos()
 
     def complete_todo(self):
+        if usuarios.es_operario():
+            return
         row = self.todo_list.currentRow()
         if row < 0: return
 
@@ -347,6 +384,8 @@ class PestanaPendientes:
                 self.statusBar().showMessage(t("msg_tarea_completada").format(titulo=titulo), 5000)
 
     def edit_todo(self, item=None): # Añadimos argumento opcional para el doble click
+        if usuarios.es_operario():
+            return
         row = self.todo_list.currentRow()
         if row < 0: return
 

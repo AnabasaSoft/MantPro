@@ -140,7 +140,7 @@ Die vorkompilierten Versionen können Sie unter [GitHub Releases](https://github
   - Portables AppImage
   - Pakete `.deb` (Debian, Ubuntu…) und `.rpm` (Fedora, openSUSE…), mit GPG signiert
   - Auch im **AUR** (Arch User Repository) verfügbar
-  - Auch im [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) für openSUSE Tumbleweed und Slowroll verfügbar
+  - Auch im [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) für openSUSE Tumbleweed und Slowroll sowie für Fedora 43 verfügbar
 - **Android**: `.apk`-Dateien zur direkten Installation
   - `MantPro.apk`: App für Wartungsarbeiten
   - `MantProStock.apk`: App für den Lagerbestand
@@ -204,7 +204,7 @@ Hinweise auf stabile Versionen. Die Änderungen jeder Version stehen in
 - **🏷️ QR-Etiketten pro Maschine**: PDF mit Etiketten zum Aufkleben auf die Maschinen; beim Scannen mit der App MantPro öffnet sich der Steckbrief der Maschine
 - **🔍 Hinweis auf Doppelte**: Beim Anlegen oder Umbenennen einer Maschine oder beim Anlegen oder Bearbeiten eines Artikels weist es darauf hin, wenn es bereits einen mit demselben Code oder einem gleichen bzw. sehr ähnlichen Namen gibt (zum Beispiel „Feinstaubabsaugung“ / „Feinstaub-Absaugung“), ohne Hinweis, wenn sich nur die Nummer ändert („Lora 1“ / „Lora 2“)
 - **📲 Apps per QR-Code installieren**: `Werkzeuge > 📱 MantPro auf dem Handy installieren` und `📦 MantPro Stock auf dem Handy installieren` zeigen einen QR-Code, der beim Scannen mit der Handykamera die neueste stabile Version der App herunterlädt
-- **🔔 Update-Hinweise**: `Hilfe > 🔄 Nach Updates suchen` weist auf neue Versionen hin; bei Installation über OBS (openSUSE) wird angezeigt, dass das Update über `zypper` erfolgt
+- **🔔 Update-Hinweise**: `Hilfe > 🔄 Nach Updates suchen` weist auf neue Versionen hin; bei Installation über OBS wird angezeigt, dass das Update über `zypper` (openSUSE) oder `dnf` (Fedora) erfolgt
 
 ### 📱 Handy-App (Android)
 
@@ -257,7 +257,7 @@ des Lagerbestands auf dem Handy, ohne die App für Arbeiten zu brauchen.
 
 MantPro im Browser, ohne Installation, unter [app.mantpro-cloud.com](https://app.mantpro-cloud.com). Es ist ein weiterer Client der Daten Ihres Unternehmens in MantPro Cloud: Was im Web geschieht, erreicht die PCs und Smartphones und umgekehrt.
 
-- **🧪 Demo ohne Registrierung**: Unter [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) betreten Sie mit einem Klick ein Beispielunternehmen (Benutzer `demo`, `ana`, `jon` und `marta`, Passwort `demo`). Jeder Besucher erhält seine eigene private Kopie: Erstellen, bearbeiten und löschen Sie, was Sie möchten; nichts wird gespeichert, und die Kopie löscht sich nach 2 Stunden von selbst
+- **🧪 Demo ohne Registrierung**: Unter [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) betreten Sie mit einem Klick ein Beispielunternehmen (Benutzer `demo`, `ana`, `jon`, `marta` und `operario`, Passwort `demo`). Jeder Besucher erhält seine eigene private Kopie: Erstellen, bearbeiten und löschen Sie, was Sie möchten; nichts wird gespeichert, und die Kopie löscht sich nach 2 Stunden von selbst
 - **🔐 Dieselben Benutzer wie am PC**: Anmeldung mit dem Unternehmensnamen und dem MantPro-Benutzer und -Passwort, mit denselben Rollen, Rechten und Standorten
 - **🖥️ Wie am PC**: dieselben Reiter (Dashboard, Kalender, Wartungsplan, Erfassen, Verlauf, Suche, Offene Arbeiten, Maschinen, Lagerbestand und Bestand unter Minimum), dieselben Menüs und dasselbe Rechtsklickmenü
 - **📸 Fotos und Videos**: werden im Browser hochgeladen und sind sofort auf PCs und Smartphones sichtbar
@@ -325,6 +325,11 @@ Laden Sie die passende Version für Ihr System unter [GitHub Releases](https://g
     sudo zypper in mantpro
     ```
     (unter Slowroll ersetzen Sie `openSUSE_Tumbleweed` in der URL durch `openSUSE_Slowroll`)
+  - **Fedora 43** (ab Version 3.10.12): ebenfalls über [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), aktualisiert mit `dnf`:
+    ```bash
+    sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:danitxu79/Fedora_43/home:danitxu79.repo
+    sudo dnf install mantpro
+    ```
 
 #### 🔏 Paketsignatur prüfen (Linux)
 
@@ -507,6 +512,9 @@ Techniker und Lager). Verfügbare Rollen:
 | **Administrator** | Alles, was Techniker und Lager dürfen, dazu Benutzer anlegen und löschen, Rollen ändern, Passwörter zurücksetzen, **jeden** Eintrag im Verlauf bearbeiten oder löschen, den Autor eines oder mehrerer Einträge auf einmal neu zuweisen und das Änderungsprotokoll einsehen |
 | **Techniker** | Arbeiten erfassen, offene Arbeiten und Erinnerungen erledigen, **nur seine eigenen** Einträge im Verlauf bearbeiten oder löschen und sein eigenes Passwort ändern |
 | **Lager** | Material anlegen oder bearbeiten und Zu-/Abgänge in der Handy-App **MantPro Stock** erfassen |
+| **Bediener** | Nur **Störungen und offene Arbeiten melden** (Titel, Details, Priorität, Fachgebiet und Fotos) am PC, in MantPro Web oder in der App MantPro, auch offline, und die selbst gemeldeten sehen, solange sie offen sind. Sieht sonst nichts (keine anderen Reiter, keinen Verlauf, keine Maschinen, keinen Bestand) und weist keinen Techniker zu. Steht allein: mit einer anderen Rolle zählt die andere |
+
+Ein **reiner Lager**-Benutzer kann keine offenen Arbeiten anlegen: Er nutzt nur das Lager.
 
 Es muss immer **mindestens ein aktiver Administrator** übrig bleiben: Die Anwendung verhindert,
 dem letzten die Rolle zu entziehen oder ihn zu deaktivieren.
@@ -903,7 +911,7 @@ MantPro ist und bleibt **kostenlos und Open Source**: Alles, was in diesem READM
 - **30 Tage kostenlos testen.**
 - **Lizenz und Speicherplatz im Blick**: unter `Werkzeuge` > `☁️ MantPro Cloud…` sehen Sie den belegten Speicherplatz Ihres Tarifs und haben Schaltflächen, um die Lizenz zu bezahlen und mehr Speicherplatz zu kaufen; MantPro warnt die Administratoren, wenn die Lizenz abläuft oder der Speicherplatz knapp wird.
 - **MantPro Web, ohne Installation:** Melden Sie sich im Browser des Büro-PCs oder eines Tablets unter [app.mantpro-cloud.com](https://app.mantpro-cloud.com) mit dem Namen Ihres Unternehmens und Ihrem MantPro-Benutzer und -Passwort an (dieselben wie am PC), mit denselben Rechten und Standorten. Sie hat dieselben Reiter, Menüs und Schaltflächen wie der PC, und was dort getan wird, landet auf den PCs und Smartphones – und umgekehrt; die Ansicht aktualisiert sich von selbst, wenn jemand etwas ändert.
-- **Ohne Registrierung ausprobieren:** Unter [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) erhalten Sie eine private Kopie eines Beispielunternehmens (Benutzer demo, ana, jon und marta, Passwort `demo`). Erstellen, bearbeiten und löschen Sie, was Sie möchten: Nichts wird gespeichert, und die Kopie löscht sich nach 2 Stunden von selbst.
+- **Ohne Registrierung ausprobieren:** Unter [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) erhalten Sie eine private Kopie eines Beispielunternehmens (Benutzer demo, ana, jon, marta und operario, Passwort `demo`). Erstellen, bearbeiten und löschen Sie, was Sie möchten: Nichts wird gespeichert, und die Kopie löscht sich nach 2 Stunden von selbst.
 
 Ihre Daten bleiben Ihre Daten: Wenn Sie nicht mehr zahlen, arbeitet der PC mit allem weiter, was er lokal hat; er synchronisiert nur nicht mehr.
 

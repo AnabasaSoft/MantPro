@@ -31,7 +31,7 @@ from .. import idiomas
 from . import sedes, usuarios
 
 CLAVE_MIN = 4
-ROLES = ("tecnico", "almacen", "admin")
+ROLES = ("tecnico", "almacen", "operario", "admin")
 # Código de error → clave de texto (en los 8 idiomas)
 TEXTOS = {"solo_admin": "msg_solo_admin", "no_existe": "usr_err_no_existe", "obligatorios": "usr_err_obligatorios",
           "clave_corta": "usr_err_clave_corta", "login_repetido": "usr_err_login_repetido",
@@ -50,11 +50,9 @@ def _admin(usuario):
 
 
 def roles_validos(roles):
-    """Como las casillas del PC: administrador va solo; sin ninguno, técnico."""
-    roles = [r for r in ROLES if r in set(roles or ())]
-    if "admin" in roles:
-        return ["admin"]
-    return roles or ["tecnico"]
+    """Como las casillas del PC: administrador y operario van solos; sin ninguno, técnico."""
+    roles = usuarios.normalizar_roles(roles)
+    return [r for r in ROLES if r in roles]
 
 
 def texto_roles(roles):

@@ -78,6 +78,12 @@ def _quitar_datos_de_compras(material):
         material.pop(campo, None)
 
 
+
+# Lo único de la API que puede usar un operario (usuarios.es_operario): entrar y salir, su sesión, las sedes y
+# especialidades (para el formulario), avisar de un pendiente y ver los que ha avisado él.
+RUTAS_OPERARIO = frozenset(("/api/logout", "/api/yo", "/api/desconectar", "/api/tls", "/api/ping", "/api/sedes",
+                            "/api/especialidades", "/api/pendientes", "/api/agregar_pendiente"))
+
 class ServidorSincronizacion(QThread):
     registro_recibido = pyqtSignal(str, str, str, str, str)
     pendiente_actualizado = pyqtSignal()
@@ -265,6 +271,10 @@ class ServidorSincronizacion(QThread):
                         "message": "Sesión no válida. Vuelve a iniciar sesión."
                     }), 401
                 g.usuario_mantpro = u
+                # Un operario solo avisa de pendientes y ve los suyos: lo demás de la API no es para él
+                if usuarios.es_operario(u) and request.path not in RUTAS_OPERARIO:
+                    return jsonify({"status": "error", "error": "sin_permiso",
+                                    "message": "Tu usuario solo puede avisar de trabajos pendientes."}), 403
                 # Para el registro de cambios: lo que se haga en esta petición
                 # lo ha hecho este usuario desde este móvil.
                 usuarios.fijar_actor_peticion(u, usuarios.dispositivo_de_token(_token_peticion()))
@@ -305,6 +315,20 @@ class ServidorSincronizacion(QThread):
         # --- API DE TRABAJOS (app MantPro) ----------------------------------
         # Lectura: cualquier usuario autenticado. Alta/edición/completar/borrar
         # trabajos y avisos: solo admin o rol "técnico" (usuarios.puede_hacer_trabajos).
+        def requiere_avisar(func):
+            """Dar de alta pendientes: administradores, técnicos y operarios."""
+            from functools import wraps
+
+            @wraps(func)
+            def envoltorio(*args, **kwargs):
+                if not usuarios.puede_avisar_pendientes(g.usuario_mantpro):
+                    return jsonify({
+                        "status": "error", "error": "sin_permiso",
+                        "message": "Tu usuario no puede gestionar trabajos."
+                    }), 403
+                return func(*args, **kwargs)
+            return envoltorio
+
         def requiere_tecnico(func):
             from functools import wraps
 
@@ -632,7 +656,10 @@ class ServidorSincronizacion(QThread):
                 solo_mios = request.args.get('solo_mios', '') in ('1', 'true', 'True')
                 columnas = ("SELECT id, titulo, detalles, asignado_a, COALESCE(asignado_nombre,''), "
                             "COALESCE(prioridad,'Media'), especialidad_id FROM pendientes")
-                if solo_mios:
+                if usuarios.es_operario(u):
+                    # Un operario solo ve los que ha avisado él
+                    c.execute(columnas + " WHERE creado_por = ? ORDER BY id DESC", (u['id'],))
+                elif solo_mios:
                     c.execute(columnas + " WHERE asignado_a = ? ORDER BY id DESC", (u['id'],))
                 elif usuarios.es_admin(u):
                     c.execute(columnas + " ORDER BY id DESC")
@@ -758,7 +785,7 @@ class ServidorSincronizacion(QThread):
 
         @self.app.route('/api/agregar_pendiente', methods=['POST'])
         @requiere_token
-        @requiere_tecnico
+        @requiere_avisar
         def api_agregar_pendiente():
             print(">>> PETICIÓN: AGREGAR PENDIENTE")
             with self._cerrojo_alta_pendiente:
@@ -778,8 +805,8 @@ class ServidorSincronizacion(QThread):
                 if ref:
                     conn = self._conn()
                     repetido = conn.execute(
-                        "SELECT 1 FROM pendientes WHERE asignado_a = ? AND detalles LIKE ? ESCAPE '\\'",
-                        (g.usuario_mantpro['id'], f"%[REF:{ref.group(1)}]%")).fetchone()
+                        "SELECT 1 FROM pendientes WHERE (asignado_a = ? OR creado_por = ?) AND detalles LIKE ? ESCAPE '\\'",
+                        (g.usuario_mantpro['id'], g.usuario_mantpro['id'], f"%[REF:{ref.group(1)}]%")).fetchone()
                     conn.close()
                     if repetido:
                         return jsonify({"status": "ok", "duplicado": True})
@@ -791,14 +818,18 @@ class ServidorSincronizacion(QThread):
 
                 conn = self._conn()
                 c = conn.cursor()
-                # Un pendiente creado desde el móvil queda asignado a quien lo crea
+                # Un pendiente creado desde el móvil queda asignado a quien lo crea; el de un operario, sin
+                # asignar (lo asigna después un administrador). Siempre se apunta quién lo avisó.
                 usuario = g.usuario_mantpro
+                operario = usuarios.es_operario(usuario)
                 sede_alta, error_sede = _sede_para_alta()
                 if error_sede is not None:
                     conn.close()
                     return error_sede
-                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id, sede_id) VALUES (?,?,?,?,?,?,?)',
-                          (titulo, detalles, usuario['id'], usuario['nombre'], prioridad, especialidad_id, sede_alta))
+                c.execute('INSERT INTO pendientes (titulo, detalles, asignado_a, asignado_nombre, prioridad, especialidad_id, sede_id, '
+                          'creado_por) VALUES (?,?,?,?,?,?,?,?)',
+                          (titulo, detalles, None if operario else usuario['id'], None if operario else usuario['nombre'],
+                           prioridad, especialidad_id, sede_alta, usuario['id']))
                 nuevo_id = c.lastrowid
                 conn.commit()
                 conn.close()

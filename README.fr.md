@@ -140,7 +140,7 @@ Vous pouvez télécharger les versions précompilées depuis [GitHub Releases](h
   - AppImage portable
   - Paquets `.deb` (Debian, Ubuntu…) et `.rpm` (Fedora, openSUSE…), signés avec GPG
   - Également disponible sur l'**AUR** (Arch User Repository)
-  - Également disponible sur [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) pour openSUSE Tumbleweed et Slowroll
+  - Également disponible sur [**OBS**](https://build.opensuse.org/package/show/home:danitxu79/MantPro) (openSUSE Build Service) pour openSUSE Tumbleweed et Slowroll et pour Fedora 43
 - **Android** : fichiers `.apk` à installer directement
   - `MantPro.apk` : application des interventions de maintenance
   - `MantProStock.apk` : application de stock du magasin
@@ -204,7 +204,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **🏷️ Étiquettes QR par machine** : PDF d'étiquettes à coller sur les machines ; en les scannant avec l'application MantPro, la fiche de la machine s'ouvre
 - **🔍 Alerte de doublons** : lors de la création ou du renommage d'une machine, ou de la création ou modification d'un article, avertit s'il en existe déjà un autre avec le même code ou un nom identique ou très similaire (par exemple « Extracteur de fines » / « Extraction de fines »), sans avertir quand seul le numéro change (« Lora 1 » / « Lora 2 »)
 - **📲 Installer les applications avec un QR code** : `Outils > 📱 Installer MantPro sur le mobile` et `📦 Installer MantPro Stock sur le mobile` affichent un QR code qui, scanné avec l'appareil photo du mobile, télécharge la dernière version stable de l'application
-- **🔔 Avis de mise à jour** : `Aide > 🔄 Rechercher des mises à jour` signale les nouvelles versions ; la version installée depuis OBS (openSUSE) indique qu'elle se met à jour avec `zypper`
+- **🔔 Avis de mise à jour** : `Aide > 🔄 Rechercher des mises à jour` signale les nouvelles versions ; la version installée depuis OBS indique qu'elle se met à jour avec `zypper` (openSUSE) ou `dnf` (Fedora)
 
 ### 📱 Application mobile (Android)
 
@@ -258,7 +258,7 @@ l'application des interventions.
 
 MantPro depuis le navigateur, sans rien installer, sur [app.mantpro-cloud.com](https://app.mantpro-cloud.com). C'est un client de plus des données de votre entreprise dans MantPro Cloud : ce qui est fait sur le web arrive sur les PC et les téléphones, et inversement.
 
-- **🧪 Démo sans inscription** : sur [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo), vous entrez en un clic dans une entreprise d'exemple (utilisateurs `demo`, `ana`, `jon` et `marta`, mot de passe `demo`). Chaque visiteur reçoit sa propre copie privée : créez, modifiez et supprimez ce que vous voulez ; rien n'est enregistré et la copie s'efface d'elle-même au bout de 2 heures
+- **🧪 Démo sans inscription** : sur [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo), vous entrez en un clic dans une entreprise d'exemple (utilisateurs `demo`, `ana`, `jon`, `marta` et `operario`, mot de passe `demo`). Chaque visiteur reçoit sa propre copie privée : créez, modifiez et supprimez ce que vous voulez ; rien n'est enregistré et la copie s'efface d'elle-même au bout de 2 heures
 - **🔐 Les mêmes utilisateurs que sur le PC** : on se connecte avec le nom de l'entreprise et l'utilisateur et le mot de passe MantPro, avec les mêmes rôles, droits et sites
 - **🖥️ Comme sur le PC** : les mêmes onglets (Tableau de bord, Calendrier, Rappels, Enregistrer, Historique, Recherche, En attente, Machines, Stock du magasin et Stock sous le minimum), les mêmes menus et le même menu du clic droit
 - **📸 Photos et vidéos** : envoyées depuis le navigateur et visibles aussitôt sur les PC et téléphones
@@ -326,6 +326,11 @@ Téléchargez la version correspondant à votre système depuis [GitHub Releases
     sudo zypper in mantpro
     ```
     (pour Slowroll, remplacez `openSUSE_Tumbleweed` par `openSUSE_Slowroll` dans l'URL)
+  - **Fedora 43** (à partir de la version 3.10.12) : également depuis [OBS](https://build.opensuse.org/package/show/home:danitxu79/MantPro), mis à jour avec `dnf` :
+    ```bash
+    sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:danitxu79/Fedora_43/home:danitxu79.repo
+    sudo dnf install mantpro
+    ```
 
 #### 🔏 Vérifier la signature des paquets (Linux)
 
@@ -509,6 +514,9 @@ exemple technicien et magasin). Rôles disponibles :
 | **Administrateur** | Tout ce que font le technicien et le magasin, plus créer et désactiver des utilisateurs, changer les rôles, réinitialiser les mots de passe, modifier ou supprimer **n'importe quel** enregistrement de l'historique, réassigner l'auteur d'un ou plusieurs enregistrements à la fois et consulter le journal d'audit des modifications |
 | **Technicien** | Enregistrer des interventions, terminer les tâches en attente et les rappels, modifier ou supprimer **uniquement ses propres** enregistrements de l'historique et changer son propre mot de passe |
 | **Magasin** | Créer ou modifier des articles et enregistrer des entrées/sorties de stock depuis l'application **MantPro Stock** |
+| **Opérateur** | Seulement **signaler des pannes et des tâches en attente** (titre, détails, priorité, spécialité et photos) depuis le PC, MantPro Web ou l'application MantPro, même hors ligne, et voir celles qu'il a signalées tant qu'elles ne sont pas faites. Il ne voit rien d'autre (ni les autres onglets, ni l'historique, ni les machines, ni le stock) et n'assigne pas de technicien. Il va seul : avec un autre rôle, c'est l'autre qui compte |
+
+Un utilisateur **uniquement magasin** ne peut pas créer de tâches en attente : il utilise seulement le magasin.
 
 Il doit toujours y avoir **au moins un administrateur actif** : l'application
 empêche de retirer le rôle ou de désactiver le dernier qui reste.
@@ -928,7 +936,7 @@ MantPro est et restera **gratuit et open source** : tout ce qui est décrit dans
 - **Essai gratuit de 30 jours.**
 - **Licence et espace en un coup d'œil** : dans `Outils` > `☁️ MantPro Cloud…`, vous voyez l'espace utilisé par votre offre et avez des boutons pour payer la licence et acheter plus d'espace ; MantPro prévient les administrateurs si la licence expire ou si l'espace vient à manquer.
 - **MantPro Web, sans rien installer :** connectez-vous depuis le navigateur du PC du bureau ou d'une tablette sur [app.mantpro-cloud.com](https://app.mantpro-cloud.com) avec le nom de votre entreprise et votre utilisateur et mot de passe MantPro (les mêmes que sur le PC), avec les mêmes droits et sites. Elle a les mêmes onglets, menus et boutons que le PC, et ce qui y est fait arrive sur les PC et les téléphones, et inversement ; l'écran se met à jour tout seul quand quelqu'un modifie quelque chose.
-- **Essayez-le sans vous inscrire :** sur [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo), vous recevez une copie privée d'une entreprise d'exemple (utilisateurs demo, ana, jon et marta, mot de passe `demo`). Créez, modifiez et supprimez ce que vous voulez : rien n'est enregistré et la copie s'efface d'elle-même au bout de 2 heures.
+- **Essayez-le sans vous inscrire :** sur [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo), vous recevez une copie privée d'une entreprise d'exemple (utilisateurs demo, ana, jon, marta et operario, mot de passe `demo`). Créez, modifiez et supprimez ce que vous voulez : rien n'est enregistré et la copie s'efface d'elle-même au bout de 2 heures.
 
 Vos données restent les vôtres : si vous arrêtez de payer, le PC continue de fonctionner avec tout ce qu'il a en local ; il cesse simplement de se synchroniser.
 

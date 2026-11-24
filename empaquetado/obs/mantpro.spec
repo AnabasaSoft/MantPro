@@ -21,6 +21,12 @@
 # aquí desde su código fuente (trae SQLCipher dentro y usa el OpenSSL del
 # sistema). Es la misma librería que llevan los binarios de GitHub.
 %define sqlcipher3_version 0.6.4
+# Con qué se actualiza el paquete (lo dice «Buscar actualizaciones»): dnf en Fedora, zypper en openSUSE
+%if 0%{?fedora}
+%define gestor_paquetes dnf
+%else
+%define gestor_paquetes zypper
+%endif
 
 Name:           mantpro
 Version:        3.10.0
@@ -87,8 +93,9 @@ French.
 # La versión que se muestra en "Acerca de" sale del paquete, igual que en
 # los binarios de GitHub (build_desktop.yml).
 sed -i 's/^APP_VERSION = ".*"/APP_VERSION = "%{version}"/' mantpro/version.py
-# Se actualiza con zypper: "Buscar actualizaciones" lo indica en vez de mirar GitHub.
-sed -i 's/^GESTOR_PAQUETES = .*/GESTOR_PAQUETES = "zypper"/' mantpro/version.py
+# Se actualiza con el gestor de paquetes (zypper en openSUSE, dnf en Fedora): "Buscar actualizaciones" lo
+# indica en vez de mirar GitHub.
+sed -i 's/^GESTOR_PAQUETES = .*/GESTOR_PAQUETES = "%{gestor_paquetes}"/' mantpro/version.py
 # Licencia del módulo de SQLCipher, junto a la de MantPro
 cp sqlcipher3-%{sqlcipher3_version}/LICENSE LICENSE.sqlcipher3
 
@@ -169,7 +176,7 @@ assert conexion_bd.HAY_SQLCIPHER
 from mantpro.version import APP_VERSION
 assert APP_VERSION == "%{version}", APP_VERSION
 from mantpro.version import GESTOR_PAQUETES
-assert GESTOR_PAQUETES == "zypper", GESTOR_PAQUETES
+assert GESTOR_PAQUETES == "%{gestor_paquetes}", GESTOR_PAQUETES
 print("OK:", len(modulos), "módulos")
 EOF
 

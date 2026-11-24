@@ -173,4 +173,5 @@ const Map<String, String> traduccionesEn = {
     "lbl_revision_progreso": "{n} of {total} checked",
     "msg_revision_completa": "✅ Check complete: you have checked all {total} items.",
     "lbl_revision_stock": "Warehouse check",
+    "login_operario_sin_stock": "Your user is an operator: it can only report pending jobs from the MantPro app.",
 };

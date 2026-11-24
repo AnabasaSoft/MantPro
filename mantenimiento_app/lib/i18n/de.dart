@@ -291,4 +291,7 @@ const Map<String, String> traduccionesDe = {
   "lbl_lect_ver_lecturas": "Alle {n} Messwerte anzeigen",
   "msg_lect_sin_lecturas_movil": "Auf dem Handy gibt es keine Messwerte dieser Maschine. Sie stammen aus den Punkten vom Typ „Messwert“ der Checklisten, wenn ihre Arbeiten abgeschlossen werden.",
   "lbl_lect_datos_sincro": "Daten der letzten Synchronisierung mit dem PC (die letzten 30 Messwerte jeder Messgröße).",
+  "lbl_pendientes_avisados": "Von Ihnen gemeldete offene Arbeiten",
+  "msg_sin_pendientes_avisados": "Sie haben noch keine offene Arbeit gemeldet, oder alle sind bereits erledigt.",
+  "btn_avisar_pendiente": "Melden",
 };

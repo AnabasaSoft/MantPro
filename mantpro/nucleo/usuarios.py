@@ -311,6 +311,8 @@ def inicializar():
             cur.execute("ALTER TABLE pendientes ADD COLUMN prioridad TEXT DEFAULT 'Media'")
         if "especialidad_id" not in cols:
             cur.execute("ALTER TABLE pendientes ADD COLUMN especialidad_id INTEGER")
+        if "creado_por" not in cols:            # quién lo avisó (el operario ve los suyos)
+            cur.execute("ALTER TABLE pendientes ADD COLUMN creado_por INTEGER")
 
     if _tabla_existe(con, "avisos_recurrentes"):
         cols = _columnas(con, "avisos_recurrentes")
@@ -402,7 +404,39 @@ def _especialidades_de_usuario(con, usuario_id):
     return [dict(f) for f in filas]
 
 
-ROLES = ("admin", "tecnico", "almacen")
+ROLES = ("admin", "tecnico", "almacen", "operario")
+# Operario: solo avisa de trabajos pendientes (y ve los que ha avisado él). Va solo: con otro rol, cuenta el otro.
+ROLES_COMPLETOS = ("admin", "tecnico", "almacen")
+
+
+def roles_de(usuario):
+    """Los roles de [usuario] (dict), con el rol antiguo si no tiene la lista."""
+    return list(usuario.get("roles") or [usuario.get("rol")]) if usuario else []
+
+
+def normalizar_roles(roles):
+    """Los roles válidos de [roles], como las casillas del PC: administrador va solo, operario va solo (con otro
+    rol, sobra) y sin ninguno, técnico."""
+    roles = [r for r in ROLES if r in set(roles or ())]
+    if "admin" in roles:
+        return ["admin"]
+    if "operario" in roles and len(roles) > 1:
+        roles.remove("operario")
+    return roles or ["tecnico"]
+
+
+def es_operario(usuario=None):
+    """¿Es [usuario] (o el de la sesión) SOLO operario? Solo puede avisar de pendientes y ver los suyos."""
+    u = usuario or SESION_ACTUAL
+    roles = roles_de(u)
+    return bool(u) and "operario" in roles and not any(r in roles for r in ROLES_COMPLETOS)
+
+
+def puede_avisar_pendientes(usuario=None):
+    """True para quien puede dar de alta pendientes: administrador, técnico y operario."""
+    u = usuario or SESION_ACTUAL
+    roles = roles_de(u)
+    return bool(u) and any(r in roles for r in ("admin", "tecnico", "operario"))
 
 
 def es_admin(usuario=None):
@@ -494,7 +528,7 @@ def crear_usuario(login, nombre, password, roles=("tecnico",), debe_cambiar=True
         return False, "El usuario y el nombre son obligatorios."
     if len(password or "") < 4:
         return False, "La contraseña debe tener al menos 4 caracteres."
-    roles = [r for r in (roles or []) if r in ROLES] or ["tecnico"]
+    roles = normalizar_roles(roles)
     rol_principal = "admin" if "admin" in roles else roles[0]
 
     con = _conn()
@@ -530,7 +564,7 @@ def actualizar_usuario(usuario_id, nombre=None, roles=None, activo=None, especia
         campos.append("nombre = ?"); valores.append(nombre.strip())
     roles_validos = None
     if roles is not None:
-        roles_validos = [r for r in roles if r in ROLES] or ["tecnico"]
+        roles_validos = normalizar_roles(roles)
         rol_principal = "admin" if "admin" in roles_validos else roles_validos[0]
         campos.append("rol = ?"); valores.append(rol_principal)
     if activo is not None:
@@ -1081,7 +1115,7 @@ def obtener_auditoria(usuario_id=None, accion=None, tarea_id=None, limite=200, c
 # Las funciones de gestión de usuarios y especialidades apuntan lo que cambian
 # (sirven igual desde el PC que desde el servidor de los móviles).
 
-_NOMBRES_ROL = {"admin": "Administrador", "tecnico": "Técnico", "almacen": "Almacén"}
+_NOMBRES_ROL = {"admin": "Administrador", "tecnico": "Técnico", "almacen": "Almacén", "operario": "Operario"}
 _ETIQUETAS_USUARIO = {"nombre": "Nombre", "roles": "Roles", "activo": "Activo", "especialidades": "Especialidades"}
 
 

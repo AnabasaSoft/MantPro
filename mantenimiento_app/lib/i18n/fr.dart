@@ -294,4 +294,7 @@ const Map<String, String> traduccionesFr = {
     "lbl_lect_ver_lecturas": "Voir les {n} relevés",
     "msg_lect_sin_lecturas_movil": "Aucun relevé de cette machine sur le téléphone. Ils proviennent des points de type « Relevé » des listes de contrôle lorsque ses travaux sont terminés.",
     "lbl_lect_datos_sincro": "Données de la dernière synchronisation avec le PC (les 30 derniers relevés de chaque mesure).",
+    "lbl_pendientes_avisados": "Tâches en attente que vous avez signalées",
+    "msg_sin_pendientes_avisados": "Vous n'avez encore signalé aucune tâche en attente, ou elles ont toutes été faites.",
+    "btn_avisar_pendiente": "Signaler",
 };
