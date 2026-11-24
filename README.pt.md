@@ -260,7 +260,7 @@ serviços.
 
 O MantPro pelo navegador, sem instalar nada, em [app.mantpro-cloud.com](https://app.mantpro-cloud.com). É mais um cliente dos dados da sua empresa no MantPro Cloud: o que se faz na web chega aos PCs e aos celulares, e vice-versa.
 
-**Sem o aplicativo de PC:** basta um navegador (Chrome, Firefox, Edge, Safari…) no computador do escritório, em um notebook ou em um tablet; não é preciso instalar nem atualizar nada. Dá para trabalhar só com a web, só com o aplicativo de PC ou com os dois ao mesmo tempo sobre os mesmos dados. Para vincular os celulares, por enquanto é preciso escanear uma vez o QR de um PC com o MantPro.
+**Sem o aplicativo de PC:** basta um navegador (Chrome, Firefox, Edge, Safari…) no computador do escritório, em um notebook ou em um tablet; não é preciso instalar nem atualizar nada. Dá para trabalhar só com a web, só com o aplicativo de PC ou com os dois ao mesmo tempo sobre os mesmos dados. Para vincular os celulares, por enquanto é preciso escanear uma vez o QR de um PC com o MantPro. Na primeira vez, sem nenhum PC, entra-se com o e-mail e a senha da conta do MantPro Cloud e o usuário administrador é criado.
 
 - **🧪 Demo sem cadastro**: em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você entra com um clique em uma empresa de exemplo (usuários `demo`, `ana`, `jon`, `marta` e `operario`, senha `demo`). Cada visitante recebe sua própria cópia privada: crie, edite e apague o que quiser; nada é salvo e a cópia se apaga sozinha depois de 2 horas
 - **🔐 Os mesmos usuários do PC**: entra-se com o nome da empresa e o usuário e senha do MantPro, com as mesmas funções, permissões e unidades

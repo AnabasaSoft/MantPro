@@ -257,7 +257,7 @@ from your phone without needing the jobs app.
 
 MantPro from the browser, nothing to install, at [app.mantpro-cloud.com](https://app.mantpro-cloud.com). It is one more client of your company's data in MantPro Cloud: what you do on the web reaches the PCs and phones, and vice versa.
 
-**No PC application needed:** a browser (Chrome, Firefox, Edge, Safari…) on the office computer, a laptop or a tablet is enough; nothing to install or update. You can work only on the web, only with the PC application or with both at once on the same data. To pair the phones, for now you need to scan the QR code of a PC with MantPro once.
+**No PC application needed:** a browser (Chrome, Firefox, Edge, Safari…) on the office computer, a laptop or a tablet is enough; nothing to install or update. You can work only on the web, only with the PC application or with both at once on the same data. To pair the phones, for now you need to scan the QR code of a PC with MantPro once. The first time, with no PC at all, you sign in with the email and password of your MantPro Cloud account and the administrator user is created.
 
 - **🧪 Demo without signing up**: at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you step into a sample company with one click (users `demo`, `ana`, `jon`, `marta` and `operario`, password `demo`). Each visitor gets their own private copy: create, edit and delete whatever you like; nothing is saved and the copy deletes itself after 2 hours
 - **🔐 Same users as the PC**: sign in with the company name and your MantPro user and password, with the same roles, permissions and sites

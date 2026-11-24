@@ -260,7 +260,7 @@ stock de almacén desde el móvil sin necesidad de la app de trabajos.
 
 MantPro desde el navegador, sin instalar nada, en [app.mantpro-cloud.com](https://app.mantpro-cloud.com). Es un cliente más de los datos de tu empresa en MantPro Cloud: lo que se hace en la web llega a los PCs y a los móviles, y al revés.
 
-**Sin la aplicación de PC:** basta un navegador (Chrome, Firefox, Edge, Safari…) en el ordenador de la oficina, en un portátil o en una tablet; no hay que instalar ni actualizar nada. Se puede trabajar solo con la web, solo con la aplicación de PC o con las dos a la vez sobre los mismos datos. Para vincular los móviles, de momento hace falta escanear una vez el QR de un PC con MantPro.
+**Sin la aplicación de PC:** basta un navegador (Chrome, Firefox, Edge, Safari…) en el ordenador de la oficina, en un portátil o en una tablet; no hay que instalar ni actualizar nada. Se puede trabajar solo con la web, solo con la aplicación de PC o con las dos a la vez sobre los mismos datos. Para vincular los móviles, de momento hace falta escanear una vez el QR de un PC con MantPro. La primera vez, sin ningún PC, se entra con el correo y la contraseña de la cuenta de MantPro Cloud y se crea el usuario administrador.
 
 - **🧪 Demo sin registrarse**: en [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entras con un clic en una empresa de ejemplo (usuarios `demo`, `ana`, `jon`, `marta` y `operario`, contraseña `demo`). Cada visitante recibe su propia copia privada: crea, edita y borra lo que quieras; nada se guarda y la copia se borra sola a las 2 horas
 - **🔐 Mismos usuarios que el PC**: se entra con el nombre de la empresa y el usuario y contraseña de MantPro, con los mismos roles, permisos y sedes

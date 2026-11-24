@@ -261,7 +261,7 @@ treballs.
 
 MantPro des del navegador, sense instal·lar res, a [app.mantpro-cloud.com](https://app.mantpro-cloud.com). És un client més de les dades de la teva empresa a MantPro Cloud: el que es fa a la web arriba als PC i als mòbils, i a l'inrevés.
 
-**Sense l'aplicació de PC:** n'hi ha prou amb un navegador (Chrome, Firefox, Edge, Safari…) a l'ordinador de l'oficina, en un portàtil o en una tauleta; no cal instal·lar ni actualitzar res. Es pot treballar només amb la web, només amb l'aplicació de PC o amb totes dues alhora sobre les mateixes dades. Per vincular els mòbils, de moment cal escanejar un cop el QR d'un PC amb MantPro.
+**Sense l'aplicació de PC:** n'hi ha prou amb un navegador (Chrome, Firefox, Edge, Safari…) a l'ordinador de l'oficina, en un portàtil o en una tauleta; no cal instal·lar ni actualitzar res. Es pot treballar només amb la web, només amb l'aplicació de PC o amb totes dues alhora sobre les mateixes dades. Per vincular els mòbils, de moment cal escanejar un cop el QR d'un PC amb MantPro. La primera vegada, sense cap PC, s'hi entra amb el correu i la contrasenya del compte de MantPro Cloud i es crea l'usuari administrador.
 
 - **🧪 Demo sense registrar-se**: a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entres amb un clic en una empresa d'exemple (usuaris `demo`, `ana`, `jon`, `marta` i `operario`, contrasenya `demo`). Cada visitant rep la seva pròpia còpia privada: crea, edita i esborra el que vulguis; no es desa res i la còpia s'esborra sola al cap de 2 hores
 - **🔐 Els mateixos usuaris que al PC**: s'hi entra amb el nom de l'empresa i l'usuari i la contrasenya de MantPro, amb els mateixos rols, permisos i seus
