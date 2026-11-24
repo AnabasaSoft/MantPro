@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20Web-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
   <img src="https://img.shields.io/badge/Autoallotjat-gratu%C3%AFt%20per%20sempre-orange.svg" alt="Autoallotjat: gratuït per sempre">
 </p>
@@ -145,6 +145,7 @@ Pots descarregar les versions precompilades des de [GitHub Releases](https://git
 - **Android**: fitxers `.apk` per a instal·lació directa
   - `MantPro.apk`: aplicació de treballs de manteniment
   - `MantProStock.apk`: aplicació d'estoc del magatzem
+- **Navegador**: sense descarregar res, amb [MantPro Web](https://app.mantpro-cloud.com) (inclosa a MantPro Cloud). [Prova-la sense registrar-te](https://app.mantpro-cloud.com/demo).
 
 Les versions marcades com a *pre-release* (`v3.10.2-dev`, `-rc.1`…) són de
 proves: només s'ofereixen com a actualització a qui ja té instal·lada una
@@ -252,6 +253,21 @@ treballs.
 - **🔩 S'utilitza a**: cada article mostra a quines màquines s'utilitza com a recanvi i quants en porta cadascuna, també sense connexió
 - **🔍 Avís de repetits**: en crear o editar un article avisa si ja n'hi ha un altre amb el mateix codi o un nom molt semblant, comparant amb els articles desats al mòbil (funciona sense connexió)
 - **⬆️ Actualitzar des de l'app**: igual que MantPro, baixa i instal·la la nova versió des del mateix avís
+
+### 🌐 MantPro Web (navegador, amb MantPro Cloud)
+
+MantPro des del navegador, sense instal·lar res, a [app.mantpro-cloud.com](https://app.mantpro-cloud.com). És un client més de les dades de la teva empresa a MantPro Cloud: el que es fa a la web arriba als PC i als mòbils, i a l'inrevés.
+
+- **🧪 Demo sense registrar-se**: a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entres amb un clic en una empresa d'exemple (usuaris `demo`, `ana`, `jon` i `marta`, contrasenya `demo`). Cada visitant rep la seva pròpia còpia privada: crea, edita i esborra el que vulguis; no es desa res i la còpia s'esborra sola al cap de 2 hores
+- **🔐 Els mateixos usuaris que al PC**: s'hi entra amb el nom de l'empresa i l'usuari i la contrasenya de MantPro, amb els mateixos rols, permisos i seus
+- **🖥️ Igual que el PC**: les mateixes pestanyes (Dashboard, Calendari, Avisos, Registrar, Historial, Cercador, Pendents, Màquines, Estoc de magatzem i Estoc per sota del mínim), els mateixos menús i el mateix menú del botó dret
+- **📸 Fotos i vídeos**: es pugen des del navegador i es veuen al moment als PC i mòbils
+- **📄 Exportacions**: PDF, Excel i CSV amb els mateixos diàlegs que el PC
+- **🛠️ Administració**: usuaris, sessions de dispositius, registre de canvis, seus, magatzems, llistes de comprovació, proveïdors, comandes i importació des d'Excel/CSV (només administradors)
+- **🔄 S'actualitza sola** quan algú canvia alguna cosa des d'un altre PC, mòbil o navegador
+- **📱 Funciona en tauleta**: pensada també per a pantalles tàctils (pulsació llarga en lloc del botó dret)
+- **🌍 8 idiomes** i tema fosc o clar
+- **🛡️ Segura**: només per HTTPS, sessions «🌐 Web» que caduquen per inactivitat i que es poden tancar des de «Sessions de dispositius»; amb la llicència caducada es pot consultar i exportar, però no modificar
 
 ---
 

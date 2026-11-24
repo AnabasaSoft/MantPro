@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20Web-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
   <img src="https://img.shields.io/badge/Auto--hospedado-gr%C3%A1tis%20para%20sempre-orange.svg" alt="Auto-hospedado: grátis para sempre">
 </p>
@@ -144,6 +144,7 @@ Você pode baixar as versões pré-compiladas em [GitHub Releases](https://githu
 - **Android**: arquivos `.apk` para instalação direta
   - `MantPro.apk`: aplicativo de serviços de manutenção
   - `MantProStock.apk`: aplicativo de estoque do almoxarifado
+- **Navegador**: sem baixar nada, com o [MantPro Web](https://app.mantpro-cloud.com) (incluído no MantPro Cloud). [Experimente sem se cadastrar](https://app.mantpro-cloud.com/demo).
 
 As versões marcadas como *pre-release* (`v3.10.2-dev`, `-rc.1`…) são de
 teste: só são oferecidas como atualização a quem já tem uma versão de teste
@@ -251,6 +252,21 @@ serviços.
 - **🔩 Usado em**: cada item mostra em quais máquinas é usado como peça de reposição e quantos cada uma leva, também sem conexão
 - **🔍 Aviso de duplicados**: ao criar ou editar um item, avisa se já existe outro com o mesmo código ou um nome muito parecido, comparando com os itens salvos no celular (funciona sem conexão)
 - **⬆️ Atualizar pelo aplicativo**: como o MantPro, baixa e instala a nova versão a partir do próprio aviso
+
+### 🌐 MantPro Web (navegador, com o MantPro Cloud)
+
+O MantPro pelo navegador, sem instalar nada, em [app.mantpro-cloud.com](https://app.mantpro-cloud.com). É mais um cliente dos dados da sua empresa no MantPro Cloud: o que se faz na web chega aos PCs e aos celulares, e vice-versa.
+
+- **🧪 Demo sem cadastro**: em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você entra com um clique em uma empresa de exemplo (usuários `demo`, `ana`, `jon` e `marta`, senha `demo`). Cada visitante recebe sua própria cópia privada: crie, edite e apague o que quiser; nada é salvo e a cópia se apaga sozinha depois de 2 horas
+- **🔐 Os mesmos usuários do PC**: entra-se com o nome da empresa e o usuário e senha do MantPro, com as mesmas funções, permissões e unidades
+- **🖥️ Igual ao PC**: as mesmas abas (Painel, Calendário, Avisos, Registrar, Histórico, Busca, Pendentes, Máquinas, Estoque do almoxarifado e Estoque abaixo do mínimo), os mesmos menus e o mesmo menu do botão direito
+- **📸 Fotos e vídeos**: enviados pelo navegador e vistos na hora nos PCs e celulares
+- **📄 Exportações**: PDF, Excel e CSV com as mesmas caixas de diálogo do PC
+- **🛠️ Administração**: usuários, sessões de dispositivos, registro de alterações, unidades, almoxarifados, checklists, fornecedores, pedidos e importação de Excel/CSV (só administradores)
+- **🔄 Atualiza-se sozinho** quando alguém muda algo em outro PC, celular ou navegador
+- **📱 Funciona em tablet**: pensado também para telas sensíveis ao toque (toque longo no lugar do botão direito)
+- **🌍 8 idiomas** e tema escuro ou claro
+- **🛡️ Seguro**: só por HTTPS, sessões «🌐 Web» que expiram por inatividade e podem ser encerradas em «Sessões de dispositivos»; com a licença expirada é possível consultar e exportar, mas não modificar
 
 ---
 

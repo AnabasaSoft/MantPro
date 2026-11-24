@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20Web-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
   <img src="https://img.shields.io/badge/Self--hosted-free%20forever-orange.svg" alt="Self-hosted: free forever">
 </p>
@@ -142,6 +142,7 @@ You can download the prebuilt versions from [GitHub Releases](https://github.com
 - **Android**: `.apk` files for direct installation
   - `MantPro.apk`: maintenance jobs app
   - `MantProStock.apk`: warehouse stock app
+- **Browser**: nothing to download, with [MantPro Web](https://app.mantpro-cloud.com) (included in MantPro Cloud). [Try it without signing up](https://app.mantpro-cloud.com/demo).
 
 Versions marked as *pre-release* (`v3.10.2-dev`, `-rc.1`…) are test builds:
 they are only offered as an update to those who already have a test version
@@ -248,6 +249,21 @@ from your phone without needing the jobs app.
 - **🔩 Used In**: each item shows which machines use it as a spare part and how many each one has, also offline
 - **🔍 Duplicate Warning**: when creating or editing an item it warns if there is already another one with the same code or a very similar name, comparing with the items stored on the phone (works offline)
 - **⬆️ Update from the App**: like MantPro, it downloads and installs the new version from the notice itself
+
+### 🌐 MantPro Web (browser, with MantPro Cloud)
+
+MantPro from the browser, nothing to install, at [app.mantpro-cloud.com](https://app.mantpro-cloud.com). It is one more client of your company's data in MantPro Cloud: what you do on the web reaches the PCs and phones, and vice versa.
+
+- **🧪 Demo without signing up**: at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you step into a sample company with one click (users `demo`, `ana`, `jon` and `marta`, password `demo`). Each visitor gets their own private copy: create, edit and delete whatever you like; nothing is saved and the copy deletes itself after 2 hours
+- **🔐 Same users as the PC**: sign in with the company name and your MantPro user and password, with the same roles, permissions and sites
+- **🖥️ Just like the PC**: the same tabs (Dashboard, Calendar, Alerts, New Entry, History, Search, Pending, Machines, Warehouse stock and Low stock), the same menus and the same right-click menu
+- **📸 Photos and videos**: uploaded from the browser and visible straight away on PCs and phones
+- **📄 Exports**: PDF, Excel and CSV with the same dialogs as the PC
+- **🛠️ Administration**: users, device sessions, change log, sites, warehouses, checklists, suppliers, orders and import from Excel/CSV (administrators only)
+- **🔄 Refreshes itself** when someone changes something from another PC, phone or browser
+- **📱 Works on tablets**: also designed for touch screens (long press instead of right-click)
+- **🌍 8 languages** and dark or light theme
+- **🛡️ Secure**: HTTPS only, «🌐 Web» sessions that expire after inactivity and can be closed from «Device sessions»; with an expired licence you can view and export, but not modify
 
 ---
 

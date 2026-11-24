@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B.svg" alt="Flutter">
   <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20Web-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Offline--first-✔-success.svg" alt="Offline-first">
   <img src="https://img.shields.io/badge/Norberak%20ostatatua-betiko%20doan-orange.svg" alt="Norberak ostatatua: betiko doan">
 </p>
@@ -146,6 +146,7 @@ Aurrez konpilatutako bertsioak [GitHub Releases](https://github.com/AnabasaSoft/
 - **Android**: `.apk` fitxategiak zuzenean instalatzeko
   - `MantPro.apk`: mantentze-lanen aplikazioa
   - `MantProStock.apk`: biltegiko stockaren aplikazioa
+- **Nabigatzailea**: ezer deskargatu gabe, [MantPro Web](https://app.mantpro-cloud.com) bidez (MantPro Cloud-en barne). [Probatu erregistratu gabe](https://app.mantpro-cloud.com/demo).
 
 *Pre-release* gisa markatutako bertsioak (`v3.10.2-dev`, `-rc.1`…) probakoak
 dira: proba-bertsio bat instalatuta dutenei bakarrik eskaintzen zaizkie
@@ -253,6 +254,21 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 - **🔩 Hemen erabiltzen da**: artikulu bakoitzak zein makinatan erabiltzen den ordezko pieza gisa eta bakoitzak zenbat daraman erakusten du, konexiorik gabe ere
 - **🔍 Bikoiztuen abisua**: artikulu bat sortzean edo editatzean, kode bera edo oso antzeko izena duen beste bat badagoen abisatzen du, mugikorrean gordetako artikuluekin alderatuta (konexiorik gabe dabil)
 - **⬆️ Aplikaziotik eguneratu**: MantPro bezala, bertsio berria abisutik bertatik deskargatu eta instalatzen du
+
+### 🌐 MantPro Web (nabigatzailea, MantPro Cloud-ekin)
+
+MantPro nabigatzailetik, ezer instalatu gabe, [app.mantpro-cloud.com](https://app.mantpro-cloud.com) helbidean. Zure enpresak MantPro Cloud-en dituen datuen beste bezero bat da: weban egiten dena PCetara eta mugikorretara iristen da, eta alderantziz.
+
+- **🧪 Demoa erregistratu gabe**: [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean klik batekin sartzen zara adibideko enpresa batean (`demo`, `ana`, `jon` eta `marta` erabiltzaileak, `demo` pasahitza). Bisitari bakoitzak bere kopia pribatua jasotzen du: sortu, editatu eta ezabatu nahi duzuna; ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan
+- **🔐 PCko erabiltzaile berberak**: enpresaren izenarekin eta MantProko erabiltzaile eta pasahitzarekin sartzen da, rol, baimen eta egoitza berberekin
+- **🖥️ PCa bezalakoa**: fitxa berberak (Aginte-mahaia, Egutegia, Abisuak, Erregistratu, Historia, Bilatzailea, Egiteke, Makinak, Biltegiko stocka eta Gutxienekotik behera), menu berberak eta eskuineko botoiaren menu berbera
+- **📸 Argazkiak eta bideoak**: nabigatzailetik igotzen dira eta berehala ikusten dira PCetan eta mugikorretan
+- **📄 Esportazioak**: PDF, Excel eta CSV, PCko elkarrizketa-koadro berberekin
+- **🛠️ Administrazioa**: erabiltzaileak, gailuen saioak, aldaketen erregistroa, egoitzak, biltegiak, egiaztapen-zerrendak, hornitzaileak, eskaerak eta Excel/CSVtik inportatzea (administratzaileak bakarrik)
+- **🔄 Bere kabuz eguneratzen da** norbaitek beste PC, mugikor edo nabigatzaile batetik zerbait aldatzen duenean
+- **📱 Tabletan dabil**: ukipen-pantailetarako ere pentsatua (sakatze luzea eskuineko botoiaren ordez)
+- **🌍 8 hizkuntza** eta gai iluna edo argia
+- **🛡️ Segurua**: HTTPS bidez bakarrik, «🌐 Web» saioak jarduerarik gabe iraungitzen dira eta «Gailuen saioak» atalean itxi daitezke; lizentzia iraungita, kontsultatu eta esportatu daiteke, baina ez aldatu
 
 ---
 
