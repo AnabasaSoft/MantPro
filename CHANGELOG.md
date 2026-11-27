@@ -4,7 +4,7 @@ Registro de los cambios de cada versión. Lo nuevo se va apuntando en **Sin publ
 
 Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pre-release* y no tienen sección propia: lo que llevan está en **Sin publicar** hasta que sale la versión final.
 
-## Sin publicar
+## 3.10.12 — 2026-11-27
 
 ### Mejoras
 - **🔐 MantPro Cloud sin PC y sin «admin/admin».** En la nube (MantPro Web y móviles conectados por la nube), la contraseña de serie `admin` ya no abre nada, aunque haya llegado desde un PC donde nadie la cambió. El primer administrador entra en MantPro Web con el correo y la contraseña de su cuenta de MantPro Cloud: si la empresa aún no tiene usuarios (se usa solo desde el navegador, sin PC) se crea su usuario de MantPro con ese correo, y si tenía el «admin» de serie, pasa a ser suyo.
