@@ -28,6 +28,7 @@ from ..comun import resource_path, tt
 from ..dialogos.usuarios import (DialogoLogin, DialogoGestionUsuarios, DialogoCambioPassword,
                                  DialogoSesiones)
 from ...nucleo import usuarios
+from ..dialogos.quiosco import VentanaAvisosQuiosco
 
 class AccionesUsuarios:
     """Usuarios, sesiones, contraseñas, auditoría y cierre de sesión.
@@ -94,6 +95,18 @@ class AccionesUsuarios:
             self._llenar_combo_usuarios(self.combo_filtro_todos, incluir_todos=True, incluir_sin_asignar=True)
         if hasattr(self, 'in_av_asignar'):
             self._llenar_combo_usuarios(self.in_av_asignar, incluir_sin_asignar=True)
+
+    def abrir_quiosco_avisos(self):
+        """Abre la ventana de avisos (modo quiosco) a pantalla completa; solo la cierra la contraseña del admin."""
+        if not usuarios.es_admin():
+            QMessageBox.warning(self, t("title_error"),
+                                t("quiosco_solo_admin"))
+            return
+        actual = getattr(self, "_quiosco", None)
+        if actual is not None and actual.isVisible():
+            actual.raise_(); actual.activateWindow()
+            return
+        self._quiosco = VentanaAvisosQuiosco(self, dict(usuarios.SESION_ACTUAL))
 
     def gestionar_sesiones(self):
         if not usuarios.es_admin():

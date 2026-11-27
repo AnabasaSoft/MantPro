@@ -20,10 +20,12 @@
 
 """Servidor de sincronización con las apps móviles (Flask en un hilo de Qt)."""
 
+import html
 import json
 import os
 import socket
 import re
+import secrets
 import logging
 import threading
 from datetime import datetime, timedelta
@@ -42,6 +44,7 @@ from ..nucleo.fotos import con_fotos_galeria, fotos_galeria
 from ..nucleo import fotos as fotos_nucleo
 from ..nucleo import avisos as avisos_nucleo
 from ..nucleo import pendientes as pendientes_nucleo
+from ..nucleo import subidas_temporales
 from ..nucleo import trabajos as trabajos_nucleo
 
 PUERTO_POR_DEFECTO = 5000
@@ -92,6 +95,8 @@ class ServidorSincronizacion(QThread):
     # estas pestañas: "historial", "pendientes", "avisos", "stock". La ventana
     # lo marca subrayando el título de la pestaña con una barra de progreso.
     actividad_movil = pyqtSignal(list, bool)
+    # Llega una foto por la página de subida del quiosco (ventana de avisos): (token, nombre del fichero)
+    foto_subida_temporal = pyqtSignal(str, str)
 
     error_arranque = pyqtSignal(str)
 
@@ -157,6 +162,11 @@ class ServidorSincronizacion(QThread):
             if request.is_secure or not self.huella or not usuarios.http_desactivado():
                 return None
             if request.path == '/api/tls':
+                return None
+            # Página de subida de fotos de la ventana de avisos (quiosco): el navegador del móvil no confía en
+            # el certificado autofirmado del PC; la página solo vale con un token temporal de un solo aviso y
+            # no da acceso a datos.
+            if request.path.startswith('/subir/'):
                 return None
             return jsonify({"status": "error", "error": "https_obligatorio",
                             "message": "El PC solo acepta conexiones cifradas: actualiza la app."}), 426
@@ -504,6 +514,39 @@ class ServidorSincronizacion(QThread):
         def api_ping():
             # Sin token: sirve para comprobar conectividad y si el PC ya pide login
             return jsonify({"status": "ok", "auth": True, "version_api": 2})
+        # -------------------------------------------------------------------
+
+        # --- SUBIDA DE FOTOS DE LA VENTANA DE AVISOS (quiosco): sin token de usuario, con token temporal ---
+        @self.app.route('/subir/<token>', methods=['GET'])
+        def subir_pagina(token):
+            if not subidas_temporales.valido(token):
+                resp = make_response(self._pagina_subida_caducada(), 404)
+            else:
+                resp = make_response(self._pagina_subida(), 200)
+            resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+            resp.headers['Cache-Control'] = 'no-store'
+            return resp
+
+        @self.app.route('/subir/<token>', methods=['POST'])
+        def subir_foto(token):
+            if not subidas_temporales.admite_otra(token):
+                motivo = "lleno" if subidas_temporales.valido(token) else "token_invalido"
+                return jsonify({"status": "error", "error": motivo}), 403
+            file = request.files.get('foto')
+            if not file or file.filename == '':
+                return jsonify({"status": "error", "error": "foto_no_valida"}), 400
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            nombre = self._guardar_foto_recibida(file, f"quiosco_{timestamp}_{secrets.token_hex(4)}_{file.filename}", solo_imagen=True)
+            if not nombre:
+                return jsonify({"status": "error", "error": "foto_no_valida"}), 400
+            if not subidas_temporales.apuntar(token, nombre):
+                try:
+                    os.remove(os.path.join(self.carpeta_destino, nombre))
+                except OSError:
+                    pass
+                return jsonify({"status": "error", "error": "token_invalido"}), 403
+            self.foto_subida_temporal.emit(token, nombre)
+            return jsonify({"status": "ok", "nombre": nombre})
         # -------------------------------------------------------------------
 
         # --- RUTAS EXISTENTES ---
@@ -1802,6 +1845,64 @@ class ServidorSincronizacion(QThread):
         if guardado is None:
             print(f"Foto rechazada (no es una imagen válida, es demasiado grande o es un vídeo como foto): {filename}")
         return guardado
+
+    @staticmethod
+    def _pagina_subida_caducada():
+        t = idiomas.t
+        return ("<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+                f"<title>MantPro</title></head><body style=\"font-family:sans-serif;padding:24px;text-align:center\">"
+                f"<p style=\"font-size:1.2em\">{html.escape(t('quiosco_web_caducado'))}</p></body></html>")
+
+    @staticmethod
+    def _pagina_subida():
+        """Página autocontenida (sin recursos externos) para elegir o hacer fotos con el móvil y enviarlas una a
+        una a la misma dirección. Los textos salen del idioma actual del PC."""
+        t = idiomas.t
+        textos = {"enviando": t("quiosco_web_enviando"), "enviadas": t("quiosco_web_enviadas"),
+                  "error": t("quiosco_web_error")}
+        # «</» dentro de un <script> cerraría la etiqueta antes de tiempo
+        textos_js = json.dumps(textos, ensure_ascii=False).replace("</", "<\\/")
+        return """<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITULO__</title>
+<style>
+body{font-family:sans-serif;margin:0;padding:24px;text-align:center;background:#f4f6f8;color:#222}
+h1{font-size:1.4em;margin:8px 0 24px}
+button{font-size:1.3em;padding:22px 16px;width:100%;border:0;border-radius:14px;background:#2980b9;color:#fff}
+button:disabled{background:#95a5a6}
+#estado{margin-top:24px;font-size:1.15em;line-height:1.4;word-wrap:break-word}
+.mal{color:#c0392b}.bien{color:#27ae60}
+</style></head><body>
+<h1>__TITULO__</h1>
+<input type="file" id="fichero" accept="image/*" multiple hidden>
+<button id="elegir" type="button">__ELEGIR__</button>
+<div id="estado"></div>
+<script>
+var T=__TEXTOS__;
+var inp=document.getElementById('fichero'),btn=document.getElementById('elegir'),est=document.getElementById('estado');
+btn.onclick=function(){inp.click();};
+function f(s,v){for(var k in v){s=s.split('{'+k+'}').join(v[k]);}return s;}
+inp.onchange=async function(){
+  var fich=Array.prototype.slice.call(inp.files);
+  if(!fich.length){return;}
+  btn.disabled=true;est.className='';
+  var ok=0,fallo='';
+  for(var i=0;i<fich.length;i++){
+    est.textContent=f(T.enviando,{x:i+1,n:fich.length});
+    var fd=new FormData();fd.append('foto',fich[i]);
+    try{
+      var r=await fetch(location.href,{method:'POST',body:fd});
+      if(r.ok){ok++;}else{fallo=T.error;}
+    }catch(e){fallo=T.error;}
+  }
+  inp.value='';btn.disabled=false;
+  est.textContent=f(T.enviadas,{n:ok})+(fallo?' '+fallo:'');
+  est.className=fallo?'mal':'bien';
+};
+</script></body></html>""".replace("__TITULO__", html.escape(t("quiosco_web_titulo"))) \
+            .replace("__ELEGIR__", html.escape(t("quiosco_web_elegir"))).replace("__TEXTOS__", textos_js)
 
     def _procesar_foto(self, req, key='foto', solo_imagen=True):
         if key in req.files:

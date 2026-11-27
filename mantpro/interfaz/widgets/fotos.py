@@ -96,15 +96,16 @@ class GaleriaFotosWidget(QWidget):
     quitar la seleccionada y doble clic para verlas a tamaño completo pasando
     de una a otra. Guarda las fotos en la carpeta de fotos de la app. También
     admite vídeos (los graba el móvil): salen con un icono de reproducir y el
-    doble clic los abre con el reproductor del sistema."""
-    def __init__(self, carpeta_fotos, parent=None, nombres=None):
+    doble clic los abre con el reproductor del sistema. Con [al_anadir] (ventana de avisos, modo quiosco), el
+    botón «Añadir fotos» llama a esa función en vez de abrir el selector de ficheros del PC."""
+    def __init__(self, carpeta_fotos, parent=None, nombres=None, al_anadir=None):
         super().__init__(parent)
         self.carpeta_fotos = carpeta_fotos
-        self.setAcceptDrops(True)
+        self.setAcceptDrops(al_anadir is None)      # en el quiosco no se arrastran ficheros del PC
         v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(4)
         cab = QHBoxLayout()
         self.lbl_titulo = QLabel(); cab.addWidget(self.lbl_titulo, 1)
-        btn_add = QPushButton(tt("btn_anadir_fotos", "➕ Añadir fotos")); btn_add.clicked.connect(self.elegir_fotos)
+        btn_add = QPushButton(tt("btn_anadir_fotos", "➕ Añadir fotos")); btn_add.clicked.connect((lambda _marcado=False: al_anadir()) if al_anadir else self.elegir_fotos)
         self.btn_quitar = QPushButton(tt("btn_quitar_foto_coleccion", "🗑️ Quitar"))
         self.btn_quitar.setStyleSheet("background-color: #c0392b; color: white;")
         self.btn_quitar.clicked.connect(self.quitar_seleccionadas)
@@ -154,6 +155,11 @@ class GaleriaFotosWidget(QWidget):
         it.setData(Qt.ItemDataRole.UserRole, nombre)
         it.setToolTip(nombre)
         self.lista.addItem(it)
+
+    def anadir_nombre(self, nombre):
+        """Añade a la colección un fichero que ya está en la carpeta de fotos (p. ej. subido desde el móvil)."""
+        self._anadir_item(nombre)
+        self._actualizar_titulo()
 
     def anadir_rutas(self, rutas):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")

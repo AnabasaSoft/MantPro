@@ -216,6 +216,11 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
         self.refresh_all(); self.pintar_calendario(); self.update_calendar_list(); self.refresh_avisos(); self.refresh_todos(); self.setup_autocompletado()
 
     def closeEvent(self, e):
+        # Con la ventana de avisos (quiosco) abierta no se cierra la app por debajo: primero hay que cerrarla
+        quiosco = getattr(self, "_quiosco", None)
+        if quiosco is not None and quiosco.isVisible():
+            e.ignore()
+            return
         # Posponemos el cierre real (aceptando el evento al final de esta misma
         # llamada, no volviendo a invocar self.close(): Qt ignora los close()
         # reentrantes mientras ya se está procesando uno, así que llamarlo aquí
@@ -476,6 +481,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
             # Usuarios y seguridad
             [(tt("menu_cambiar_password", "🔑 Cambiar mi contraseña"), self.cambiar_mi_password, True),
              (tt("menu_usuarios", "👥 Gestión de usuarios"), self.gestionar_usuarios, admin),
+             (t("menu_quiosco_avisos"), self.abrir_quiosco_avisos, admin),
              (tt("menu_auditoria", "📋 Registro de cambios"), self.ver_auditoria, admin),
              (tt("menu_sedes", "🏢 Sedes…"), self.gestionar_sedes, admin),
              (tt("menu_almacenes", "🏬 Almacenes…"), self.gestionar_almacenes, admin),
