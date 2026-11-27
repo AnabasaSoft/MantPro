@@ -56,7 +56,14 @@ ExclusiveArch:  do_not_build
 BuildRequires:  desktop-file-utils
 BuildRequires:  fdupes
 BuildRequires:  gcc
+%if 0%{?fedora}
+# Fedora 45 ofrece dos paquetes para OpenSSL y dos para systemd (lo pide samba-common) y OBS no elige solo:
+# se le dice cuál («have choice for ...» = unresolvable)
+BuildRequires:  openssl-devel
+BuildRequires:  systemd
+%else
 BuildRequires:  pkgconfig(libcrypto)
+%endif
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
 BuildRequires:  python-rpm-macros
