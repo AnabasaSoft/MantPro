@@ -27,6 +27,17 @@
 %else
 %define gestor_paquetes zypper
 %endif
+# Fedora nombra estos paquetes en minúsculas (python3-flask...): se piden por su nombre de Python, que Fedora
+# ofrece siempre; openSUSE, con el nombre de su paquete de siempre.
+%if 0%{?fedora}
+%define dep_flask python3dist(flask)
+%define dep_pillow python3dist(pillow)
+%define dep_xlsxwriter python3dist(xlsxwriter)
+%else
+%define dep_flask python3-Flask
+%define dep_pillow python3-Pillow
+%define dep_xlsxwriter python3-XlsxWriter
+%endif
 
 Name:           mantpro
 Version:        3.10.0
@@ -37,6 +48,11 @@ License:        AGPL-3.0-or-later AND Zlib AND BSD-3-Clause
 URL:            https://github.com/AnabasaSoft/MantPro
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
 Source1:        https://files.pythonhosted.org/packages/source/s/sqlcipher3/sqlcipher3-%{sqlcipher3_version}.tar.gz
+# openSUSE Leap 15.x lleva Python 3.6 y no tiene PyQt6: ahí MantPro no puede funcionar. Se marca para que OBS no lo
+# compile (sale como «excluded», no como fallo)
+%if 0%{?suse_version} && 0%{?suse_version} < 1600
+ExclusiveArch:  do_not_build
+%endif
 BuildRequires:  desktop-file-utils
 BuildRequires:  fdupes
 BuildRequires:  gcc
@@ -47,25 +63,25 @@ BuildRequires:  python-rpm-macros
 BuildRequires:  python3
 # Las dependencias de ejecución también como BuildRequires: así OBS comprueba
 # que existen en la distribución y %%check prueba que la app las puede importar.
-BuildRequires:  python3-Flask
-BuildRequires:  python3-Pillow
+BuildRequires:  %{dep_flask}
+BuildRequires:  %{dep_pillow}
 BuildRequires:  python3-cryptography
 BuildRequires:  python3-keyring
 BuildRequires:  python3-PyQt6
-BuildRequires:  python3-XlsxWriter
+BuildRequires:  %{dep_xlsxwriter}
 BuildRequires:  python3-openpyxl
 BuildRequires:  python3-qrcode
 BuildRequires:  python3-reportlab
 BuildRequires:  python3-requests
 Requires:       python3
-Requires:       python3-Flask
-Requires:       python3-Pillow
+Requires:       %{dep_flask}
+Requires:       %{dep_pillow}
 Requires:       python3-cryptography
 Requires:       python3-keyring
 # El módulo de SQLCipher va compilado para esta versión de Python
 Requires:       python(abi) = %{python3_version}
 Requires:       python3-PyQt6
-Requires:       python3-XlsxWriter
+Requires:       %{dep_xlsxwriter}
 Requires:       python3-openpyxl
 Requires:       python3-qrcode
 Requires:       python3-reportlab
@@ -106,14 +122,23 @@ export CFLAGS="%{optflags}"
 python3 setup.py build --build-lib=../_sqlcipher3
 
 %install
+# Precompilar el Python: %%py3_compile es de openSUSE; Fedora usa %%py_byte_compile
 install -d %{buildroot}%{_datadir}/%{name}
 cp -a main.py mantpro recursos %{buildroot}%{_datadir}/%{name}/
+%if 0%{?fedora}
+%py_byte_compile %{python3} %{buildroot}%{_datadir}/%{name}
+%else
 %py3_compile %{buildroot}%{_datadir}/%{name}
+%endif
 
 # Módulo de SQLCipher: compilado, así que en %%{_libdir} y no en /usr/share
 install -d %{buildroot}%{_libdir}/%{name}
 cp -a _sqlcipher3/sqlcipher3 %{buildroot}%{_libdir}/%{name}/
+%if 0%{?fedora}
+%py_byte_compile %{python3} %{buildroot}%{_libdir}/%{name}
+%else
 %py3_compile %{buildroot}%{_libdir}/%{name}
+%endif
 
 install -d %{buildroot}%{_bindir}
 cat > %{buildroot}%{_bindir}/%{name} << 'EOF'
