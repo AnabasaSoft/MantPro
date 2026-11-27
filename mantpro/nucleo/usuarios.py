@@ -215,6 +215,10 @@ def inicializar():
     # todos los PCs de la empresa SIN guardar nunca el token (una credencial) en la nube. Ver huella_token().
     if "huella" not in _columnas(con, "sesiones"):
         cur.execute("ALTER TABLE sesiones ADD COLUMN huella TEXT")
+    # Administrador que ha bloqueado esta sesión web en modo quiosco (NULL = sesión normal). Local de cada PC:
+    # no viaja en la sincronización (ver "ignorar" de «sesiones» en sincronizacion.TABLAS).
+    if "quiosco_admin" not in _columnas(con, "sesiones"):
+        cur.execute("ALTER TABLE sesiones ADD COLUMN quiosco_admin INTEGER")
     for (token,) in cur.execute("SELECT token FROM sesiones WHERE huella IS NULL").fetchall():
         con.execute("UPDATE sesiones SET huella = ? WHERE token = ?", (huella_token(token), token))
     cur.execute("""
@@ -993,6 +997,35 @@ def renovar_sesion_web(token, horas=HORAS_SESION_WEB):
         con.close()
     except sqlite3.Error:
         pass  # no es crítico: como mucho la sesión caduca antes
+
+
+def bloquear_quiosco(token, admin_id):
+    """Pone la sesión web [token] en modo quiosco, a nombre del administrador [admin_id] (solo él la desbloquea).
+    La caducidad de la sesión no cambia: caduca a las HORAS_SESION_WEB sin uso (renovar_sesion_web), y cada petición
+    normal de la pantalla del quiosco la renueva. Lo que se pide solo (cabecera «HX-Trigger: refresco») no cuenta
+    como uso, así que quien tenga el quiosco abierto con la página tiene que seguir pidiendo algo (MantPro Web lo hace
+    con un latido de la propia pantalla). Si la sesión caduca, la fila se borra y con ella el bloqueo."""
+    con = _conn()
+    con.execute("UPDATE sesiones SET quiosco_admin = ? WHERE token = ?", (admin_id, token))
+    con.commit()
+    con.close()
+
+
+def desbloquear_quiosco(token):
+    con = _conn()
+    con.execute("UPDATE sesiones SET quiosco_admin = NULL WHERE token = ?", (token,))
+    con.commit()
+    con.close()
+
+
+def quiosco_de(token):
+    """Id del administrador que tiene la sesión [token] en modo quiosco, o None."""
+    if not token or token.startswith("~"):
+        return None
+    con = _conn()
+    fila = con.execute("SELECT quiosco_admin FROM sesiones WHERE token = ?", (token,)).fetchone()
+    con.close()
+    return fila[0] if fila and fila[0] is not None else None
 
 
 def sesiones_sin_cifrar():

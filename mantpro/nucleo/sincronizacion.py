@@ -293,7 +293,7 @@ TABLAS = {
                                    "refs": {"usuario_id": "mant.usuarios", "especialidad_id": "mant.especialidades"}},
         # Sesiones de los móviles: viajan con la HUELLA del token (SHA-256), NUNCA con el token (una credencial).
         # El móvil presenta su token en cualquier PC y se reconoce por la huella (usuarios.usuario_por_token).
-        "sesiones": {"tipo": "entidad", "uuid_desde": "huella", "ignorar": ("token", "ultimo_contacto", "cifrada"),
+        "sesiones": {"tipo": "entidad", "uuid_desde": "huella", "ignorar": ("token", "ultimo_contacto", "cifrada", "quiosco_admin"),
                      "silenciosas": ("expira",), "relleno": {"token": "~{huella}"},
                      "refs": {"usuario_id": "mant.usuarios"}},
         # Los móviles conocidos y a qué técnico están adjudicados: valen para toda la empresa.

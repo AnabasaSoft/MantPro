@@ -230,6 +230,10 @@ class VentanaAvisosQuiosco(QWidget):
         if self._servidor is None:
             QMessageBox.information(self, t("title_atencion"), t("quiosco_sin_servidor"))
             return
+        # La pantalla puede llevar horas en reposo: si el código ya caducó, uno nuevo (las fotos ya recibidas
+        # siguen en la galería, que guarda sus nombres)
+        if not subidas_temporales.valido(self._token):
+            self._token = subidas_temporales.crear()
         url = f"http://{self._servidor.obtener_ip_local()}:{self._servidor.server_port}/subir/{self._token}"
         dlg = QDialog(self)
         dlg.setModal(True)

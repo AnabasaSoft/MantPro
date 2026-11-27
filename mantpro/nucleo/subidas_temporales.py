@@ -25,15 +25,18 @@ MINUTOS_VALIDEZ y admite como mucho MAX_FOTOS. No da acceso a ningún dato.
 Seguro entre hilos (Flask atiende cada petición en uno). Hoy vive en la memoria del proceso del PC: para MantPro
 Cloud o MantPro Web habría que guardarlo en un almacenamiento compartido entre workers (ver ROADMAP.md)."""
 
+import os
 import secrets
 import threading
 import time
 
 MAX_FOTOS = 20
-MINUTOS_VALIDEZ = 30
+# Variable de entorno solo para las pruebas: minutos (admite decimales) que vale una sesión, para poder comprobar la
+# caducidad sin esperar media hora (MantPro Web la hereda en el proceso del trabajador de cada empresa)
+MINUTOS_VALIDEZ = float(os.environ.get("MANTPRO_SUBIDAS_MINUTOS") or 30)
 
 _cerrojo = threading.Lock()
-_sesiones = {}          # token -> {"caduca": time.monotonic(), "fotos": int}
+_sesiones = {}          # token -> {"caduca": time.monotonic(), "fotos": int, "nombres": [str]}
 
 
 def _purgar():
@@ -48,7 +51,7 @@ def crear(minutos=MINUTOS_VALIDEZ):
     token = secrets.token_urlsafe(24)
     with _cerrojo:
         _purgar()
-        _sesiones[token] = {"caduca": time.monotonic() + minutos * 60, "fotos": 0}
+        _sesiones[token] = {"caduca": time.monotonic() + minutos * 60, "fotos": 0, "nombres": []}
     return token
 
 
@@ -59,6 +62,17 @@ def _vigente(token):
         del _sesiones[token]
         return None
     return s
+
+
+def alargar(token, minutos=MINUTOS_VALIDEZ):
+    """Renueva la caducidad de un token aún válido (que no caduque con el QR abierto ni mientras llegan fotos).
+    False si no existe o ya caducó: un token caducado no se resucita."""
+    with _cerrojo:
+        s = _vigente(token)
+        if s is None:
+            return False
+        s["caduca"] = time.monotonic() + minutos * 60
+        return True
 
 
 def valido(token):
@@ -79,6 +93,25 @@ def apuntar(token, nombre):
         if s is None or s["fotos"] >= MAX_FOTOS:
             return False
         s["fotos"] += 1
+        s["nombres"].append(nombre)
+        return True
+
+
+def recibidas(token):
+    """Copia de la lista de nombres recibidos por [token], en orden de llegada (vacía si no es válido)."""
+    with _cerrojo:
+        s = _vigente(token)
+        return list(s["nombres"]) if s is not None else []
+
+
+def quitar(token, nombre):
+    """Saca [nombre] de la lista del token (la web permite quitar una miniatura). True si estaba."""
+    with _cerrojo:
+        s = _vigente(token)
+        if s is None or nombre not in s["nombres"]:
+            return False
+        s["nombres"].remove(nombre)
+        s["fotos"] = max(0, s["fotos"] - 1)
         return True
 
 
