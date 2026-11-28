@@ -886,6 +886,92 @@ class ServidorSincronizacion(QThread):
                 print(f"!!! ERROR AGREGAR PENDIENTE: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
 
+        # --- MANTPRO OPERARIOS (tablet de avisos, el quiosco del PC y de la web en una tablet) ---------------
+        # La vincula y la abre un administrador (su token). Baja la lista de quienes pueden avisar con el hash de su
+        # contraseña para comprobarla SIN conexión, y manda cada aviso a nombre de quien lo puso.
+        def _solo_admin():
+            return jsonify({"status": "error", "error": "solo_admin",
+                            "message": "Solo un administrador puede usar la tablet de avisos."}), 403
+
+        @self.app.route('/api/quiosco/usuarios', methods=['GET'])
+        @requiere_token
+        def api_quiosco_usuarios():
+            if not usuarios.es_admin(g.usuario_mantpro):
+                return _solo_admin()
+            return jsonify({"status": "ok", "usuarios": usuarios.usuarios_para_quiosco(),
+                            "clave_serie_bloqueada": bool(usuarios.CLAVE_DE_SERIE_BLOQUEADA)})
+
+        @self.app.route('/api/quiosco/aviso', methods=['POST'])
+        @requiere_token
+        def api_quiosco_aviso():
+            admin = g.usuario_mantpro
+            if not usuarios.es_admin(admin):
+                return _solo_admin()
+            try:
+                usuario_id = int(request.form.get('usuario_id') or 0)
+            except (TypeError, ValueError):
+                usuario_id = 0
+            if usuario_id <= 0 and (request.form.get('usuario_id_uuid') or '').strip():
+                # Quien avisa aún no ha llegado a esta base (usuario nuevo en el PC que todavía no ha subido a la
+                # nube, o al revés): la tablet lo deja en su cola y lo reintenta, no lo descarta.
+                return jsonify({"status": "error", "error": "usuario_no_sincronizado",
+                                "message": "Ese usuario aún no ha llegado aquí; se reintentará."}), 409
+            # Quien avisa tiene que seguir existiendo, activo y con permiso (pudo cambiar desde que la tablet
+            # bajó la lista): si no, 403 y la tablet descarta el aviso, como las otras apps.
+            trabajador = next((u for u in usuarios.listar_usuarios(incluir_inactivos=False) if u["id"] == usuario_id), None)
+            if trabajador is None or not usuarios.puede_avisar_pendientes(trabajador):
+                return jsonify({"status": "error", "error": "sin_permiso",
+                                "message": "Este usuario no puede avisar de pendientes."}), 403
+            titulo = (request.form.get('titulo') or '').strip()
+            if not titulo:
+                return jsonify({"status": "error", "error": "titulo_obligatorio",
+                                "message": "Falta el título."}), 400
+            detalles = request.form.get('detalles') or ''
+            prioridad = request.form.get('prioridad') or 'Media'
+            try:
+                especialidad_id = int(request.form.get('especialidad_id') or 0) or None
+                sede = int(request.form.get('sede_id') or 0) or None
+            except (TypeError, ValueError):
+                especialidad_id, sede = None, None
+            with self._cerrojo_alta_pendiente:
+                # La tablet marca cada aviso con «[REF:…]» en los detalles. X-MantPro-Op solo evita repetirlo en
+                # la misma base; si el PC lo aplicó, se perdió la respuesta y el reintento va por la nube (o al
+                # revés), esta marca, que viaja con el pendiente, evita el duplicado (como /api/agregar_pendiente).
+                ref = re.search(r"\[REF:([0-9A-Za-z_-]{1,40})\]", detalles)
+                if ref:
+                    conn = self._conn()
+                    repetido = conn.execute(
+                        "SELECT id FROM pendientes WHERE creado_por = ? AND detalles LIKE ? ESCAPE '\\'",
+                        (trabajador["id"], f"%[REF:{ref.group(1)}]%")).fetchone()
+                    conn.close()
+                    if repetido:
+                        return jsonify({"status": "ok", "duplicado": True, "id": repetido[0]})
+                fotos = self._procesar_galeria(request)
+                usuarios.fijar_actor_peticion(trabajador, usuarios.dispositivo_de_token(_token_peticion()))
+                try:
+                    try:
+                        nuevo = pendientes_nucleo.crear(self._lector, trabajador, titulo, detalles, None, prioridad,
+                                                        especialidad_id, None, sede=sede, fotos=fotos)
+                    except ValueError as e:
+                        if str(e) != "sede_no_permitida":
+                            raise
+                        # La sede de la tablet no la ve quien avisa: a la suya (como MantPro Web)
+                        nuevo = pendientes_nucleo.crear(self._lector, trabajador, titulo, detalles, None, prioridad,
+                                                        especialidad_id, None, sede=None, fotos=fotos)
+                except BaseException as e:
+                    for nombre in fotos:                  # sin pendiente, sus fotos no deben quedarse huérfanas
+                        try:
+                            os.remove(os.path.join(self.carpeta_destino, nombre))
+                        except OSError:
+                            pass
+                    if isinstance(e, ValueError):
+                        return jsonify({"status": "error", "error": str(e), "message": str(e)}), 400
+                    raise
+                finally:
+                    usuarios.fijar_actor_peticion(admin, usuarios.dispositivo_de_token(_token_peticion()))
+            self.pendiente_actualizado.emit()
+            return jsonify({"status": "ok", "id": nuevo})
+
         @self.app.route('/api/editar_pendiente', methods=['POST'])
         @requiere_token
         @requiere_sede("pendientes")

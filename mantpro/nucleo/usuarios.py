@@ -548,6 +548,24 @@ def listar_usuarios(incluir_inactivos=True):
     return resultado
 
 
+def usuarios_para_quiosco():
+    """Usuarios activos que pueden avisar de pendientes, para la tablet de MantPro Operarios: id, login,
+    nombre, si es administrador y su hash de contraseña (pbkdf2, NUNCA la contraseña), para que la tablet
+    compruebe sin conexión quién avisa y quién la cierra. Solo se manda a un administrador vinculado."""
+    con = _conn()
+    try:
+        filas = con.execute("SELECT * FROM usuarios WHERE activo = 1 ORDER BY nombre COLLATE NOCASE").fetchall()
+        lista = []
+        for f in filas:
+            u = _a_dict(f, con)
+            if puede_avisar_pendientes(u):
+                lista.append({"id": u["id"], "login": u["login"], "nombre": u["nombre"],
+                              "admin": es_admin(u), "hash": f["password_hash"] or ""})
+        return lista
+    finally:
+        con.close()
+
+
 def guardar_ultimo_usuario(login):
     """Recuerda el último login usado, para preseleccionarlo en el desplegable de acceso."""
     try:

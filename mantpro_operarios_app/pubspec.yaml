@@ -1,0 +1,44 @@
+name: mantpro_operarios_app
+description: "MantPro Operarios - Tablet de avisos de trabajos pendientes"
+publish_to: 'none'
+
+# La versión real sale del tag de GitHub en la CI; este valor solo vale para desarrollo local.
+version: 0.0.0-dev+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.1.0            # Para hablar con el servidor del PC / MantPro Cloud
+  mobile_scanner: ^3.5.5  # Para leer el QR de vinculación con el PC
+  device_info_plus: ^11.5.0  # Para identificar la tablet en "Sesiones de dispositivos"
+  image_picker: ^1.0.4    # Fotos del aviso (cámara o galería)
+  path_provider: ^2.1.1
+  shared_preferences: ^2.2.2
+  crypto: ^3.0.7  # Huella SHA-256 del certificado del PC y verificación de contraseñas
+  flutter_secure_storage: ^10.3.4  # Token de sesión en el Keystore de Android, no en claro
+  path: ^1.8.3
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/icono.png"
+  adaptive_icon_background: "assets/icono_fondo.png"
+  adaptive_icon_foreground: "assets/icono_frente.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icono.png

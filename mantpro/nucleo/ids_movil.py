@@ -65,6 +65,7 @@ CAMPOS = {
     "sede_id": ("mant", "sedes"),
     "especialidad_id": ("mant", "especialidades"),
     "asignado_a": ("mant", "usuarios"),
+    "usuario_id": ("mant", "usuarios"),           # quién avisa desde la tablet de MantPro Operarios
     "material_id": ("alma", "materiales"),
     "contador_id": ("mant", "contadores"),
     "almacen_id": ("alma", "almacenes"),
@@ -206,6 +207,7 @@ LISTAS = {
     "/api/maquinas": ("mant", "maquinas"),
     "/api/sedes": ("mant", "sedes"),
     "/api/especialidades": ("mant", "especialidades"),
+    "/api/quiosco/usuarios": ("mant", "usuarios"),
     "/api/stock/materiales": ("alma", "materiales"),
     "/api/stock/bajo_minimo": ("alma", "materiales"),
     "/api/stock/material/<int:material_id>": ("alma", "materiales"),

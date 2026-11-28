@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f8fe6"/>
+      <stop offset="1" stop-color="#0b3d91"/>
+    </linearGradient>
+    <linearGradient id="naranja" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb02e"/>
+      <stop offset="1" stop-color="#f26b0f"/>
+    </linearGradient>
+    <linearGradient id="pantalla" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e3ecf7"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/><feOffset dy="14" result="b"/><feFlood flood-color="#04204d" flood-opacity="0.45"/><feComposite in2="b" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#fondo)"/>
+  <!-- brillo suave -->
+  <path d="M0 220 Q0 0 220 0 H804 Q1024 0 1024 220 V380 Q560 300 0 520 Z" fill="#ffffff" opacity="0.08"/>
+  <!-- tablet -->
+  <g filter="url(#sombra)">
+    <rect x="232" y="210" width="560" height="640" rx="64" fill="#10233f"/>
+    <rect x="270" y="252" width="484" height="532" rx="30" fill="url(#pantalla)"/>
+    <circle cx="512" cy="816" r="15" fill="#3a5478"/>
+  </g>
+  <!-- líneas del formulario -->
+  <rect x="314" y="560" width="396" height="30" rx="15" fill="#b9c9de"/>
+  <rect x="314" y="616" width="300" height="30" rx="15" fill="#b9c9de"/>
+  <!-- botón verde «Añadir» -->
+  <rect x="534" y="684" width="176" height="60" rx="18" fill="#27ae60"/>
+  <path d="M598 714 l22 22 l40 -44" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- aviso -->
+  <path d="M512 290 L640 510 Q648 528 628 528 H396 Q376 528 384 510 Z" fill="url(#naranja)" stroke="url(#naranja)" stroke-width="22" stroke-linejoin="round"/>
+  <rect x="497" y="360" width="30" height="98" rx="15" fill="#ffffff"/>
+  <circle cx="512" cy="488" r="17" fill="#ffffff"/>
+  <!-- engranaje con llave -->
+  <g transform="translate(770 760)" filter="url(#sombra)">
+    <g fill="url(#naranja)">
+      <circle r="112"/>
+      <g id="d"><rect x="-30" y="-150" width="60" height="70" rx="14"/></g>
+      <use xlink:href="#d" transform="rotate(45)"/><use xlink:href="#d" transform="rotate(90)"/><use xlink:href="#d" transform="rotate(135)"/>
+      <use xlink:href="#d" transform="rotate(180)"/><use xlink:href="#d" transform="rotate(225)"/><use xlink:href="#d" transform="rotate(270)"/>
+      <use xlink:href="#d" transform="rotate(315)"/>
+    </g>
+    <circle r="80" fill="#0b3d91"/>
+    <g transform="rotate(-45)" fill="#ffffff">
+      <rect x="-15" y="-34" width="30" height="100" rx="15"/>
+      <circle cy="-44" r="40"/>
+      <rect x="-14" y="-96" width="28" height="44" rx="4" fill="#0b3d91"/>
+    </g>
+  </g>
+</svg>
