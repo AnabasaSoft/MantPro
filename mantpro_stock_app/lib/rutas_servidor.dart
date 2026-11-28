@@ -53,6 +53,8 @@ class RutasServidor {
   static const claveActiva = 'pc_ip_url';
   static const _clavePc = 'ruta_pc';
   static const _claveNube = 'ruta_nube';
+  /// Vinculado con el QR de MantPro Web (solo la nube, sin PC): nunca se busca un PC.
+  static const claveSoloNube = 'ruta_solo_nube';
   static const _claveInicioSesion = 'ruta_inicio_sesion';
   static const _claveInicioEnNube = 'ruta_inicio_en_nube';
 
@@ -110,18 +112,29 @@ class RutasServidor {
   /// true si este móvil tiene ruta de nube (vinculado con un QR que la llevaba).
   static Future<bool> hayNube() async => (await SharedPreferences.getInstance()).getString(_claveNube) != null;
 
-  /// Guarda las rutas de un QR recién leído. Siempre empieza por el PC. Sin [nube] (QR antiguo o PC
-  /// sin sesión de nube) se olvida cualquier ruta de nube anterior.
-  static Future<void> guardar({required String pc, String? nube}) async {
+  /// Guarda las rutas de un QR recién leído. Con PC, siempre empieza por el PC; sin [nube] (QR antiguo o PC
+  /// sin sesión de nube) se olvida cualquier ruta de nube anterior. Sin [pc] (QR de MantPro Web, empresa sin
+  /// PC) la única ruta es la nube y se olvida cualquier PC anterior.
+  static Future<void> guardar({String? pc, String? nube}) async {
+    assert(pc != null || nube != null);
     final p = await SharedPreferences.getInstance();
-    await p.setString(claveActiva, pc);
-    await p.setString(_clavePc, pc);
-    if (nube == null) {
-      await p.remove(_claveNube);
-    } else {
+    if (pc == null) {
+      await p.setString(claveActiva, nube!);
+      await p.remove(_clavePc);
       await p.setString(_claveNube, nube);
+      await p.setBool(claveSoloNube, true);
+      enNube.value = true;
+    } else {
+      await p.setString(claveActiva, pc);
+      await p.setString(_clavePc, pc);
+      await p.remove(claveSoloNube);
+      if (nube == null) {
+        await p.remove(_claveNube);
+      } else {
+        await p.setString(_claveNube, nube);
+      }
+      enNube.value = false;
     }
-    enNube.value = false;
     _ultimoSondeoPc = null;
     _ultimoFallo = null;
     _noAntesDe = null;
@@ -132,6 +145,7 @@ class RutasServidor {
   /// La ruta del PC: lo que haya en la ruta activa si no es la de la nube (otras partes de la app
   /// pueden reescribirla, p. ej. al pasar a HTTPS) o, si no, la última del PC que se conoció.
   static String? _rutaPc(SharedPreferences p) {
+    if (p.getBool(claveSoloNube) == true) return null;       // vinculado sin PC (QR de MantPro Web)
     final activa = p.getString(claveActiva);
     final nube = p.getString(_claveNube);
     if (activa != null && activa != nube) return activa;

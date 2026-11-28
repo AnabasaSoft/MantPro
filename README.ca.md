@@ -264,7 +264,7 @@ treballs.
 
 MantPro des del navegador, sense instal·lar res, a [app.mantpro-cloud.com](https://app.mantpro-cloud.com). És un client més de les dades de la teva empresa a MantPro Cloud: el que es fa a la web arriba als PC i als mòbils, i a l'inrevés.
 
-**Sense l'aplicació de PC:** n'hi ha prou amb un navegador (Chrome, Firefox, Edge, Safari…) a l'ordinador de l'oficina, en un portàtil o en una tauleta; no cal instal·lar ni actualitzar res. Es pot treballar només amb la web, només amb l'aplicació de PC o amb totes dues alhora sobre les mateixes dades. Per vincular els mòbils, de moment cal escanejar un cop el QR d'un PC amb MantPro. La primera vegada, sense cap PC, s'hi entra amb el correu i la contrasenya del compte de MantPro Cloud i es crea l'usuari administrador.
+**Sense l'aplicació de PC:** n'hi ha prou amb un navegador (Chrome, Firefox, Edge, Safari…) a l'ordinador de l'oficina, en un portàtil o en una tauleta; no cal instal·lar ni actualitzar res. Es pot treballar només amb la web, només amb l'aplicació de PC o amb totes dues alhora sobre les mateixes dades. Els mòbils i les tauletes es vinculen amb el QR d'`Eines > 📲 Sincronitzar App (QR)`, a MantPro Web o en un PC amb MantPro. La primera vegada, sense cap PC, s'hi entra amb el correu i la contrasenya del compte de MantPro Cloud i es crea l'usuari administrador.
 
 - **🧪 Demo sense registrar-se**: a [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) entres amb un clic en una empresa d'exemple (usuaris `demo`, `ana`, `jon`, `marta` i `operario`, contrasenya `demo`). Cada visitant rep la seva pròpia còpia privada: crea, edita i esborra el que vulguis; no es desa res i la còpia s'esborra sola al cap de 2 hores
 - **🔐 Els mateixos usuaris que al PC**: s'hi entra amb el nom de l'empresa i l'usuari i la contrasenya de MantPro, amb els mateixos rols, permisos i seus
@@ -277,6 +277,7 @@ MantPro des del navegador, sense instal·lar res, a [app.mantpro-cloud.com](http
 - **📱 Funciona en tauleta**: pensada també per a pantalles tàctils (pulsació llarga en lloc del botó dret)
 - **🌍 8 idiomes** i tema fosc o clar
 - **🛡️ Segura**: només per HTTPS, sessions «🌐 Web» que caduquen per inactivitat i que es poden tancar des de «Sessions de dispositius»; amb la llicència caducada es pot consultar i exportar, però no modificar
+- **📲 Sincronitzar App (QR)** també a MantPro Web: vincula les apps amb MantPro Cloud sense necessitat de PC.
 
 ---
 
@@ -826,12 +827,14 @@ MantPro fa servir un sistema de sincronització basat en:
 > *aquell* PC, així que ningú a la WiFi pot llegir el trànsit ni fer-se passar
 > per ell. Els mòbils ja vinculats passen sols a HTTPS en actualitzar l'app.
 
+Una empresa sense PC vincula els mòbils i les tauletes des de MantPro Web, amb `Eines > 📲 Sincronitzar App (QR)`: el QR porta només l'adreça de MantPro Cloud i les apps sincronitzen sempre per internet.
+
 ### 📲 MantPro Operarios (tauleta d'avisos)
 
 Per deixar una tauleta fixa al taller en lloc d'un PC o d'un navegador amb la finestra d'avisos. És la mateixa finestra que a MantPro Web: cada persona tria el seu nom a «Qui ets?», escriu l'avís (títol, detalls, especialitat, prioritat i fotos fetes o triades a la mateixa tauleta) i el confirma amb la **seva** contrasenya. L'avís queda a nom seu i sense assignar.
 
 1. **Instal·lar**: al PC, `Eines > 📲 Instal·lar MantPro Operarios a la tauleta` mostra un QR que descarrega l'última versió.
-2. **Vincular** (només una vegada, ho fa un administrador): a la tauleta, «Escaneja el QR del PC» amb el QR de `Eines > 📲 Sincronitzar App (QR)` i entra amb un usuari **administrador**. Si el PC té sessió de MantPro Cloud, el QR mostra **☁** al costat de l'adreça i la tauleta també podrà usar el núvol.
+2. **Vincular** (només una vegada, ho fa un administrador): a la tauleta, «Escaneja el QR del PC» amb el QR de `Eines > 📲 Sincronitzar App (QR)` i entra amb un usuari **administrador**. Si el PC té sessió de MantPro Cloud, el QR mostra **☁** al costat de l'adreça i la tauleta també podrà usar el núvol. Sense PC, usa el QR de `Eines > 📲 Sincronitzar App (QR)` de MantPro Web.
 3. **Sense connexió**: els avisos es desen a la tauleta i s'envien sols en tornar la connexió, amb el PC per la WiFi o, si el PC està apagat, amb MantPro Cloud per internet. La capçalera indica en tot moment si està connectada al PC, a MantPro Cloud o sense connexió, i quants avisos queden per enviar. La contrasenya de qui avisa es comprova a la pròpia tauleta (amb la llista d'usuaris que baixa en sincronitzar), així que funciona encara que no hi hagi xarxa.
 4. **Tancar**: la pantalla queda fixada; només se n'surt amb «🔒 Tanca» i la contrasenya de l'administrador que la va vincular. Des d'allà es sincronitza a mà, es tria la seu de la tauleta, l'idioma i el tema, es busquen actualitzacions o es desvincula.
 

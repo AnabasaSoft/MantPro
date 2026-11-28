@@ -263,7 +263,7 @@ serviços.
 
 O MantPro pelo navegador, sem instalar nada, em [app.mantpro-cloud.com](https://app.mantpro-cloud.com). É mais um cliente dos dados da sua empresa no MantPro Cloud: o que se faz na web chega aos PCs e aos celulares, e vice-versa.
 
-**Sem o aplicativo de PC:** basta um navegador (Chrome, Firefox, Edge, Safari…) no computador do escritório, em um notebook ou em um tablet; não é preciso instalar nem atualizar nada. Dá para trabalhar só com a web, só com o aplicativo de PC ou com os dois ao mesmo tempo sobre os mesmos dados. Para vincular os celulares, por enquanto é preciso escanear uma vez o QR de um PC com o MantPro. Na primeira vez, sem nenhum PC, entra-se com o e-mail e a senha da conta do MantPro Cloud e o usuário administrador é criado.
+**Sem o aplicativo de PC:** basta um navegador (Chrome, Firefox, Edge, Safari…) no computador do escritório, em um notebook ou em um tablet; não é preciso instalar nem atualizar nada. Dá para trabalhar só com a web, só com o aplicativo de PC ou com os dois ao mesmo tempo sobre os mesmos dados. Os celulares e tablets são vinculados com o QR de `Ferramentas > 📲 Sincronizar App (QR)`, no MantPro Web ou em um PC com o MantPro. Na primeira vez, sem nenhum PC, entra-se com o e-mail e a senha da conta do MantPro Cloud e o usuário administrador é criado.
 
 - **🧪 Demo sem cadastro**: em [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) você entra com um clique em uma empresa de exemplo (usuários `demo`, `ana`, `jon`, `marta` e `operario`, senha `demo`). Cada visitante recebe sua própria cópia privada: crie, edite e apague o que quiser; nada é salvo e a cópia se apaga sozinha depois de 2 horas
 - **🔐 Os mesmos usuários do PC**: entra-se com o nome da empresa e o usuário e senha do MantPro, com as mesmas funções, permissões e unidades
@@ -276,6 +276,7 @@ O MantPro pelo navegador, sem instalar nada, em [app.mantpro-cloud.com](https://
 - **📱 Funciona em tablet**: pensado também para telas sensíveis ao toque (toque longo no lugar do botão direito)
 - **🌍 8 idiomas** e tema escuro ou claro
 - **🛡️ Seguro**: só por HTTPS, sessões «🌐 Web» que expiram por inatividade e podem ser encerradas em «Sessões de dispositivos»; com a licença expirada é possível consultar e exportar, mas não modificar
+- **📲 Sincronizar App (QR)** também no MantPro Web: vincula os aplicativos ao MantPro Cloud sem precisar de PC.
 
 ---
 
@@ -828,12 +829,14 @@ O MantPro usa um sistema de sincronização baseado em:
 > *àquele* PC, então ninguém na Wi-Fi consegue ler o tráfego nem se passar por
 > ele. Os celulares já vinculados passam sozinhos para HTTPS ao atualizar o app.
 
+Uma empresa sem PC vincula os celulares e tablets pelo MantPro Web, com `Ferramentas > 📲 Sincronizar App (QR)`: o QR leva apenas o endereço do MantPro Cloud e os aplicativos sincronizam sempre pela internet.
+
 ### 📲 MantPro Operarios (tablet de avisos)
 
 Para deixar um tablet fixo na oficina, em vez de um PC ou de um navegador com a janela de avisos. É a mesma janela do MantPro Web: cada pessoa escolhe o seu nome em «Quem é você?», escreve o aviso (título, detalhes, especialidade, prioridade e fotos tiradas ou escolhidas no próprio tablet) e confirma com a **sua** senha. O aviso fica no nome da pessoa e sem atribuição a ninguém.
 
 1. **Instalar**: no PC, `Ferramentas > 📲 Instalar MantPro Operarios no tablet` mostra um QR code que baixa a versão mais recente.
-2. **Vincular** (só uma vez, feito por um administrador): no tablet, «Escanear o QR do PC» com o QR de `Ferramentas > 📲 Sincronizar App (QR)` e entrar com um usuário **administrador**. Se o PC tiver sessão do MantPro Cloud, o QR mostra o **☁** ao lado do endereço e o tablet também poderá usar a nuvem.
+2. **Vincular** (só uma vez, feito por um administrador): no tablet, «Escanear o QR do PC» com o QR de `Ferramentas > 📲 Sincronizar App (QR)` e entrar com um usuário **administrador**. Se o PC tiver sessão do MantPro Cloud, o QR mostra o **☁** ao lado do endereço e o tablet também poderá usar a nuvem. Sem PC, use o QR de `Ferramentas > 📲 Sincronizar App (QR)` do MantPro Web.
 3. **Sem conexão**: os avisos ficam salvos no tablet e são enviados sozinhos quando a conexão volta, seja com o PC pelo WiFi ou, se o PC estiver desligado, com o MantPro Cloud pela internet. O cabeçalho mostra o tempo todo se o tablet está conectado ao PC, ao MantPro Cloud ou sem conexão, e quantos avisos ainda faltam enviar. A senha de quem avisa é verificada no próprio tablet (com a lista de usuários que é baixada na sincronização), então funciona mesmo sem rede.
 4. **Fechar**: a tela fica fixada; só se sai com «🔒 Fechar» e a senha do administrador que a vinculou. Dali é possível sincronizar manualmente, escolher a unidade do tablet, o idioma e o tema, procurar atualizações ou desvincular.
 

@@ -65,7 +65,8 @@ Future<void> iniciarConexionSegura() async {
   HttpOverrides.global = _FijacionCertificado();
   final prefs = await SharedPreferences.getInstance();
   huellaPC = prefs.getString(_claveHuella);
-  esquemaPC = huellaPC == null ? 'http' : 'https';
+  // Vinculado solo con la nube (QR de MantPro Web): también https, con el certificado público de la nube.
+  esquemaPC = huellaPC != null || prefs.getBool(RutasServidor.claveSoloNube) == true ? 'https' : 'http';
 }
 
 /// Guarda el PC leído del QR y devuelve su dirección ("ip:puerto") para
@@ -77,6 +78,15 @@ Future<String?> guardarVinculacion(String? leido) async {
   final prefs = await SharedPreferences.getInstance();
   final uri = Uri.tryParse(leido.trim());
   final huella = uri?.queryParameters['h'];
+  // QR de MantPro Web (empresa sin PC): https con la nube (&n=dominio&e=empresa) y SIN huella de PC.
+  final soloNube = uri != null && uri.scheme == 'https' && huella == null ? rutaNubeDelQr(uri) : null;
+  if (soloNube != null) {
+    huellaPC = null;
+    esquemaPC = 'https';
+    await prefs.remove(_claveHuella);
+    await RutasServidor.guardar(nube: soloNube);
+    return soloNube;
+  }
   if (uri != null && uri.scheme == 'https' && huella != null && huella.length == 64) {
     huellaPC = huella.toLowerCase();
     esquemaPC = 'https';

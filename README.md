@@ -260,7 +260,7 @@ from your phone without needing the jobs app.
 
 MantPro from the browser, nothing to install, at [app.mantpro-cloud.com](https://app.mantpro-cloud.com). It is one more client of your company's data in MantPro Cloud: what you do on the web reaches the PCs and phones, and vice versa.
 
-**No PC application needed:** a browser (Chrome, Firefox, Edge, Safari…) on the office computer, a laptop or a tablet is enough; nothing to install or update. You can work only on the web, only with the PC application or with both at once on the same data. To pair the phones, for now you need to scan the QR code of a PC with MantPro once. The first time, with no PC at all, you sign in with the email and password of your MantPro Cloud account and the administrator user is created.
+**No PC application needed:** a browser (Chrome, Firefox, Edge, Safari…) on the office computer, a laptop or a tablet is enough; nothing to install or update. You can work only on the web, only with the PC application or with both at once on the same data. Phones and tablets are linked with the QR code from `Tools > 📲 Sync App (QR)`, in MantPro Web or on a PC with MantPro. The first time, with no PC at all, you sign in with the email and password of your MantPro Cloud account and the administrator user is created.
 
 - **🧪 Demo without signing up**: at [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) you step into a sample company with one click (users `demo`, `ana`, `jon`, `marta` and `operario`, password `demo`). Each visitor gets their own private copy: create, edit and delete whatever you like; nothing is saved and the copy deletes itself after 2 hours
 - **🔐 Same users as the PC**: sign in with the company name and your MantPro user and password, with the same roles, permissions and sites
@@ -273,6 +273,7 @@ MantPro from the browser, nothing to install, at [app.mantpro-cloud.com](https:/
 - **📱 Works on tablets**: also designed for touch screens (long press instead of right-click)
 - **🌍 8 languages** and dark or light theme
 - **🛡️ Secure**: HTTPS only, «🌐 Web» sessions that expire after inactivity and can be closed from «Device sessions»; with an expired licence you can view and export, but not modify
+- **📲 Sync App (QR)** also in MantPro Web: links the apps with MantPro Cloud without needing a PC.
 
 ---
 
@@ -815,12 +816,14 @@ MantPro uses a sync system based on:
 > nobody on the Wi-Fi can read the traffic or impersonate it. Phones that are
 > already linked switch to HTTPS by themselves after updating the app.
 
+A company without a PC links phones and tablets from MantPro Web, with `Tools > 📲 Sync App (QR)`: the QR carries only the MantPro Cloud address and the apps always sync over the internet.
+
 ### 📲 MantPro Operarios (alert tablet)
 
 For keeping a fixed tablet in the workshop instead of a PC or a browser with the alert window. It is the same window as in MantPro Web: each person picks their name under "Who are you?", writes the alert (title, details, specialty, priority and photos taken or chosen on the tablet itself) and confirms it with **their own** password. The alert is recorded under their name and left unassigned.
 
 1. **Install**: on the PC, `Tools > 📲 Install MantPro Operarios on tablet` shows a QR code that downloads the latest version.
-2. **Link** (only once, done by an administrator): on the tablet, tap "Scan the PC's QR code" and scan the QR from `Tools > 📲 Sync App (QR)`, then sign in with an **administrator** account. If the PC has a MantPro Cloud session, the QR shows **☁** next to the address and the tablet will also be able to use the cloud.
+2. **Link** (only once, done by an administrator): on the tablet, tap "Scan the PC's QR code" and scan the QR from `Tools > 📲 Sync App (QR)`, then sign in with an **administrator** account. If the PC has a MantPro Cloud session, the QR shows **☁** next to the address and the tablet will also be able to use the cloud. Without a PC, use the QR from `Tools > 📲 Sync App (QR)` in MantPro Web.
 3. **Offline**: alerts are saved on the tablet and sent automatically when the connection comes back, either to the PC over WiFi or, if the PC is switched off, to MantPro Cloud over the internet. The header shows at all times whether it is connected to the PC, to MantPro Cloud or offline, and how many alerts are still waiting to be sent. The password of whoever reports is checked on the tablet itself (against the user list downloaded when syncing), so it works even without a network.
 4. **Close**: the screen stays pinned; you only leave it with "🔒 Close" and the password of the administrator who linked it. From there you can sync by hand, choose the tablet's site, language and theme, look for updates or unlink it.
 

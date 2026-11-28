@@ -264,7 +264,7 @@ l'application des interventions.
 
 MantPro depuis le navigateur, sans rien installer, sur [app.mantpro-cloud.com](https://app.mantpro-cloud.com). C'est un client de plus des données de votre entreprise dans MantPro Cloud : ce qui est fait sur le web arrive sur les PC et les téléphones, et inversement.
 
-**Sans l'application PC :** un navigateur (Chrome, Firefox, Edge, Safari…) sur l'ordinateur du bureau, un portable ou une tablette suffit ; rien à installer ni à mettre à jour. On peut travailler uniquement sur le web, uniquement avec l'application PC ou avec les deux à la fois sur les mêmes données. Pour associer les téléphones, il faut pour l'instant scanner une fois le QR code d'un PC avec MantPro. La première fois, sans aucun PC, on se connecte avec l'e-mail et le mot de passe du compte MantPro Cloud et l'utilisateur administrateur est créé.
+**Sans l'application PC :** un navigateur (Chrome, Firefox, Edge, Safari…) sur l'ordinateur du bureau, un portable ou une tablette suffit ; rien à installer ni à mettre à jour. On peut travailler uniquement sur le web, uniquement avec l'application PC ou avec les deux à la fois sur les mêmes données. Les téléphones et les tablettes s'associent avec le QR code de `Outils > 📲 Synchroniser l'app (QR)`, dans MantPro Web ou sur un PC avec MantPro. La première fois, sans aucun PC, on se connecte avec l'e-mail et le mot de passe du compte MantPro Cloud et l'utilisateur administrateur est créé.
 
 - **🧪 Démo sans inscription** : sur [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo), vous entrez en un clic dans une entreprise d'exemple (utilisateurs `demo`, `ana`, `jon`, `marta` et `operario`, mot de passe `demo`). Chaque visiteur reçoit sa propre copie privée : créez, modifiez et supprimez ce que vous voulez ; rien n'est enregistré et la copie s'efface d'elle-même au bout de 2 heures
 - **🔐 Les mêmes utilisateurs que sur le PC** : on se connecte avec le nom de l'entreprise et l'utilisateur et le mot de passe MantPro, avec les mêmes rôles, droits et sites
@@ -277,6 +277,7 @@ MantPro depuis le navigateur, sans rien installer, sur [app.mantpro-cloud.com](h
 - **📱 Fonctionne sur tablette** : pensé aussi pour les écrans tactiles (appui long au lieu du clic droit)
 - **🌍 8 langues** et thème sombre ou clair
 - **🛡️ Sécurisé** : uniquement en HTTPS, sessions « 🌐 Web » qui expirent après une période d'inactivité et peuvent être fermées depuis « Sessions des appareils » ; avec une licence expirée, on peut consulter et exporter, mais pas modifier
+- **📲 Synchroniser l'app (QR)** aussi dans MantPro Web : relie les applications à MantPro Cloud sans PC.
 
 ---
 
@@ -851,12 +852,14 @@ MantPro utilise un système de synchronisation basé sur :
 > passer pour lui. Les mobiles déjà associés passent tout seuls en HTTPS en
 > mettant l'application à jour.
 
+Une entreprise sans PC lie les téléphones et tablettes depuis MantPro Web, avec `Outils > 📲 Synchroniser l'app (QR)` : le QR code ne contient que l'adresse de MantPro Cloud et les applications se synchronisent toujours par internet.
+
 ### 📲 MantPro Operarios (tablette d'avis)
 
 Pour laisser une tablette fixe à l'atelier, à la place d'un PC ou d'un navigateur avec la fenêtre d'avis. C'est la même fenêtre que dans MantPro Web : chaque personne choisit son nom dans « Qui êtes-vous ? », rédige l'avis (titre, détails, spécialité, priorité et photos prises ou choisies sur la tablette elle-même) et le confirme avec **son propre** mot de passe. L'avis est enregistré à son nom et reste non assigné.
 
 1. **Installer** : sur le PC, `Outils > 📲 Installer MantPro Operarios sur la tablette` affiche un QR code qui télécharge la dernière version.
-2. **Lier** (une seule fois, par un administrateur) : sur la tablette, « Scanner le QR code du PC » avec le QR code de `Outils > 📲 Synchroniser l'app (QR)`, puis se connecter avec un compte **administrateur**. Si le PC a une session MantPro Cloud, le QR code affiche **☁** à côté de l'adresse et la tablette pourra aussi utiliser le cloud.
+2. **Lier** (une seule fois, par un administrateur) : sur la tablette, « Scanner le QR code du PC » avec le QR code de `Outils > 📲 Synchroniser l'app (QR)`, puis se connecter avec un compte **administrateur**. Si le PC a une session MantPro Cloud, le QR code affiche **☁** à côté de l'adresse et la tablette pourra aussi utiliser le cloud. Sans PC, utilisez le QR code de `Outils > 📲 Synchroniser l'app (QR)` dans MantPro Web.
 3. **Hors ligne** : les avis sont enregistrés sur la tablette et envoyés automatiquement dès que la connexion revient, soit au PC par WiFi, soit, si le PC est éteint, à MantPro Cloud par internet. L'en-tête indique à tout moment si la tablette est connectée au PC, à MantPro Cloud ou hors ligne, et combien d'avis restent à envoyer. Le mot de passe de la personne qui signale est vérifié sur la tablette elle-même (avec la liste des utilisateurs téléchargée lors de la synchronisation), donc cela fonctionne même sans réseau.
 4. **Fermer** : l'écran reste verrouillé ; on ne le quitte qu'avec « 🔒 Fermer » et le mot de passe de l'administrateur qui l'a liée. De là, on peut synchroniser à la main, choisir le site, la langue et le thème de la tablette, rechercher des mises à jour ou la dissocier.
 

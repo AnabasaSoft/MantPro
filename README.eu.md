@@ -265,7 +265,7 @@ kontsultatu eta mugitzeko pentsatua, lanen aplikazioaren beharrik gabe.
 
 MantPro nabigatzailetik, ezer instalatu gabe, [app.mantpro-cloud.com](https://app.mantpro-cloud.com) helbidean. Zure enpresak MantPro Cloud-en dituen datuen beste bezero bat da: weban egiten dena PCetara eta mugikorretara iristen da, eta alderantziz.
 
-**PCko aplikaziorik gabe:** nahikoa da nabigatzaile bat (Chrome, Firefox, Edge, Safari…) bulegoko ordenagailuan, eramangarri batean edo tableta batean; ez dago ezer instalatu edo eguneratu beharrik. Weba bakarrik, PCko aplikazioa bakarrik edo biak batera erabil daitezke datu berberen gainean. Mugikorrak lotzeko, oraingoz, MantPro duen PC baten QRa behin eskaneatu behar da. Lehen aldian, PCrik gabe, MantPro Cloud kontuko helbide elektroniko eta pasahitzarekin sartzen da eta administratzaile erabiltzailea sortzen da.
+**PCko aplikaziorik gabe:** nahikoa da nabigatzaile bat (Chrome, Firefox, Edge, Safari…) bulegoko ordenagailuan, eramangarri batean edo tableta batean; ez dago ezer instalatu edo eguneratu beharrik. Weba bakarrik, PCko aplikazioa bakarrik edo biak batera erabil daitezke datu berberen gainean. Mugikorrak eta tabletak `Tresnak > 📲 Sinkronizatu Appa (QR)` aukerako QRarekin lotzen dira, MantPro Web-en edo MantPro duen PC batean. Lehen aldian, PCrik gabe, MantPro Cloud kontuko helbide elektroniko eta pasahitzarekin sartzen da eta administratzaile erabiltzailea sortzen da.
 
 - **🧪 Demoa erregistratu gabe**: [app.mantpro-cloud.com/demo](https://app.mantpro-cloud.com/demo) helbidean klik batekin sartzen zara adibideko enpresa batean (`demo`, `ana`, `jon`, `marta` eta `operario` erabiltzaileak, `demo` pasahitza). Bisitari bakoitzak bere kopia pribatua jasotzen du: sortu, editatu eta ezabatu nahi duzuna; ez da ezer gordetzen eta kopia bere kabuz ezabatzen da 2 orduren buruan
 - **🔐 PCko erabiltzaile berberak**: enpresaren izenarekin eta MantProko erabiltzaile eta pasahitzarekin sartzen da, rol, baimen eta egoitza berberekin
@@ -278,6 +278,7 @@ MantPro nabigatzailetik, ezer instalatu gabe, [app.mantpro-cloud.com](https://ap
 - **📱 Tabletan dabil**: ukipen-pantailetarako ere pentsatua (sakatze luzea eskuineko botoiaren ordez)
 - **🌍 8 hizkuntza** eta gai iluna edo argia
 - **🛡️ Segurua**: HTTPS bidez bakarrik, «🌐 Web» saioak jarduerarik gabe iraungitzen dira eta «Gailuen saioak» atalean itxi daitezke; lizentzia iraungita, kontsultatu eta esportatu daiteke, baina ez aldatu
+- **📲 Sinkronizatu Appa (QR)** MantPro Webean ere: aplikazioak MantPro Cloud-ekin lotzen ditu PCrik behar gabe.
 
 ---
 
@@ -838,12 +839,14 @@ MantPro-k sinkronizazio-sistema bat erabiltzen du, oinarri hauekin:
 > Dagoeneko lotutako mugikorrak bere kabuz pasatzen dira HTTPSra aplikazioa
 > eguneratzean.
 
+PCrik gabeko enpresa batek mugikorrak eta tabletak MantPro Webetik lotzen ditu, `Tresnak > 📲 Sinkronizatu Appa (QR)` erabiliz: QRak MantPro Cloud-en helbidea bakarrik darama, eta aplikazioak beti internetez sinkronizatzen dira.
+
 ### 📲 MantPro Operarios (abisuen tableta)
 
 Tableta finko bat tailerrean uzteko, PC edo abisuen leihoa duen nabigatzaile baten ordez. MantPro Webeko leiho bera da: pertsona bakoitzak bere izena aukeratzen du «Nor zara?» atalean, abisua idazten du (izenburua, xehetasunak, espezialitatea, lehentasuna eta tabletan bertan ateratako edo aukeratutako argazkiak) eta **bere** pasahitzarekin berresten du. Abisua bere izenarekin geratzen da, esleitu gabe.
 
 1. **Instalatu**: PCan, `Tresnak > 📲 Instalatu MantPro Operarios tabletan` QR kode bat erakusten du, azken bertsioa deskargatzeko.
-2. **Lotu** (behin bakarrik, administratzaile batek egiten du): tabletan, «Eskaneatu PCko QRa» eta `Tresnak > 📲 Sinkronizatu Appa (QR)` menuko QRa eskaneatu, eta **administratzaile** erabiltzaile batekin sartu. PCak MantPro Cloud saioa badu, QRak helbidearen ondoan **☁** erakusten du eta tabletak hodeia ere erabili ahal izango du.
+2. **Lotu** (behin bakarrik, administratzaile batek egiten du): tabletan, «Eskaneatu PCko QRa» eta `Tresnak > 📲 Sinkronizatu Appa (QR)` menuko QRa eskaneatu, eta **administratzaile** erabiltzaile batekin sartu. PCak MantPro Cloud saioa badu, QRak helbidearen ondoan **☁** erakusten du eta tabletak hodeia ere erabili ahal izango du. PCrik gabe, MantPro Webeko `Tresnak > 📲 Sinkronizatu Appa (QR)` menuko QRa erabili.
 3. **Konexiorik gabe**: abisuak tabletan gordetzen dira eta konexioa berreskuratzean automatikoki bidaltzen dira: PCra WiFi bidez edo PC itzalita badago, MantPro Cloud-era internet bidez. Goiburuak une oro adierazten du PCrekin, MantPro Cloud-ekin edo konexiorik gabe dagoen, eta zenbat abisu dauden bidaltzeko zain. Abisua ematen duenaren pasahitza tabletan bertan egiaztatzen da (sinkronizatzean jaitsitako erabiltzaile zerrendarekin), beraz, sarerik ez dagoenean ere funtzionatzen du.
 4. **Itxi**: pantaila finkatuta geratzen da; «🔒 Itxi» eta hura lotu zuen administratzailearen pasahitzarekin bakarrik ateratzen da. Hortik eskuz sinkronizatu, tabletaren egoitza, hizkuntza eta gaia aukeratu, eguneraketak bilatu edo lotura kendu daiteke.
 
