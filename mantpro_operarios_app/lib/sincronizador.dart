@@ -250,7 +250,18 @@ class Sincronizador {
     final prefs = await SharedPreferences.getInstance();
     final ip = prefs.getString(RutasServidor.claveActiva);
     if (ip == null || ip.isEmpty) return 'sin_ruta';
+    final resultado = await _pasada(prefs, ip, soloDescargar);
+    if (resultado != 'sin_conexion') return resultado;
+    // La ruta activa no responde (p. ej. el PC se ha apagado): se decide YA entre el PC y la nube y, si ha
+    // cambiado, se repite por la nueva. Así solo queda «Sin conexión» cuando no responde ninguna de las dos.
+    await RutasServidor.resolver(forzar: true);
+    final otra = prefs.getString(RutasServidor.claveActiva);
+    if (otra == null || otra.isEmpty || otra == ip) return resultado;
+    return _pasada(prefs, otra, soloDescargar);
+  }
 
+  /// Una vuelta completa (enviar la cola y descargar las listas) por la ruta [ip].
+  static Future<String?> _pasada(SharedPreferences prefs, String ip, bool soloDescargar) async {
     var huboRespuesta = false;
     String? error;
 
@@ -352,10 +363,8 @@ class Sincronizador {
       estado.value = EstadoConexion.desconocido;
       return _Envio.fallo;
     } catch (e) {
-      if (_esErrorDeRed(e)) {
-        estado.value = EstadoConexion.sinConexion;
-        unawaited(RutasServidor.alFallar());
-      }
+      // Error de red: lo resuelve _sincronizar (decide ya entre el PC y la nube y repite por la buena).
+      if (_esErrorDeRed(e)) estado.value = EstadoConexion.sinConexion;
       return _Envio.fallo;
     }
   }
@@ -397,10 +406,7 @@ class Sincronizador {
       }
       return null;
     } catch (e) {
-      if (_esErrorDeRed(e)) {
-        unawaited(RutasServidor.alFallar());
-        return 'sin_conexion';
-      }
+      if (_esErrorDeRed(e)) return 'sin_conexion';      // lo resuelve _sincronizar (ver arriba)
       return 'servidor';
     }
   }
