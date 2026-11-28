@@ -809,6 +809,7 @@
   "txt_sin_maquinas_material": "— Not in any machine —",
   "menu_instalar_mantpro": "📱 Install MantPro on phone",
   "menu_instalar_mantpro_stock": "📦 Install MantPro Stock on phone",
+  "menu_instalar_mantpro_operarios": "📲 Install MantPro Operarios on tablet",
   "title_instalar_app_movil": "Install {app} on the phone",
   "lbl_qr_instalar_paso1": "1. Scan the code with the phone's camera.",
   "lbl_qr_instalar_paso2": "2. Open the link: the latest version of {app} is downloaded.",

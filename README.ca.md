@@ -208,7 +208,7 @@ estables. Els canvis de cada versió són a [CHANGELOG.md](CHANGELOG.md).
 - **⏱️ Temps treballat**: quant va durar cada treball i quantes persones, **apuntat després** (sense cronòmetre: en una avaria primer s'arregla), al PC o al mòbil, també en completar avisos i pendents, i corregible a l'historial. Amb un cost de l'hora intern (només administradors; cada treball desa la tarifa del moment), `Màquines > 💶 Costos` mostra hores, mà d'obra, recanvis i total per màquina, i les estadístiques per tècnic inclouen les seves hores
 - **🏷️ Etiquetes QR per màquina**: PDF d'etiquetes per enganxar a les màquines; en escanejar-les amb l'app MantPro s'obre la fitxa de la màquina
 - **🔍 Avís de repetits**: en crear o reanomenar una màquina, o en crear o editar un article, avisa si ja n'hi ha un altre amb el mateix codi o un nom igual o molt semblant (per exemple «Extractor de fins» / «Extracció de fins»), sense avisar quan només canvia el número («Lora 1» / «Lora 2»)
-- **📲 Instal·lar les apps amb un QR**: `Eines > 📱 Instal·lar MantPro al mòbil` i `📦 Instal·lar MantPro Stock al mòbil` mostren un QR que, en escanejar-lo amb la càmera del mòbil, baixa l'última versió estable de l'app
+- **📲 Instal·lar les apps amb un QR**: `Eines > 📱 Instal·lar MantPro al mòbil`, `📦 Instal·lar MantPro Stock al mòbil` i `📲 Instal·lar MantPro Operarios a la tauleta` mostren un QR que, en escanejar-lo amb la càmera del mòbil, baixa l'última versió estable de l'app
 - **🔔 Avisos d'actualització**: `Ajuda > 🔄 Cercar Actualitzacions` avisa de les versions noves; la instal·lada des d'OBS indica que s'actualitza amb `zypper` (openSUSE) o `dnf` (Fedora)
 
 ### 📱 Aplicació mòbil (Android)
@@ -415,7 +415,7 @@ Descarrega l'`.apk` corresponent des de [GitHub Releases](https://github.com/Ana
 **Nota**: és possible que hagis d'habilitar "Orígens desconeguts" a la configuració de seguretat del dispositiu.
 
 **Des del PC, amb un QR**: a `Eines > 📱 Instal·lar MantPro al mòbil` (o
-`📦 Instal·lar MantPro Stock al mòbil`) apareix un QR. Escaneja'l amb la càmera
+`📦 Instal·lar MantPro Stock al mòbil` o `📲 Instal·lar MantPro Operarios a la tauleta`) apareix un QR. Escaneja'l amb la càmera
 del mòbil, obre l'enllaç i es baixa l'última versió estable de l'app. Un cop
 instal·lades, les apps avisen de les versions noves i s'actualitzen des del
 mateix avís amb el botó «Actualitzar».
@@ -522,7 +522,7 @@ i magatzem). Rols disponibles:
 | **Administrador** | Tot el que fan el tècnic i el de magatzem, a més de donar d'alta i de baixa usuaris, canviar rols, restablir contrasenyes, editar o esborrar **qualsevol** registre de l'historial, reassignar l'autor d'un o diversos registres alhora, i consultar el registre d'auditoria de canvis |
 | **Tècnic** | Registrar treballs, completar pendents i avisos, editar o esborrar **només els seus propis** registres de l'historial, i canviar la seva pròpia contrasenya |
 | **Magatzem** | Donar d'alta o editar materials i registrar entrades/sortides d'estoc des de l'aplicació mòbil **MantPro Stock** |
-| **Operari** | Només **avisar d'avaries i treballs pendents** (títol, detalls, prioritat, especialitat i fotos) des del PC, MantPro Web o l'app MantPro, també sense connexió, i veure els que ha avisat ell mentre continuen sense fer. No veu res més (ni altres pestanyes, ni historial, ni màquines, ni estoc) i no assigna tècnic. Va sol: amb un altre rol, compta l'altre |
+| **Operari** | Només **avisar d'avaries i treballs pendents** (títol, detalls, prioritat, especialitat i fotos) des del PC, MantPro Web, l'app MantPro o la tauleta compartida **MantPro Operarios**, també sense connexió, i veure els que ha avisat ell mentre continuen sense fer. No veu res més (ni altres pestanyes, ni historial, ni màquines, ni estoc) i no assigna tècnic. Va sol: amb un altre rol, compta l'altre |
 
 Un usuari **només de magatzem** no pot crear pendents: només fa servir el magatzem.
 
@@ -825,6 +825,17 @@ MantPro fa servir un sistema de sincronització basat en:
 > certificat i la seva empremta viatja al QR: el mòbil només es connecta a
 > *aquell* PC, així que ningú a la WiFi pot llegir el trànsit ni fer-se passar
 > per ell. Els mòbils ja vinculats passen sols a HTTPS en actualitzar l'app.
+
+### 📲 MantPro Operarios (tauleta d'avisos)
+
+Per deixar una tauleta fixa al taller en lloc d'un PC o d'un navegador amb la finestra d'avisos. És la mateixa finestra que a MantPro Web: cada persona tria el seu nom a «Qui ets?», escriu l'avís (títol, detalls, especialitat, prioritat i fotos fetes o triades a la mateixa tauleta) i el confirma amb la **seva** contrasenya. L'avís queda a nom seu i sense assignar.
+
+1. **Instal·lar**: al PC, `Eines > 📲 Instal·lar MantPro Operarios a la tauleta` mostra un QR que descarrega l'última versió.
+2. **Vincular** (només una vegada, ho fa un administrador): a la tauleta, «Escaneja el QR del PC» amb el QR de `Eines > 📲 Sincronitzar App (QR)` i entra amb un usuari **administrador**. Si el PC té sessió de MantPro Cloud, el QR mostra **☁** al costat de l'adreça i la tauleta també podrà usar el núvol.
+3. **Sense connexió**: els avisos es desen a la tauleta i s'envien sols en tornar la connexió, amb el PC per la WiFi o, si el PC està apagat, amb MantPro Cloud per internet. La capçalera indica en tot moment si està connectada al PC, a MantPro Cloud o sense connexió, i quants avisos queden per enviar. La contrasenya de qui avisa es comprova a la pròpia tauleta (amb la llista d'usuaris que baixa en sincronitzar), així que funciona encara que no hi hagi xarxa.
+4. **Tancar**: la pantalla queda fixada; només se n'surt amb «🔒 Tanca» i la contrasenya de l'administrador que la va vincular. Des d'allà es sincronitza a mà, es tria la seu de la tauleta, l'idioma i el tema, es busquen actualitzacions o es desvincula.
+
+Si amb el PC apagat la tauleta diu «Sense connexió» encara que hi hagi internet, torna a vincular-la amb un QR que porti el **☁**.
 
 ### Configuració de la xarxa
 

@@ -4,10 +4,10 @@ Registro de los cambios de cada versión. Lo nuevo se va apuntando en **Sin publ
 
 Las versiones de pruebas (`v3.10.2-dev`, `v3.10.2-dev1`…) se publican como *pre-release* y no tienen sección propia: lo que llevan está en **Sin publicar** hasta que sale la versión final.
 
-## Sin publicar
+## 3.10.13 — 2026-11-28
 
 ### Novedades
-- **📱 MantPro Operarios, la ventana de avisos en una tablet.** Nueva app Android (`MantProOperarios.apk`) para dejar una tablet fija en el taller en lugar de un PC o un navegador con la ventana de avisos (quiosco): es la misma ventana que en MantPro Web (lista «¿Quién eres?», título, detalles, especialidad, prioridad y colección de fotos), pero las fotos se hacen o se eligen en la propia tablet, sin QR. La vincula un administrador con el QR del PC y sincroniza con el PC por la WiFi o con MantPro Cloud por internet, igual que MantPro y MantPro Stock. Funciona sin conexión: la contraseña de quien avisa se comprueba en la tablet y los avisos se guardan y se envían al volver la conexión, a nombre de quien los puso y sin asignar. La pantalla queda fijada y solo se cierra con la contraseña del administrador. Rutas nuevas de la API: `/api/quiosco/usuarios` y `/api/quiosco/aviso` (solo administradores).
+- **📱 MantPro Operarios, la ventana de avisos en una tablet.** Nueva app Android (`MantProOperarios.apk`) para dejar una tablet fija en el taller en lugar de un PC o un navegador con la ventana de avisos (quiosco): es la misma ventana que en MantPro Web (lista «¿Quién eres?», título, detalles, especialidad, prioridad y colección de fotos), pero las fotos se hacen o se eligen en la propia tablet, sin QR. La vincula un administrador con el QR del PC y sincroniza con el PC por la WiFi o con MantPro Cloud por internet, igual que MantPro y MantPro Stock. Funciona sin conexión: la contraseña de quien avisa se comprueba en la tablet y los avisos se guardan y se envían al volver la conexión, a nombre de quien los puso y sin asignar. La pantalla queda fijada y solo se cierra con la contraseña del administrador. Rutas nuevas de la API: `/api/quiosco/usuarios` y `/api/quiosco/aviso` (solo administradores). Se instala con el QR de `Herramientas > 📲 Instalar MantPro Operarios en tablet` del PC. Está en los 8 idiomas de MantPro, y cualquiera puede cambiarlo con el botón 🌐 de la ventana de avisos sin cerrarla.
 
 ## 3.10.12 — 2026-11-27
 

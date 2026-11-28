@@ -809,6 +809,7 @@
   "txt_sin_maquinas_material": "— Ez dago inongo makinatan —",
   "menu_instalar_mantpro": "📱 Instalatu MantPro mugikorrean",
   "menu_instalar_mantpro_stock": "📦 Instalatu MantPro Stock mugikorrean",
+  "menu_instalar_mantpro_operarios": "📲 Instalatu MantPro Operarios tabletan",
   "title_instalar_app_movil": "Instalatu {app} mugikorrean",
   "lbl_qr_instalar_paso1": "1. Eskaneatu kodea mugikorraren kamerarekin.",
   "lbl_qr_instalar_paso2": "2. Ireki esteka: {app}(r)en azken bertsioa deskargatzen da.",

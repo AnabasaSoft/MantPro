@@ -208,7 +208,7 @@ dans [CHANGELOG.md](CHANGELOG.md).
 - **⏱️ Temps passé** : combien de temps a duré chaque intervention et combien de personnes, **noté après** (sans chronomètre : lors d'une panne, on répare d'abord), sur le PC ou le mobile, aussi à la clôture des rappels et des interventions en attente, et corrigeable dans l'historique. Avec un coût horaire interne (administrateurs uniquement ; chaque intervention garde le tarif du moment), `Machines > 💶 Coûts` affiche heures, main-d'œuvre, pièces et total par machine, et les statistiques par technicien incluent leurs heures
 - **🏷️ Étiquettes QR par machine** : PDF d'étiquettes à coller sur les machines ; en les scannant avec l'application MantPro, la fiche de la machine s'ouvre
 - **🔍 Alerte de doublons** : lors de la création ou du renommage d'une machine, ou de la création ou modification d'un article, avertit s'il en existe déjà un autre avec le même code ou un nom identique ou très similaire (par exemple « Extracteur de fines » / « Extraction de fines »), sans avertir quand seul le numéro change (« Lora 1 » / « Lora 2 »)
-- **📲 Installer les applications avec un QR code** : `Outils > 📱 Installer MantPro sur le mobile` et `📦 Installer MantPro Stock sur le mobile` affichent un QR code qui, scanné avec l'appareil photo du mobile, télécharge la dernière version stable de l'application
+- **📲 Installer les applications avec un QR code** : `Outils > 📱 Installer MantPro sur le mobile`, `📦 Installer MantPro Stock sur le mobile` et `📲 Installer MantPro Operarios sur la tablette` affichent un QR code qui, scanné avec l'appareil photo du mobile, télécharge la dernière version stable de l'application
 - **🔔 Avis de mise à jour** : `Aide > 🔄 Rechercher des mises à jour` signale les nouvelles versions ; la version installée depuis OBS indique qu'elle se met à jour avec `zypper` (openSUSE) ou `dnf` (Fedora)
 
 ### 📱 Application mobile (Android)
@@ -415,7 +415,7 @@ Téléchargez le `.apk` correspondant depuis [GitHub Releases](https://github.co
 **Remarque** : il peut être nécessaire d'activer « Sources inconnues » dans les paramètres de sécurité de l'appareil.
 
 **Depuis le PC, avec un QR code** : `Outils > 📱 Installer MantPro sur le
-mobile` (ou `📦 Installer MantPro Stock sur le mobile`) affiche un QR code.
+mobile` (ou `📦 Installer MantPro Stock sur le mobile` ou `📲 Installer MantPro Operarios sur la tablette`) affiche un QR code.
 Scannez-le avec l'appareil photo du mobile, ouvrez le lien et la dernière
 version stable de l'application est téléchargée. Une fois installées, les
 applications signalent les nouvelles versions et se mettent à jour depuis l'avis
@@ -523,7 +523,7 @@ exemple technicien et magasin). Rôles disponibles :
 | **Administrateur** | Tout ce que font le technicien et le magasin, plus créer et désactiver des utilisateurs, changer les rôles, réinitialiser les mots de passe, modifier ou supprimer **n'importe quel** enregistrement de l'historique, réassigner l'auteur d'un ou plusieurs enregistrements à la fois et consulter le journal d'audit des modifications |
 | **Technicien** | Enregistrer des interventions, terminer les tâches en attente et les rappels, modifier ou supprimer **uniquement ses propres** enregistrements de l'historique et changer son propre mot de passe |
 | **Magasin** | Créer ou modifier des articles et enregistrer des entrées/sorties de stock depuis l'application **MantPro Stock** |
-| **Opérateur** | Seulement **signaler des pannes et des tâches en attente** (titre, détails, priorité, spécialité et photos) depuis le PC, MantPro Web ou l'application MantPro, même hors ligne, et voir celles qu'il a signalées tant qu'elles ne sont pas faites. Il ne voit rien d'autre (ni les autres onglets, ni l'historique, ni les machines, ni le stock) et n'assigne pas de technicien. Il va seul : avec un autre rôle, c'est l'autre qui compte |
+| **Opérateur** | Seulement **signaler des pannes et des tâches en attente** (titre, détails, priorité, spécialité et photos) depuis le PC, MantPro Web, l'application MantPro ou la tablette partagée **MantPro Operarios**, même hors ligne, et voir celles qu'il a signalées tant qu'elles ne sont pas faites. Il ne voit rien d'autre (ni les autres onglets, ni l'historique, ni les machines, ni le stock) et n'assigne pas de technicien. Il va seul : avec un autre rôle, c'est l'autre qui compte |
 
 Un utilisateur **uniquement magasin** ne peut pas créer de tâches en attente : il utilise seulement le magasin.
 
@@ -850,6 +850,17 @@ MantPro utilise un système de synchronisation basé sur :
 > qu'à *ce* PC, donc personne sur le Wi-Fi ne peut lire le trafic ni se faire
 > passer pour lui. Les mobiles déjà associés passent tout seuls en HTTPS en
 > mettant l'application à jour.
+
+### 📲 MantPro Operarios (tablette d'avis)
+
+Pour laisser une tablette fixe à l'atelier, à la place d'un PC ou d'un navigateur avec la fenêtre d'avis. C'est la même fenêtre que dans MantPro Web : chaque personne choisit son nom dans « Qui êtes-vous ? », rédige l'avis (titre, détails, spécialité, priorité et photos prises ou choisies sur la tablette elle-même) et le confirme avec **son propre** mot de passe. L'avis est enregistré à son nom et reste non assigné.
+
+1. **Installer** : sur le PC, `Outils > 📲 Installer MantPro Operarios sur la tablette` affiche un QR code qui télécharge la dernière version.
+2. **Lier** (une seule fois, par un administrateur) : sur la tablette, « Scanner le QR code du PC » avec le QR code de `Outils > 📲 Synchroniser l'app (QR)`, puis se connecter avec un compte **administrateur**. Si le PC a une session MantPro Cloud, le QR code affiche **☁** à côté de l'adresse et la tablette pourra aussi utiliser le cloud.
+3. **Hors ligne** : les avis sont enregistrés sur la tablette et envoyés automatiquement dès que la connexion revient, soit au PC par WiFi, soit, si le PC est éteint, à MantPro Cloud par internet. L'en-tête indique à tout moment si la tablette est connectée au PC, à MantPro Cloud ou hors ligne, et combien d'avis restent à envoyer. Le mot de passe de la personne qui signale est vérifié sur la tablette elle-même (avec la liste des utilisateurs téléchargée lors de la synchronisation), donc cela fonctionne même sans réseau.
+4. **Fermer** : l'écran reste verrouillé ; on ne le quitte qu'avec « 🔒 Fermer » et le mot de passe de l'administrateur qui l'a liée. De là, on peut synchroniser à la main, choisir le site, la langue et le thème de la tablette, rechercher des mises à jour ou la dissocier.
+
+Si, PC éteint, la tablette affiche « Hors ligne » alors qu'il y a internet, relie-la de nouveau avec un QR code portant le **☁**.
 
 ### Configuration réseau
 

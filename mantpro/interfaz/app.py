@@ -476,6 +476,7 @@ class MaintenanceApp(Temas, PestanaDashboard, PestanaCalendario, PestanaRegistra
              (t("menu_sync_qr"), self.mostrar_dialogo_qr, True),
              (tt("menu_instalar_mantpro", "📱 Instalar MantPro en móvil"), lambda: self.mostrar_qr_instalar_app("MantPro.apk", "MantPro"), True),
              (tt("menu_instalar_mantpro_stock", "📦 Instalar MantPro Stock en móvil"), lambda: self.mostrar_qr_instalar_app("MantProStock.apk", "MantPro Stock"), True),
+             (tt("menu_instalar_mantpro_operarios", "📲 Instalar MantPro Operarios en tablet"), lambda: self.mostrar_qr_instalar_app("MantProOperarios.apk", "MantPro Operarios"), True),
              (tt("menu_sesiones", "🔐 Sesiones de dispositivos"), self.gestionar_sesiones, admin),
              (tt("menu_puerto_servidor", "🔌 Puerto de sincronización…"), self.cambiar_puerto_servidor, admin)],
             # Usuarios y seguridad

@@ -210,7 +210,7 @@ abisuak bakarrik jasotzen dituzte. Bertsio bakoitzaren aldaketak
 - **⏱️ Lan egindako denbora**: lan bakoitzak zenbat iraun zuen eta zenbat pertsonak, **gero idatzita** (kronometrorik gabe: matxura batean lehenik konpontzen da), PCan edo mugikorrean, abisuak eta zain dauden lanak osatzean ere, eta historian zuzen daiteke. Barneko orduko kostu batekin (administratzaileek bakarrik; lan bakoitzak uneko tarifa gordetzen du), `Makinak > 💶 Kostuak` atalak orduak, esku-lana, ordezko piezak eta guztizkoa erakusten ditu makinako, eta teknikarien estatistiketan haien orduak agertzen dira
 - **🏷️ Makina bakoitzeko QR etiketak**: makinetan itsasteko etiketen PDFa; MantPro aplikazioarekin eskaneatzean makinaren fitxa irekitzen da
 - **🔍 Bikoiztuen abisua**: makina bat sortzean edo izena aldatzean, edo artikulu bat sortzean edo editatzean, kode bera edo izen bera edo oso antzekoa duen beste bat badagoen abisatzen du (adib. «Finoen erauzgailua» / «Finoen erauzketa»), zenbakia bakarrik aldatzen denean abisatu gabe («Lora 1» / «Lora 2»)
-- **📲 Aplikazioak QR batekin instalatu**: `Tresnak > 📱 Instalatu MantPro mugikorrean` eta `📦 Instalatu MantPro Stock mugikorrean` aukerek QR bat erakusten dute; mugikorraren kamerarekin eskaneatzean aplikazioaren azken bertsio egonkorra deskargatzen da
+- **📲 Aplikazioak QR batekin instalatu**: `Tresnak > 📱 Instalatu MantPro mugikorrean`, `📦 Instalatu MantPro Stock mugikorrean` eta `📲 Instalatu MantPro Operarios tabletan` aukerek QR bat erakusten dute; mugikorraren kamerarekin eskaneatzean aplikazioaren azken bertsio egonkorra deskargatzen da
 - **🔔 Eguneraketa-abisuak**: `Laguntza > 🔄 Bilatu Eguneraketak` aukerak bertsio berriak jakinarazten ditu; OBSetik instalatutakoak `zypper` (openSUSE) edo `dnf` (Fedora) bidez eguneratzen dela adierazten du
 
 ### 📱 Mugikorreko aplikazioa (Android)
@@ -416,7 +416,7 @@ Deskargatu dagokion `.apk`-a [GitHub Releases](https://github.com/AnabasaSoft/Ma
 **Oharra**: Baliteke zure gailuaren segurtasun-ezarpenetan "Jatorri ezezagunak" gaitu behar izatea.
 
 **Ordenagailutik, QR batekin**: `Tresnak > 📱 Instalatu MantPro mugikorrean`
-(edo `📦 Instalatu MantPro Stock mugikorrean`) aukeran QR bat agertzen da.
+(edo `📦 Instalatu MantPro Stock mugikorrean` edo `📲 Instalatu MantPro Operarios tabletan`) aukeran QR bat agertzen da.
 Eskaneatu mugikorraren kamerarekin, ireki esteka eta aplikazioaren azken
 bertsio egonkorra deskargatzen da. Instalatu ondoren, aplikazioek bertsio
 berriak jakinarazten dituzte eta abisutik bertatik eguneratzen dira
@@ -524,7 +524,7 @@ teknikaria eta biltegia). Rol erabilgarriak:
 | **Administratzailea** | Teknikariak eta biltegiak egin dezaketen guztia, gehi erabiltzaileei alta eta baja ematea, rolak aldatzea, pasahitzak berrezartzea, historiako **edozein** erregistro editatzea edo ezabatzea, erregistro baten edo batzuen egilea aldi berean berresleitzea, eta aldaketen auditoria-erregistroa kontsultatzea |
 | **Teknikaria** | Lanak erregistratzea, egitekoak eta abisuak osatzea, historiako **bere** erregistroak **soilik** editatzea edo ezabatzea, eta bere pasahitza aldatzea |
 | **Biltegia** | Materialei alta ematea edo editatzea eta stockaren sarrerak/irteerak erregistratzea **MantPro Stock** mugikorreko aplikaziotik |
-| **Operadorea** | **Matxurak eta egiteko lanak abisatu** baino ez (izenburua, xehetasunak, lehentasuna, espezialitatea eta argazkiak) PCtik, MantPro Webetik edo MantPro aplikaziotik, konexiorik gabe ere bai, eta berak abisatutakoak ikusi oraindik egiteke dauden bitartean. Ez du beste ezer ikusten (ez beste fitxarik, ez historiarik, ez makinarik, ez stockik) eta ez du teknikaririk esleitzen. Bakarrik doa: beste rol batekin, bestea da kontuan hartzen dena |
+| **Operadorea** | **Matxurak eta egiteko lanak abisatu** baino ez (izenburua, xehetasunak, lehentasuna, espezialitatea eta argazkiak) PCtik, MantPro Webetik, MantPro aplikaziotik edo partekatutako **MantPro Operarios** tabletatik, konexiorik gabe ere bai, eta berak abisatutakoak ikusi oraindik egiteke dauden bitartean. Ez du beste ezer ikusten (ez beste fitxarik, ez historiarik, ez makinarik, ez stockik) eta ez du teknikaririk esleitzen. Bakarrik doa: beste rol batekin, bestea da kontuan hartzen dena |
 
 **Biltegiko soilik** den erabiltzaile batek ezin du egitekorik sortu: biltegia baino ez du erabiltzen.
 
@@ -837,6 +837,17 @@ MantPro-k sinkronizazio-sistema bat erabiltzen du, oinarri hauekin:
 > da, beraz WiFian inork ezin du trafikoa irakurri ez PCaren itxurarik egin.
 > Dagoeneko lotutako mugikorrak bere kabuz pasatzen dira HTTPSra aplikazioa
 > eguneratzean.
+
+### 📲 MantPro Operarios (abisuen tableta)
+
+Tableta finko bat tailerrean uzteko, PC edo abisuen leihoa duen nabigatzaile baten ordez. MantPro Webeko leiho bera da: pertsona bakoitzak bere izena aukeratzen du «Nor zara?» atalean, abisua idazten du (izenburua, xehetasunak, espezialitatea, lehentasuna eta tabletan bertan ateratako edo aukeratutako argazkiak) eta **bere** pasahitzarekin berresten du. Abisua bere izenarekin geratzen da, esleitu gabe.
+
+1. **Instalatu**: PCan, `Tresnak > 📲 Instalatu MantPro Operarios tabletan` QR kode bat erakusten du, azken bertsioa deskargatzeko.
+2. **Lotu** (behin bakarrik, administratzaile batek egiten du): tabletan, «Eskaneatu PCko QRa» eta `Tresnak > 📲 Sinkronizatu Appa (QR)` menuko QRa eskaneatu, eta **administratzaile** erabiltzaile batekin sartu. PCak MantPro Cloud saioa badu, QRak helbidearen ondoan **☁** erakusten du eta tabletak hodeia ere erabili ahal izango du.
+3. **Konexiorik gabe**: abisuak tabletan gordetzen dira eta konexioa berreskuratzean automatikoki bidaltzen dira: PCra WiFi bidez edo PC itzalita badago, MantPro Cloud-era internet bidez. Goiburuak une oro adierazten du PCrekin, MantPro Cloud-ekin edo konexiorik gabe dagoen, eta zenbat abisu dauden bidaltzeko zain. Abisua ematen duenaren pasahitza tabletan bertan egiaztatzen da (sinkronizatzean jaitsitako erabiltzaile zerrendarekin), beraz, sarerik ez dagoenean ere funtzionatzen du.
+4. **Itxi**: pantaila finkatuta geratzen da; «🔒 Itxi» eta hura lotu zuen administratzailearen pasahitzarekin bakarrik ateratzen da. Hortik eskuz sinkronizatu, tabletaren egoitza, hizkuntza eta gaia aukeratu, eguneraketak bilatu edo lotura kendu daiteke.
+
+PC itzalita dagoela tabletak «Konexiorik gabe» esaten badu internet izan arren, berriro lotu ezazu **☁** daraman QR batekin.
 
 ### Sarearen konfigurazioa
 

@@ -208,7 +208,7 @@ versiones estables. Los cambios de cada versión están en
 - **⏱️ Tiempo Trabajado**: cuánto duró cada trabajo y cuántas personas, **apuntado después** (sin cronómetro: en una avería primero se arregla), en el PC o en el móvil, también al completar avisos y pendientes, y corregible en el historial. Con un coste de la hora interno (solo administradores; cada trabajo guarda la tarifa del momento), `Máquinas > 💶 Costes` muestra horas, mano de obra, repuestos y total por máquina, y las estadísticas por técnico incluyen sus horas
 - **🏷️ Etiquetas QR por Máquina**: PDF de etiquetas para pegar en las máquinas; al escanearlas con la app MantPro se abre la ficha de la máquina
 - **🔍 Aviso de Repetidos**: al crear o renombrar una máquina, o al crear o editar un artículo, avisa si ya hay otro con el mismo código o un nombre igual o muy parecido (por ejemplo «Extractor de finos» / «Extracción de finos»), sin avisar cuando solo cambia el número («Lora 1» / «Lora 2»)
-- **📲 Instalar las Apps con un QR**: `Herramientas > 📱 Instalar MantPro en móvil` y `📦 Instalar MantPro Stock en móvil` muestran un QR que, al escanearlo con la cámara del móvil, descarga la última versión estable de la app
+- **📲 Instalar las Apps con un QR**: `Herramientas > 📱 Instalar MantPro en móvil`, `📦 Instalar MantPro Stock en móvil` y `📲 Instalar MantPro Operarios en tablet` muestran un QR que, al escanearlo con la cámara del móvil, descarga la última versión estable de la app
 - **🔔 Avisos de Actualización**: `Ayuda > 🔄 Buscar Actualizaciones` avisa de las nuevas versiones; la instalada desde OBS indica que se actualiza con `zypper` (openSUSE) o `dnf` (Fedora)
 
 ### 📱 Aplicación Móvil (Android)
@@ -414,7 +414,7 @@ Descarga el `.apk` correspondiente desde [GitHub Releases](https://github.com/An
 **Nota**: Es posible que necesites habilitar "Orígenes desconocidos" en la configuración de seguridad de tu dispositivo.
 
 **Desde el PC, con un QR**: en `Herramientas > 📱 Instalar MantPro en móvil`
-(o `📦 Instalar MantPro Stock en móvil`) aparece un QR. Escanéalo con la cámara
+(o `📦 Instalar MantPro Stock en móvil` o `📲 Instalar MantPro Operarios en tablet`) aparece un QR. Escanéalo con la cámara
 del móvil, abre el enlace y se descarga la última versión estable de la app.
 Una vez instaladas, las apps avisan de las nuevas versiones y se actualizan
 desde el propio aviso con el botón «Actualizar».
@@ -521,7 +521,7 @@ técnico y almacén). Roles disponibles:
 | **Administrador** | Todo lo del técnico y lo de almacén, más dar de alta y de baja usuarios, cambiar roles, restablecer contraseñas, editar o borrar **cualquier** registro del historial, reasignar el autor de uno o varios registros a la vez, y consultar el registro de auditoría de cambios |
 | **Técnico** | Registrar trabajos, completar pendientes y avisos, editar o borrar **solo sus propios** registros del historial, y cambiar su propia contraseña |
 | **Almacén** | Dar de alta o editar materiales y registrar entradas/salidas de stock desde la app móvil **MantPro Stock** |
-| **Operario** | Solo **avisar de averías y trabajos pendientes** (título, detalles, prioridad, especialidad y fotos) desde el PC, MantPro Web o la app MantPro, también sin conexión, y ver los que ha avisado él mientras siguen sin hacer. No ve nada más (ni otras pestañas, ni historial, ni máquinas, ni stock) y no asigna técnico. Va solo: con otro rol, cuenta el otro |
+| **Operario** | Solo **avisar de averías y trabajos pendientes** (título, detalles, prioridad, especialidad y fotos) desde el PC, MantPro Web, la app MantPro o la tablet compartida **MantPro Operarios**, también sin conexión, y ver los que ha avisado él mientras siguen sin hacer. No ve nada más (ni otras pestañas, ni historial, ni máquinas, ni stock) y no asigna técnico. Va solo: con otro rol, cuenta el otro |
 
 Un usuario **solo de almacén** no puede crear pendientes: solo usa el almacén.
 
@@ -825,6 +825,17 @@ MantPro utiliza un sistema de sincronización basado en:
 > y su huella viaja en el QR: el móvil solo se conecta a *ese* PC, así que nadie
 > en la WiFi puede leer el tráfico ni hacerse pasar por él. Los móviles ya
 > vinculados pasan solos a HTTPS al actualizar la app.
+
+### 📲 MantPro Operarios (tablet de avisos)
+
+Para dejar una tablet fija en el taller en lugar de un PC o un navegador con la ventana de avisos. Es la misma ventana que en MantPro Web: cada persona elige su nombre en «¿Quién eres?», escribe el aviso (título, detalles, especialidad, prioridad y fotos hechas o elegidas en la propia tablet) y lo confirma con **su** contraseña. El aviso queda a su nombre y sin asignar.
+
+1. **Instalar**: en el PC, `Herramientas > 📲 Instalar MantPro Operarios en tablet` muestra un QR que descarga la última versión.
+2. **Vincular** (solo una vez, lo hace un administrador): en la tablet, «Escanear el QR del PC» con el QR de `Herramientas > 📲 Sincronizar App (QR)` y entrar con un usuario **administrador**. Si el PC tiene sesión de MantPro Cloud, el QR muestra **☁** junto a la dirección y la tablet podrá usar también la nube.
+3. **Sin conexión**: los avisos se guardan en la tablet y se envían solos al volver la conexión, con el PC por la WiFi o, si el PC está apagado, con MantPro Cloud por internet. La cabecera indica en todo momento si está conectada al PC, a MantPro Cloud o sin conexión, y cuántos avisos quedan por enviar. La contraseña de quien avisa se comprueba en la propia tablet (con la lista de usuarios que baja al sincronizar), así que funciona aunque no haya red.
+4. **Cerrar**: la pantalla queda fijada; solo se sale con «🔒 Cerrar» y la contraseña del administrador que la vinculó. Desde ahí se sincroniza a mano, se elige la sede de la tablet, el idioma y el tema, se buscan actualizaciones o se desvincula.
+
+Si con el PC apagado la tablet dice «Sin conexión» aunque haya internet, vuelve a vincularla con un QR que lleve el **☁**.
 
 ### Configuración de Red
 

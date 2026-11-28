@@ -208,7 +208,7 @@ Hinweise auf stabile Versionen. Die Änderungen jeder Version stehen in
 - **⏱️ Arbeitszeit**: wie lange jede Arbeit gedauert hat und wie viele Personen, **nachträglich erfasst** (ohne Stoppuhr: bei einer Störung wird zuerst repariert), auf dem PC oder auf dem Handy, auch beim Erledigen von Erinnerungen und offenen Arbeiten, und im Verlauf korrigierbar. Mit einem internen Stundensatz (nur Administratoren; jede Arbeit speichert den damaligen Satz) zeigt `Maschinen > 💶 Kosten` Stunden, Arbeitskosten, Ersatzteile und Summe pro Maschine, und die Statistik pro Techniker enthält seine Stunden
 - **🏷️ QR-Etiketten pro Maschine**: PDF mit Etiketten zum Aufkleben auf die Maschinen; beim Scannen mit der App MantPro öffnet sich der Steckbrief der Maschine
 - **🔍 Hinweis auf Doppelte**: Beim Anlegen oder Umbenennen einer Maschine oder beim Anlegen oder Bearbeiten eines Artikels weist es darauf hin, wenn es bereits einen mit demselben Code oder einem gleichen bzw. sehr ähnlichen Namen gibt (zum Beispiel „Feinstaubabsaugung“ / „Feinstaub-Absaugung“), ohne Hinweis, wenn sich nur die Nummer ändert („Lora 1“ / „Lora 2“)
-- **📲 Apps per QR-Code installieren**: `Werkzeuge > 📱 MantPro auf dem Handy installieren` und `📦 MantPro Stock auf dem Handy installieren` zeigen einen QR-Code, der beim Scannen mit der Handykamera die neueste stabile Version der App herunterlädt
+- **📲 Apps per QR-Code installieren**: `Werkzeuge > 📱 MantPro auf dem Handy installieren`, `📦 MantPro Stock auf dem Handy installieren` und `📲 MantPro Operarios auf dem Tablet installieren` zeigen einen QR-Code, der beim Scannen mit der Handykamera die neueste stabile Version der App herunterlädt
 - **🔔 Update-Hinweise**: `Hilfe > 🔄 Nach Updates suchen` weist auf neue Versionen hin; bei Installation über OBS wird angezeigt, dass das Update über `zypper` (openSUSE) oder `dnf` (Fedora) erfolgt
 
 ### 📱 Handy-App (Android)
@@ -414,7 +414,7 @@ Laden Sie das passende `.apk` unter [GitHub Releases](https://github.com/Anabasa
 **Hinweis**: Eventuell müssen Sie in den Sicherheitseinstellungen Ihres Geräts „Unbekannte Quellen“ erlauben.
 
 **Vom PC aus, per QR-Code**: Unter `Werkzeuge > 📱 MantPro auf dem Handy installieren`
-(oder `📦 MantPro Stock auf dem Handy installieren`) erscheint ein QR-Code. Scannen Sie ihn mit der
+(oder `📦 MantPro Stock auf dem Handy installieren` oder `📲 MantPro Operarios auf dem Tablet installieren`) erscheint ein QR-Code. Scannen Sie ihn mit der
 Handykamera, öffnen Sie den Link, und die neueste stabile Version der App wird heruntergeladen.
 Einmal installiert, weisen die Apps auf neue Versionen hin und aktualisieren sich
 direkt aus dem Hinweis mit der Schaltfläche „Aktualisieren“.
@@ -521,7 +521,7 @@ Techniker und Lager). Verfügbare Rollen:
 | **Administrator** | Alles, was Techniker und Lager dürfen, dazu Benutzer anlegen und löschen, Rollen ändern, Passwörter zurücksetzen, **jeden** Eintrag im Verlauf bearbeiten oder löschen, den Autor eines oder mehrerer Einträge auf einmal neu zuweisen und das Änderungsprotokoll einsehen |
 | **Techniker** | Arbeiten erfassen, offene Arbeiten und Erinnerungen erledigen, **nur seine eigenen** Einträge im Verlauf bearbeiten oder löschen und sein eigenes Passwort ändern |
 | **Lager** | Material anlegen oder bearbeiten und Zu-/Abgänge in der Handy-App **MantPro Stock** erfassen |
-| **Bediener** | Nur **Störungen und offene Arbeiten melden** (Titel, Details, Priorität, Fachgebiet und Fotos) am PC, in MantPro Web oder in der App MantPro, auch offline, und die selbst gemeldeten sehen, solange sie offen sind. Sieht sonst nichts (keine anderen Reiter, keinen Verlauf, keine Maschinen, keinen Bestand) und weist keinen Techniker zu. Steht allein: mit einer anderen Rolle zählt die andere |
+| **Bediener** | Nur **Störungen und offene Arbeiten melden** (Titel, Details, Priorität, Fachgebiet und Fotos) am PC, in MantPro Web, in der App MantPro oder im gemeinsamen Tablet **MantPro Operarios**, auch offline, und die selbst gemeldeten sehen, solange sie offen sind. Sieht sonst nichts (keine anderen Reiter, keinen Verlauf, keine Maschinen, keinen Bestand) und weist keinen Techniker zu. Steht allein: mit einer anderen Rolle zählt die andere |
 
 Ein **reiner Lager**-Benutzer kann keine offenen Arbeiten anlegen: Er nutzt nur das Lager.
 
@@ -827,6 +827,17 @@ MantPro verwendet ein Synchronisierungssystem auf Basis von:
 > und dessen Fingerabdruck steht im QR-Code: Das Handy verbindet sich nur mit *diesem* PC, sodass niemand
 > im WLAN den Datenverkehr mitlesen oder sich als dieser PC ausgeben kann. Bereits
 > verbundene Handys wechseln beim Aktualisieren der App von selbst zu HTTPS.
+
+### 📲 MantPro Operarios (Meldetablet)
+
+Um ein fest installiertes Tablet in der Werkstatt aufzustellen, statt eines PCs oder eines Browsers mit dem Meldefenster. Es ist dasselbe Fenster wie in MantPro Web: Jede Person wählt im Feld „Wer bist du?“ ihren Namen, schreibt die Meldung (Titel, Details, Fachgebiet, Priorität sowie Fotos, die direkt auf dem Tablet gemacht oder ausgewählt werden) und bestätigt sie mit **ihrem eigenen** Passwort. Die Meldung wird unter ihrem Namen gespeichert und bleibt unzugewiesen.
+
+1. **Installieren**: Am PC zeigt `Werkzeuge > 📲 MantPro Operarios auf dem Tablet installieren` einen QR-Code, über den die neueste Version heruntergeladen wird.
+2. **Verknüpfen** (nur einmal, von einem Administrator durchgeführt): Auf dem Tablet „QR-Code des PCs scannen“ antippen und den QR-Code aus `Werkzeuge > 📲 App synchronisieren (QR)` scannen, dann mit einem **Administrator**-Konto anmelden. Wenn der PC eine MantPro-Cloud-Sitzung hat, zeigt der QR-Code **☁** neben der Adresse an, und das Tablet kann dann auch die Cloud nutzen.
+3. **Offline**: Meldungen werden auf dem Tablet gespeichert und automatisch gesendet, sobald wieder eine Verbindung besteht, entweder an den PC über WLAN oder, wenn der PC ausgeschaltet ist, an MantPro Cloud über das Internet. Die Kopfzeile zeigt jederzeit an, ob eine Verbindung zum PC, zu MantPro Cloud oder keine Verbindung besteht, und wie viele Meldungen noch zu senden sind. Das Passwort der meldenden Person wird auf dem Tablet selbst geprüft (anhand der Benutzerliste, die beim Synchronisieren heruntergeladen wird), sodass es auch ohne Netz funktioniert.
+4. **Schließen**: Der Bildschirm bleibt fixiert; verlassen wird er nur über „🔒 Schließen“ und das Passwort des Administrators, der das Tablet verknüpft hat. Von dort aus kann man manuell synchronisieren, Standort, Sprache und Design des Tablets wählen, nach Updates suchen oder die Verknüpfung aufheben.
+
+Wenn das Tablet bei ausgeschaltetem PC „Offline“ anzeigt, obwohl Internet vorhanden ist, verknüpfe es erneut mit einem QR-Code, der das **☁** trägt.
 
 ### Netzwerkeinstellungen
 

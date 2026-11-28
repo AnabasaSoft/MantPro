@@ -205,7 +205,7 @@ The changes in each version are listed in [CHANGELOG.md](CHANGELOG.md).
 - **⏱️ Time Worked**: how long each job took and how many people, **noted afterwards** (no stopwatch: in a breakdown you go and fix it first), on the PC or the phone, also when completing reminders and pending jobs, and it can be corrected in the history. With an internal cost per hour (administrators only; each job keeps the rate in force), `Machines > 💶 Costs` shows hours, labour, spare parts and total per machine, and the statistics by technician include their hours
 - **🏷️ QR Labels per Machine**: PDF of labels to stick on the machines; scanning them with the MantPro app opens the machine's page
 - **🔍 Duplicate Warning**: when creating or renaming a machine, or creating or editing an item, it warns if there is already another one with the same code or the same or a very similar name (e.g. “Fines extractor” / “Fines extraction”), without warning when only the number changes (“Lora 1” / “Lora 2”)
-- **📲 Install the Apps with a QR Code**: `Tools > 📱 Install MantPro on phone` and `📦 Install MantPro Stock on phone` show a QR code that, when scanned with the phone's camera, downloads the latest stable version of the app
+- **📲 Install the Apps with a QR Code**: `Tools > 📱 Install MantPro on phone`, `📦 Install MantPro Stock on phone` and `📲 Install MantPro Operarios on tablet` show a QR code that, when scanned with the phone's camera, downloads the latest stable version of the app
 - **🔔 Update Notifications**: `Help > 🔄 Check for Updates` notifies you of new versions; the version installed from OBS says it is updated with `zypper` (openSUSE) or `dnf` (Fedora)
 
 ### 📱 Mobile Application (Android)
@@ -411,7 +411,7 @@ Download the matching `.apk` from [GitHub Releases](https://github.com/AnabasaSo
 **Note**: You may need to enable "Unknown sources" in your device's security settings.
 
 **From the PC, with a QR code**: `Tools > 📱 Install MantPro on phone` (or
-`📦 Install MantPro Stock on phone`) shows a QR code. Scan it with the phone's
+`📦 Install MantPro Stock on phone` or `📲 Install MantPro Operarios on tablet`) shows a QR code. Scan it with the phone's
 camera, open the link and the latest stable version of the app is downloaded.
 Once installed, the apps notify you of new versions and update themselves from
 the notice with the “Update” button.
@@ -518,7 +518,7 @@ technician and warehouse). Available roles:
 | **Administrator** | Everything a technician and warehouse user can do, plus adding and deactivating users, changing roles, resetting passwords, editing or deleting **any** history record, reassigning the author of one or several records at once, and viewing the change audit log |
 | **Technician** | Log jobs, complete pending tasks and alerts, edit or delete **only their own** history records, and change their own password |
 | **Warehouse** | Add or edit materials and log stock in/out from the **MantPro Stock** mobile app |
-| **Operator** | Only **reports breakdowns and pending jobs** (title, details, priority, specialty and photos) from the PC, MantPro Web or the MantPro app, also offline, and sees the ones they reported while they are still open. Sees nothing else (no other tabs, history, machines or stock) and does not assign a technician. It goes alone: with another role, the other one counts |
+| **Operator** | Only **reports breakdowns and pending jobs** (title, details, priority, specialty and photos) from the PC, MantPro Web, the MantPro app or the shared **MantPro Operarios** tablet, also offline, and sees the ones they reported while they are still open. Sees nothing else (no other tabs, history, machines or stock) and does not assign a technician. It goes alone: with another role, the other one counts |
 
 A **warehouse-only** user cannot create pending jobs: they only use the warehouse.
 
@@ -814,6 +814,17 @@ MantPro uses a sync system based on:
 > fingerprint travels in the QR code: the phone only connects to *that* PC, so
 > nobody on the Wi-Fi can read the traffic or impersonate it. Phones that are
 > already linked switch to HTTPS by themselves after updating the app.
+
+### 📲 MantPro Operarios (alert tablet)
+
+For keeping a fixed tablet in the workshop instead of a PC or a browser with the alert window. It is the same window as in MantPro Web: each person picks their name under "Who are you?", writes the alert (title, details, specialty, priority and photos taken or chosen on the tablet itself) and confirms it with **their own** password. The alert is recorded under their name and left unassigned.
+
+1. **Install**: on the PC, `Tools > 📲 Install MantPro Operarios on tablet` shows a QR code that downloads the latest version.
+2. **Link** (only once, done by an administrator): on the tablet, tap "Scan the PC's QR code" and scan the QR from `Tools > 📲 Sync App (QR)`, then sign in with an **administrator** account. If the PC has a MantPro Cloud session, the QR shows **☁** next to the address and the tablet will also be able to use the cloud.
+3. **Offline**: alerts are saved on the tablet and sent automatically when the connection comes back, either to the PC over WiFi or, if the PC is switched off, to MantPro Cloud over the internet. The header shows at all times whether it is connected to the PC, to MantPro Cloud or offline, and how many alerts are still waiting to be sent. The password of whoever reports is checked on the tablet itself (against the user list downloaded when syncing), so it works even without a network.
+4. **Close**: the screen stays pinned; you only leave it with "🔒 Close" and the password of the administrator who linked it. From there you can sync by hand, choose the tablet's site, language and theme, look for updates or unlink it.
+
+If, with the PC switched off, the tablet says "Offline" even though there is internet, link it again with a QR code that carries the **☁**.
 
 ### Network Setup
 

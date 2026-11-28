@@ -32,6 +32,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
+import 'boton_idioma.dart';
 import 'cola.dart';
 import 'contrasenas.dart';
 import 'i18n/strings.dart';
@@ -558,11 +559,21 @@ class _PantallaQuioscoState extends State<PantallaQuiosco> {
             tamano: 0.85 * rem, relleno: const EdgeInsets.symmetric(horizontal: 10, vertical: 3)),
       ),
     );
+    // Idioma: cualquiera lo puede cambiar sin cerrar el quiosco (mientras el menú está abierto no se limpia).
+    final idioma = BotonIdioma(alAbrir: () => _dialogosAbiertos++, alCerrar: () {
+      if (_dialogosAbiertos > 0) _dialogosAbiertos--;
+      _tocado();
+    });
     if (estrecho) {
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         titulos,
         const SizedBox(height: 8),
-        Row(children: [Expanded(child: Align(alignment: Alignment.centerLeft, child: _indicador(k))), cerrar]),
+        Row(children: [
+          Expanded(child: Align(alignment: Alignment.centerLeft, child: _indicador(k))),
+          idioma,
+          const SizedBox(width: 8),
+          cerrar,
+        ]),
       ]);
     }
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -570,6 +581,8 @@ class _PantallaQuioscoState extends State<PantallaQuiosco> {
       const SizedBox(width: 12.8),
       ConstrainedBox(constraints: const BoxConstraints(maxWidth: 320), child: _indicador(k)),
       const SizedBox(width: 12.8),
+      idioma,
+      const SizedBox(width: 8),
       cerrar,
     ]);
   }

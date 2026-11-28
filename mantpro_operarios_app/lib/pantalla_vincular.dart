@@ -25,6 +25,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
+import 'boton_idioma.dart';
 import 'conexion_segura.dart';
 import 'i18n/strings.dart';
 import 'pantalla_qr.dart';
@@ -150,6 +151,7 @@ class _PantallaVincularState extends State<PantallaVincular> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const Align(alignment: Alignment.centerRight, child: BotonIdioma()),
                       Center(child: Image.asset('assets/icono.png', width: 96, height: 96)),
                       const SizedBox(height: 12),
                       Text(t('app_titulo'),

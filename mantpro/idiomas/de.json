@@ -809,6 +809,7 @@
   "txt_sin_maquinas_material": "— In keiner Maschine —",
   "menu_instalar_mantpro": "📱 MantPro auf dem Handy installieren",
   "menu_instalar_mantpro_stock": "📦 MantPro Stock auf dem Handy installieren",
+  "menu_instalar_mantpro_operarios": "📲 MantPro Operarios auf dem Tablet installieren",
   "title_instalar_app_movil": "{app} auf dem Handy installieren",
   "lbl_qr_instalar_paso1": "1. Scannen Sie den Code mit der Handykamera.",
   "lbl_qr_instalar_paso2": "2. Öffnen Sie den Link: Die neueste Version von {app} wird heruntergeladen.",
