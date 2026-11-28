@@ -123,7 +123,10 @@ class AuthService {
       final datos = json.decode(res.body) as Map<String, dynamic>;
       if (res.statusCode == 200 && datos['status'] == 'ok') {
         final u = datos['usuario'] as Map<String, dynamic>;
-        final roles = (u['roles'] as List?)?.map((r) => r.toString()).toList() ?? [u['rol']?.toString() ?? ''];
+        // Igual que usuarios.es_admin del servidor: si la lista de roles llega vacía (usuarios anteriores a los
+        // roles múltiples), cuenta el rol principal «rol».
+        var roles = (u['roles'] as List?)?.map((r) => r.toString()).toList() ?? <String>[];
+        if (roles.isEmpty) roles = [u['rol']?.toString() ?? ''];
         // Solo un administrador vincula la tablet: si no lo es, se cierra la sesión que se acaba de abrir.
         if (!roles.contains('admin')) {
           try {
